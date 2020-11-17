@@ -5,8 +5,10 @@
 Qiskit is an open-source framework for working with noisy intermediate-scale
 quantum computers (NISQ) at the level of pulses, circuits, and algorithms.
 
-This project contains a provider that allows access to **[IonQ]** ion-trap quantum
+This project contains a provider that allows access to **[IonQ]** ion trap quantum
 devices.
+
+The example python notebook (in `/example`) should help you understand basic usage. 
 
 ## License
 

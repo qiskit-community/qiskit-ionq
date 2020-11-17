@@ -109,3 +109,6 @@ ENV/
 .ropeproject
 
 .DS_Store
+
+# editor ignores
+.vscode/
