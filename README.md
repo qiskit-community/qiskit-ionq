@@ -56,7 +56,7 @@ To build the API reference and quickstart docs, run:
 ```
 pip install -r requirements-docs.txt
 make html
-open docs/build/index.html
+open build/html/index.html
 ```
 ## License
 
