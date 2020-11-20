@@ -1,3 +1,30 @@
+# -*- coding: utf-8 -*-
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# Copyright 2020 IonQ, Inc. (www.ionq.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Exceptions for the IonQ Provider."""
 
 from qiskit.exceptions import QiskitError
@@ -5,70 +32,92 @@ from qiskit.providers import JobError, JobTimeoutError
 
 
 class IonQError(QiskitError):
-    """Base class for errors raised by the IonQ provider."""
+    """Base class for errors raised by an IonQProvider."""
+
+    def __str__(self):
+        return f"{__name__}.{self.__class__.__name__}({self.message!r})"
+
+    def __repr__(self):
+        return repr(str(self))
 
 
 class IonQCredentialsError(IonQError):
     """Errors generated from bad credentials or config"""
 
 
+class IonQClientError(IonQError):
+    """Errors that arise from unexpected behavior while using IonQClient."""
+
+
 class IonQAPIError(IonQError):
-    """Errors generated from API trouble
+    """Base exception for fatal API errors.
 
     Attributes:
-    code -- API error code
-    message -- API error message
+        status_code(int): An HTTP response status code.
+        error_type(str): An error type string from the IonQ REST API.
     """
 
     @classmethod
     def from_response(cls, response):
+        """Raise an instance of the exception class from an API response object.
+
+        Args:
+            response (:class:`Response <requests.Response>`): An IonQ REST API response.
+
+        Raises:
+            IonQAPIError: instance of `cls` with error detail from `response`.
+
+        """
         status_code = response.status_code
         response_json = response.json()
         error = response_json.get("error") or {}
-        raise cls(status_code, error.get("message"), error.get("type"))
+        raise cls(error.get("message"), status_code, error.get("type"))
 
-    def __init__(self, code, message, errorType):
-        self.code = code
-        self.message = message
-        self.errorType = errorType
-        super().__init__(self.message)
+    def __init__(self, message, status_code, error_type):
+        self.status_code = status_code
+        self.error_type = error_type
+        super().__init__(message)
 
     def __str__(self):
-        return "{} ({}): {}".format(self.code, self.errorType, self.message)
+        return (
+            f"{__name__}.{self.__class__.__name__}("
+            f"message={self.message!r},"
+            f"status_code={self.status_code},"
+            f"error_type={self.error_type!r})"
+        )
 
 
 class IonQBackendError(IonQError):
-    """Errors generated from backend issues"""
+    """Errors generated from improper usage of IonQBackend objects."""
 
 
 class IonQJobError(IonQError, JobError):
-    """Errors generated from job issues"""
+    """Errors generated from improper usage of IonQJob objects."""
 
 
 class IonQGateError(IonQError, JobError):
     """Errors generated from invalid gate defs
 
     Attributes:
-    code -- API error code
-    message -- API error message
+        gate_name: The name of the gate which caused this error.
     """
 
     def __init__(self, gate_name):
         self.gate_name = gate_name
-        self.message = "gate not supported"
-        super().__init__(self.message)
+        super().__init__(f"gate '{gate_name}' not supported")
 
     def __str__(self):
-        return "{}: {}".format(self.message, self.gate_name)
+        return f"{__name__}.{self.__class__.__name__}(gate_name={self.gate_name!r})"
 
 
 class IonQJobTimeoutError(IonQError, JobTimeoutError):
-    """Errors generated from job issues"""
+    """Errors generated from job timeouts"""
 
 
 __all__ = [
     "IonQError",
     "IonQCredentialsError",
+    "IonQClientError",
     "IonQAPIError",
     "IonQBackendError",
     "IonQJobError",

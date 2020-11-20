@@ -8,11 +8,59 @@ quantum computers (NISQ) at the level of pulses, circuits, and algorithms.
 This project contains a provider that allows access to **[IonQ]** ion trap quantum
 devices.
 
-The example python notebook (in `/example`) should help you understand basic usage. 
+The example python notebook (in `/example`) should help you understand basic usage.
 
+## Installation
+
+You can install the provider using pip:
+
+```
+pip install qiskit-ionq-provider
+```
+
+## Provider Setup
+
+The IonQ Provider uses IonQ's REST API.
+
+To instantiate the provider, make sure you have an access token then create a provider:
+
+```python
+from qiskit.providers.ionq.ionq_provider import IonQProvider
+
+provider = IonQProvider("superseekr!t-token")
+```
+### Credential Environment Variables
+
+Alternatively, the IonQ Provider can discover your access token from environment variables:
+
+```bash
+export QISKIT_IONQ_API_TOKEN="superseekr!t-token"
+```
+
+Then invoke instantiate the provider without any arguments:
+```python
+from qiskit.providers.ionq.ionq_provider import IonQProvider
+
+provider = IonQProvider()
+```
+
+## IonQ API Access
+
+If you would like to use the IonQ as a Qiskit provider, please contact
+sales@ionq.co to request more information about gaining access to the IonQ API.
+
+## Documentation
+
+To build the API reference and quickstart docs, run:
+
+```
+pip install -r requirements-docs.txt
+make html
+open docs/build/index.html
+```
 ## License
 
 [Apache License 2.0].
 
-[IonQ]: https://ionq.com/
+[IonQ]: https://www.ionq.com/
 [Apache License 2.0]: https://github.com/qiskit-community/qiskit-ionq-provider/blob/master/LICENSE.txt

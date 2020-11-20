@@ -1,107 +1,270 @@
-import json
-import time
-from datetime import datetime, timezone
+# -*- coding: utf-8 -*-
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-from qiskit.providers import BaseJob
+# Copyright 2020 IonQ, Inc. (www.ionq.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""IonQ's Job implementation.
+
+.. NOTE::
+   IonQ job status names are slightly different than those of the standard
+   :class:`JobStatus <qiskit.providers.JobStatus>` enum values.
+
+   As such, the :meth:`IonQJob.status` method on the IonQJob class attempts to
+   perform a mapping between these status values for compatibility with
+   :class:`BaseJob <qiskit.providers.BaseJob>`.
+"""
+
+import json
+
+from qiskit.providers import BaseJob, jobstatus
+from qiskit.providers.exceptions import JobTimeoutError
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
 
-from .constants import JOB_FINAL_STATES, APIJobStatus, JobStatus
-from .exceptions import *
+from . import constants, exceptions, ionq_client
+
+
+def _remap_bitstring(bitstring, output_map, output_length):
+    """IonQ's API does not allow ad-hoc remapping of classical to quantum
+    registers, instead always returning quantum[i] as classical[i] in the return
+    bitstring.
+
+    This function uses an output map created at submission from the measure
+    instructions in the instruction list to map to the expected classical bitstring.
+
+    Args:
+        bitstring (str): A bitstring to remap.
+        output_map (dict): An output mapping to from quantum <-> classical.
+        output_length (int): Output length.
+
+    Returns:
+        str: A hexadecimal bit string.
+    """
+    bin_output = list("0" * output_length)
+    bin_input = list(bin(int(bitstring))[2:].rjust(output_length, "0"))
+    bin_input.reverse()
+
+    for quantum, classical in output_map.items():
+        bin_output[int(classical)] = bin_input[int(quantum)]
+    bin_output.reverse()
+    return hex(int("".join(bin_output), 2))
+
+
+def _format_counts(result):
+    """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
+
+    Args:
+        result (dict): A REST API response.
+
+    Returns:
+        dict[str, float]: A dict of qiskit compatible ``counts``.
+    """
+    # Short circuit with no results.
+    if not result:
+        return {}
+
+    metadata = result.get("metadata") or {}
+    shots = int(metadata.get("shots", 1024))
+    histogram = (result.get("data") or {}).get("histogram") or {}
+    output_map = json.loads(metadata.get("output_map") or {})
+    output_length = int(metadata.get("output_length", result["qubits"]))
+    counts = {}
+    for bitstring in histogram:
+        string_as_hex = _remap_bitstring(bitstring, output_map, output_length)
+        counts[string_as_hex] = round(histogram[bitstring] * shots)
+    return counts
 
 
 class IonQJob(BaseJob):
     """Representation of a Job that will run on an IonQ backend.
 
-    IonQ backends do not support multi-experiment jobs. Attempting to submit a multi-
-    experiment job will raise an exception.
+    .. IMPORTANT::
+       IonQ backends do not support multi-experiment jobs.  Attempting to
+       submit a multi-experiment job will raise an exception.
 
-    It's recommended that you don't create Job instances directly, but rather use
-    the run() and retrieve() methods on the IonQ backends to create and retrieve
-    jobs. These will both return a job instance.
+    It is not recommended to create Job instances directly, but rather use the
+    :meth:`run <IonQBackend.run>` and :meth:`retrieve_job <IonQBackend.retrieve_job>`
+    methods on sub-classe instances of IonQBackend to create and retrieve jobs
+    (both methods return a job instance).
+
+    Attributes:
+        qobj(:mod:`qobj <qiskit.qobj>`): A possibly ``None``
+            Qiskit Quantum Job reference.
+        _result(:class:`Result <qiskit.result.Result>`):
+            The actual Qiskit Result of this job.
+            This attribute is only populated when :meth:`status` is called and
+            the job has reached a one of the status values in ``JOB_FINAL_STATES``
+            from ``qiskit.providers.jobstatus``
     """
 
-    def __init__(self, backend, job_id, client, qobj=None):
+    def __init__(self, backend, job_id, client=None, qobj=None):
         super().__init__(backend, job_id)
-        self._client = client
-
+        self._client = client or ionq_client.IonQClient(backend.create_client())
         self._result = None
         self._status = None
 
         if qobj is not None:
-            if job_id:
-                raise IonQJobError(
-                    "incompatible options. please only provide a Job ID for a previously-created job. for a new job, an ID will be created automatically"
-                )
             validate_qobj_against_schema(qobj)
             qobj.header.backend_name = backend.name()
             self.qobj = qobj
-            self._status = JobStatus.INITIALIZING
-
+            self._status = jobstatus.JobStatus.INITIALIZING
         else:  # retrieve existing job
             self.qobj = None
-            self._status = JobStatus.INITIALIZING
+            self._status = jobstatus.JobStatus.INITIALIZING
             self._job_id = job_id
             self.status()
 
+    def cancel(self):
+        """Cancel this job."""
+        self._client.cancel_job(self._job_id)
+
     def submit(self):
-        """submit the job to be run on the backend"""
+        """Submit a job to the IonQ API.
+
+        Raises:
+            IonQJobError: If this instance's :attr:`qobj` was `None`.
+        """
         if not self.qobj:
-            raise IonQJobError("no qobj found. please provide instructions to run.")
+            raise exceptions.IonQJobError(
+                "No `qobj` found! Please provide instructions and try again."
+            )
 
         response = self._client.submit_job(job=self)
         self._job_id = response["id"]
 
     def result(self):
-        """retrieve job results"""
+        """Retrieve job result data.
+
+        .. NOTE::
+           :attr:`_result` is populated by :meth:`status`, when the job
+           status has reached a "final" state.
+
+        This method calls the
+        :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
+        method to poll for a completed job.
+
+        Raises:
+            IonQJobTimeoutError: If after the default wait period in
+                :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
+                elapses and the job has not reached a "final" state.
+            IonQJobError: If the job has reached a final state but
+                the job itself was never converted to a
+                :class:`Result <qiskit.result.Result>`.
+
+        Returns:
+            Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
+        """
+        # Short-circuit if we have already cached the result for this job.
         if self._result is not None:
             return self._result
 
-        response = self._client.retrieve_job(self._job_id)
-
-        self._status = JobStatus[APIJobStatus(response["status"]).name]
-        if not self._status in JOB_FINAL_STATES:
-            raise IonQJobError(
-                "Job will only have results when its status is final (COMPLETED, CANCELED, FAILED).",
-                "current status is {}".format(self._status),
-            )
-        self._result = self._format_result(response)
+        # Wait for the job to complete.
+        try:
+            self.wait_for_final_state()
+        except JobTimeoutError as ex:
+            raise exceptions.IonQJobTimeoutError(
+                "Timed out waiting for job to complete."
+            ) from ex
 
         if not self._result:
-            raise IonQJobError("Something went wrong. No result was generated.")
+            raise exceptions.IonQJobError(
+                "Job reached final state but no result was stored."
+            )
 
         return self._result
 
-    def cancel(self):
-        """cancel job"""
-        return self._client.cancel_job(self._job_id)
-
     def status(self):
-        """retrieve the status of a job"""
-        if self._job_id is None or self._status in JOB_FINAL_STATES:
+        """Retrieve the status of a job
+
+        This will also populate :attr:`_result` with a :class:`Result <qiskit.result.Result>`
+        object, if the job's status has reached a "final" state.
+
+        Raises:
+            IonQJobError: If the IonQ job status was unknown or otherwise
+                unmappable to a qiskit job status.
+
+        Returns:
+            JobStatus: An enum value from Qiskit's :class:`JobStatus <qiskit.providers.JobStatus>`.
+        """
+        if self._job_id is None or self._status in jobstatus.JOB_FINAL_STATES:
             return self._status
 
         response = self._client.retrieve_job(self._job_id)
         if not response["status"]:
-            raise IonQBackendError()
-        self._status = JobStatus[APIJobStatus(response["status"]).name]
+            raise exceptions.IonQJobError("Could not determine job status!")
+
+        # Look up a status enum from the response.
+        api_response_status = response["status"]
+        try:
+            status_enum = constants.APIJobStatus(api_response_status)
+        except ValueError as ex:
+            raise exceptions.IonQJobError(
+                f"Unknown job status {api_response_status}"
+            ) from ex
+
+        # Map it to a qiskit JobStatus key
+        try:
+            status_enum = constants.JobStatusMap[status_enum.name]
+        except ValueError as ex:
+            raise exceptions.IonQJobError(
+                f"Job status {status_enum} has no qiskit status mapping!"
+            ) from ex
+
+        # Get a qiskit status enum.
+        try:
+            self._status = jobstatus.JobStatus[status_enum.value]
+        except KeyError as ex:
+            raise exceptions.IonQJobError(
+                f"Qiskit has no JobStatus named '{status_enum}'"
+            ) from ex
 
         # if done, also put the result on the job obj
         # so we don't have to make an API call again if user wants results
-        if self._status == JobStatus.COMPLETED:
+        if self._status in jobstatus.JOB_FINAL_STATES:
             self._result = self._format_result(response)
 
         return self._status
 
     def _format_result(self, result):
-        # TODO: if result is failure, cancelled, this might have a bad time
-        """map IonQ's result format onto a qiskit Result instance"""
+        """Translate IonQ's result format into a qiskit Result instance.
+
+        TODO: If result is (failure, cancelled), this method may fail.
+
+        Args:
+            result (dict): A JSON body response from a REST API call.
+
+        Returns:
+            Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
+        """
+        metadata = result.get("metadata") or {}
         results = [
             {
-                "success": self._status == JobStatus.COMPLETED,
-                "shots": result.get("metadata", {}).get("shots", 1),
-                "data": {"counts": self._format_counts(result)},
-                "header": json.loads(result.get("metadata", {}).get("header", "{}")),
+                "success": self._status == jobstatus.JobStatus.DONE,
+                "shots": metadata.get("shots", 1),
+                "data": {"counts": _format_counts(result)},
+                "header": json.loads(metadata.get("header") or "{}"),
             }
         ]
         return Result.from_dict(
@@ -109,39 +272,11 @@ class IonQJob(BaseJob):
                 "results": results,
                 "backend_name": self.backend().name(),
                 "backend_version": self._backend._configuration.backend_version,
-                "qobj_id": result.get("metadata", {}).get("qobj_id", None),
-                "success": self._status == JobStatus.COMPLETED,
+                "qobj_id": metadata.get("qobj_id"),
+                "success": self._status == jobstatus.JobStatus.DONE,
                 "job_id": self._job_id,
             }
         )
 
-    def _format_counts(self, result):
-        """map IonQ's counts onto qiskit's counts model"""
-        counts = {}
-        metadata = result.get("metadata") or {}
-        shots = int(metadata.get("shots", 1024))
-        histogram = (result.get("data") or {}).get("histogram") or {}
-        output_map = json.loads(metadata.get("output_map") or {})
-        output_length = int(metadata.get("output_length", result["qubits"]))
-        for bitstring in histogram:
-            string_as_hex = self._remap_bitstring(bitstring, output_map, output_length)
-            counts[string_as_hex] = round(histogram[bitstring] * shots)
-        return counts
 
-    def _remap_bitstring(self, bitstring, output_map, output_length):
-        """IonQ's API does not allow ad-hoc remapping of classical to quantum registers,
-        instead always returning quantum[i] as classical[i] in the return bitstring.
-        This uses an output map created at submission from the measure instructions in the
-        instruction list to map to the expected classical bitstring.
-        """
-        bin_output = list("0" * output_length)
-        bin_input = list(bin(int(bitstring))[2:].rjust(output_length, "0"))
-        bin_input.reverse()
-
-        for quantum, classical in output_map.items():
-            bin_output[int(classical)] = bin_input[int(quantum)]
-        bin_output.reverse()
-        return hex(int("".join(bin_output), 2))
-
-    def job_id(self):
-        return self._job_id
+__all__ = ["IonQJob"]

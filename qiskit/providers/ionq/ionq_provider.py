@@ -1,82 +1,98 @@
+# -*- coding: utf-8 -*-
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# Copyright 2020 IonQ, Inc. (www.ionq.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Provider for interacting with IonQ backends"""
 
 import logging
+import os
 
 from qiskit.providers import BaseProvider
-from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.providerutils import filter_backends
 
-from .constants import DEFAULT_CLIENT_URL, DEFAULT_QISKITRC_FILE
-from .credentials import Credentials
-from .exceptions import *
-from .ionq_backend import generate_backends
-from .ionq_client import IonQClient
+from . import ionq_backend
 
 logger = logging.getLogger(__name__)
 
 
+def resolve_credentials(token: str = None, url: str = None):
+    """Resolve credentials for use in IonQ Client API calls.
+
+    If the provided ``token`` and ``url`` are both ``None``, then these values
+    are loaded from the ``QISKIT_IONQ_API_TOKEN`` and ``QISKIT_IONQ_API_URL``
+    environment variables, respectively.
+
+    If no url is discovered, then ``https://api.ionq.co/v0.1`` is used.
+
+    Args:
+        token (str): IonQ API access token.
+        url (str, optional): IonQ API url. Defaults to ``None``.
+
+    Returns:
+        dict[str]: A dict with "token" and "url" keys, for use by a client.
+    """
+    env_token = os.environ.get("QISKIT_IONQ_API_TOKEN")
+    env_url = os.environ.get("QISKIT_IONQ_API_URL")
+    return {
+        "token": token or env_token,
+        "url": url or env_url or "https://api.ionq.co/v0.1",
+    }
+
+
 class IonQProvider(BaseProvider):
-    """Provider for interacting with IonQ backends"""
+    """Provider for interacting with IonQ backends
+
+    Attributes:
+        credentials(dict[str, str]): A dictionary containing ``token`` and
+            ``url`` keys, whose values are an IonQ API Access Token and
+            IonQ API URL, respectively.
+    """
 
     name = "ionq_provider"
 
-    def __init__(self):
+    def __init__(self, token: str = None, url: str = None):
         super().__init__()
-        self.credentials = None
-        self._client = None
-        self._backends = None
+        self.credentials = resolve_credentials(token, url)
+        self._backends = [
+            ionq_backend.IonQSimulatorBackend(self),
+            ionq_backend.IonQQPUBackend(self),
+        ]
 
-    def load_account(self, filepath: str = DEFAULT_QISKITRC_FILE):
-        """Init client with stored credentials"""
-        self.credentials = Credentials(filepath=filepath)
-        if not self.credentials.token:
-            raise IonQCredentialsError(
-                "not able to load a token. do you have stored credentials?"
-            )
-        if not self.credentials.url:
-            raise IonQCredentialsError(
-                "not able to load a url. do you have stored credentials?"
-            )
-        self.client = IonQClient(self.credentials.token, self.credentials.url)
+    def backends(self, name: str = None, **kwargs):
+        """
+        Return a list of available backends, filtered by provided options.
 
-    def save_account(
-        self,
-        token: str,
-        url: str = DEFAULT_CLIENT_URL,
-        overwrite: bool = False,
-        filepath: str = DEFAULT_QISKITRC_FILE,
-    ):
-        """Save credentials to qiskitrc (local disk).
-        If no credentials are provided, saves the currently active credentials"""
-        self.credentials = Credentials(token, url)
-        self.client = IonQClient(self.credentials.token, self.credentials.url)
-        self.credentials.save_credentials(overwrite, filepath)
+        Args:
+            name (str, optional): Name of the backend. Defaults to None.
+            **kwargs: dict of criteria.
 
-    def enable_account(self, token: str, url: str = DEFAULT_CLIENT_URL):
-        """Init provider with ephemeral credentials. can subsequently be saved."""
-        self.credentials = Credentials(token, url)
-        self.client = IonQClient(self.credentials.token, self.credentials.url)
-
-    def delete_account(self, filepath: str = DEFAULT_QISKITRC_FILE):
-        """Delete stored credentials"""
-        self.credentials.remove_credentials(filepath)
-
-    def backends(self, name=None, filters=None, **kwargs):
-        """Return a list of available backends, filtered by filter options"""
-        if not self.credentials:
-            self.load_account()
-
-        if not self._backends:
-            self._backends = self._get_backends()
-
+        Returns:
+            list[IonQBackend]: A filtered list of IonQ Provider Backends.
+        """
         backends = self._backends
         if name:
-            backends = [
-                backend for backend in backends if backend.name() == name
-            ]
-
-        return filter_backends(backends, filters=filters, **kwargs)
-
-    def _get_backends(self):
-        """get IonQ backends for provider"""
-        return generate_backends(provider=self, client=self.client)
+            backends = [b for b in self._backends if b.name() == name]
+        return filter_backends(backends, **kwargs)

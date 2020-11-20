@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -12,12 +11,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Contains the package version.
+# Copyright 2020 IonQ, Inc. (www.ionq.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-Example::
-    >>> from qiskit.providers.ionq.version import __version__
-    >>> print(__version__)
-"""
+"""Contains the package version."""
 
 import os
 import pathlib
@@ -25,8 +33,9 @@ import subprocess
 from typing import List
 
 here = pathlib.Path(".").absolute()
+
 # major, minor, micro
-version_info = ".".join(map(str, (0, 0, 1)))
+VERSION_INFO = ".".join(map(str, (0, 0, 1)))
 
 
 def _minimal_ext_cmd(cmd: List[str]) -> bytes:
@@ -72,9 +81,9 @@ def get_version_info() -> str:
     # up the build under Python 3.
     git_dir = here.parent.parent.parent / ".git"
     if not git_dir.exists():
-        return version_info
+        return VERSION_INFO
 
-    full_version = version_info
+    full_version = VERSION_INFO
     try:
         release = _minimal_ext_cmd(["git", "tag", "-l", "--points-at", "HEAD"])
     except Exception:  # pylint: disable=broad-except
