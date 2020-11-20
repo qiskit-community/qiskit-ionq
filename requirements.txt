@@ -1,0 +1,2 @@
+qiskit-terra>=0.16
+requests>=2.24.0
