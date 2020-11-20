@@ -116,7 +116,8 @@ def build_circuit(instructions):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
     .. ATTENTION:: This function ignores the following compiler directives:
-       ** ``barrier``
+
+       * ``barrier``
 
     .. ATTENTION::
        The following instructions are currently **unsupported**:
