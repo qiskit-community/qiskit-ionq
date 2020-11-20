@@ -25,7 +25,7 @@ Alternatively, the IonQ Provider can discover your access token using the ``QISK
 
    export QISKIT_IONQ_API_TOKEN="superseekr!t-token"
 
-Then invoke instantiate the provider without any arguments::
+Then instantiate the provider without any arguments::
 
    from qiskit.providers.ionq.ionq_provider import IonQProvider
 

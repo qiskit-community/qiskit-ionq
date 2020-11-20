@@ -82,7 +82,7 @@ def qobj_to_ionq(qobj: qqobj.QasmQobj):
         qobj (:class:`QasmQobj <qiskit.qobj.QasmQobj>`): A qiskit quantum job.
 
     Raises:
-        IonQJobError: If `qobj` has more than one experiment.
+        IonQJobError: If ``qobj`` has more than one experiment.
 
     Returns:
         dict: A dict with IonQ API compatible values.
