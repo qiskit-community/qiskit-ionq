@@ -31,11 +31,12 @@ import json
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit.providers.ionq import IonQ
-from qiskit.providers.ionq.helpers import build_circuit
+from qiskit_ionq_provider import IonQProvider
+from qiskit_ionq_provider.helpers import build_circuit
 
 from ..base import MockCredentialsTestCase
 
+IonQ = IonQProvider()
 
 class TestCircuitBuilder(MockCredentialsTestCase):
     """Test the `build_circuit` function."""

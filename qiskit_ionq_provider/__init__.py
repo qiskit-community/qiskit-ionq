@@ -27,11 +27,5 @@
 
 """Provider for IonQ backends"""
 
-from . import ionq_provider
+from .ionq_provider import IonQProvider
 from .version import __version__
-
-# Global default instance for the runtime.
-IonQ = ionq_provider.IonQProvider()
-"""A global IonQProvider provider instance."""
-
-__all__ = ["IonQ", "__version__"]

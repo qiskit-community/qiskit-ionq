@@ -29,13 +29,14 @@
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit.providers.ionq import IonQ
-from qiskit.providers.ionq.ionq_client import IonQClient
-from qiskit.providers.ionq.ionq_job import IonQJob
+from qiskit_ionq_provider import IonQProvider
+from qiskit_ionq_provider.ionq_client import IonQClient
+from qiskit_ionq_provider.ionq_job import IonQJob
 from qiskit.qobj import QobjExperimentHeader
 
 from ..base import MockCredentialsTestCase
 
+IonQ = IonQProvider()
 
 class StubbedClient(IonQClient):
     def __init__(self):
