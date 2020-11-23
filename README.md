@@ -14,7 +14,7 @@ The example python notebook (in `/example`) should help you understand basic usa
 
 You can install the provider using pip:
 
-```
+```bash
 pip install qiskit-ionq-provider
 ```
 
@@ -25,10 +25,11 @@ The IonQ Provider uses IonQ's REST API.
 To instantiate the provider, make sure you have an access token then create a provider:
 
 ```python
-from qiskit.providers.ionq.ionq_provider import IonQProvider
+from qiskit_ionq_provider import IonQProvider
 
 provider = IonQProvider("superseekr!t-token")
 ```
+
 ### Credential Environment Variables
 
 Alternatively, the IonQ Provider can discover your access token from environment variables:
@@ -38,8 +39,9 @@ export QISKIT_IONQ_API_TOKEN="superseekr!t-token"
 ```
 
 Then invoke instantiate the provider without any arguments:
+
 ```python
-from qiskit.providers.ionq.ionq_provider import IonQProvider
+from qiskit_ionq_provider import IonQProvider
 
 provider = IonQProvider()
 ```
@@ -53,11 +55,12 @@ sales@ionq.co to request more information about gaining access to the IonQ API.
 
 To build the API reference and quickstart docs, run:
 
-```
+```bash
 pip install -r requirements-docs.txt
 make html
 open build/html/index.html
 ```
+
 ## License
 
 [Apache License 2.0].

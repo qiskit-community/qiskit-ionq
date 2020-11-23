@@ -26,49 +26,54 @@
 # limitations under the License.
 
 """setup module for packaging and distribution"""
-import pathlib
 
-from setuptools import find_namespace_packages, setup
+import os
+from setuptools import find_packages, setup
+from qiskit_ionq_provider.version import get_version_info
 
-__version__ = None
-here = pathlib.Path(".").absolute()
-version_path = here / "qiskit" / "providers" / "ionq" / "version.py"
-requirements_path = here / "requirements.txt"
+here = os.path.dirname(os.path.realpath(__file__))
+requirements_path = here + "/requirements.txt"
 
-with open(str(here / "README.md"), "r") as _fp:
+with open(str(here+"/README.md"), "r") as _fp:
     long_description = _fp.read()
 
 with open(str(requirements_path)) as _fp:
     REQUIREMENTS = _fp.readlines()
 
-with open(str(version_path)) as _fp:
-    exec(_fp.read())
-
+REQUIREMENTS = ["qiskit-terra>=0.10", "requests>=2.24.0"]
 
 setup(
     name="qiskit-ionq-provider",
-    version=__version__,
+    version = get_version_info(),
     author="IonQ",
     author_email="info@ionq.com",
-    description="Qiskit provider for interacting with IonQ backends",
+    packages=find_packages(exclude=["test"]),
+    description="Qiskit provider for IonQ backends",
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type='text/markdown',
     url="https://github.com/qiskit-community/qiskit-ionq-provider",
     license="Apache 2.0",
-    packages=find_namespace_packages(exclude=["test"]),
-    keywords="qiskit quantum ionq",
     classifiers=[
+        "Environment :: Console",
         "License :: OSI Approved :: Apache Software License",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
-        "Operating System :: OS Independent",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: MacOS",
+        "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Topic :: Scientific/Engineering",
     ],
+    keywords="qiskit sdk quantum",
     install_requires=REQUIREMENTS,
-    python_requires=">=3.6",
     include_package_data=True,
-    zip_safe=False,
+    python_requires=">=3.7",
+    project_urls={
+        "Bug Tracker": "https://github.com/qiskit-community/qiskit-ionq-provider/issues",
+        "Source Code": "https://github.com/qiskit-community/qiskit-ionq-provider",
+    },
+    zip_safe=False
 )

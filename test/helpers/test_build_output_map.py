@@ -29,11 +29,12 @@
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit.providers.ionq import IonQ
-from qiskit.providers.ionq.helpers import build_output_map
+from qiskit_ionq_provider import IonQProvider
+from qiskit_ionq_provider.helpers import build_output_map
 
 from ..base import MockCredentialsTestCase
 
+IonQ = IonQProvider()
 
 class TestOutputMapper(MockCredentialsTestCase):
     def test_build_simple_output_map(self):

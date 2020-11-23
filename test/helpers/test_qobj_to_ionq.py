@@ -31,11 +31,12 @@ import json
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit.providers.ionq import IonQ
-from qiskit.providers.ionq.helpers import qobj_to_ionq
+from qiskit_ionq_provider import IonQProvider
+from qiskit_ionq_provider.helpers import build_output_map, qobj_to_ionq
 
 from ..base import MockCredentialsTestCase
 
+IonQ = IonQProvider()
 
 class TestQobjToIonQ(MockCredentialsTestCase):
     maxDiff = None
