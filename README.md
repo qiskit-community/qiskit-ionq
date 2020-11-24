@@ -2,8 +2,7 @@
 
 [![License](https://img.shields.io/github/license/qiskit-community/qiskit-aqt-provider.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)
 
-Qiskit is an open-source framework for working with noisy intermediate-scale
-quantum computers (NISQ) at the level of pulses, circuits, and algorithms.
+**Qiskit** is an open-source SDK for working with quantum computers at the level of circuits, algorithms, and application modules.
 
 This project contains a provider that allows access to **[IonQ]** ion trap quantum
 devices.
