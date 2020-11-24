@@ -5,7 +5,7 @@
 **Qiskit** is an open-source SDK for working with quantum computers at the level of circuits, algorithms, and application modules.
 
 This project contains a provider that allows access to **[IonQ]** ion trap quantum
-devices.
+systems.
 
 The example python notebook (in `/example`) should help you understand basic usage.
 
