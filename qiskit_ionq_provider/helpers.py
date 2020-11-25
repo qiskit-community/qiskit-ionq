@@ -141,6 +141,10 @@ def qiskit_to_ionq(circuit, backend_name, shots=1024):
     """
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
 
+    creg_sizes = []
+    for creg in circuit.cregs:
+        creg_sizes.append([creg.name, creg.size])
+
     ionq_json = {
         "lang": "json",
         "target": backend_name[5:],
@@ -154,7 +158,7 @@ def qiskit_to_ionq(circuit, backend_name, shots=1024):
             "shots": str(shots),
             "output_length": str(num_meas),
             "output_map": json.dumps(meas_map),
-            "header": "{}",
+            "header": json.dumps({'creg_sizes': creg_sizes}),
         },
     }
     return json.dumps(ionq_json)
