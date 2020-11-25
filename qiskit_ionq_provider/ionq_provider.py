@@ -30,7 +30,6 @@
 import logging
 import os
 
-from qiskit.providers import BaseProvider
 from qiskit.providers.providerutils import filter_backends
 
 from . import ionq_backend
