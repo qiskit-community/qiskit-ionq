@@ -97,7 +97,8 @@ def qiskit_circ_to_ionq_circ(circ):
         # Process the instruction and convert.
         rotation = {}
         if any(instruction[0].params):
-            rotation = {"rotation": instruction[0].params}
+            # The float is here to cast Qiskit ParameterExpressions to numbers
+            rotation = {"rotation": [float(instruction[0].params[0])]}
 
         # Default conversion is simple.
         converted = {
