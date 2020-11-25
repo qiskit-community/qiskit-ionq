@@ -35,11 +35,7 @@ from qiskit_ionq_provider.ionq_provider import IonQProvider
 
 
 class StubbedClient(IonQClient):
-    """A mock client to use during testing.
-
-    Args:
-        IonQClient ([type]): [description]
-    """
+    """A mock client to use during testing."""
 
     def retrieve_job(self, job_id):
         header_dict = {
