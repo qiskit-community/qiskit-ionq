@@ -129,15 +129,16 @@ def qiskit_circ_to_ionq_circ(circ):
     return circuit, num_meas, meas_map
 
 def qiskit_to_ionq(circuit, backend_name, shots=1024):
-    """Convert a job to a JSON object compatible with the IonQ REST API.
+    """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
-        circuit (:class:`QuantumCircuit <qiskit.QuantumCircuit>`): A qiskit quantum circuit.
+        circuit (:class:`QuantumCircuit <qiskit.QuantumCircuit>`): A Qiskit quantum circuit.
+        backend_name (str): Backend name.
         shots (int, optional): Number of shots to take. Defaults to 1024.
 
     Returns:
         dict: A dict with IonQ API compatible values.
-    """     
+    """
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
 
     ionq_json = {
@@ -151,7 +152,6 @@ def qiskit_to_ionq(circuit, backend_name, shots=1024):
         # store a couple of things we'll need later for result formatting
         "metadata": {
             "shots": str(shots),
-            "qobj_id": '123456',
             "output_length": str(num_meas),
             "output_map": json.dumps(meas_map),
             "header": "{}",
