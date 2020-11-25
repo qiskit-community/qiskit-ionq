@@ -65,7 +65,6 @@ def _remap_bitstring(bitstring, output_map, output_length):
     bin_output = list("0" * output_length)
     bin_input = list(bin(int(bitstring))[2:].rjust(output_length, "0"))
     bin_input.reverse()
-
     for quantum, classical in output_map.items():
         bin_output[int(classical)] = bin_input[int(quantum)]
     bin_output.reverse()
@@ -89,7 +88,7 @@ def _format_counts(result):
     shots = int(metadata.get("shots", 1024))
     histogram = (result.get("data") or {}).get("histogram") or {}
     output_map = json.loads(metadata.get("output_map") or {})
-    output_length = int(metadata.get("output_length", result["qubits"]))
+    output_length = int(metadata.get("memory_slots", result["qubits"]))
     counts = {}
     for bitstring in histogram:
         string_as_hex = _remap_bitstring(bitstring, output_map, output_length)
