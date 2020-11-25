@@ -110,8 +110,8 @@ class IonQJob(BaseJob):
     (both methods return a job instance).
 
     Attributes:
-        qobj(:mod:`qobj <qiskit.qobj>`): A possibly ``None``
-            Qiskit Quantum Job reference.
+        circuit(:mod:`QuantumCircuit <qiskit.QuantumCircuit>`): A possibly ``None``
+            Qiskit quantum circuit.
         _result(:class:`Result <qiskit.result.Result>`):
             The actual Qiskit Result of this job.
             This attribute is only populated when :meth:`status` is called and
@@ -119,19 +119,17 @@ class IonQJob(BaseJob):
             from ``qiskit.providers.jobstatus``
     """
 
-    def __init__(self, backend, job_id, client=None, qobj=None):
+    def __init__(self, backend, job_id, client=None, circuit=None):
         super().__init__(backend, job_id)
         self._client = client or ionq_client.IonQClient(backend.create_client())
         self._result = None
         self._status = None
 
-        if qobj is not None:
-            validate_qobj_against_schema(qobj)
-            qobj.header.backend_name = backend.name()
-            self.qobj = qobj
+        if circuit is not None:
+            self.circuit = circuit
             self._status = jobstatus.JobStatus.INITIALIZING
         else:  # retrieve existing job
-            self.qobj = None
+            self.circuit = None
             self._status = jobstatus.JobStatus.INITIALIZING
             self._job_id = job_id
             self.status()
@@ -146,7 +144,7 @@ class IonQJob(BaseJob):
         Raises:
             IonQJobError: If this instance's :attr:`qobj` was `None`.
         """
-        if not self.qobj:
+        if not self.circuit:
             raise exceptions.IonQJobError(
                 "No `qobj` found! Please provide instructions and try again."
             )
