@@ -37,44 +37,6 @@ from . import exceptions
 __all__ = ["qiskit_to_ionq", "qiskit_circ_to_ionq_circ"]
 
 
-def build_output_map(qobj: qqobj.QasmQobj):
-    """
-    IonQ's API does not allow ad-hoc remapping of classical to quantum
-    registers, instead always returning quantum[i] as classical[i] in the
-    return bitstring.
-
-    The output map is created from the measure instructions in the program so
-    that arbitrary remapping may be done later, based on desired output mapping.
-
-    Args:
-        qobj (:class:`QasmQobj <qiskit.qobj.QasmQobj>`): A qiskit quantum job.
-
-    Raises:
-        IonQGateError: If a measurement in the experiment was found
-            before the end of the last non-measurement instruction.
-        ValueError: If the instructions contained zero measurements.
-
-    Returns:
-        dict: an output map dict to be used by the caller.
-    """
-    output_map = {}
-    measurements = 0
-    for instruction in qobj.experiments[0].instructions:
-        if instruction.name == "measure":
-            output_map[instruction.qubits[0]] = instruction.memory[0]
-            measurements += 1
-        else:
-            if measurements > 0:
-                raise exceptions.IonQGateError(
-                    "Measurements must occur at the end of the circuit."
-                )
-
-    if measurements == 0:
-        raise ValueError("Circuit must have at least one measurement")
-
-    return output_map
-
-
 def qiskit_circ_to_ionq_circ(circ):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
