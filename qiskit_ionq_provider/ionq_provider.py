@@ -62,7 +62,7 @@ def resolve_credentials(token: str = None, url: str = None):
     }
 
 
-class IonQProvider(BaseProvider):
+class IonQProvider():
     """Provider for interacting with IonQ backends
 
     Attributes:
@@ -76,23 +76,39 @@ class IonQProvider(BaseProvider):
     def __init__(self, token: str = None, url: str = None):
         super().__init__()
         self.credentials = resolve_credentials(token, url)
-        self._backends = [
-            ionq_backend.IonQSimulatorBackend(self),
-            ionq_backend.IonQQPUBackend(self),
-        ]
+        self.backends = BackendService([ionq_backend.IonQSimulatorBackend(self),
+                                        ionq_backend.IonQQPUBackend(self),
+                                       ])
 
-    def backends(self, name: str = None, **kwargs):
+class BackendService():
+    """A service class that allows for autocompletion
+    of backends from provider.
+    """
+
+    def __init__(self, backends):
+        """Initialize service
+
+        Parameters:
+            backends (list): List of backend instances.
         """
-        Return a list of available backends, filtered by provided options.
+        self._backends = backends
+        for backend in backends:
+            setattr(self, backend.name(), backend)
 
-        Args:
-            name (str, optional): Name of the backend. Defaults to None.
-            **kwargs: dict of criteria.
+    def __call__(self, name=None, filters=None, **kwargs):
+        """A listing of all backends from this provider.
+
+        Parameters:
+            name (str): The name of a given backend.
+            filters (callable): A filter function.
 
         Returns:
-            list[IonQBackend]: A filtered list of IonQ Provider Backends.
+            list: A list of backends, if any.
         """
+        # pylint: disable=arguments-differ
         backends = self._backends
         if name:
-            backends = [b for b in self._backends if b.name() == name]
-        return filter_backends(backends, **kwargs)
+            backends = [
+                backend for backend in backends if backend.name() == name]
+
+        return filter_backends(backends, filters=filters, **kwargs)
