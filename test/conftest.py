@@ -85,6 +85,7 @@ def provider(request):
     return instance
 
 
+# pylint: disable=redefined-outer-name
 @pytest.fixture(scope="class")
 def qpu_backend(request, provider):
     """Get the QPU backend from a provider.
