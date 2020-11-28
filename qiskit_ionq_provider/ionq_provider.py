@@ -112,4 +112,4 @@ class BackendService:
             backends = [
                 backend for backend in backends if backend.name() == name]
 
-        return filter_backends(backends, filters=filters, **kwargs)
+        return filter_backends(backends, filters, **kwargs)
