@@ -3,5 +3,5 @@
 IonQ Provider
 =============
 
-.. automodule:: qiskit.providers.ionq.ionq_provider
+.. automodule:: qiskit_ionq_provider.ionq_provider
    :members:
