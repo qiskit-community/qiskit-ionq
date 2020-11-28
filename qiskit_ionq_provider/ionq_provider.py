@@ -105,6 +105,16 @@ class BackendService:
 
         Returns:
             list: A list of backends, if any.
+
+        Example:
+
+        ..jupyter-execute::
+
+            from qiskit_ionq_provider import IonQProvider
+            ionq = IonQProvider('TOKEN')
+            sim = ionq.backends(filters=lambda x: x.configuration().simulator)
+            print(sim)
+
         """
         # pylint: disable=arguments-differ
         backends = self._backends

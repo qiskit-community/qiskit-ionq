@@ -3,5 +3,5 @@
 Helpers
 =======
 
-.. automodule:: qiskit.providers.ionq.helpers
+.. automodule:: qiskit_ionq_provider.helpers
    :members:

@@ -3,5 +3,5 @@
 API Client
 ==========
 
-.. automodule:: qiskit.providers.ionq.ionq_client
+.. automodule:: qiskit_ionq_provider.ionq_client
    :members:

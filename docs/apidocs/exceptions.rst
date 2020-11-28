@@ -3,5 +3,5 @@
 Exceptions
 ==========
 
-.. automodule:: qiskit.providers.ionq.exceptions
+.. automodule:: qiskit_ionq_provider.exceptions
    :members:
