@@ -79,7 +79,8 @@ class IonQProvider():
                                         ionq_backend.IonQQPUBackend(self),
                                        ])
 
-class BackendService():
+
+class BackendService:
     """A service class that allows for autocompletion
     of backends from provider.
     """
@@ -97,9 +98,12 @@ class BackendService():
     def __call__(self, name=None, filters=None, **kwargs):
         """A listing of all backends from this provider.
 
+        For usage see the `IBM Quantum backend service object <https://qiskit.org/documentation/stubs/qiskit.providers.ibmq.IBMQBackendService.html#qiskit-providers-ibmq-ibmqbackendservice>`_
+
         Parameters:
             name (str): The name of a given backend.
             filters (callable): A filter function.
+            kwargs (dict): A dictionary of other keyword arguments.
 
         Returns:
             list: A list of backends, if any.
