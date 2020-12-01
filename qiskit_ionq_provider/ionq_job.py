@@ -162,6 +162,17 @@ class IonQJob(BaseJob):
         response = self._client.submit_job(job=self)
         self._job_id = response["id"]
 
+    def get_counts(self, circuit=None):
+        """Return the counts for the job.
+
+        Args:
+             circuit (str or QuantumCircuit or int or None): Optional. The index of the experiment.
+
+        Returns:
+            dict: A dictionary of counts.
+        """
+        return self.result().get_counts(circuit)
+
     def result(self):
         """Retrieve job result data.
 
