@@ -83,7 +83,6 @@ def _format_counts(result):
     if not result:
         return {}
     metadata = result.get("metadata") or {}
-    #header = result.get("header") or {}
     num_qubits = result["qubits"]
     shots = int(metadata.get("shots", 1024))
     histogram = (result.get("data") or {}).get("histogram") or {}
