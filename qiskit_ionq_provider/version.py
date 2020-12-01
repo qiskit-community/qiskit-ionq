@@ -79,7 +79,7 @@ def get_version_info() -> str:
     # Adding the git rev number needs to be done inside
     # write_version_py(), otherwise the import of scipy.version messes
     # up the build under Python 3.
-    git_dir = here.parent.parent.parent / ".git"
+    git_dir = here / ".git"
     if not git_dir.exists():
         return VERSION_INFO
 
