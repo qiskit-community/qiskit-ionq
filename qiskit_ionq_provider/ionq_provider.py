@@ -77,8 +77,7 @@ class IonQProvider():
         super().__init__()
         self.credentials = resolve_credentials(token, url)
         self.backends = BackendService([ionq_backend.IonQSimulatorBackend(self),
-                                        ionq_backend.IonQQPUBackend(self),
-                                       ])
+                                       ionq_backend.IonQQPUBackend(self)])
 
     def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.
@@ -98,6 +97,7 @@ class IonQProvider():
             raise QiskitBackendNotFoundError('No backend matches criteria.')
 
         return backends[0]
+
 
 class BackendService:
     """A service class that allows for autocompletion
