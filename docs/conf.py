@@ -66,6 +66,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_tabs.tabs",
     "sphinx_autodoc_typehints",
+    "jupyter_sphinx",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

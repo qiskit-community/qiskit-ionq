@@ -30,7 +30,6 @@
 import logging
 import os
 
-from qiskit.providers import BaseProvider
 from qiskit.providers.providerutils import filter_backends
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 
@@ -63,7 +62,7 @@ def resolve_credentials(token: str = None, url: str = None):
     }
 
 
-class IonQProvider(BaseProvider):
+class IonQProvider():
     """Provider for interacting with IonQ backends
 
     Attributes:
@@ -77,26 +76,8 @@ class IonQProvider(BaseProvider):
     def __init__(self, token: str = None, url: str = None):
         super().__init__()
         self.credentials = resolve_credentials(token, url)
-        self._backends = [
-            ionq_backend.IonQSimulatorBackend(self),
-            ionq_backend.IonQQPUBackend(self),
-        ]
-
-    def backends(self, name: str = None, **kwargs):
-        """
-        Return a list of available backends, filtered by provided options.
-
-        Args:
-            name (str, optional): Name of the backend. Defaults to None.
-            **kwargs: dict of criteria.
-
-        Returns:
-            list[IonQBackend]: A filtered list of IonQ Provider Backends.
-        """
-        backends = self._backends
-        if name:
-            backends = [b for b in self._backends if b.name() == name]
-        return filter_backends(backends, **kwargs)
+        self.backends = BackendService([ionq_backend.IonQSimulatorBackend(self),
+                                       ionq_backend.IonQQPUBackend(self)])
 
     def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.
@@ -116,3 +97,46 @@ class IonQProvider(BaseProvider):
             raise QiskitBackendNotFoundError('No backend matches criteria.')
 
         return backends[0]
+
+
+class BackendService:
+    """A service class that allows for autocompletion
+    of backends from provider.
+    """
+
+    def __init__(self, backends):
+        """Initialize service
+
+        Parameters:
+            backends (list): List of backend instances.
+        """
+        self._backends = backends
+        for backend in backends:
+            setattr(self, backend.name(), backend)
+
+    def __call__(self, name=None, filters=None, **kwargs):
+        """A listing of all backends from this provider.
+
+        Parameters:
+            name (str): The name of a given backend.
+            filters (callable): A filter function.
+            kwargs (dict): A dictionary of other keyword arguments.
+
+        Returns:
+            list: A list of backends, if any.
+
+        Example:
+
+        ..jupyter-execute::
+
+            from qiskit_ionq_provider import IonQProvider
+            ionq = IonQProvider('TOKEN')
+            sim = ionq.backends(filters=lambda x: x.configuration().simulator)
+            print(sim)
+
+        """
+        # pylint: disable=arguments-differ
+        backends = self._backends
+        if name:
+            backends = [b for b in self._backends if b.name() == name]
+        return filter_backends(backends, filters, **kwargs)
