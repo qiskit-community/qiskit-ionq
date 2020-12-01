@@ -40,7 +40,6 @@ import json
 
 from qiskit.providers import BaseJob, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
-from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
 
 from . import constants, exceptions, ionq_client
@@ -83,16 +82,26 @@ def _format_counts(result):
     # Short circuit with no results.
     if not result:
         return {}
-
     metadata = result.get("metadata") or {}
+    #header = result.get("header") or {}
+    num_qubits = result["qubits"]
     shots = int(metadata.get("shots", 1024))
     histogram = (result.get("data") or {}).get("histogram") or {}
     output_map = json.loads(metadata.get("output_map") or {})
-    output_length = int(metadata.get("memory_slots", result["qubits"]))
+    output_length = len(output_map) if output_map else num_qubits
+    offset = num_qubits - 1
     counts = {}
-    for bitstring in histogram:
-        string_as_hex = _remap_bitstring(bitstring, output_map, output_length)
-        counts[string_as_hex] = round(histogram[bitstring] * shots)
+    for key, val in histogram.items():
+        bits = bin(int(key))[2:].rjust(num_qubits, "0")
+        red_bits = ['0']*output_length
+        for qbit, cbit in output_map.items():
+            red_bits[cbit] = str(bits[offset-int(qbit)])
+
+        red_bitstring = "".join(red_bits)[::-1]
+        if red_bitstring in counts:
+            counts[red_bitstring] += round(val * shots)
+        else:
+            counts[red_bitstring] = round(val * shots)
     return counts
 
 
