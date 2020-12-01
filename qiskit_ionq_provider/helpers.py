@@ -129,7 +129,7 @@ def qiskit_circ_to_ionq_circ(circ):
 
     return circuit, num_meas, meas_map
 
-def qiskit_to_ionq(circuit, backend_name, passed_args={}):
+def qiskit_to_ionq(circuit, backend_name, passed_args):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:

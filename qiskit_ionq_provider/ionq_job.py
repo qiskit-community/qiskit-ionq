@@ -128,12 +128,12 @@ class IonQJob(BaseJob):
     """
 
     def __init__(self, backend, job_id, client=None, circuit=None,
-                 passed_args={}):
+                 passed_args=None):
         super().__init__(backend, job_id)
         self._client = client or ionq_client.IonQClient(backend.create_client())
         self._result = None
         self._status = None
-        self._passed_args = passed_args
+        self._passed_args = passed_args if passed_args else {}
 
         if circuit is not None:
             self.circuit = circuit
