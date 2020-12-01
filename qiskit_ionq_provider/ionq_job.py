@@ -127,11 +127,13 @@ class IonQJob(BaseJob):
             from ``qiskit.providers.jobstatus``
     """
 
-    def __init__(self, backend, job_id, client=None, circuit=None):
+    def __init__(self, backend, job_id, client=None, circuit=None,
+                 passed_args={}):
         super().__init__(backend, job_id)
         self._client = client or ionq_client.IonQClient(backend.create_client())
         self._result = None
         self._status = None
+        self._passed_args = passed_args
 
         if circuit is not None:
             self.circuit = circuit

@@ -129,13 +129,13 @@ def qiskit_circ_to_ionq_circ(circ):
 
     return circuit, num_meas, meas_map
 
-def qiskit_to_ionq(circuit, backend_name, shots=1024):
+def qiskit_to_ionq(circuit, backend_name, passed_args={}):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
         circuit (:class:`QuantumCircuit <qiskit.QuantumCircuit>`): A Qiskit quantum circuit.
         backend_name (str): Backend name.
-        shots (int, optional): Number of shots to take. Defaults to 1024.
+        passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
         dict: A dict with IonQ API compatible values.
@@ -145,14 +145,14 @@ def qiskit_to_ionq(circuit, backend_name, shots=1024):
     ionq_json = {
         "lang": "json",
         "target": backend_name[5:],
-        "shots": shots,
+        "shots": passed_args['shots'] if passed_args else 1024,
         "body": {
             "qubits": circuit.num_qubits,
             "circuit": ionq_circ,
         },
         # store a couple of things we'll need later for result formatting
         "metadata": {
-            "shots": str(shots),
+            "shots": str(passed_args['shots'] if passed_args else 1024),
             "output_length": str(num_meas),
             "output_map": json.dumps(meas_map),
             "header": json.dumps({'memory_slots': circuit.num_clbits}),
