@@ -132,7 +132,7 @@ class IonQJob(BaseJob):
         self._client = client or ionq_client.IonQClient(backend.create_client())
         self._result = None
         self._status = None
-        self._passed_args = passed_args if passed_args else {}
+        self._passed_args = passed_args if passed_args else {'shots': 1024}
 
         if circuit is not None:
             self.circuit = circuit
