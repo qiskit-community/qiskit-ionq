@@ -179,6 +179,7 @@ def formatted_result(request, provider):
     with _default_requests_mock() as requests_mock:
         # Mock the response with our dummy job response.
         requests_mock.get(path, json=dummy_job_response(job_id))
+
         # Create the job (this calls self.status(), which will fetch the job).
         job = IonQJob(backend, job_id, client)
 
