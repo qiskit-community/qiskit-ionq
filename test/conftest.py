@@ -32,45 +32,49 @@ import pytest
 import requests_mock as _requests_mock
 from requests_mock import adapter as rm_adapter
 
-from qiskit_ionq_provider.ionq_client import IonQClient
 from qiskit_ionq_provider.ionq_job import IonQJob
 from qiskit_ionq_provider.ionq_provider import IonQProvider
 
 
-class StubbedClient(IonQClient):
-    """A mock client to use during testing."""
+def dummy_job_response(job_id):
+    """A dummy response payload for `job_id`.
 
-    def retrieve_job(self, job_id):
-        header_dict = {
-            "qubit_labels": [["q", 0], ["q", 1]],
-            "n_qubits": 2,
-            "qreg_sizes": [["q", 2]],
-            "clbit_labels": [["c", 0], ["c", 1]],
-            "memory_slots": 2,
-            "creg_sizes": [["c", 2]],
-            "name": "test-circuit",
-            "global_phase": 0,
-        }
-        return {
-            "status": "completed",
-            "predicted_execution_time": 4,
-            "metadata": {
-                "shots": "1234",
-                "qobj_id": "test_qobj_id",
-                "output_length": "2",
-                "output_map": '{"0": 1, "1": 0}',
-                "header": json.dumps(header_dict),
-            },
-            "execution_time": 8,
-            "qubits": 2,
-            "type": "circuit",
-            "request": 1600000000,
-            "start": 1600000001,
-            "response": 1600000002,
-            "data": {"histogram": {"0": 0.5, "2": 0.499999}},
-            "target": "qpu",
-            "id": "test_id",
-        }
+    Args:
+        job_id (str): An arbitrary job id.
+
+    Returns:
+        dict: A json response dict.
+    """
+    headers = {
+        "qubit_labels": [["q", 0], ["q", 1]],
+        "n_qubits": 2,
+        "qreg_sizes": [["q", 2]],
+        "clbit_labels": [["c", 0], ["c", 1]],
+        "memory_slots": 2,
+        "creg_sizes": [["c", 2]],
+        "name": "test-circuit",
+        "global_phase": 0,
+    }
+    return {
+        "status": "completed",
+        "predicted_execution_time": 4,
+        "metadata": {
+            "shots": "1234",
+            "qobj_id": "test_qobj_id",
+            "output_length": "2",
+            "output_map": '{"0": 1, "1": 0}',
+            "header": json.dumps(headers),
+        },
+        "execution_time": 8,
+        "qubits": 2,
+        "type": "circuit",
+        "request": 1600000000,
+        "start": 1600000001,
+        "response": 1600000002,
+        "data": {"histogram": {"0": 0.5, "2": 0.499999}},
+        "target": "qpu",
+        "id": job_id,
+    }
 
 
 def _default_requests_mock(**kwargs):
@@ -128,7 +132,7 @@ def provider(request):
     Returns:
         IonQProvider: A provider suitable for testing.
     """
-    request.cls.provider = instance = IonQProvider("token", "url")
+    request.cls.provider = instance = IonQProvider("token")
     return instance
 
 
@@ -161,7 +165,25 @@ def formatted_result(request, provider):
     Returns:
         Result: A qiskit result from making a fake API call with StubbedClient.
     """
+    # Dummy job ID for formatted results fixture.
+    job_id = "test_id"
+
+    # Create a backend and client to use for accessing the job.
     backend = provider.get_backend("ionq_qpu")
-    job = IonQJob(backend, "test_id", StubbedClient())
-    request.cls.formatted_result = instance = job.result()
-    return instance
+    client = backend.create_client()
+
+    # Create the request path for accessing the dummy job:
+    path = client.make_path("jobs", job_id)
+
+    # mock a job response
+    with _default_requests_mock() as requests_mock:
+        # Mock the response with our dummy job response.
+        requests_mock.get(path, json=dummy_job_response(job_id))
+        # Create the job (this calls self.status(), which will fetch the job).
+        job = IonQJob(backend, job_id, client)
+
+        # Set the formatted results data on the class object.
+        request.cls.formatted_result = instance = job.result()
+
+        # Yield so that the mock context manager properly unwinds.
+        yield instance
