@@ -40,7 +40,6 @@ import json
 
 from qiskit.providers import BaseJob, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
-from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
 
 from . import constants, exceptions, ionq_client
@@ -65,7 +64,6 @@ def _remap_bitstring(bitstring, output_map, output_length):
     bin_output = list("0" * output_length)
     bin_input = list(bin(int(bitstring))[2:].rjust(output_length, "0"))
     bin_input.reverse()
-
     for quantum, classical in output_map.items():
         bin_output[int(classical)] = bin_input[int(quantum)]
     bin_output.reverse()
@@ -84,16 +82,25 @@ def _format_counts(result):
     # Short circuit with no results.
     if not result:
         return {}
-
     metadata = result.get("metadata") or {}
+    num_qubits = result["qubits"]
     shots = int(metadata.get("shots", 1024))
     histogram = (result.get("data") or {}).get("histogram") or {}
     output_map = json.loads(metadata.get("output_map") or {})
-    output_length = int(metadata.get("output_length", result["qubits"]))
+    output_length = len(output_map) if output_map else num_qubits
+    offset = num_qubits - 1
     counts = {}
-    for bitstring in histogram:
-        string_as_hex = _remap_bitstring(bitstring, output_map, output_length)
-        counts[string_as_hex] = round(histogram[bitstring] * shots)
+    for key, val in histogram.items():
+        bits = bin(int(key))[2:].rjust(num_qubits, "0")
+        red_bits = ['0']*output_length
+        for qbit, cbit in output_map.items():
+            red_bits[cbit] = str(bits[offset-int(qbit)])
+
+        red_bitstring = "".join(red_bits)[::-1]
+        if red_bitstring in counts:
+            counts[red_bitstring] += round(val * shots)
+        else:
+            counts[red_bitstring] = round(val * shots)
     return counts
 
 
@@ -110,8 +117,8 @@ class IonQJob(BaseJob):
     (both methods return a job instance).
 
     Attributes:
-        qobj(:mod:`qobj <qiskit.qobj>`): A possibly ``None``
-            Qiskit Quantum Job reference.
+        circuit(:mod:`QuantumCircuit <qiskit.QuantumCircuit>`): A possibly ``None``
+            Qiskit quantum circuit.
         _result(:class:`Result <qiskit.result.Result>`):
             The actual Qiskit Result of this job.
             This attribute is only populated when :meth:`status` is called and
@@ -119,19 +126,19 @@ class IonQJob(BaseJob):
             from ``qiskit.providers.jobstatus``
     """
 
-    def __init__(self, backend, job_id, client=None, qobj=None):
+    def __init__(self, backend, job_id, client=None, circuit=None,
+                 passed_args=None):
         super().__init__(backend, job_id)
         self._client = client or ionq_client.IonQClient(backend.create_client())
         self._result = None
         self._status = None
+        self._passed_args = passed_args if passed_args else {'shots': 1024}
 
-        if qobj is not None:
-            validate_qobj_against_schema(qobj)
-            qobj.header.backend_name = backend.name()
-            self.qobj = qobj
+        if circuit is not None:
+            self.circuit = circuit
             self._status = jobstatus.JobStatus.INITIALIZING
         else:  # retrieve existing job
-            self.qobj = None
+            self.circuit = None
             self._status = jobstatus.JobStatus.INITIALIZING
             self._job_id = job_id
             self.status()
@@ -146,13 +153,24 @@ class IonQJob(BaseJob):
         Raises:
             IonQJobError: If this instance's :attr:`qobj` was `None`.
         """
-        if not self.qobj:
+        if not self.circuit:
             raise exceptions.IonQJobError(
                 "No `qobj` found! Please provide instructions and try again."
             )
 
         response = self._client.submit_job(job=self)
         self._job_id = response["id"]
+
+    def get_counts(self, circuit=None):
+        """Return the counts for the job.
+
+        Args:
+             circuit (str or QuantumCircuit or int or None): Optional. The index of the experiment.
+
+        Returns:
+            dict: A dictionary of counts.
+        """
+        return self.result().get_counts(circuit)
 
     def result(self):
         """Retrieve job result data.

@@ -88,16 +88,19 @@ class IonQBackend(BaseBackend):
 
         return ionq_client.IonQClient(token, url)
 
-    def run(self, qobj):
+    def run(self, circuit, shots=1024):
         """Create and run a job on an IonQ Backend.
 
         Args:
-            qobj (:mod:`qobj <qiskit.qobj>`): A Qiskit Quantum Job object.
+            circuit (:mod:`QuantumCircuit <qiskit.QuantumCircuit>`): A Qiskit QuantumCircuit object.
+            shots (int): The number of shots to evaluate.
 
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
-        job = ionq_job.IonQJob(self, None, self.client, qobj=qobj)
+        passed_args = {'shots': shots}
+        job = ionq_job.IonQJob(self, None, self.client, circuit=circuit,
+                               passed_args=passed_args)
         job.submit()
         return job
 

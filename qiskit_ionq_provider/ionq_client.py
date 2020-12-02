@@ -30,7 +30,7 @@
 import requests
 
 from . import exceptions
-from .helpers import qobj_to_ionq
+from .helpers import qiskit_to_ionq
 
 
 class IonQClient:
@@ -82,7 +82,7 @@ class IonQClient:
         Returns:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
-        as_json = qobj_to_ionq(job.qobj)
+        as_json = qiskit_to_ionq(job.circuit, job.backend().name(), job._passed_args)
         req_path = self.make_path("jobs")
         res = requests.post(req_path, data=as_json, headers=self.api_headers)
         if res.status_code != 200:

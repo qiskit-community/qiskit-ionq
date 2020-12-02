@@ -32,87 +32,12 @@ to IonQ REST API compatible values.
 
 import json
 
-from qiskit import qobj as qqobj
-
 from . import exceptions
 
-
-def build_output_map(qobj: qqobj.QasmQobj):
-    """
-    IonQ's API does not allow ad-hoc remapping of classical to quantum
-    registers, instead always returning quantum[i] as classical[i] in the
-    return bitstring.
-
-    The output map is created from the measure instructions in the program so
-    that arbitrary remapping may be done later, based on desired output mapping.
-
-    Args:
-        qobj (:class:`QasmQobj <qiskit.qobj.QasmQobj>`): A qiskit quantum job.
-
-    Raises:
-        IonQGateError: If a measurement in the experiment was found
-            before the end of the last non-measurement instruction.
-        ValueError: If the instructions contained zero measurements.
-
-    Returns:
-        dict: an output map dict to be used by the caller.
-    """
-    output_map = {}
-    measurements = 0
-    for instruction in qobj.experiments[0].instructions:
-        if instruction.name == "measure":
-            output_map[instruction.qubits[0]] = instruction.memory[0]
-            measurements += 1
-        else:
-            if measurements > 0:
-                raise exceptions.IonQGateError(
-                    "Measurements must occur at the end of the circuit."
-                )
-
-    if measurements == 0:
-        raise ValueError("Circuit must have at least one measurement")
-
-    return output_map
+__all__ = ["qiskit_to_ionq", "qiskit_circ_to_ionq_circ"]
 
 
-def qobj_to_ionq(qobj: qqobj.QasmQobj):
-    """Convert a job to a JSON object compatible with the IonQ REST API.
-
-    Args:
-        qobj (:class:`QasmQobj <qiskit.qobj.QasmQobj>`): A qiskit quantum job.
-
-    Raises:
-        IonQJobError: If ``qobj`` has more than one experiment.
-
-    Returns:
-        dict: A dict with IonQ API compatible values.
-    """
-    if len(qobj.experiments) > 1:
-        raise exceptions.IonQJobError(
-            "IonQ backends do not support multi-experiment jobs."
-        )
-
-    ionq_json = {
-        "lang": "json",
-        "target": qobj.header.backend_name[5:],
-        "shots": qobj.config.shots,
-        "body": {
-            "qubits": qobj.experiments[0].config.n_qubits,
-            "circuit": build_circuit(qobj.experiments[0].instructions),
-        },
-        # store a couple of things we'll need later for result formatting
-        "metadata": {
-            "shots": str(qobj.config.shots),
-            "qobj_id": str(qobj.qobj_id),
-            "output_length": str(qobj.experiments[0].header.memory_slots),
-            "output_map": json.dumps(build_output_map(qobj)),
-            "header": json.dumps(qobj.experiments[0].header.to_dict()),
-        },
-    }
-    return json.dumps(ionq_json)
-
-
-def build_circuit(instructions):
+def qiskit_circ_to_ionq_circ(circ):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
     .. ATTENTION:: This function ignores the following compiler directives:
@@ -130,15 +55,16 @@ def build_circuit(instructions):
        * ``cu2``
        * ``cu3``
 
-    Args:
-        instructions (list[:class:`QasmQobjInstruction <qiskit.qobj.QasmQobjInstruction>`]):
-            A list of quantum circuit instructions.
+    Parameters:
+        circ (:class:`QuantumCircuit <qiskit.QuantumCircuit>`): A quantum circuit.
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
 
     Returns:
         list[dict]: A list of instructions in a converted dict format.
+        int: The number of measurements.
+        dict: The measurement map from qubit number to classical bit number.
     """
     compiler_directives = ["barrier"]
     invalid_instructions = [
@@ -151,41 +77,46 @@ def build_circuit(instructions):
         "cu3",
     ]
     circuit = []
-    for instruction in instructions:
+    num_meas = 0
+    meas_map = {}
+    for instruction in circ.data:
         # Don't process compiler directives.
-        if instruction.name in compiler_directives:
+        if instruction[0].name in compiler_directives:
             continue
 
         # Don't process measurement instructions.
-        if instruction.name == "measure":
+        if instruction[0].name == "measure":
+            meas_map[int(instruction[1][0].index)] = instruction[2][0].index
+            num_meas += 1
             continue
 
         # Raise out for instructions we don't support.
-        if instruction.name in invalid_instructions:
+        if instruction[0].name in invalid_instructions:
             raise exceptions.IonQGateError(instruction.name)
 
         # Process the instruction and convert.
         rotation = {}
-        if hasattr(instruction, "params"):
-            rotation = {"rotation": instruction.params[0]}
+        if any(instruction[0].params):
+            # The float is here to cast Qiskit ParameterExpressions to numbers
+            rotation = {"rotation": [float(instruction[0].params[0])]}
 
         # Default conversion is simple.
         converted = {
-            "gate": instruction.name,
-            "target": instruction.qubits[0],
+            "gate": instruction[0].name,
+            "target": instruction[1][0].index,
             **rotation,
         }
 
         # If this is a `c` instruction, do some extra work.
-        if instruction.name[0] == "c":
-            is_double_control = instruction.name[1] == "c"
-            gate = instruction.name[1:]
-            controls = [instruction.qubits[0]]
-            target = instruction.qubits[1]
+        if instruction[0].name[0] == "c":
+            is_double_control = instruction[0].name[1] == "c"
+            gate = instruction[0].name[1:]
+            controls = [instruction[1][0].index]
+            target = instruction[1][1].index
             if is_double_control:
-                gate = instruction.name[2:]
-                controls = [instruction.qubits[0], instruction.qubits[1]]
-                target = instruction.qubits[2]
+                gate = instruction[0].name[2:]
+                controls = [instruction[1][0].index, instruction[1][1].index]
+                target = instruction[1][2].index
             converted = {
                 "gate": gate,
                 "controls": controls,
@@ -196,7 +127,35 @@ def build_circuit(instructions):
         # Finally, add the converted instruction to our circuit.
         circuit.append(converted)
 
-    return circuit
+    return circuit, num_meas, meas_map
 
+def qiskit_to_ionq(circuit, backend_name, passed_args):
+    """Convert a Qiskit circuit to a IonQ compatible dict.
 
-__all__ = ["build_circuit", "build_output_map", "qobj_to_ionq"]
+    Parameters:
+        circuit (:class:`QuantumCircuit <qiskit.QuantumCircuit>`): A Qiskit quantum circuit.
+        backend_name (str): Backend name.
+        passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
+
+    Returns:
+        dict: A dict with IonQ API compatible values.
+    """
+    ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
+
+    ionq_json = {
+        "lang": "json",
+        "target": backend_name[5:],
+        "shots": passed_args['shots'],
+        "body": {
+            "qubits": circuit.num_qubits,
+            "circuit": ionq_circ,
+        },
+        # store a couple of things we'll need later for result formatting
+        "metadata": {
+            "shots": str(passed_args['shots']),
+            "output_length": str(num_meas),
+            "output_map": json.dumps(meas_map),
+            "header": json.dumps({'memory_slots': circuit.num_clbits}),
+        },
+    }
+    return json.dumps(ionq_json)
