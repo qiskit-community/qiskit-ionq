@@ -29,6 +29,9 @@
 import json
 
 import pytest
+import requests_mock as _requests_mock
+from requests_mock import adapter as rm_adapter
+
 from qiskit_ionq_provider.ionq_client import IonQClient
 from qiskit_ionq_provider.ionq_job import IonQJob
 from qiskit_ionq_provider.ionq_provider import IonQProvider
@@ -68,6 +71,50 @@ class StubbedClient(IonQClient):
             "target": "qpu",
             "id": "test_id",
         }
+
+
+def _default_requests_mock(**kwargs):
+    """Create a default `requests_mock.Mocker` for use in tests.
+
+    Args:
+        kwargs (dict): Any additional kwargs to create the mocker with.
+
+    Returns:
+        :class:`request_mock.Mocker`: A requests mocker.
+    """
+    mocker_kwargs = {"real_http": False, **kwargs}
+    mocker = _requests_mock.Mocker(**mocker_kwargs)
+    return mocker
+
+
+def pytest_sessionstart(session):
+    """pytest hook for global test session start
+
+    Args:
+        session (:class:`pytest.Session`): A pytest session object.
+    """
+    session.global_requests_mock = _default_requests_mock()
+    session.global_requests_mock.start()
+    session.global_requests_mock.register_uri(
+        rm_adapter.ANY,
+        rm_adapter.ANY,
+        response_list=[
+            {
+                "status_code": 599,
+                "text": "UNHANDLED REQUEST. PLEASE MOCK WITH requests_mock.",
+            }
+        ],
+    )
+
+
+def pytest_sessionfinish(session):
+    """pytest hook for global test session end
+
+    Args:
+        session (:class:`pytest.Session`): A pytest session object.
+    """
+    session.global_requests_mock.stop()
+    del session.global_requests_mock
 
 
 @pytest.fixture(scope="class")
