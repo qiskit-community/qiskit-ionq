@@ -42,10 +42,6 @@ class TestResultsFormatter(unittest.TestCase):
 
     formatted_result = None
 
-    @pytest.fixture(autouse=True)
-    def mock_client_response(self, requests_mock):
-        self.requests_mock = requests_mock
-
     def test_results_meta(self):
         """Test basic job attribute values."""
         self.assertEqual(self.formatted_result.backend_name, "ionq_qpu")
