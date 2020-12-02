@@ -87,7 +87,10 @@ class TestUnittestCompatibility(unittest.TestCase):
         )
 
     def test_class_mock(self):
-        """test the global requests mock"""
+        """
+        Test the class-scoped requests mock, which is setup
+        in :meth:`init_requests_mock`
+        """
         response = requests.get("https://www.google.com")
         self.assertEqual(response.text, "class fixture mock")
 
