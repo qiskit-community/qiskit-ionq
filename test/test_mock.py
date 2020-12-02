@@ -95,7 +95,7 @@ class TestUnittestCompatibility(unittest.TestCase):
         self.assertEqual(response.text, "class fixture mock")
 
     def test_method_mock(self):
-        """Test a class-scoped mock overrides the global."""
+        """Test a method-scoped mock overrides the global."""
         self.requests_mock.get(
             "https://www.google.com", text="instance method fixture mock"
         )
@@ -103,7 +103,7 @@ class TestUnittestCompatibility(unittest.TestCase):
         self.assertEqual(response.text, "instance method fixture mock")
 
     def test_another_method_mock(self):
-        """Test a second class-scoped mock overrides the global."""
+        """Test a second method-scoped mock overrides the global."""
         self.requests_mock.get(
             "https://www.google.com",
             text="another instance method fixture mock",
