@@ -121,45 +121,51 @@ def pytest_sessionfinish(session):
     del session.global_requests_mock
 
 
-@pytest.fixture(scope="class")
-def provider(request):
-    """Fixture for injecting a test provider into an object instance of a
-    sub-class of ``unittest.TestCase``.
-
-    Args:
-        request (FixtureRequest): A pytest FixtureRequest.
+@pytest.fixture()
+def provider():
+    """Fixture for injecting a test provider.
 
     Returns:
         IonQProvider: A provider suitable for testing.
     """
-    request.cls.provider = instance = IonQProvider("token")
-    return instance
+    return IonQProvider("token")
 
 
 # pylint: disable=redefined-outer-name
-@pytest.fixture(scope="class")
-def qpu_backend(request, provider):
+@pytest.fixture()
+def qpu_backend(provider):
     """Get the QPU backend from a provider.
 
     Args:
-        request (FixtureRequest): A pytest FixtureRequest.
         provider (IonQProvider): Injected provider from :meth:`provider`.
 
     Returns:
         IonQQPUBackend: An instance of an IonQQPUBackend.
     """
-    request.cls.qpu_backend = instance = provider.get_backend("ionq_qpu")
-    return instance
+    return provider.get_backend("ionq_qpu")
 
 
 # pylint: disable=redefined-outer-name
-@pytest.fixture(scope="class")
-def formatted_result(request, provider):
+@pytest.fixture()
+def simulator_backend(provider):
+    """Get the QPU backend from a provider.
+
+    Args:
+        provider (IonQProvider): Injected provider from :meth:`provider`.
+
+    Returns:
+        IonQQPUBackend: An instance of an IonQQPUBackend.
+    """
+    return provider.get_backend("ionq_simulator")
+
+
+# pylint: disable=redefined-outer-name
+@pytest.fixture()
+def formatted_result(provider):
     """Fixture for auto-injecting a formatted IonQJob result object into a
     a sub-class of ``unittest.TestCase``.
 
     Args:
-        request (FixtureRequest): A pytest FixtureRequest.
         provider (IonQProvider): Injected provider from :meth:`provider`.
 
     Returns:
@@ -183,8 +189,5 @@ def formatted_result(request, provider):
         # Create the job (this calls self.status(), which will fetch the job).
         job = IonQJob(backend, job_id, client)
 
-        # Set the formatted results data on the class object.
-        request.cls.formatted_result = instance = job.result()
-
         # Yield so that the mock context manager properly unwinds.
-        yield instance
+        yield job.result()

@@ -34,8 +34,6 @@ import json
 
 from . import exceptions
 
-__all__ = ["qiskit_to_ionq", "qiskit_circ_to_ionq_circ"]
-
 
 def qiskit_circ_to_ionq_circ(circ):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
@@ -56,7 +54,7 @@ def qiskit_circ_to_ionq_circ(circ):
        * ``cu3``
 
     Parameters:
-        circ (:class:`QuantumCircuit <qiskit.QuantumCircuit>`): A quantum circuit.
+        circ (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
@@ -129,33 +127,38 @@ def qiskit_circ_to_ionq_circ(circ):
 
     return circuit, num_meas, meas_map
 
-def qiskit_to_ionq(circuit, backend_name, passed_args):
+
+def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
-        circuit (:class:`QuantumCircuit <qiskit.QuantumCircuit>`): A Qiskit quantum circuit.
+        circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         backend_name (str): Backend name.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
         dict: A dict with IonQ API compatible values.
     """
+    passed_args = passed_args or {}
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
 
     ionq_json = {
         "lang": "json",
         "target": backend_name[5:],
-        "shots": passed_args['shots'],
+        "shots": passed_args["shots"],
         "body": {
             "qubits": circuit.num_qubits,
             "circuit": ionq_circ,
         },
         # store a couple of things we'll need later for result formatting
         "metadata": {
-            "shots": str(passed_args['shots']),
+            "shots": str(passed_args["shots"]),
             "output_length": str(num_meas),
             "output_map": json.dumps(meas_map),
-            "header": json.dumps({'memory_slots': circuit.num_clbits}),
+            "header": json.dumps({"memory_slots": circuit.num_clbits}),
         },
     }
     return json.dumps(ionq_json)
+
+
+__all__ = ["qiskit_to_ionq", "qiskit_circ_to_ionq_circ"]
