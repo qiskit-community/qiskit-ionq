@@ -28,29 +28,39 @@
 """setup module for packaging and distribution"""
 
 import os
+
 from setuptools import find_packages, setup
-from qiskit_ionq_provider.version import get_version_info
 
 here = os.path.dirname(os.path.realpath(__file__))
-requirements_path = here + "/requirements.txt"
+readme_path = os.path.join(here, "README.md")
+requirements_path = os.path.join(here, "requirements.txt")
+test_requirements_path = os.path.join(here, "requirements-test.txt")
+version_path = os.path.join(here, "qiskit_ionq_provider", "version.py")
 
-with open(str(here+"/README.md"), "r") as _fp:
+with open(readme_path, "r") as _fp:
     long_description = _fp.read()
 
-with open(str(requirements_path)) as _fp:
+with open(requirements_path) as _fp:
     REQUIREMENTS = _fp.readlines()
 
-REQUIREMENTS = ["qiskit-terra>=0.10", "requests>=2.24.0"]
+with open(test_requirements_path) as _fp:
+    TEST_REQUIREMENTS = _fp.readlines()
+
+# This is needed to prevent importing any package specific dependencies at
+#   stages of the setup.py life-cycle where they may not yet be installed.
+__version__ = None
+with open(version_path) as _fp:
+    exec(_fp.read())  # pylint: disable=exec-used
 
 setup(
     name="qiskit-ionq-provider",
-    version = get_version_info(),
+    version=__version__,
     author="IonQ",
     author_email="info@ionq.com",
     packages=find_packages(exclude=["test"]),
     description="Qiskit provider for IonQ backends",
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     url="https://github.com/qiskit-community/qiskit-ionq-provider",
     license="Apache 2.0",
     classifiers=[
@@ -68,12 +78,14 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
+    python_requires=">=3.6",
+    setup_requires=["pytest-runner"],
     install_requires=REQUIREMENTS,
+    tests_require=TEST_REQUIREMENTS,
+    zip_safe=False,
     include_package_data=True,
-    python_requires=">=3.7",
     project_urls={
         "Bug Tracker": "https://github.com/qiskit-community/qiskit-ionq-provider/issues",
         "Source Code": "https://github.com/qiskit-community/qiskit-ionq-provider",
     },
-    zip_safe=False
 )

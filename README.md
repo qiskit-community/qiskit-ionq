@@ -45,6 +45,25 @@ from qiskit_ionq_provider import IonQProvider
 provider = IonQProvider()
 ```
 
+## Running Tests
+
+This package uses the [pytest](https://docs.pytest.org/en/stable/) test runner.
+
+To use pytest directly, just run:
+```bash
+pytest [pytest-args]
+```
+
+Alternatively, you may also use setuptools integration by running tests through `setup.py`, e.g.:
+
+```bash
+python setup.py test --addopts="[pytest-args]"
+```
+
+### Fixtures
+
+Global pytest fixtures for the test suite can be found in the top-level [test/conftest.py](./test/conftest.py) file.
+
 ## IonQ API Access
 
 If you would like to use IonQ as a Qiskit provider, please contact
