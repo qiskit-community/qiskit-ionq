@@ -48,7 +48,7 @@ def test_full_circuit(simulator_backend):
     ionq_json = qiskit_to_ionq(
         qc,
         simulator_backend.name(),
-        passed_args={"shots": 200, "job_id": "test_id"},
+        passed_args={"shots": 200},
     )
 
     expected_metadata_header = {"memory_slots": 2}
