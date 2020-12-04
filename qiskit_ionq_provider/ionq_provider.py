@@ -30,8 +30,8 @@
 import logging
 import os
 
-from qiskit.providers.providerutils import filter_backends
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
+from qiskit.providers.providerutils import filter_backends
 
 from . import ionq_backend
 
@@ -62,7 +62,7 @@ def resolve_credentials(token: str = None, url: str = None):
     }
 
 
-class IonQProvider():
+class IonQProvider:
     """Provider for interacting with IonQ backends
 
     Attributes:
@@ -76,8 +76,12 @@ class IonQProvider():
     def __init__(self, token: str = None, url: str = None):
         super().__init__()
         self.credentials = resolve_credentials(token, url)
-        self.backends = BackendService([ionq_backend.IonQSimulatorBackend(self),
-                                       ionq_backend.IonQQPUBackend(self)])
+        self.backends = BackendService(
+            [
+                ionq_backend.IonQSimulatorBackend(self),
+                ionq_backend.IonQQPUBackend(self),
+            ]
+        )
 
     def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.
@@ -92,9 +96,11 @@ class IonQProvider():
         """
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
-            raise QiskitBackendNotFoundError('More than one backend matches criteria.')
+            raise QiskitBackendNotFoundError(
+                "More than one backend matches criteria."
+            )
         if not backends:
-            raise QiskitBackendNotFoundError('No backend matches criteria.')
+            raise QiskitBackendNotFoundError("No backend matches criteria.")
 
         return backends[0]
 

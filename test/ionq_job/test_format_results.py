@@ -25,53 +25,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test the format_results function"""
-import unittest
-
-import pytest
-from qiskit.qobj import QobjExperimentHeader
+"""Test basic output from the :meth:`IonQJob._format_results` method."""
 
 
-@pytest.mark.usefixtures("formatted_result")
-class TestResultsFormatter(unittest.TestCase):
-    """Test formatted result content.
+def test_results_meta(formatted_result):
+    """Test basic job attribute values."""
+    assert formatted_result.backend_name == "ionq_qpu"
+    assert formatted_result.backend_version == "0.0.1"
+    assert formatted_result.qobj_id == "test_qobj_id"
+    assert formatted_result.job_id == "test_id"
+    assert formatted_result.success is True
 
-    Attributes:
-        formatted_result (Result): An injected formatted job result.
-    """
 
-    formatted_result = None
-
-    def test_results_meta(self):
-        """Test basic job attribute values."""
-        self.assertEqual(self.formatted_result.backend_name, "ionq_qpu")
-        self.assertEqual(self.formatted_result.backend_version, "0.0.1")
-        self.assertEqual(self.formatted_result.qobj_id, "test_qobj_id")
-        self.assertEqual(self.formatted_result.job_id, "test_id")
-        self.assertEqual(self.formatted_result.success, True)
-
-    def test_counts(self):
-        """Test counts based on test.conftest.StubbedClient"""
-        counts = self.formatted_result.get_counts()
-        self.assertEqual({"00": 617, "01": 617}, counts)
-
-    def test_additional_results_details(self):
-        """Test shots and headers in the result data."""
-        results = self.formatted_result.results[0]
-        self.assertEqual(results.shots, "1234")
-        self.assertEqual(results.success, True)
-        self.assertEqual(
-            results.header,
-            QobjExperimentHeader.from_dict(
-                {
-                    "qubit_labels": [["q", 0], ["q", 1]],
-                    "n_qubits": 2,
-                    "qreg_sizes": [["q", 2]],
-                    "clbit_labels": [["c", 0], ["c", 1]],
-                    "memory_slots": 2,
-                    "creg_sizes": [["c", 2]],
-                    "name": "test-circuit",
-                    "global_phase": 0,
-                }
-            ),
-        )
+def test_counts(formatted_result):
+    """Test counts based on a dummy result (see global conftest.py)."""
+    counts = formatted_result.get_counts()
+    assert {"00": 617, "01": 617} == counts
