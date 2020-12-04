@@ -25,9 +25,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test the format_results function"""
-
-from qiskit.qobj import QobjExperimentHeader
+"""Test basic output from the :meth:`IonQJob._format_results` method."""
 
 
 def test_results_meta(formatted_result):
@@ -40,27 +38,6 @@ def test_results_meta(formatted_result):
 
 
 def test_counts(formatted_result):
-    """Test counts based on test.conftest.StubbedClient"""
+    """Test counts based on a dummy result (see global conftest.py)."""
     counts = formatted_result.get_counts()
     assert {"00": 617, "01": 617} == counts
-
-
-def test_additional_results_details(formatted_result):
-    """Test shots and headers in the result data."""
-    results = formatted_result.results[0]
-    assert results.shots == "1234"
-    assert results.success is True
-
-    expected = QobjExperimentHeader.from_dict(
-        {
-            "qubit_labels": [["q", 0], ["q", 1]],
-            "n_qubits": 2,
-            "qreg_sizes": [["q", 2]],
-            "clbit_labels": [["c", 0], ["c", 1]],
-            "memory_slots": 2,
-            "creg_sizes": [["c", 2]],
-            "name": "test-circuit",
-            "global_phase": 0,
-        }
-    )
-    assert results.header == expected
