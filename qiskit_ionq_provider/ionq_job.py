@@ -37,15 +37,12 @@
 """
 
 import json
-import logging
 
 from qiskit.providers import BaseJob, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from qiskit.result import Result
 
 from . import constants, exceptions
-
-logger = logging.getLogger(__name__)
 
 
 def _remap_counts(result):
