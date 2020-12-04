@@ -30,13 +30,43 @@ import json
 
 import pytest
 import requests_mock as _requests_mock
+from qiskit.providers import models as q_models
 from requests_mock import adapter as rm_adapter
 
-from qiskit_ionq_provider.ionq_job import IonQJob
-from qiskit_ionq_provider.ionq_provider import IonQProvider
+from qiskit_ionq_provider import ionq_backend, ionq_job, ionq_provider
 
 
-def dummy_job_response(job_id):
+class MockBackend(ionq_backend.IonQBackend):
+    """A mock backend for testing super-class behavior in isolation."""
+
+    def __init__(self, provider):  # pylint: disable=redefined-outer-name
+        config = q_models.BackendConfiguration.from_dict(
+            {
+                "backend_name": "ionq_mock_backend",
+                "backend_version": "0.0.1",
+                "simulator": True,
+                "local": True,
+                "coupling_map": None,
+                "description": "IonQ Mock Backend",
+                "n_qubits": 29,
+                "conditional": False,
+                "open_pulse": False,
+                "memory": False,
+                "max_shots": 0,
+                "basis_gates": [],
+                "gates": [
+                    {
+                        "name": "TODO",
+                        "parameters": [],
+                        "qasm_def": "TODO",
+                    }
+                ],
+            }
+        )
+        super().__init__(config, provider=provider)
+
+
+def dummy_job_response(job_id, status="completed"):
     """A dummy response payload for `job_id`.
 
     Args:
@@ -56,7 +86,7 @@ def dummy_job_response(job_id):
         "global_phase": 0,
     }
     return {
-        "status": "completed",
+        "status": status,
         "predicted_execution_time": 4,
         "metadata": {
             "shots": "1234",
@@ -103,7 +133,7 @@ def pytest_sessionstart(session):
         rm_adapter.ANY,
         rm_adapter.ANY,
         status_code=599,
-        text="UNHANDLED REQUEST. PLEASE MOCK WITH requests_mock."
+        text="UNHANDLED REQUEST. PLEASE MOCK WITH requests_mock.",
     )
 
 
@@ -124,7 +154,20 @@ def provider():
     Returns:
         IonQProvider: A provider suitable for testing.
     """
-    return IonQProvider("token")
+    return ionq_provider.IonQProvider("token")
+
+
+@pytest.fixture()
+def mock_backend(provider):  # pylint: disable=redefined-outer-name
+    """A fixture instance of the :class:`MockBackend`.
+
+    Args:
+        provider (IonQProvider): An IonQProvider fixture.
+
+    Returns:
+        MockBackenbd: An instance of :class:`MockBackend`
+    """
+    return MockBackend(provider)
 
 
 # pylint: disable=redefined-outer-name
@@ -183,7 +226,7 @@ def formatted_result(provider):
         requests_mock.get(path, json=dummy_job_response(job_id))
 
         # Create the job (this calls self.status(), which will fetch the job).
-        job = IonQJob(backend, job_id, client)
+        job = ionq_job.IonQJob(backend, job_id, client)
 
         # Yield so that the mock context manager properly unwinds.
         yield job.result()

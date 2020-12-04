@@ -32,54 +32,10 @@ from unittest import mock
 
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.providers.models import BackendConfiguration
 
-from qiskit_ionq_provider import exceptions, ionq_backend, ionq_client, ionq_job
+from qiskit_ionq_provider import exceptions, ionq_client, ionq_job
 
 from .. import conftest
-
-
-class MockBackend(ionq_backend.IonQBackend):
-    """A mock backend for testing super-class behavior in isolation."""
-
-    def __init__(self, provider):
-        config = BackendConfiguration.from_dict(
-            {
-                "backend_name": "ionq_mock_backend",
-                "backend_version": "0.0.1",
-                "simulator": True,
-                "local": True,
-                "coupling_map": None,
-                "description": "IonQ Mock Backend",
-                "n_qubits": 29,
-                "conditional": False,
-                "open_pulse": False,
-                "memory": False,
-                "max_shots": 0,
-                "basis_gates": [],
-                "gates": [
-                    {
-                        "name": "TODO",
-                        "parameters": [],
-                        "qasm_def": "TODO",
-                    }
-                ],
-            }
-        )
-        super().__init__(config, provider=provider)
-
-
-@pytest.fixture
-def mock_backend(provider):
-    """A fixture instance of the :class:`MockBackend`.
-
-    Args:
-        provider (IonQProvider): An IonQProvider fixture.
-
-    Returns:
-        MockBackenbd: An instance of :class:`MockBackend`
-    """
-    return MockBackend(provider)
 
 
 def test_status_not_implemented(mock_backend):
@@ -166,9 +122,7 @@ def test_create_client_exceptions(mock_backend, creds, msg):
     fake_provider = mock.MagicMock()
     fake_provider.credentials = creds
     provider_patch = mock.patch.object(mock_backend, "_provider", fake_provider)
-    with provider_patch, pytest.raises(
-        exceptions.IonQCredentialsError
-    ) as exc_info:
+    with provider_patch, pytest.raises(exceptions.IonQCredentialsError) as exc_info:
         mock_backend.create_client()
 
     assert str(exc_info.value.message) == msg

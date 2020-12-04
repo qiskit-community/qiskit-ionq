@@ -37,40 +37,18 @@
 """
 
 import json
+import logging
 
 from qiskit.providers import BaseJob, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from qiskit.result import Result
 
-from . import constants, exceptions, ionq_client
+from . import constants, exceptions
+
+logger = logging.getLogger(__name__)
 
 
-def _remap_bitstring(bitstring, output_map, output_length):
-    """IonQ's API does not allow ad-hoc remapping of classical to quantum
-    registers, instead always returning quantum[i] as classical[i] in the return
-    bitstring.
-
-    This function uses an output map created at submission from the measure
-    instructions in the instruction list to map to the expected classical bitstring.
-
-    Args:
-        bitstring (str): A bitstring to remap.
-        output_map (dict): An output mapping to from quantum <-> classical.
-        output_length (int): Output length.
-
-    Returns:
-        str: A hexadecimal bit string.
-    """
-    bin_output = list("0" * output_length)
-    bin_input = list(bin(int(bitstring))[2:].rjust(output_length, "0"))
-    bin_input.reverse()
-    for quantum, classical in output_map.items():
-        bin_output[int(classical)] = bin_input[int(quantum)]
-    bin_output.reverse()
-    return hex(int("".join(bin_output), 2))
-
-
-def _format_counts(result):
+def _remap_counts(result):
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
     Args:
@@ -78,23 +56,46 @@ def _format_counts(result):
 
     Returns:
         dict[str, float]: A dict of qiskit compatible ``counts``.
+
+    Raises:
+        IonQJobError: In the event that ``result`` has missing or invalid job properties.
     """
-    # Short circuit with no results.
+    # Short circuit when we don't have all the information we need.
     if not result:
-        return {}
-    metadata = result.get("metadata") or {}
+        raise exceptions.IonQJobError("Cannot remap counts without an API response!")
+
+    # Check for required result dict keys:
+    if "qubits" not in result:
+        raise exceptions.IonQJobError("Cannot remap counts without qubits!")
+    if "metadata" not in result:
+        raise exceptions.IonQJobError("Cannot remap counts without metadata!")
+    if "data" not in result:
+        raise exceptions.IonQJobError("Cannot remap counts without result data!")
+
+    # Pull metadata, histogram, and num_qubits to perform the mapping.
+    metadata = result["metadata"]
     num_qubits = result["qubits"]
-    shots = int(metadata.get("shots", 1024))
-    histogram = (result.get("data") or {}).get("histogram") or {}
-    output_map = json.loads(metadata.get("output_map") or {})
+    histogram = result["data"].get("histogram") or {}
+
+    # Get shot count.
+    shots = metadata.get("shots")
+    shots = int(shots) if shots is not None else 1024  # We do this in case shots was 0.
+
+    # Parse the output mapping from API metadata.
+    json_output_map = metadata.get("output_map") or "{}"
+    output_map = json.loads(json_output_map)
+
+    # output length will be the size of the map, or num_qubits.
     output_length = len(output_map) if output_map else num_qubits
     offset = num_qubits - 1
+
+    # Remap counts.
     counts = {}
     for key, val in histogram.items():
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
-        red_bits = ['0']*output_length
+        red_bits = ["0"] * output_length
         for qbit, cbit in output_map.items():
-            red_bits[cbit] = str(bits[offset-int(qbit)])
+            red_bits[cbit] = str(bits[offset - int(qbit)])
 
         red_bitstring = "".join(red_bits)[::-1]
         if red_bitstring in counts:
@@ -126,13 +127,12 @@ class IonQJob(BaseJob):
             from ``qiskit.providers.jobstatus``
     """
 
-    def __init__(self, backend, job_id, client=None, circuit=None,
-                 passed_args=None):
+    def __init__(self, backend, job_id, client=None, circuit=None, passed_args=None):
         super().__init__(backend, job_id)
-        self._client = client or ionq_client.IonQClient(backend.create_client())
+        self._client = client or backend.client
+        self._passed_args = passed_args or {"shots": 1024}
         self._result = None
         self._status = None
-        self._passed_args = passed_args if passed_args else {'shots': 1024}
 
         if circuit is not None:
             self.circuit = circuit
@@ -153,9 +153,10 @@ class IonQJob(BaseJob):
         Raises:
             IonQJobError: If this instance's :attr:`qobj` was `None`.
         """
-        if not self.circuit:
+        if self.circuit is None:
             raise exceptions.IonQJobError(
-                "No `qobj` found! Please provide instructions and try again."
+                "Cannot submit a job without a circuit. "
+                "Please create a job with a circuit and try again."
             )
 
         response = self._client.submit_job(job=self)
@@ -202,14 +203,7 @@ class IonQJob(BaseJob):
         try:
             self.wait_for_final_state()
         except JobTimeoutError as ex:
-            raise exceptions.IonQJobTimeoutError(
-                "Timed out waiting for job to complete."
-            ) from ex
-
-        if not self._result:
-            raise exceptions.IonQJobError(
-                "Job reached final state but no result was stored."
-            )
+            raise exceptions.IonQJobTimeoutError("Timed out waiting for job to complete.") from ex
 
         return self._result
 
@@ -226,21 +220,21 @@ class IonQJob(BaseJob):
         Returns:
             JobStatus: An enum value from Qiskit's :class:`JobStatus <qiskit.providers.JobStatus>`.
         """
-        if self._job_id is None or self._status in jobstatus.JOB_FINAL_STATES:
+        # Return early if we have no job id yet.
+        if self._job_id is None:
             return self._status
 
-        response = self._client.retrieve_job(self._job_id)
-        if not response["status"]:
-            raise exceptions.IonQJobError("Could not determine job status!")
+        # Return early if the job is already done.
+        if self._status in jobstatus.JOB_FINAL_STATES:
+            return self._status
 
-        # Look up a status enum from the response.
+        # Otherwise, look up a status enum from the response.
+        response = self._client.retrieve_job(self._job_id)
         api_response_status = response["status"]
         try:
             status_enum = constants.APIJobStatus(api_response_status)
         except ValueError as ex:
-            raise exceptions.IonQJobError(
-                f"Unknown job status {api_response_status}"
-            ) from ex
+            raise exceptions.IonQJobError(f"Unknown job status {api_response_status}") from ex
 
         # Map it to a qiskit JobStatus key
         try:
@@ -254,9 +248,7 @@ class IonQJob(BaseJob):
         try:
             self._status = jobstatus.JobStatus[status_enum.value]
         except KeyError as ex:
-            raise exceptions.IonQJobError(
-                f"Qiskit has no JobStatus named '{status_enum}'"
-            ) from ex
+            raise exceptions.IonQJobError(f"Qiskit has no JobStatus named '{status_enum}'") from ex
 
         # if done, also put the result on the job obj
         # so we don't have to make an API call again if user wants results
@@ -281,7 +273,7 @@ class IonQJob(BaseJob):
             {
                 "success": self._status == jobstatus.JobStatus.DONE,
                 "shots": metadata.get("shots", 1),
-                "data": {"counts": _format_counts(result)},
+                "data": {"counts": _remap_counts(result)},
                 "header": json.loads(metadata.get("header") or "{}"),
             }
         ]
