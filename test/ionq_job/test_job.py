@@ -83,7 +83,7 @@ def spy(instance, attr):
     ],
 )
 def test_remap_counts__bad_input(data, error_msg):
-    """Test that _remap_counts properly remaps an IonQ ``count`` to a qiskit ``count``.
+    """Test that _remap_counts raises specific exceptions based on provided input.
 
     Args:
         data (dict): A dict that will trigger known exception cases.
