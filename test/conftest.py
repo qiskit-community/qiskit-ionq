@@ -102,12 +102,8 @@ def pytest_sessionstart(session):
     session.global_requests_mock.register_uri(
         rm_adapter.ANY,
         rm_adapter.ANY,
-        response_list=[
-            {
-                "status_code": 599,
-                "text": "UNHANDLED REQUEST. PLEASE MOCK WITH requests_mock.",
-            }
-        ],
+        status_code=599,
+        text="UNHANDLED REQUEST. PLEASE MOCK WITH requests_mock."
     )
 
 

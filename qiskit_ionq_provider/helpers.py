@@ -65,7 +65,7 @@ def qiskit_circ_to_ionq_circ(circ):
         dict: The measurement map from qubit number to classical bit number.
     """
     compiler_directives = ["barrier"]
-    invalid_instructions = [
+    unsupported_instructions = [
         "reset",
         "u1",
         "u2",
@@ -77,44 +77,46 @@ def qiskit_circ_to_ionq_circ(circ):
     circuit = []
     num_meas = 0
     meas_map = {}
-    for instruction in circ.data:
+    for instruction, qargs, cargs in circ.data:
         # Don't process compiler directives.
-        if instruction[0].name in compiler_directives:
+        instruction_name = instruction.name
+        if instruction_name in compiler_directives:
             continue
 
         # Don't process measurement instructions.
-        if instruction[0].name == "measure":
-            meas_map[int(instruction[1][0].index)] = instruction[2][0].index
+        if instruction_name == "measure":
+            meas_map[int(qargs[0].index)] = cargs[0].index
             num_meas += 1
             continue
 
         # Raise out for instructions we don't support.
-        if instruction[0].name in invalid_instructions:
-            raise exceptions.IonQGateError(instruction.name)
+        if instruction_name in unsupported_instructions:
+            raise exceptions.IonQGateError(instruction_name)
 
         # Process the instruction and convert.
         rotation = {}
-        if any(instruction[0].params):
+        if any(instruction.params):
             # The float is here to cast Qiskit ParameterExpressions to numbers
-            rotation = {"rotation": [float(instruction[0].params[0])]}
+            rotation = {"rotation": [float(instruction.params[0])]}
 
         # Default conversion is simple.
         converted = {
-            "gate": instruction[0].name,
-            "target": instruction[1][0].index,
+            "gate": instruction_name,
+            "target": qargs[0].index,
             **rotation,
         }
 
         # If this is a `c` instruction, do some extra work.
-        if instruction[0].name[0] == "c":
-            is_double_control = instruction[0].name[1] == "c"
-            gate = instruction[0].name[1:]
-            controls = [instruction[1][0].index]
-            target = instruction[1][1].index
+        # TODO: Replace this with class/object instance type checks.
+        if instruction_name[0] == "c":
+            is_double_control = instruction_name[1] == "c"
+            gate = instruction_name[1:]
+            controls = [qargs[0].index]
+            target = qargs[1].index
             if is_double_control:
-                gate = instruction[0].name[2:]
-                controls = [instruction[1][0].index, instruction[1][1].index]
-                target = instruction[1][2].index
+                gate = instruction_name[2:]
+                controls = [qargs[0].index, qargs[1].index]
+                target = qargs[2].index
             converted = {
                 "gate": gate,
                 "controls": controls,
