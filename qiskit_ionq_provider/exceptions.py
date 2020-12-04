@@ -35,7 +35,7 @@ class IonQError(QiskitError):
     """Base class for errors raised by an IonQProvider."""
 
     def __str__(self):
-        return f"{__name__}.{self.__class__.__name__}({self.message!r})"
+        return f"{self.__class__.__name__}({self.message!r})"
 
     def __repr__(self):
         return repr(str(self))
@@ -80,7 +80,7 @@ class IonQAPIError(IonQError):
 
     def __str__(self):
         return (
-            f"{__name__}.{self.__class__.__name__}("
+            f"{self.__class__.__name__}("
             f"message={self.message!r},"
             f"status_code={self.status_code},"
             f"error_type={self.error_type!r})"
@@ -107,7 +107,7 @@ class IonQGateError(IonQError, JobError):
         super().__init__(f"gate '{gate_name}' not supported")
 
     def __str__(self):
-        return f"{__name__}.{self.__class__.__name__}(gate_name={self.gate_name!r})"
+        return f"{self.__class__.__name__}(gate_name={self.gate_name!r})"
 
 
 class IonQJobTimeoutError(IonQError, JobTimeoutError):
