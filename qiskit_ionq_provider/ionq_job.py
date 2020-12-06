@@ -73,6 +73,8 @@ def _remap_counts(result):
     metadata = result["metadata"]
     num_qubits = result["qubits"]
     histogram = result["data"].get("histogram") or {}
+    header = json.loads(metadata.get("header") or "{}")
+    memory_slots = header.get("memory_slots") or None
 
     # Get shot count.
     shots = metadata.get("shots")
@@ -82,8 +84,8 @@ def _remap_counts(result):
     json_output_map = metadata.get("output_map") or "{}"
     output_map = json.loads(json_output_map)
 
-    # output length will be the size of the map, or num_qubits.
-    output_length = len(output_map) if output_map else num_qubits
+    # output length will be the number of memory slots (classeical register size), or num_qubits.
+    output_length = memory_slots if memory_slots else num_qubits
     offset = num_qubits - 1
 
     # Remap counts.
@@ -200,7 +202,9 @@ class IonQJob(BaseJob):
         try:
             self.wait_for_final_state()
         except JobTimeoutError as ex:
-            raise exceptions.IonQJobTimeoutError("Timed out waiting for job to complete.") from ex
+            raise exceptions.IonQJobTimeoutError(
+                "Timed out waiting for job to complete."
+            ) from ex
 
         return self._result
 
@@ -231,7 +235,9 @@ class IonQJob(BaseJob):
         try:
             status_enum = constants.APIJobStatus(api_response_status)
         except ValueError as ex:
-            raise exceptions.IonQJobError(f"Unknown job status {api_response_status}") from ex
+            raise exceptions.IonQJobError(
+                f"Unknown job status {api_response_status}"
+            ) from ex
 
         # Map it to a qiskit JobStatus key
         try:
@@ -245,7 +251,9 @@ class IonQJob(BaseJob):
         try:
             self._status = jobstatus.JobStatus[status_enum.value]
         except KeyError as ex:
-            raise exceptions.IonQJobError(f"Qiskit has no JobStatus named '{status_enum}'") from ex
+            raise exceptions.IonQJobError(
+                f"Qiskit has no JobStatus named '{status_enum}'"
+            ) from ex
 
         # if done, also put the result on the job obj
         # so we don't have to make an API call again if user wants results
@@ -284,6 +292,14 @@ class IonQJob(BaseJob):
                 "job_id": self._job_id,
             }
         )
+
+    def job_id(self):
+        """Retrieve job id, for later use and reference
+
+        Returns:
+            Job Id: .
+        """
+        return self._job_id
 
 
 __all__ = ["IonQJob"]

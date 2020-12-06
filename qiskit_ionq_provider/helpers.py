@@ -155,7 +155,6 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         # store a couple of things we'll need later for result formatting
         "metadata": {
             "shots": str(passed_args["shots"]),
-            "output_length": str(num_meas),
             "output_map": json.dumps(meas_map),
             "header": json.dumps({"memory_slots": circuit.num_clbits}),
         },

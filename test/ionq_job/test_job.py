@@ -93,18 +93,35 @@ def test_remap_counts__bad_input(data, error_msg):
         ionq_job._remap_counts(data)
     assert exc_info.value.message == error_msg
 
+def test_remap_counts(): 
+    """Test basic count remapping."""
+    result = {
+        "qubits": 3,
+        "data": {"histogram": {"5": 0.5, "7": 0.5}},
+        "metadata": {
+            "shots": 100, 
+            "output_map": json.dumps({"0": 0, "1": 2, "2": 1}), 
+            "header": json.dumps({"memory_slots": 3})
+        },
+    }
+    counts = ionq_job._remap_counts(result)
+    assert {"011": 50, "111": 50} == counts
 
 def test_remap_counts__can_be_additive():  # pylint: disable=invalid-name
     """Test that counts can be additive for a given qubit mapping."""
     result = {
-        "qubits": 2,
-        "data": {"histogram": {"0": 0.5, "1": 0.5}},
-        "metadata": {"shots": 100, "output_map": json.dumps({"0": 1, "1": 1})},
+        "qubits": 3,
+        "data": {"histogram": {"5": 0.5, "7": 0.5}},
+        "metadata": {
+            "shots": 100, 
+            "output_map": json.dumps({"0": 0, "2": 1}), 
+            "header": json.dumps({"memory_slots": 2})
+        },
     }
     counts = ionq_job._remap_counts(result)
+    # half the output was bitstring 101, half 111, and we're ignoring qubit 1, so:
     # 0.5 * 100 + 0.5 * 100 == 100
-    assert {"00": 100} == counts
-
+    assert {"11": 100} == counts
 
 def test_results_meta(formatted_result):
     """Test basic job attribute values."""

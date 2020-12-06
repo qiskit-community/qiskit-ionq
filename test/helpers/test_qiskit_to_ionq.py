@@ -54,7 +54,6 @@ def test_full_circuit(simulator_backend):
     expected_metadata_header = {"memory_slots": 2}
     expected_output_map = {"0": 1, "1": 0}
     expected_metadata = {
-        "output_length": "2",
         "shots": "200",
     }
     expected = {
