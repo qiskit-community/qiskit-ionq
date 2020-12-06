@@ -84,7 +84,7 @@ def _remap_counts(result):
     json_output_map = metadata.get("output_map") or "{}"
     output_map = json.loads(json_output_map)
 
-    # output length will be the number of memory slots (classeical register size), or num_qubits.
+    # output length will be the number of memory slots (classical register size), or num_qubits.
     output_length = memory_slots if memory_slots else num_qubits
     offset = num_qubits - 1
 
