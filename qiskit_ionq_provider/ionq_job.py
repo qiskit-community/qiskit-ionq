@@ -202,9 +202,7 @@ class IonQJob(BaseJob):
         try:
             self.wait_for_final_state()
         except JobTimeoutError as ex:
-            raise exceptions.IonQJobTimeoutError(
-                "Timed out waiting for job to complete."
-            ) from ex
+            raise exceptions.IonQJobTimeoutError("Timed out waiting for job to complete.") from ex
 
         return self._result
 
@@ -235,9 +233,7 @@ class IonQJob(BaseJob):
         try:
             status_enum = constants.APIJobStatus(api_response_status)
         except ValueError as ex:
-            raise exceptions.IonQJobError(
-                f"Unknown job status {api_response_status}"
-            ) from ex
+            raise exceptions.IonQJobError(f"Unknown job status {api_response_status}") from ex
 
         # Map it to a qiskit JobStatus key
         try:
@@ -251,9 +247,7 @@ class IonQJob(BaseJob):
         try:
             self._status = jobstatus.JobStatus[status_enum.value]
         except KeyError as ex:
-            raise exceptions.IonQJobError(
-                f"Qiskit has no JobStatus named '{status_enum}'"
-            ) from ex
+            raise exceptions.IonQJobError(f"Qiskit has no JobStatus named '{status_enum}'") from ex
 
         # if done, also put the result on the job obj
         # so we don't have to make an API call again if user wants results

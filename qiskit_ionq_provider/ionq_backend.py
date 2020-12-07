@@ -70,9 +70,7 @@ class IonQBackend(BaseBackend):
             ) from ex
 
         if token is None:
-            raise exceptions.IonQCredentialsError(
-                "Credentials `token` may not be None!"
-            )
+            raise exceptions.IonQCredentialsError("Credentials `token` may not be None!")
 
         try:
             url = credentials["url"]
@@ -82,9 +80,7 @@ class IonQBackend(BaseBackend):
             ) from ex
 
         if url is None:
-            raise exceptions.IonQCredentialsError(
-                "Credentials `url` may not be None!"
-            )
+            raise exceptions.IonQCredentialsError("Credentials `url` may not be None!")
 
         return ionq_client.IonQClient(token, url)
 
@@ -118,9 +114,7 @@ class IonQBackend(BaseBackend):
     def retrieve_jobs(self, job_ids):
         """get a list of jobs from a specific backend, job id """
 
-        return [
-            ionq_job.IonQJob(self, job_id, self.client) for job_id in job_ids
-        ]
+        return [ionq_job.IonQJob(self, job_id, self.client) for job_id in job_ids]
 
     # TODO: Implement backend status checks.
     def status(self):
@@ -173,9 +167,7 @@ class IonQSimulatorBackend(IonQBackend):
                 "max_shots": 10000,
                 "max_experiments": 1,
                 "open_pulse": False,
-                "gates": [
-                    {"name": "TODO", "parameters": [], "qasm_def": "TODO"}
-                ],
+                "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO"}],
             }
         )
         super().__init__(configuration=config, provider=provider)
@@ -221,9 +213,7 @@ class IonQQPUBackend(IonQBackend):
                 "max_shots": 10000,
                 "max_experiments": 1,
                 "open_pulse": False,
-                "gates": [
-                    {"name": "TODO", "parameters": [], "qasm_def": "TODO"}
-                ],
+                "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO"}],
             }
         )
         super().__init__(configuration=config, provider=provider)
