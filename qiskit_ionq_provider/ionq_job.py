@@ -293,13 +293,5 @@ class IonQJob(BaseJob):
             }
         )
 
-    def job_id(self):
-        """Retrieve job id, for later use and reference
-
-        Returns:
-            Job Id: .
-        """
-        return self._job_id
-
 
 __all__ = ["IonQJob"]
