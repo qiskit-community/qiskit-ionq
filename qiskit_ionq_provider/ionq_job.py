@@ -267,23 +267,34 @@ class IonQJob(BaseJob):
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
         """
+
+        # Format the inner result payload.
+        success = self._status == jobstatus.JobStatus.DONE
         metadata = result.get("metadata") or {}
-        results = [
-            {
-                "success": self._status == jobstatus.JobStatus.DONE,
-                "shots": metadata.get("shots", 1),
-                "data": {"counts": _remap_counts(result)},
-                "header": json.loads(metadata.get("header") or "{}"),
-            }
-        ]
+        job_result = {
+            "data": {},
+            "shots": metadata.get("shots", 1),
+            "header": json.loads(metadata.get("header") or "{}"),
+            "success": success,
+        }
+        if self._status == jobstatus.JobStatus.DONE:
+            job_result["data"] = {"counts": _remap_counts(result)}
+        elif self._status == jobstatus.JobStatus.ERROR:
+            failure = result.get("failure") or {}
+            job_result["status"] = failure.get("error")
+        elif self._status == jobstatus.JobStatus.CANCELLED:
+            job_result["status"] = "Job was cancelled"
+
+        # Create a qiskit result to express the IonQ job result data.
+        backend = self.backend()
         return Result.from_dict(
             {
-                "results": results,
-                "backend_name": self.backend().name(),
-                "backend_version": self._backend._configuration.backend_version,
+                "results": [job_result],
+                "job_id": self.job_id(),
+                "backend_name": backend.name(),
+                "backend_version": backend.version(),
                 "qobj_id": metadata.get("qobj_id"),
-                "success": self._status == jobstatus.JobStatus.DONE,
-                "job_id": self._job_id,
+                "success": success,
             }
         )
 
