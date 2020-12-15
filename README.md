@@ -78,7 +78,7 @@ Once the `qiskit-ionq-provider` package has been installed, you can use it to ru
 
 The IonQ Provider uses IonQ's REST API.
 
-To instantiate the provider, make sure you have an access token then create a provider:
+To instantiate the provider, make sure you have an IonQ API key then create a provider:
 
 ```python
 from qiskit_ionq_provider import IonQProvider
