@@ -63,8 +63,8 @@ def test_full_circuit(simulator_backend):
         "body": {
             "qubits": 2,
             "circuit": [
-                {"gate": "x", "controls": [1], "target": 0},
-                {"gate": "h", "target": 1},
+                {"gate": "x", "controls": [1], "targets": [0]},
+                {"gate": "h", "targets": [1]},
             ],
         },
     }
