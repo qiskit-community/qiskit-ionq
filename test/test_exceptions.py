@@ -92,3 +92,81 @@ def test_api_error_from_response():
     assert err.message == "an error"
     assert err.status_code == 500
     assert err.error_type == "internal_error"
+
+
+def test_error_format__code_message():
+    """Test the {"code": <int>, "message": <str>} error response format."""
+    fake_response = mock.MagicMock()
+    fake_response.status_code = 500
+    fake_response.json = mock.MagicMock(
+        return_value={
+            "code": 500,
+            "message": "an error",
+        }
+    )
+
+    with pytest.raises(exceptions.IonQAPIError) as exc:
+        exceptions.IonQAPIError.from_response(fake_response)
+
+    err = exc.value
+    assert err.status_code == 500
+    assert err.message == "an error"
+    assert err.error_type == "internal_error"
+
+
+def test_error_format_bad_request():
+    """Test the { "statusCode": <int>, "error": <str>, "message": <str> } error response format."""
+    fake_response = mock.MagicMock()
+    fake_response.status_code = 500
+    fake_response.json = mock.MagicMock(
+        return_value={
+            "statusCode": 500,
+            "error": "internal_error",
+            "message": "an error",
+        }
+    )
+
+    with pytest.raises(exceptions.IonQAPIError) as exc:
+        exceptions.IonQAPIError.from_response(fake_response)
+
+    err = exc.value
+    assert err.status_code == 500
+    assert err.message == "an error"
+    assert err.error_type == "internal_error"
+
+
+def test_error_format__nested_error():
+    """Test the { "error": { "type": <str>, "message: <str> } } error response format."""
+    fake_response = mock.MagicMock()
+    fake_response.status_code = 500
+    fake_response.json = mock.MagicMock(
+        return_value={
+            "error": {
+                "message": "an error",
+                "type": "internal_error",
+            }
+        }
+    )
+
+    with pytest.raises(exceptions.IonQAPIError) as exc:
+        exceptions.IonQAPIError.from_response(fake_response)
+
+    err = exc.value
+    assert err.status_code == 500
+    assert err.message == "an error"
+    assert err.error_type == "internal_error"
+
+
+def test_error_format__default():
+    """Test the when no known error format comes back."""
+    fake_response = mock.MagicMock()
+    fake_response.status_code = 500
+    fake_response.json = mock.MagicMock(return_value={})
+
+    with pytest.raises(exceptions.IonQAPIError) as exc:
+        exceptions.IonQAPIError.from_response(fake_response)
+
+    err = exc.value
+    assert err.status_code == 500
+    assert err.message == "No error details provided."
+    assert err.error_type == "internal_error"
