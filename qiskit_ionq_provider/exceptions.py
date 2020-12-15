@@ -73,8 +73,8 @@ class IonQAPIError(IonQError):
         response_json = response.json()
 
         # Defaults, if items cannot be extracted from the response.
-        error_type = "unexpected_error"
-        message = "No error message provided."
+        error_type = "internal_error"
+        message = "No error details provided."
         if "code" in response_json:
             # { "code": <int>, "message": <str> }
             message = response_json.get("message") or message

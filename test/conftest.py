@@ -71,6 +71,7 @@ def dummy_job_response(job_id, status="completed"):
 
     Args:
         job_id (str): An arbitrary job id.
+        status (str): A provided status string.
 
     Returns:
         dict: A json response dict.
