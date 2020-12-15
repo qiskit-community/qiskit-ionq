@@ -32,6 +32,9 @@ to IonQ REST API compatible values.
 
 import json
 
+from qiskit.circuit import controlledgate as q_cgates
+from qiskit.circuit.library import standard_gates as q_gates
+
 from . import exceptions
 
 
@@ -97,35 +100,38 @@ def qiskit_circ_to_ionq_circ(circ):
         rotation = {}
         if any(instruction.params):
             # The float is here to cast Qiskit ParameterExpressions to numbers
-            rotation = {"rotation": [float(instruction.params[0])]}
+            rotation = {"rotation": float(instruction.params[0])}
 
-        # Default conversion is simple.
-        converted = {
-            "gate": instruction_name,
-            "target": qargs[0].index,
-            **rotation,
-        }
+        # Default conversion is simple, just gate & target.
+        converted = {"gate": instruction_name, "targets": [qargs[0].index]}
 
-        # If this is a `c` instruction, do some extra work.
-        # TODO: Replace this with class/object instance type checks.
-        if instruction_name[0] == "c":
-            is_double_control = instruction_name[1] == "c"
+        # Make sure swap uses all qargs.
+        if isinstance(instruction, q_gates.SwapGate):
+            converted["targets"] = [qargs[0].index, qargs[1].index]
+        # If this is a controlled gate, make sure to set control qubits.
+        elif isinstance(instruction, q_cgates.ControlledGate):
             gate = instruction_name[1:]
             controls = [qargs[0].index]
-            target = qargs[1].index
-            if is_double_control:
-                gate = instruction_name[2:]
+            targets = [qargs[1].index]
+            # If this is a "double" control, we use two control qubits.
+            if gate[0] == "c":
+                gate = gate[1:]
                 controls = [qargs[0].index, qargs[1].index]
-                target = qargs[2].index
-            converted = {
-                "gate": gate,
-                "controls": controls,
-                "target": target,
-                **rotation,
-            }
+                targets = [qargs[2].index]
+            elif gate == "swap":
+                # If this is a cswap, we have two targets:
+                targets = [qargs[-2].index, qargs[-1].index]
 
-        # Finally, add the converted instruction to our circuit.
-        circuit.append(converted)
+            # Update converted gate values.
+            converted.update(
+                {
+                    "gate": gate,
+                    "controls": controls,
+                    "targets": targets,
+                }
+            )
+
+        circuit.append({**converted, **rotation})
 
     return circuit, num_meas, meas_map
 

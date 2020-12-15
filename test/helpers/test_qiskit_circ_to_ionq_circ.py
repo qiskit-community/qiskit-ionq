@@ -122,4 +122,4 @@ def test_rotation_from_instruction_params():
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     built = built[0]
     assert "rotation" in built
-    assert built["rotation"] == [1.0]
+    assert built["rotation"] == 1.0
