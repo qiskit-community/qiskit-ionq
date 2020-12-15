@@ -69,6 +69,68 @@ Global pytest fixtures for the test suite can be found in the top-level [test/co
 If you would like to use IonQ as a Qiskit provider, please contact
 sales@ionq.co to request more information about gaining access to the IonQ API.
 
+
+## Setting up the IonQ Provider
+
+Once the `qiskit-ionq-provider` package has been installed, you can use it to run circuits on the IonQ platform.
+
+### IonQ API Credentials
+
+The IonQ Provider uses IonQ's REST API.
+
+To instantiate the provider, make sure you have an IonQ API key then create a provider:
+
+```python
+from qiskit_ionq_provider import IonQProvider
+
+provider = IonQProvider("superseekr!t-token")
+```
+
+Alternatively, the provider will attempt to use credentials from the environment variable `QISKIT_IONQ_API_TOKEN`:
+
+```bash
+export QISKIT_IONQ_API_TOKEN="superseekr!t-token"
+```
+
+
+```python
+from qiskit_ionq_provider import IonQProvider
+
+provider = IonQProvider()
+```
+
+Once the provider has been instantiated, it may be used to access supported backends:
+
+```python
+# Show all current supported backends:
+print(provider.backends())
+
+# Get IonQ's simulator backend:
+simulator_backend = provider.get_backend("ionq_simulator")
+```
+
+### Submitting a Circuit
+
+Once a provider has been created, it may be used to submit circuits.
+For example, running a Bell State:
+
+```python
+from qiskit import QuantumCircuit
+
+# Create a basic Bell State circuit:
+qc = QuantumCircuit(2, 2)
+qc.h(0)
+qc.cx(0, 1)
+qc.measure([0,0], [1,1])
+
+# Run the circuit on IonQ's platform:
+job = simulator_backend.run(qc)
+
+# Print the results:
+print(job.get_counts())
+```
+
+
 ## Documentation
 
 To build the API reference and quickstart docs, run:
@@ -78,7 +140,6 @@ pip install -r requirements-docs.txt
 make html
 open build/html/index.html
 ```
-
 ## License
 
 [Apache License 2.0].
