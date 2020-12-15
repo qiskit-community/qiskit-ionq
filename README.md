@@ -72,7 +72,7 @@ sales@ionq.co to request more information about gaining access to the IonQ API.
 
 ## Setting up the IonQ Provider
 
-Once the `qiskit-ionq-provider` package has been installed, you can use it to run circuits to the IonQ platform.
+Once the `qiskit-ionq-provider` package has been installed, you can use it to run circuits on the IonQ platform.
 
 ### IonQ API Credentials
 
@@ -111,7 +111,8 @@ simulator_backend = provider.get_backend("ionq_simulator")
 
 ### Submitting a Circuit
 
-Once a provider has been created, it may be used to submit circuits. For example, running a Bell State:
+Once a provider has been created, it may be used to submit circuits.
+For example, running a Bell State:
 
 ```python
 from qiskit import QuantumCircuit
