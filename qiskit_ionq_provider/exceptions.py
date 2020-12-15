@@ -68,10 +68,26 @@ class IonQAPIError(IonQError):
             IonQAPIError: instance of `cls` with error detail from `response`.
 
         """
+        # TODO: Pending API changes will cleanup this error logic:
         status_code = response.status_code
         response_json = response.json()
-        error = response_json.get("error") or {}
-        raise cls(error.get("message"), status_code, error.get("type"))
+
+        # Defaults, if items cannot be extracted from the response.
+        error_type = "unexpected_error"
+        message = "No error message provided."
+        if "code" in response_json:
+            # { "code": <int>, "message": <str> }
+            message = response_json.get("message") or message
+        elif "statusCode" in response_json:
+            # { "statusCode": <int>, "error": <str>, "message": <str> }
+            message = response_json.get("message") or message
+            error_type = response_json.get("error") or error_type
+        elif "error" in response_json:
+            # { "error": { "type": <str>, "message: <str> } }
+            error_data = response_json.get("error")
+            message = error_data.get("message") or message
+            error_type = error_data.get("type") or error_type
+        raise cls(message, status_code, error_type)
 
     def __init__(self, message, status_code, error_type):
         self.status_code = status_code
