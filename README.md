@@ -101,7 +101,7 @@ provider = IonQProvider()
 
 Once the provider has been instantiated, it may be used to access supported backends:
 
-```
+```python
 # Show all current supported backends:
 print(provider.backends())
 
@@ -113,7 +113,7 @@ simulator_backend = provider.get_backend("ionq_simulator")
 
 Once a provider has been created, it may be used to submit circuits. For example, running a Bell State:
 
-```
+```python
 from qiskit import QuantumCircuit
 
 # Create a basic Bell State circuit:
