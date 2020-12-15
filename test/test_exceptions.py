@@ -121,7 +121,7 @@ def test_error_format_bad_request():
     fake_response.json = mock.MagicMock(
         return_value={
             "statusCode": 500,
-            "code": "internal_error",
+            "error": "internal_error",
             "message": "an error",
         }
     )
