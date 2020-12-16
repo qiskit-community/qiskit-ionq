@@ -91,7 +91,7 @@ def test_simple_circuit():
     qc = QuantumCircuit(1, 1)
     qc.h(0)
     qc.measure(0, 0)
-    expected = [{"gate": "h", "target": 0}]
+    expected = [{"gate": "h", "targets": [0]}]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected
 
@@ -101,7 +101,7 @@ def test_circuit_with_entangling_ops():
     """Test structure of circuits with entangling ops."""
     qc = QuantumCircuit(2, 2)
     qc.cnot(1, 0)
-    expected = [{"gate": "x", "target": 0, "controls": [1]}]
+    expected = [{"gate": "x", "targets": [0], "controls": [1]}]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected
 
@@ -110,7 +110,7 @@ def test_multi_control():
     """Test structure of circuits with multiple controls"""
     qc = QuantumCircuit(3, 3)
     qc.toffoli(0, 1, 2)
-    expected = [{"gate": "x", "target": 2, "controls": [0, 1]}]
+    expected = [{"gate": "x", "targets": [2], "controls": [0, 1]}]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected
 
@@ -122,4 +122,4 @@ def test_rotation_from_instruction_params():
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     built = built[0]
     assert "rotation" in built
-    assert built["rotation"] == [1.0]
+    assert built["rotation"] == 1.0
