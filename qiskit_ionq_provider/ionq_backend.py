@@ -127,7 +127,16 @@ class IonQBackend(BaseBackend):
 
 
 class IonQSimulatorBackend(IonQBackend):
-    """IonQ Backend for running simulated jobs."""
+    """
+    IonQ Backend for running simulated jobs.
+
+    .. ATTENTION::
+
+        Calling :meth:`get_counts <qiskit_ionq_provider.ionq_job.IonQJob.get_counts>`
+        on a job processed by this backend will return counts expressed as
+        probabilites, rather than a multiple of shots.
+
+    """
 
     def __init__(self, provider):
         """Base class for interfacing with an IonQ backend"""

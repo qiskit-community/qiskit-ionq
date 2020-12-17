@@ -45,11 +45,13 @@ from qiskit.result import Result
 from . import constants, exceptions
 
 
-def _remap_counts(result):
+def _remap_counts(result, retain_probabilities=False):
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
     Args:
         result (dict): A REST API response.
+        retain_probabilities (bool): Retain probabilities from the response instead
+            of converting them to counts.
 
     Returns:
         dict[str, float]: A dict of qiskit compatible ``counts``.
@@ -72,7 +74,6 @@ def _remap_counts(result):
     # Pull metadata, histogram, and num_qubits to perform the mapping.
     metadata = result["metadata"]
     num_qubits = result["qubits"]
-    histogram = result["data"].get("histogram") or {}
     header = json.loads(metadata.get("header") or "{}")
     memory_slots = header.get("memory_slots") or None
 
@@ -90,17 +91,18 @@ def _remap_counts(result):
 
     # Remap counts.
     counts = {}
+    histogram = result["data"].get("histogram") or {}
     for key, val in histogram.items():
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
         red_bits = ["0"] * output_length
         for qbit, cbit in output_map.items():
             red_bits[cbit] = str(bits[offset - int(qbit)])
 
-        red_bitstring = "".join(red_bits)[::-1]
-        if red_bitstring in counts:
-            counts[red_bitstring] += round(val * shots)
-        else:
-            counts[red_bitstring] = round(val * shots)
+        # Qiskit bit strings are in reverse order from ours:
+        qiskit_bitstring = "".join(red_bits)[::-1]
+        sum_next = val if retain_probabilities else round(val * shots)
+        count_sum = counts.get(qiskit_bitstring) or 0
+        counts[qiskit_bitstring] = count_sum + sum_next
     return counts
 
 
@@ -163,6 +165,12 @@ class IonQJob(BaseJob):
 
     def get_counts(self, circuit=None):
         """Return the counts for the job.
+
+        .. ATTENTION::
+
+            Result counts for jobs processed by
+            :class:`IonQSimulatorBackend <qiskit_ionq_provider.ionq_backend.IonQSimulatorBackend>`
+            are expressed as probabilites, rather than a multiple of shots.
 
         Args:
              circuit (str or QuantumCircuit or int or None): Optional. The index of the experiment.
@@ -268,6 +276,12 @@ class IonQJob(BaseJob):
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
         """
 
+        # Different backends can have differing result data:
+        backend = self.backend()
+        backend_name = backend.name()
+        backend_version = backend.version()
+        is_simulator = backend_name == "ionq_simulator"
+
         # Format the inner result payload.
         success = self._status == jobstatus.JobStatus.DONE
         metadata = result.get("metadata") or {}
@@ -278,7 +292,9 @@ class IonQJob(BaseJob):
             "success": success,
         }
         if self._status == jobstatus.JobStatus.DONE:
-            job_result["data"] = {"counts": _remap_counts(result)}
+            job_result["data"] = {
+                "counts": _remap_counts(result, retain_probabilities=is_simulator)
+            }
         elif self._status == jobstatus.JobStatus.ERROR:
             failure = result.get("failure") or {}
             job_result["status"] = failure.get("error")
@@ -291,8 +307,8 @@ class IonQJob(BaseJob):
             {
                 "results": [job_result],
                 "job_id": self.job_id(),
-                "backend_name": backend.name(),
-                "backend_version": backend.version(),
+                "backend_name": backend_name,
+                "backend_version": backend_version,
                 "qobj_id": metadata.get("qobj_id"),
                 "success": success,
             }
