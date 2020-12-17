@@ -139,7 +139,7 @@ def test_counts(formatted_result):
 
 
 
-def test_counts__simulator_pobs(simulator_backend, requests_mock):
+def test_counts__simulator_probs(simulator_backend, requests_mock):
     """Test that the simulator retains counts as probabilities."""
     # Dummy job ID for formatted results fixture.
     job_id = "test_id"
