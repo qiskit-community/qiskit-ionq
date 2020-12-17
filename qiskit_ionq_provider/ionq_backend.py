@@ -27,10 +27,82 @@
 
 """IonQ provider backends."""
 
+import dateutil.parser
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendConfiguration
 
 from . import exceptions, ionq_client, ionq_job
+
+
+class Calibration:
+    """
+    IonQ backend calibration data.
+
+    This class is a simple wrapper for IonQ hardware calibration data.
+    """
+
+    def __init__(self, data):
+        self._data = data
+
+    @property
+    def num_qubits(self) -> int:
+        """The number of qubits available."""
+        return int(self._data["qubits"])
+
+    @property
+    def target(self) -> str:
+        """The target calibrated hardware.."""
+        return self._data["target"]
+
+    @property
+    def calibration_time(self):
+        """Time of the measurement, in UTC.
+
+        Returns:
+            datetime.datetime: A datetime object with the time.
+        """
+        return dateutil.parser.isoparse(self._data["date"])
+
+    @property
+    def fidelities(self):
+        """Fidelity for single-qubit (1q) and two-qubit (2q) gates, and State
+        Preparation and Measurement (spam) operations.
+
+        Currently provides only mean fidelity; additional statistical data will
+        be added in the future.
+
+        Returns:
+            dict: A dict containing fidelity data for 1a, 2q, and spam.
+        """
+        return self._data["fidelity"]
+
+    @property
+    def timings(self):
+        """Various system property timings. All times expressed as seconds.
+
+        Timings currently include::
+
+            * ``t1``
+            * ``t2``
+            * ``1q``
+            * ``2q``
+            * ``readout``
+            * ``reset``
+
+        Returns:
+            dict: A dictionary of timings.
+        """
+        return self._data["timing"]
+
+    @property
+    def connectivity(self):
+        """Returns connectivity data.
+
+        Returns:
+            list[tuple[int, int]]: An array of valid, unordered tuples of
+                possible qubits for executing two-qubit gates
+        """
+        return self._data["connectivity"]
 
 
 class IonQBackend(BaseBackend):
@@ -125,9 +197,29 @@ class IonQBackend(BaseBackend):
         """
         raise NotImplementedError("Backend status check is not supported.")
 
+    def calibration(self):
+        """Fetch the most recent calibration data for this backend.
+
+        Returns:
+            Calibration: A calibration data wrapper.
+        """
+        backend_name = self.name().replace("_", ".")
+        calibration_data = self.client.get_calibration_data(backend_name)
+        if calibration_data is None:
+            return None
+        return Calibration(calibration_data)
+
 
 class IonQSimulatorBackend(IonQBackend):
     """IonQ Backend for running simulated jobs."""
+
+    def calibration(self):
+        """Simulators have no calibration data.
+
+        Returns:
+            NoneType: None
+        """
+        return None
 
     def __init__(self, provider):
         """Base class for interfacing with an IonQ backend"""
