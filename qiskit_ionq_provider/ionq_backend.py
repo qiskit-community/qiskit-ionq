@@ -45,13 +45,21 @@ class Calibration:
         self._data = data
 
     @property
-    def num_qubits(self) -> int:
-        """The number of qubits available."""
+    def num_qubits(self):
+        """The number of qubits available.
+
+        Returns:
+            int: A number of qubits.
+        """
         return int(self._data["qubits"])
 
     @property
-    def target(self) -> str:
-        """The target calibrated hardware.."""
+    def target(self):
+        """The target calibrated hardware.
+
+        Returns:
+            str: The name of the target hardware backend.
+        """
         return self._data["target"]
 
     @property
