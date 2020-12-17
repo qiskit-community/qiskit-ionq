@@ -148,5 +148,56 @@ class IonQClient:
             raise exceptions.IonQAPIError.from_response(res)
         return res.json()
 
+    def get_calibration_data(self, backend_name: str) -> dict:
+        """Retrieve calibration data for a specified backend.
+
+        Args:
+            backend_name (str): The IonQ backend to fetch data for.
+
+        Calibration::
+
+            {
+                "pages": <int>,
+                "calibrations": [
+                    {
+                        "id": <str>,
+                        "date": <int>,
+                        "target": <str>,
+                        "qubits": <int>,
+                        "connectivity": [<int>, ...],
+                        "fidelity": {
+                            "spam": {
+                                "mean": <int>,
+                                "stderr": <int>
+                            }
+                        },
+                        "timing": {
+                            "readout": <int>,
+                            "reset": <int>
+                        }
+                    }
+                ]
+            }
+
+        Returns:
+            dict: A dictionary of an IonQ backend's calibration data.
+        """
+        req_path = self.make_path("calibrations")
+        res = requests.get(req_path, headers=self.api_headers)
+        if res.status_code != 200:
+            raise exceptions.IonQAPIError.from_response(res)
+
+        # Get calibrations and filter down to the target
+        response = res.json()
+        calibrations = response.get("calibrations") or []
+        calibrations = [c for c in calibrations if c.get("target") == backend_name]
+
+        # If nothing was found, just return None.
+        if len(calibrations) == 0:
+            return None
+
+        # Calibrations are in most recent order in the response, so get the first.
+        return calibrations[0]
+
 
 __all__ = ["IonQClient"]
