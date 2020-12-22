@@ -126,6 +126,24 @@ class IonQGateError(IonQError, JobError):
         return f"{self.__class__.__name__}(gate_name={self.gate_name!r})"
 
 
+class IonQMidCircuitMeasurementError(IonQError, JobError):
+    """Errors generated from invalid gate defs
+
+    Attributes:
+        qubit_index: The qubit index to be measured mid-circuit
+    """
+
+    def __init__(self, qubit_index, gate_name):
+        self.qubit_index = qubit_index
+        self.gate_name = gate_name
+        super().__init__(
+            f"Attempting to put '{gate_name}' after a measurement on qubit {qubit_index}. Mid-circuit measurement is not supported; measurement must come after all instructions"
+        )
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(qubit_index={self.qubit_index!r}, gate_name={self.gate_name!r})"
+
+
 class IonQJobTimeoutError(IonQError, JobTimeoutError):
     """Errors generated from job timeouts"""
 

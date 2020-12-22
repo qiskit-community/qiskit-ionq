@@ -131,6 +131,14 @@ def qiskit_circ_to_ionq_circ(input_circuit):
                 }
             )
 
+        # if there's a valid instruction after a measurement,
+        if num_meas > 0:
+            # see if any of the involved qubits have been measured,
+            # and raise if so — no mid-circuit measurement!
+            controls_and_targets = converted.get("targets", []) + converted.get("controls", [])
+            if any(i in meas_map for i in controls_and_targets):
+                raise exceptions.IonQMidCircuitMeasurementError(qargs[0].index, instruction_name)
+
         output_circuit.append({**converted, **rotation})
 
     return output_circuit, num_meas, meas_map
