@@ -144,6 +144,22 @@ def qiskit_circ_to_ionq_circ(input_circuit):
     return output_circuit, num_meas, meas_map
 
 
+def get_register_sizes_and_labels(register):
+    sizes = []
+    labels = []
+
+    for bit in register:
+        size = [bit.register.name, bit.register.size]
+        label = [bit.register.name, bit.index]
+
+        if size not in sizes:
+            sizes.append(size)
+
+        labels.append(label)
+
+    return sizes, labels
+
+
 def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
@@ -157,6 +173,8 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     """
     passed_args = passed_args or {}
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
+    creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.clbits)
+    qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.clbits)
 
     ionq_json = {
         "lang": "json",
@@ -170,7 +188,19 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         "metadata": {
             "shots": str(passed_args["shots"]),
             "output_map": json.dumps(meas_map),
-            "header": json.dumps({"memory_slots": circuit.num_clbits}),
+            "header": json.dumps(
+                {
+                    "memory_slots": circuit.num_clbits,
+                    "global_phase": circuit.global_phase,
+                    "memory_slots": circuit.num_clbits,
+                    "n_qubits": circuit.num_qubits,
+                    "name": circuit.name,
+                    "creg_sizes": creg_sizes,
+                    "clbit_labels": clbit_labels,
+                    "qreg_sizes": qreg_sizes,
+                    "qubit_labels": qubit_labels,
+                }
+            ),
         },
     }
     return json.dumps(ionq_json)

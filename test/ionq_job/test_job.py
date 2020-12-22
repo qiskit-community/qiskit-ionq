@@ -152,7 +152,6 @@ def test_counts(formatted_result):
     assert {"00": 617, "01": 617} == counts
 
 
-
 def test_counts__simulator_probs(simulator_backend, requests_mock):
     """Test that the simulator retains counts as probabilities."""
     # Dummy job ID for formatted results fixture.

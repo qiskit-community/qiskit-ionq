@@ -101,8 +101,8 @@ def _remap_counts(result, retain_probabilities=False):
             else:
                 red_bits[clbit] = str(bits[offset - int(qubit)])
 
-        # we iterated one way, but gotta flip for final output:
-        qiskit_bitstring = "".join(red_bits)[::-1]
+        # we iterated big-endian, but flip for final output
+        qiskit_bitstring = hex(int("".join(red_bits)[::-1], 2))
         sum_next = val if retain_probabilities else round(val * shots)
         count_sum = counts.get(qiskit_bitstring) or 0
         counts[qiskit_bitstring] = count_sum + sum_next
