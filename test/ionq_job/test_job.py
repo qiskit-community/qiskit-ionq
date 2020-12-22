@@ -105,7 +105,7 @@ def test_remap_counts():
         },
     }
     counts = ionq_job._remap_counts(result)
-    assert {"011": 50, "111": 50} == counts
+    assert {"0x3": 50, "0x7": 50} == counts
 
 def test_remap_counts__with_unused_clbit():
     """Test count remapping when you have a clbit that never had a measurement mapped to it."""
@@ -119,7 +119,7 @@ def test_remap_counts__with_unused_clbit():
         },
     }
     counts = ionq_job._remap_counts(result)
-    assert {"001": 50, "101": 50} == counts
+    assert {"0x1": 50, "0x5": 50} == counts
 
 def test_remap_counts__can_be_additive():  # pylint: disable=invalid-name
     """Test that counts can be additive for a given qubit mapping."""
@@ -135,7 +135,7 @@ def test_remap_counts__can_be_additive():  # pylint: disable=invalid-name
     counts = ionq_job._remap_counts(result)
     # half the output was bitstring 101, half 111, and we're ignoring qubit 1, so:
     # 0.5 * 100 + 0.5 * 100 == 100
-    assert {"11": 100} == counts
+    assert {"0x3": 100} == counts
 
 def test_results_meta(formatted_result):
     """Test basic job attribute values."""

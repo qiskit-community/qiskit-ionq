@@ -29,7 +29,7 @@
 
 import json
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 from qiskit_ionq_provider.helpers import qiskit_to_ionq
 
@@ -76,6 +76,28 @@ def test_output_map_with_multiple_measurements_to_same_clbit(simulator_backend):
     assert actual_output_map == [1, None]
 
 
+def test_metadata_header_with_multiple__registers(simulator_backend):
+    """Test correct metadata headers when we have multiple qregs and cregs"""
+    qr0 = QuantumRegister(2, "qr0")
+    qr1 = QuantumRegister(2, "qr1")
+    cr0 = ClassicalRegister(2, "cr0")
+    cr1 = ClassicalRegister(2, "cr1")
+
+    qc = QuantumCircuit(qr0, qr1, cr0, cr1)
+    qc.measure([qr1[0], qr1[1]], [cr1[0], cr1[1]])
+
+    expected_metadata_header = {
+        "memory_slots": 2,
+        "global_phase": 0,
+        "n_qubits": 2,
+        "name": "test_name",
+        "creg_sizes": [["cr0", 2], ["cr1", 2]],
+        "clbit_labels": [["cr0", 0], ["cr0", 1], ["cr1", 3], ["cr1", 4]],
+        "qreg_sizes": [["qr0", 2]],
+        "qubit_labels": [["qr0", 0], ["qr0", 1], ["qr1", 3], ["qr1", 4]],
+    }
+
+
 def test_full_circuit(simulator_backend):
     """Test a full circuit
 
@@ -92,8 +114,16 @@ def test_full_circuit(simulator_backend):
         simulator_backend.name(),
         passed_args={"shots": 200},
     )
-
-    expected_metadata_header = {"memory_slots": 2}
+    expected_metadata_header = {
+        "memory_slots": 2,
+        "global_phase": 0,
+        "n_qubits": 2,
+        "name": "test_name",
+        "creg_sizes": [["c", 2]],
+        "clbit_labels": [["c", 0], ["c", 1]],
+        "qreg_sizes": [["c", 2]],
+        "qubit_labels": [["c", 0], ["c", 1]],
+    }
     expected_output_map = [1, 0]
     expected_metadata = {
         "shots": "200",

@@ -190,15 +190,14 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
             "output_map": json.dumps(meas_map),
             "header": json.dumps(
                 {
-                    "memory_slots": circuit.num_clbits,
-                    "global_phase": circuit.global_phase,
-                    "memory_slots": circuit.num_clbits,
-                    "n_qubits": circuit.num_qubits,
-                    "name": circuit.name,
-                    "creg_sizes": creg_sizes,
-                    "clbit_labels": clbit_labels,
-                    "qreg_sizes": qreg_sizes,
-                    "qubit_labels": qubit_labels,
+                    "memory_slots": circuit.num_clbits, # int 
+                    "global_phase": circuit.global_phase, # float
+                    "n_qubits": circuit.num_qubits, # int
+                    "name": circuit.name, # str 
+                    "creg_sizes": creg_sizes, # list of [str, int] tuples cardinality memory_slots 
+                    "clbit_labels": clbit_labels, # list of [str, int] tuples cardinality memory_slots
+                    "qreg_sizes": qreg_sizes, # list of [str, int] tuples cardinality num_qubits
+                    "qubit_labels": qubit_labels, # list of [str, int] tuples cardinality num_qubits
                 }
             ),
         },
