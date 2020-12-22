@@ -34,8 +34,50 @@ from qiskit import QuantumCircuit
 from qiskit_ionq_provider.helpers import qiskit_to_ionq
 
 
+def test_output_map_with_multiple_measurements_to_different_clbits(simulator_backend):
+    """Test a full circuit
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    qc = QuantumCircuit(2, 2, name="test_name")
+    qc.measure(0, 0)
+    qc.measure(0, 1)
+    ionq_json = qiskit_to_ionq(
+        qc,
+        simulator_backend.name(),
+        passed_args={"shots": 200},
+    )
+    actual = json.loads(ionq_json)
+    actual_metadata = actual.pop("metadata") or {}
+    actual_output_map = json.loads(actual_metadata.pop("output_map") or "{}")
+
+    assert actual_output_map == [0, 0]
+
+
+def test_output_map_with_multiple_measurements_to_same_clbit(simulator_backend):
+    """Test a full circuit
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    qc = QuantumCircuit(2, 2, name="test_name")
+    qc.measure(0, 0)
+    qc.measure(1, 0)
+    ionq_json = qiskit_to_ionq(
+        qc,
+        simulator_backend.name(),
+        passed_args={"shots": 200},
+    )
+    actual = json.loads(ionq_json)
+    actual_metadata = actual.pop("metadata") or {}
+    actual_output_map = json.loads(actual_metadata.pop("output_map") or "{}")
+
+    assert actual_output_map == [1, None]
+
+
 def test_full_circuit(simulator_backend):
-    """Test a full circu
+    """Test a full circuit
 
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
@@ -52,7 +94,7 @@ def test_full_circuit(simulator_backend):
     )
 
     expected_metadata_header = {"memory_slots": 2}
-    expected_output_map = {"0": 1, "1": 0}
+    expected_output_map = [1, 0]
     expected_metadata = {
         "shots": "200",
     }

@@ -38,7 +38,7 @@ from qiskit.circuit.library import standard_gates as q_gates
 from . import exceptions
 
 
-def qiskit_circ_to_ionq_circ(circ):
+def qiskit_circ_to_ionq_circ(input_circuit):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
     .. ATTENTION:: This function ignores the following compiler directives:
@@ -77,10 +77,10 @@ def qiskit_circ_to_ionq_circ(circ):
         "cu2",
         "cu3",
     ]
-    circuit = []
+    output_circuit = []
     num_meas = 0
-    meas_map = {}
-    for instruction, qargs, cargs in circ.data:
+    meas_map = [None] * len(input_circuit.clbits)
+    for instruction, qargs, cargs in input_circuit.data:
         # Don't process compiler directives.
         instruction_name = instruction.name
         if instruction_name in compiler_directives:
@@ -88,7 +88,7 @@ def qiskit_circ_to_ionq_circ(circ):
 
         # Don't process measurement instructions.
         if instruction_name == "measure":
-            meas_map[int(qargs[0].index)] = cargs[0].index
+            meas_map[int(cargs[0].index)] = int(qargs[0].index)
             num_meas += 1
             continue
 
@@ -131,9 +131,9 @@ def qiskit_circ_to_ionq_circ(circ):
                 }
             )
 
-        circuit.append({**converted, **rotation})
+        output_circuit.append({**converted, **rotation})
 
-    return circuit, num_meas, meas_map
+    return output_circuit, num_meas, meas_map
 
 
 def qiskit_to_ionq(circuit, backend_name, passed_args=None):

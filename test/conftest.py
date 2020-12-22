@@ -93,7 +93,7 @@ def dummy_job_response(job_id, status="completed"):
             "shots": "1234",
             "qobj_id": "test_qobj_id",
             "output_length": "2",
-            "output_map": '{"0": 1, "1": 0}',
+            "output_map": "[1,0]",
             "header": json.dumps(headers),
         },
         "execution_time": 8,

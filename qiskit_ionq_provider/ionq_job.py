@@ -86,7 +86,7 @@ def _remap_counts(result, retain_probabilities=False):
     output_map = json.loads(json_output_map)
 
     # output length will be the number of memory slots (classical register size), or num_qubits.
-    output_length = memory_slots if memory_slots else num_qubits
+    output_length = len(output_map)
     offset = num_qubits - 1
 
     # Remap counts.
@@ -95,10 +95,13 @@ def _remap_counts(result, retain_probabilities=False):
     for key, val in histogram.items():
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
         red_bits = ["0"] * output_length
-        for qbit, cbit in output_map.items():
-            red_bits[cbit] = str(bits[offset - int(qbit)])
+        for clbit, qubit in enumerate(output_map):
+            if qubit == None:
+                red_bits[clbit] = str(0)
+            else:
+                red_bits[clbit] = str(bits[offset - int(qubit)])
 
-        # Qiskit bit strings are in reverse order from ours:
+        # we iterated one way, but gotta flip for final output:
         qiskit_bitstring = "".join(red_bits)[::-1]
         sum_next = val if retain_probabilities else round(val * shots)
         count_sum = counts.get(qiskit_bitstring) or 0

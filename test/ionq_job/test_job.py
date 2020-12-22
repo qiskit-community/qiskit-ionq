@@ -100,12 +100,26 @@ def test_remap_counts():
         "data": {"histogram": {"5": 0.5, "7": 0.5}},
         "metadata": {
             "shots": 100,
-            "output_map": json.dumps({"0": 0, "1": 2, "2": 1}),
+            "output_map": json.dumps([0,2,1]),
             "header": json.dumps({"memory_slots": 3})
         },
     }
     counts = ionq_job._remap_counts(result)
     assert {"011": 50, "111": 50} == counts
+
+def test_remap_counts__with_unused_clbit():
+    """Test count remapping when you have a clbit that never had a measurement mapped to it."""
+    result = {
+        "qubits": 3,
+        "data": {"histogram": {"5": 0.5, "7": 0.5}},
+        "metadata": {
+            "shots": 100,
+            "output_map": json.dumps([0,None,1]),
+            "header": json.dumps({"memory_slots": 3})
+        },
+    }
+    counts = ionq_job._remap_counts(result)
+    assert {"001": 50, "101": 50} == counts
 
 def test_remap_counts__can_be_additive():  # pylint: disable=invalid-name
     """Test that counts can be additive for a given qubit mapping."""
@@ -114,7 +128,7 @@ def test_remap_counts__can_be_additive():  # pylint: disable=invalid-name
         "data": {"histogram": {"5": 0.5, "7": 0.5}},
         "metadata": {
             "shots": 100,
-            "output_map": json.dumps({"0": 0, "2": 1}),
+            "output_map": json.dumps([0,2]),
             "header": json.dumps({"memory_slots": 2})
         },
     }
