@@ -219,7 +219,37 @@ class IonQBackend(BaseBackend):
 
 
 class IonQSimulatorBackend(IonQBackend):
-    """IonQ Backend for running simulated jobs."""
+    """
+    IonQ Backend for running simulated jobs.
+
+    .. ATTENTION:
+        The maximum shot-count for a state vector sim is always ``1``.
+
+    .. ATTENTION::
+
+        Calling :meth:`get_counts <qiskit_ionq_provider.ionq_job.IonQJob.get_counts>`
+        on a job processed by this backend will return counts expressed as
+        probabilites, rather than a multiple of shots.
+    """
+
+    # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ
+    def run(self, circuit, shots=None):
+        """Create and run a job on IonQ's Simulator Backend.
+
+        .. WARNING:
+
+            The maximum shot-count for a state vector sim is always ``1``.
+            As a result, the ``shots`` keyword argument in this method is ignored.
+
+        Args:
+            circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
+                A Qiskit QuantumCircuit object.
+            shots (int): (Ignored) The number of shots to evaluate.
+
+        Returns:
+            IonQJob: A reference to the job that was submitted.
+        """
+        return super().run(circuit, shots=1)
 
     def calibration(self):
         """Simulators have no calibration data.
@@ -264,7 +294,7 @@ class IonQSimulatorBackend(IonQBackend):
                 "memory": False,
                 "n_qubits": 29,
                 "conditional": False,
-                "max_shots": 10000,
+                "max_shots": 1,
                 "max_experiments": 1,
                 "open_pulse": False,
                 "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO"}],

@@ -93,14 +93,14 @@ def test_remap_counts__bad_input(data, error_msg):
         ionq_job._remap_counts(data)
     assert exc_info.value.message == error_msg
 
-def test_remap_counts(): 
+def test_remap_counts():
     """Test basic count remapping."""
     result = {
         "qubits": 3,
         "data": {"histogram": {"5": 0.5, "7": 0.5}},
         "metadata": {
-            "shots": 100, 
-            "output_map": json.dumps({"0": 0, "1": 2, "2": 1}), 
+            "shots": 100,
+            "output_map": json.dumps({"0": 0, "1": 2, "2": 1}),
             "header": json.dumps({"memory_slots": 3})
         },
     }
@@ -113,8 +113,8 @@ def test_remap_counts__can_be_additive():  # pylint: disable=invalid-name
         "qubits": 3,
         "data": {"histogram": {"5": 0.5, "7": 0.5}},
         "metadata": {
-            "shots": 100, 
-            "output_map": json.dumps({"0": 0, "2": 1}), 
+            "shots": 100,
+            "output_map": json.dumps({"0": 0, "2": 1}),
             "header": json.dumps({"memory_slots": 2})
         },
     }
@@ -136,6 +136,22 @@ def test_counts(formatted_result):
     """Test counts based on a dummy result (see global conftest.py)."""
     counts = formatted_result.get_counts()
     assert {"00": 617, "01": 617} == counts
+
+
+
+def test_counts__simulator_probs(simulator_backend, requests_mock):
+    """Test that the simulator retains counts as probabilities."""
+    # Dummy job ID for formatted results fixture.
+    job_id = "test_id"
+
+    # Create the request path for accessing the dummy job:
+    path = simulator_backend.client.make_path("jobs", job_id)
+    requests_mock.get(path, json=conftest.dummy_job_response(job_id))
+    job = ionq_job.IonQJob(simulator_backend, job_id)
+
+    formatted_result = job.result()
+    counts = formatted_result.get_counts()
+    assert {"00": 0.5, "01": 0.499999} == counts
 
 
 def test_submit__without_circuit(mock_backend, requests_mock):
