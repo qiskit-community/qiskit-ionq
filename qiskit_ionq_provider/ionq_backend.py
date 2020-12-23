@@ -141,22 +141,23 @@ class IonQSimulatorBackend(IonQBackend):
     """
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ
-    def run(self, circuit, shots=1):
+    def run(self, circuit, shots=None):
         """Create and run a job on IonQ's Simulator Backend.
 
-        .. ATTENTION:
+        .. WARNING:
 
             The maximum shot-count for a state vector sim is always ``1``.
+            As a result, the ``shots`` keyword argument in this method is ignored.
 
         Args:
             circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
                 A Qiskit QuantumCircuit object.
-            shots (int): The number of shots to evaluate.
+            shots (int): (Ignored) The number of shots to evaluate.
 
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
-        return super().run(circuit, shots=shots)
+        return super().run(circuit, shots=1)
 
     def __init__(self, provider):
         """Base class for interfacing with an IonQ backend"""
