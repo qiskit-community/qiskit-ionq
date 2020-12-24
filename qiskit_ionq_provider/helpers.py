@@ -31,6 +31,8 @@ to IonQ REST API compatible values.
 """
 
 import json
+import gzip
+import codecs
 
 from qiskit.circuit import controlledgate as q_cgates
 from qiskit.circuit.library import standard_gates as q_gates
@@ -160,6 +162,29 @@ def get_register_sizes_and_labels(register):
     return sizes, labels
 
 
+# slightly goofy workaround to account for the fact that IonQ's "arbitrary" metadata field
+# only takes string KV pairs with value max length 400
+# so we try and pack it down into a more-compressed string format
+# and raise if it's still too long
+# TODO: make this behavior a little nicer (dict metadata) on IonQ side; fix here when we do
+def compress_dict_to_metadata_string(dict):
+    serialized = json.dumps(dict)
+    compressed = gzip.compress(bytes(serialized, "utf-8"))
+    compressed_as_string = codecs.encode(compressed, "base64").decode()
+    compressed_string_length = len(compressed_as_string)
+    if compressed_string_length > 400:
+        raise exceptions.IonQMetadataStringError(compressed_string_length)
+    return compressed_as_string
+
+
+def decompress_metadata_string_to_dict(input_string):
+    if input_string is None:
+        return None
+    decoded = codecs.decode(input_string.encode(), "base64")
+    decompressed = gzip.decompress(decoded)
+    return json.loads(decompressed)
+
+
 def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
@@ -175,6 +200,18 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.clbits)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.clbits)
+    qiskit_header = compress_dict_to_metadata_string(
+        {
+            "memory_slots": circuit.num_clbits,  # int
+            "global_phase": circuit.global_phase,  # float
+            "n_qubits": circuit.num_qubits,  # int
+            "name": circuit.name,  # str
+            "creg_sizes": creg_sizes,  # list of [str, int] tuples cardinality memory_slots
+            "clbit_labels": clbit_labels,  # list of [str, int] tuples cardinality memory_slots
+            "qreg_sizes": qreg_sizes,  # list of [str, int] tuples cardinality num_qubits
+            "qubit_labels": qubit_labels,  # list of [str, int] tuples cardinality num_qubits
+        }
+    )
 
     ionq_json = {
         "lang": "json",
@@ -188,18 +225,7 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         "metadata": {
             "shots": str(passed_args["shots"]),
             "output_map": json.dumps(meas_map),
-            "header": json.dumps(
-                {
-                    "memory_slots": circuit.num_clbits, # int 
-                    "global_phase": circuit.global_phase, # float
-                    "n_qubits": circuit.num_qubits, # int
-                    "name": circuit.name, # str 
-                    "creg_sizes": creg_sizes, # list of [str, int] tuples cardinality memory_slots 
-                    "clbit_labels": clbit_labels, # list of [str, int] tuples cardinality memory_slots
-                    "qreg_sizes": qreg_sizes, # list of [str, int] tuples cardinality num_qubits
-                    "qubit_labels": qubit_labels, # list of [str, int] tuples cardinality num_qubits
-                }
-            ),
+            "qiskit_header": qiskit_header,
         },
     }
     return json.dumps(ionq_json)

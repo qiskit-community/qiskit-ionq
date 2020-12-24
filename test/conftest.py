@@ -34,6 +34,7 @@ from qiskit.providers import models as q_models
 from requests_mock import adapter as rm_adapter
 
 from qiskit_ionq_provider import ionq_backend, ionq_job, ionq_provider
+from qiskit_ionq_provider.helpers import compress_dict_to_metadata_string
 
 
 class MockBackend(ionq_backend.IonQBackend):
@@ -76,16 +77,18 @@ def dummy_job_response(job_id, status="completed"):
     Returns:
         dict: A json response dict.
     """
-    headers = {
-        "qubit_labels": [["q", 0], ["q", 1]],
-        "n_qubits": 2,
-        "qreg_sizes": [["q", 2]],
-        "clbit_labels": [["c", 0], ["c", 1]],
-        "memory_slots": 2,
-        "creg_sizes": [["c", 2]],
-        "name": "test-circuit",
-        "global_phase": 0,
-    }
+    qiskit_header = compress_dict_to_metadata_string(
+        {
+            "qubit_labels": [["q", 0], ["q", 1]],
+            "n_qubits": 2,
+            "qreg_sizes": [["q", 2]],
+            "clbit_labels": [["c", 0], ["c", 1]],
+            "memory_slots": 2,
+            "creg_sizes": [["c", 2]],
+            "name": "test-circuit",
+            "global_phase": 0,
+        }
+    )
     return {
         "status": status,
         "predicted_execution_time": 4,
@@ -94,7 +97,7 @@ def dummy_job_response(job_id, status="completed"):
             "qobj_id": "test_qobj_id",
             "output_length": "2",
             "output_map": "[1,0]",
-            "header": json.dumps(headers),
+            "qiskit_header": qiskit_header,
         },
         "execution_time": 8,
         "qubits": 2,

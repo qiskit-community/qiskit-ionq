@@ -41,7 +41,7 @@ import json
 from qiskit.providers import BaseJob, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from qiskit.result import Result
-
+from .helpers import decompress_metadata_string_to_dict
 from . import constants, exceptions
 
 
@@ -74,7 +74,7 @@ def _remap_counts(result, retain_probabilities=False):
     # Pull metadata, histogram, and num_qubits to perform the mapping.
     metadata = result["metadata"]
     num_qubits = result["qubits"]
-    header = json.loads(metadata.get("header") or "{}")
+    header = decompress_metadata_string_to_dict(metadata.get("qiskit_header") or None)
     memory_slots = header.get("memory_slots") or None
 
     # Get shot count.
@@ -288,10 +288,11 @@ class IonQJob(BaseJob):
         # Format the inner result payload.
         success = self._status == jobstatus.JobStatus.DONE
         metadata = result.get("metadata") or {}
+        qiskit_header = decompress_metadata_string_to_dict(metadata.get("qiskit_header", None))
         job_result = {
             "data": {},
             "shots": metadata.get("shots", 1),
-            "header": json.loads(metadata.get("header") or "{}"),
+            "header": qiskit_header or {},
             "success": success,
         }
         if self._status == jobstatus.JobStatus.DONE:

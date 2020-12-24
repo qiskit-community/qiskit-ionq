@@ -31,10 +31,14 @@ import json
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
-from qiskit_ionq_provider.helpers import qiskit_to_ionq
+from qiskit_ionq_provider.helpers import (
+    qiskit_to_ionq,
+    compress_dict_to_metadata_string,
+    decompress_metadata_string_to_dict,
+)
 
 
-def test_output_map_with_multiple_measurements_to_different_clbits(simulator_backend):
+def test_output_map__with_multiple_measurements_to_different_clbits(simulator_backend):
     """Test a full circuit
 
     Args:
@@ -55,7 +59,7 @@ def test_output_map_with_multiple_measurements_to_different_clbits(simulator_bac
     assert actual_output_map == [0, 0]
 
 
-def test_output_map_with_multiple_measurements_to_same_clbit(simulator_backend):
+def test_output_map__with_multiple_measurements_to_same_clbit(simulator_backend):
     """Test a full circuit
 
     Args:
@@ -76,7 +80,7 @@ def test_output_map_with_multiple_measurements_to_same_clbit(simulator_backend):
     assert actual_output_map == [1, None]
 
 
-def test_metadata_header_with_multiple__registers(simulator_backend):
+def test_metadata_header__with_multiple_registers(simulator_backend):
     """Test correct metadata headers when we have multiple qregs and cregs"""
     qr0 = QuantumRegister(2, "qr0")
     qr1 = QuantumRegister(2, "qr1")
@@ -144,7 +148,9 @@ def test_full_circuit(simulator_backend):
     actual = json.loads(ionq_json)
     actual_metadata = actual.pop("metadata") or {}
     actual_output_map = json.loads(actual_metadata.pop("output_map") or "{}")
-    actual_metadata_header = json.loads(actual_metadata.pop("header") or "{}")
+    actual_metadata_header = decompress_metadata_string_to_dict(
+        actual_metadata.pop("qiskit_header") or None
+    )
 
     # check dict equality:
     assert actual == expected

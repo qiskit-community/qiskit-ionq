@@ -35,6 +35,7 @@ from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
 
 from qiskit_ionq_provider import exceptions, ionq_job
+from qiskit_ionq_provider.helpers import compress_dict_to_metadata_string
 
 from .. import conftest
 
@@ -101,7 +102,7 @@ def test_remap_counts():
         "metadata": {
             "shots": 100,
             "output_map": json.dumps([0,2,1]),
-            "header": json.dumps({"memory_slots": 3})
+            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3})
         },
     }
     counts = ionq_job._remap_counts(result)
@@ -115,7 +116,7 @@ def test_remap_counts__with_unused_clbit():
         "metadata": {
             "shots": 100,
             "output_map": json.dumps([0,None,1]),
-            "header": json.dumps({"memory_slots": 3})
+            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3})
         },
     }
     counts = ionq_job._remap_counts(result)
@@ -129,7 +130,7 @@ def test_remap_counts__can_be_additive():  # pylint: disable=invalid-name
         "metadata": {
             "shots": 100,
             "output_map": json.dumps([0,2]),
-            "header": json.dumps({"memory_slots": 2})
+            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 2})
         },
     }
     counts = ionq_job._remap_counts(result)
