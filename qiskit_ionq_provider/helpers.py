@@ -218,7 +218,7 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     passed_args = passed_args or {}
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.clbits)
-    qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.clbits)
+    qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qubits)
     qiskit_header = compress_dict_to_metadata_string(
         {
             "memory_slots": circuit.num_clbits,  # int

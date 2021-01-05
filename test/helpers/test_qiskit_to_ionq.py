@@ -125,8 +125,8 @@ def test_full_circuit(simulator_backend):
         "name": "test_name",
         "creg_sizes": [["c", 2]],
         "clbit_labels": [["c", 0], ["c", 1]],
-        "qreg_sizes": [["c", 2]],
-        "qubit_labels": [["c", 0], ["c", 1]],
+        "qreg_sizes": [["q", 2]],
+        "qubit_labels": [["q", 0], ["q", 1]],
     }
     expected_output_map = [1, 0]
     expected_metadata = {
