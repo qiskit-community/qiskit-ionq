@@ -29,6 +29,7 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers import JobError, JobTimeoutError
+import warnings
 
 
 class IonQError(QiskitError):
@@ -127,7 +128,8 @@ class IonQGateError(IonQError, JobError):
 
 
 class IonQMidCircuitMeasurementError(IonQError, JobError):
-    """Errors generated from invalid gate defs
+    """Errors generated from attempting mid-circuit measurement, which is not supported.
+    Measurement must come after all instructions.
 
     Attributes:
         qubit_index: The qubit index to be measured mid-circuit
@@ -137,7 +139,7 @@ class IonQMidCircuitMeasurementError(IonQError, JobError):
         self.qubit_index = qubit_index
         self.gate_name = gate_name
         super().__init__(
-            f"Attempting to put '{gate_name}' after a measurement on qubit {qubit_index}. Mid-circuit measurement is not supported; measurement must come after all instructions"
+            f"Attempting to put '{gate_name}' after a measurement on qubit {qubit_index}. Mid-circuit measurement is not supported."
         )
 
     def __str__(self):
@@ -158,13 +160,15 @@ class IonQMetadataStringError(IonQError, JobError):
     def __init__(self, string_length):
         self.string_length = string_length
         super().__init__(
-            (
-                f"attempting to serialize circuit metadata, got length '{string_length}', must be under 400."
-                "This is a limitation of the IonQ API, not something you did wrong."
-                "To submit this circuit we recommend trying the following: shorten the circuit name,"
-                "Use fewer qubit or cbit registers (i.e. combine them), or give these registers shorter names."
-                "Please file a ticket at support.ionq.co if you repeatedly see this error"
-            )
+            f"attempting to serialize circuit metadata, got length '{string_length}'. Must be under 400."
+        )
+        warnings.warn(
+            """
+            This error is a limitation of the IonQ API, not something you did wrong.
+            To submit this circuit we recommend trying the following: shorten the circuit name,
+            Use fewer qubit or cbit registers (i.e. combine them), or give these registers shorter names.
+            Please file a ticket at support.ionq.co if you repeatedly see this error.
+            """
         )
 
     def __str__(self):

@@ -32,7 +32,7 @@ to IonQ REST API compatible values.
 
 import json
 import gzip
-import codecs
+import base64
 
 from qiskit.circuit import controlledgate as q_cgates
 from qiskit.circuit.library import standard_gates as q_gates
@@ -167,20 +167,39 @@ def get_register_sizes_and_labels(register):
 # so we try and pack it down into a more-compressed string format
 # and raise if it's still too long
 # TODO: make this behavior a little nicer (dict metadata) on IonQ side; fix here when we do
-def compress_dict_to_metadata_string(dict):
-    serialized = json.dumps(dict)
-    compressed = gzip.compress(bytes(serialized, "utf-8"))
-    compressed_as_string = codecs.encode(compressed, "base64").decode()
-    compressed_string_length = len(compressed_as_string)
-    if compressed_string_length > 400:
-        raise exceptions.IonQMetadataStringError(compressed_string_length)
-    return compressed_as_string
+def compress_dict_to_metadata_string(metadata_dict):
+    """Convert a dict to a compact string format (dumped, gzipped, base64 encoded) for storing in IonQ API metadata
+
+    Parameters:
+        metadata_dict: a dict with metadata relevant to building the results object on a returned job.
+
+    Returns:
+        str: encoded string
+    """
+    serialized = json.dumps(metadata_dict)
+    compressed = gzip.compress(serialized.encode("utf-8"))
+    encoded = base64.b64encode(compressed)
+    encoded_string = encoded.decode()
+    encoded_string_length = len(encoded_string)
+    if encoded_string_length > 400:  # 400 char is an IonQ API limitation
+        raise exceptions.IonQMetadataStringError(encoded_string_length)
+    return encoded_string
 
 
 def decompress_metadata_string_to_dict(input_string):
+    """Convert compact string format (dumped, gzipped, base64 encoded) from IonQ API metadata back into a dict
+    relevant to building the results object on a returned job.
+
+    Parameters:
+        input_string: compressed string format of metadata dict
+
+    Returns:
+        dict: decompressed metadata dict
+    """
     if input_string is None:
         return None
-    decoded = codecs.decode(input_string.encode(), "base64")
+    encoded = input_string.encode()
+    decoded = base64.b64decode(encoded)
     decompressed = gzip.decompress(decoded)
     return json.loads(decompressed)
 

@@ -74,12 +74,12 @@ def _remap_counts(result, retain_probabilities=False):
     # Pull metadata, histogram, and num_qubits to perform the mapping.
     metadata = result["metadata"]
     num_qubits = result["qubits"]
-    header = decompress_metadata_string_to_dict(metadata.get("qiskit_header") or None)
+    header = decompress_metadata_string_to_dict(metadata.get("qiskit_header"))
     memory_slots = header.get("memory_slots") or None
 
     # Get shot count.
     shots = metadata.get("shots")
-    shots = int(shots) if shots is not None else 1024  # We do this in case shots was 0.
+    shots = int(shots) if shots is not None else 1024  # We do this in cas>e shots was 0.
 
     # Parse the output mapping from API metadata.
     json_output_map = metadata.get("output_map") or "{}"
