@@ -250,4 +250,9 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     return json.dumps(ionq_json)
 
 
-__all__ = ["qiskit_to_ionq", "qiskit_circ_to_ionq_circ"]
+__all__ = [
+    "qiskit_to_ionq",
+    "qiskit_circ_to_ionq_circ",
+    "compress_dict_to_metadata_string",
+    "decompress_metadata_string_to_dict",
+]
