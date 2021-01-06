@@ -221,8 +221,8 @@ class IonQBackend(BaseBackend):
 class IonQSimulatorBackend(IonQBackend):
     """
     IonQ Backend for running simulated jobs.
+    .. ATTENTION::
 
-    .. ATTENTION:
         The maximum shot-count for a state vector sim is always ``1``.
 
     .. ATTENTION::

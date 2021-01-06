@@ -29,6 +29,7 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers import JobError, JobTimeoutError
+import warnings
 
 
 class IonQError(QiskitError):
@@ -126,8 +127,52 @@ class IonQGateError(IonQError, JobError):
         return f"{self.__class__.__name__}(gate_name={self.gate_name!r})"
 
 
+class IonQMidCircuitMeasurementError(IonQError, JobError):
+    """Errors generated from attempting mid-circuit measurement, which is not supported.
+    Measurement must come after all instructions.
+
+    Attributes:
+        qubit_index: The qubit index to be measured mid-circuit
+    """
+
+    def __init__(self, qubit_index, gate_name):
+        self.qubit_index = qubit_index
+        self.gate_name = gate_name
+        super().__init__(
+            f"Attempting to put '{gate_name}' after a measurement on qubit {qubit_index}. Mid-circuit measurement is not supported."
+        )
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(qubit_index={self.qubit_index!r}, gate_name={self.gate_name!r})"
+
+
 class IonQJobTimeoutError(IonQError, JobTimeoutError):
     """Errors generated from job timeouts"""
+
+
+class IonQMetadataStringError(IonQError, JobError):
+    """Errors generated from metadata strings being too long
+
+    Attributes:
+        string_length: The length of the metadata string that's too long.
+    """
+
+    def __init__(self, string_length):
+        self.string_length = string_length
+        super().__init__(
+            f"attempting to serialize circuit metadata, got length '{string_length}'. Must be under 400."
+        )
+        warnings.warn(
+            """
+            This error is a limitation of the IonQ API, not something you did wrong.
+            To submit this circuit we recommend trying the following: shorten the circuit name,
+            Use fewer qubit or cbit registers (i.e. combine them), or give these registers shorter names.
+            Please file a ticket at support.ionq.co if you repeatedly see this error.
+            """
+        )
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(string_length={self.string_length!r})"
 
 
 __all__ = [
@@ -138,5 +183,7 @@ __all__ = [
     "IonQBackendError",
     "IonQJobError",
     "IonQGateError",
+    "IonQMidCircuitMeasurementError",
     "IonQJobTimeoutError",
+    "IonQMetadataStringError",
 ]

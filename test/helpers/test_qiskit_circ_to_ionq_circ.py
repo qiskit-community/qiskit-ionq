@@ -123,3 +123,25 @@ def test_rotation_from_instruction_params():
     built = built[0]
     assert "rotation" in built
     assert built["rotation"] == 1.0
+
+
+def test_no_mid_circuit_measurement():
+    """Test that putting an instruction on a qubit that has been measured is an invalid instruction"""
+    qc = QuantumCircuit(2, 2)
+    qc.measure(1, 1)
+    qc.x(1)
+    with pytest.raises(exceptions.IonQMidCircuitMeasurementError) as exc:
+        qiskit_circ_to_ionq_circ(qc)
+    assert exc.value.qubit_index == 1
+    assert exc.value.gate_name == "x"
+
+
+def test_unordered_instructions_are_not_mid_circuit_measurement():
+    """Test that mid-circuit measurement is only an error if
+    you try and put an instruction on a measured qubit."""
+    qc = QuantumCircuit(2, 2)
+    qc.measure(1, 1)
+    qc.x(0)
+    expected = [{"gate": "x", "targets": [0]}]
+    built, _, _ = qiskit_circ_to_ionq_circ(qc)
+    assert built == expected
