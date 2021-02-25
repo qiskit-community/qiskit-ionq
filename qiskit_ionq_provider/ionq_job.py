@@ -315,6 +315,7 @@ class IonQJob(BaseJob):
                 "backend_version": backend_version,
                 "qobj_id": metadata.get("qobj_id"),
                 "success": success,
+                "time_taken": result.get("execution_time"),
             }
         )
 
