@@ -1,6 +1,6 @@
 # Qiskit IonQ Provider
 
-<img src="https://ionq.com/images/ionq-logo-dark.png"alt="IonQ Logo" width="400px"/>
+<img src="https://ionq.com/images/ionq-logo-dark.png" alt="IonQ Logo" width="350px"/>
 
 [![License](https://img.shields.io/github/license/qiskit-community/qiskit-aqt-provider.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)
 
