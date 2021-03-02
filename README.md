@@ -161,5 +161,7 @@ open build/html/index.html
 
 [Apache License 2.0].
 
+The IonQ logo and Q mark are copyright IonQ, Inc. All rights reserved.
+
 [ionq]: https://www.ionq.com/
 [apache license 2.0]: https://github.com/qiskit-community/qiskit-ionq-provider/blob/master/LICENSE.txt
