@@ -1,5 +1,7 @@
 # Qiskit IonQ Provider
 
+<img src="https://ionq.com/images/ionq-logo-dark.png" alt="IonQ Logo" width="350px"/>
+
 [![License](https://img.shields.io/github/license/qiskit-community/qiskit-aqt-provider.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)
 
 **Qiskit** is an open-source SDK for working with quantum computers at the level of circuits, algorithms, and application modules.
@@ -26,7 +28,7 @@ To instantiate the provider, make sure you have an access token then create a pr
 ```python
 from qiskit_ionq_provider import IonQProvider
 
-provider = IonQProvider("superseekr!t-token")
+provider = IonQProvider("token")
 ```
 
 ### Credential Environment Variables
@@ -34,7 +36,7 @@ provider = IonQProvider("superseekr!t-token")
 Alternatively, the IonQ Provider can discover your access token from environment variables:
 
 ```bash
-export QISKIT_IONQ_API_TOKEN="superseekr!t-token"
+export QISKIT_IONQ_API_TOKEN="token"
 ```
 
 Then invoke instantiate the provider without any arguments:
@@ -50,6 +52,7 @@ provider = IonQProvider()
 This package uses the [pytest](https://docs.pytest.org/en/stable/) test runner.
 
 To use pytest directly, just run:
+
 ```bash
 pytest [pytest-args]
 ```
@@ -68,7 +71,6 @@ Global pytest fixtures for the test suite can be found in the top-level [test/co
 
 If you would like to use IonQ as a Qiskit provider, please contact
 sales@ionq.co to request more information about gaining access to the IonQ API.
-
 
 ## Setting up the IonQ Provider
 
@@ -91,7 +93,6 @@ Alternatively, the provider will attempt to use credentials from the environment
 ```bash
 export QISKIT_IONQ_API_TOKEN="superseekr!t-token"
 ```
-
 
 ```python
 from qiskit_ionq_provider import IonQProvider
@@ -130,6 +131,21 @@ job = simulator_backend.run(qc)
 print(job.get_counts())
 ```
 
+### Basis gates and transpilation
+
+IonQ backends have a different set of basis gates than IBM backends. They are ` x, y, z, rx, ry, rz, h, not, cnot, cx, s, si, t, ti, v, vi, xx, yy, zz` and `swap`.
+
+If you have circuits that you'd like to run on IonQ backends that use other gates than this (`u` or `cswap` for example), you will either need to manually rewrite the circuit to only use the above list, or use the qiskit transpiler, per the example below. Not all circuits can be automatically transpiled.
+
+```python
+from qiskit import QuantumCircuit, transpile
+from math import pi
+
+qc2 = QuantumCircuit(1, 1)
+qc2.u(pi, pi/2, pi/4, 0)
+qc2.measure(0,0)
+transpiled_circuit = transpile(qc2, simulator_backend)
+```
 
 ## Documentation
 
@@ -140,9 +156,12 @@ pip install -r requirements-docs.txt
 make html
 open build/html/index.html
 ```
+
 ## License
 
 [Apache License 2.0].
 
-[IonQ]: https://www.ionq.com/
-[Apache License 2.0]: https://github.com/qiskit-community/qiskit-ionq-provider/blob/master/LICENSE.txt
+The IonQ logo and Q mark are copyright IonQ, Inc. All rights reserved.
+
+[ionq]: https://www.ionq.com/
+[apache license 2.0]: https://github.com/qiskit-community/qiskit-ionq-provider/blob/master/LICENSE.txt
