@@ -221,7 +221,7 @@ def decompress_metadata_string_to_dict(input_string):
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuitOrQobj, backend_name, passed_args=None):
+def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
