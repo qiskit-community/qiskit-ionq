@@ -232,14 +232,6 @@ def qiskit_to_ionq(circuitOrQobj, backend_name, passed_args=None):
     Returns:
         dict: A dict with IonQ API compatible values.
     """
-    if isinstance(circuitOrQobj, QasmQobj):
-        # I am not sure how to test this!
-        # or if it's a very pythonic solution! Especially the tuples stuff!!
-        # I think by first assembling from circuit, which is what execute does! https://qiskit.org/documentation/_modules/qiskit/assembler/assemble_circuits.html#assemble_circuits
-        circuit = disassemble(circuitOrQobj)[0][0]
-    else:
-        circuit = circuitOrQobj
-
     passed_args = passed_args or {}
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.clbits)
