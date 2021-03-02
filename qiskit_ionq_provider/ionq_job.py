@@ -38,7 +38,7 @@
 
 import json
 
-from qiskit.providers import BaseJob, jobstatus
+from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from qiskit.result import Result
 from .helpers import decompress_metadata_string_to_dict
@@ -109,7 +109,7 @@ def _remap_counts(result, retain_probabilities=False):
     return counts
 
 
-class IonQJob(BaseJob):
+class IonQJob(JobV1):
     """Representation of a Job that will run on an IonQ backend.
 
     .. IMPORTANT::
@@ -282,7 +282,7 @@ class IonQJob(BaseJob):
         # Different backends can have differing result data:
         backend = self.backend()
         backend_name = backend.name()
-        backend_version = backend.version()
+        backend_version = backend.configuration().backend_version
         is_simulator = backend_name == "ionq_simulator"
 
         # Format the inner result payload.
