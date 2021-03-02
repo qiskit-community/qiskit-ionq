@@ -223,7 +223,6 @@ def qiskit_to_ionq(circuitOrQobj, backend_name, passed_args=None):
     if isinstance(circuitOrQobj, QasmQobj):
         circuit_list, _, _ = disassemble(circuitOrQobj)
         circuit = circuit_list.pop()
-    print(circuit)
 
     passed_args = passed_args or {}
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
