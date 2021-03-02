@@ -171,7 +171,7 @@ class IonQBackend(Backend):
         return ionq_client.IonQClient(token, url)
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ
-    def run(self, circuit, shots=1024):
+    def run(self, circuit, **kwargs):
         """Create and run a job on an IonQ Backend.
 
         Args:
@@ -182,7 +182,7 @@ class IonQBackend(Backend):
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
-        passed_args = {"shots": shots}
+        passed_args = kwargs
         job = ionq_job.IonQJob(
             self,
             None,
