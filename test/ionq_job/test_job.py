@@ -145,6 +145,7 @@ def test_results_meta(formatted_result):
     assert formatted_result.qobj_id == "test_qobj_id"
     assert formatted_result.job_id == "test_id"
     assert formatted_result.success is True
+    assert formatted_result.time_taken == 0.008
 
 
 def test_counts(formatted_result):
