@@ -36,6 +36,8 @@ import base64
 
 from qiskit.circuit import controlledgate as q_cgates
 from qiskit.circuit.library import standard_gates as q_gates
+from qiskit.qobj import QasmQobj
+from qiskit.assembler import disassemble
 
 from . import exceptions
 
@@ -204,17 +206,25 @@ def decompress_metadata_string_to_dict(input_string):
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend_name, passed_args=None):
-    """Convert a Qiskit circuit to a IonQ compatible dict.
+def qiskit_to_ionq(circuitOrQobj, backend_name, passed_args=None):
+    """Serialize a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
-        circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
+        circuitOrQobj (:class:`qiskit.circuit.QuantumCircuit` or :class:`qiskit.qobj.QasmQobj`): A Qiskit quantum circuit or qobj containing a circuit in QASM.
         backend_name (str): Backend name.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
         dict: A dict with IonQ API compatible values.
     """
+    circuit = circuitOrQobj
+    # if the submit job method gets passed a Qobj (possible via e.g. the Qiskit.execute method),
+    # pull the circuit off the Qobj. We don't need any of the rest of the context it provides.
+    if isinstance(circuitOrQobj, QasmQobj):
+        circuit_list, _, _ = disassemble(circuitOrQobj)
+        circuit = circuit_list.pop()
+    print(circuit)
+
     passed_args = passed_args or {}
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.clbits)
