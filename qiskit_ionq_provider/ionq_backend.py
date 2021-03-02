@@ -28,8 +28,9 @@
 """IonQ provider backends."""
 
 import dateutil.parser
-from qiskit.providers import BaseBackend
+from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendConfiguration
+from qiskit.providers import Options
 
 from . import exceptions, ionq_client, ionq_job
 from .helpers import ionq_basis_gates
@@ -114,10 +115,14 @@ class Calibration:
         return self._data["connectivity"]
 
 
-class IonQBackend(BaseBackend):
+class IonQBackend(Backend):
     """IonQ Backend base class."""
 
     _client = None
+
+    @classmethod
+    def _default_options(cls):
+        return Options(shots=1024)
 
     @property
     def client(self):
@@ -166,7 +171,7 @@ class IonQBackend(BaseBackend):
         return ionq_client.IonQClient(token, url)
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ
-    def run(self, circuit, shots=1024):
+    def run(self, circuit, **kwargs):
         """Create and run a job on an IonQ Backend.
 
         Args:
@@ -177,7 +182,7 @@ class IonQBackend(BaseBackend):
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
-        passed_args = {"shots": shots}
+        passed_args = kwargs
         job = ionq_job.IonQJob(
             self,
             None,
