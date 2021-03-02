@@ -36,12 +36,10 @@ from qiskit_ionq_provider.helpers import qiskit_circ_to_ionq_circ
 compiler_directives = ["barrier"]
 unsupported_instructions = [
     "reset",
-    "u1",
-    "u2",
-    "u3",
-    "cu1",
-    "cu2",
-    "cu3",
+    "initialize",
+    "u",
+    "custom-gate",
+    "custom-gate-2",
 ]
 
 
@@ -118,7 +116,7 @@ def test_multi_control():
 def test_rotation_from_instruction_params():
     """Test that instruction parameters are used for rotation. """
     qc = QuantumCircuit(2, 2)
-    qc.append(instruction.Instruction("bogus", 2, 0, [1.0]), [1, 0])
+    qc.append(instruction.Instruction("rx", 2, 0, [1.0]), [1, 0])
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     built = built[0]
     assert "rotation" in built

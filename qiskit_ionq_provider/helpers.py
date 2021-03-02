@@ -36,27 +36,53 @@ import base64
 
 from qiskit.circuit import controlledgate as q_cgates
 from qiskit.circuit.library import standard_gates as q_gates
+from qiskit.qobj import QasmQobj
+from qiskit.assembler import disassemble
 
 from . import exceptions
+
+ionq_basis_gates = [
+    "x",
+    "y",
+    "z",
+    "rx",
+    "ry",
+    "rz",
+    "h",
+    "not",
+    "cnot",
+    "cx",
+    "s",
+    "si",
+    "t",
+    "ti",
+    "v",
+    "vi",
+    "xx",
+    "yy",
+    "zz",
+    "swap",
+]
+
+# gates that we don't take by name but can serialze correctly to our IR
+acceptable_aliases = [
+    "cx",
+    "cy",
+    "cz",
+    "crx",
+    "crz",
+    "cry",
+    "ch",
+    "ccx",
+    "cswap",
+]
 
 
 def qiskit_circ_to_ionq_circ(input_circuit):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
     .. ATTENTION:: This function ignores the following compiler directives:
-
        * ``barrier``
-
-    .. ATTENTION::
-       The following instructions are currently **unsupported**:
-
-       * ``reset``
-       * ``u1``
-       * ``u2``
-       * ``u3``
-       * ``cu1``
-       * ``cu2``
-       * ``cu3``
 
     Parameters:
         circ (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
@@ -70,15 +96,6 @@ def qiskit_circ_to_ionq_circ(input_circuit):
         dict: The measurement map from qubit number to classical bit number.
     """
     compiler_directives = ["barrier"]
-    unsupported_instructions = [
-        "reset",
-        "u1",
-        "u2",
-        "u3",
-        "cu1",
-        "cu2",
-        "cu3",
-    ]
     output_circuit = []
     num_meas = 0
     meas_map = [None] * len(input_circuit.clbits)
@@ -95,7 +112,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
             continue
 
         # Raise out for instructions we don't support.
-        if instruction_name in unsupported_instructions:
+        if instruction_name not in ionq_basis_gates and instruction_name not in acceptable_aliases:
             raise exceptions.IonQGateError(instruction_name)
 
         # Process the instruction and convert.
@@ -204,7 +221,7 @@ def decompress_metadata_string_to_dict(input_string):
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend_name, passed_args=None):
+def qiskit_to_ionq(circuitOrQobj, backend_name, passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
@@ -215,6 +232,14 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     Returns:
         dict: A dict with IonQ API compatible values.
     """
+    if isinstance(circuitOrQobj, QasmQobj):
+        # I am not sure how to test this!
+        # or if it's a very pythonic solution! Especially the tuples stuff!!
+        # I think by first assembling from circuit, which is what execute does! https://qiskit.org/documentation/_modules/qiskit/assembler/assemble_circuits.html#assemble_circuits
+        circuit = disassemble(circuitOrQobj)[0][0]
+    else:
+        circuit = circuitOrQobj
+
     passed_args = passed_args or {}
     ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.clbits)
