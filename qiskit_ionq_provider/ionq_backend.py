@@ -27,6 +27,8 @@
 
 """IonQ provider backends."""
 
+import warnings
+
 import dateutil.parser
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendConfiguration
@@ -182,7 +184,14 @@ class IonQBackend(Backend):
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
+        for kwarg in kwargs:
+            if not hasattr(self.options, kwarg):
+                warnings.warn("Option %s is not used by this backend" % kwarg,
+                              UserWarning, stacklevel=2)
+        if 'shots' not in kwargs:
+            kwargs['shots'] = self.options.shots
         passed_args = kwargs
+
         job = ionq_job.IonQJob(
             self,
             None,
