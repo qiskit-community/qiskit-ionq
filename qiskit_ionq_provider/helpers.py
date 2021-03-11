@@ -91,7 +91,11 @@ ionq_api_aliases = {
     q_gates.p.CPhaseGate: "cz",
     q_gates.sx.CSXGate: "cv",
     q_gates.p.MCPhaseGate: "cz",
-    q_gates.x.MCXGrayCode: "cx",
+    q_gates.x.CCXGate: "cx",  # just one C for all mcx
+    q_gates.x.C3XGate: "cx",  # just one C for all mcx
+    q_gates.x.C4XGate: "cx",  # just one C for all mcx
+    q_gates.x.MCXGate: "cx",  # just one C for all mcx
+    q_gates.x.MCXGrayCode: "cx",  # just one C for all mcx
     q_gates.t.TdgGate: "ti",
     q_gates.p.PhaseGate: "z",
     q_gates.RXXGate: "xx",
@@ -169,13 +173,11 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
         # If this is a controlled gate, make sure to set control qubits.
         if isinstance(instruction, q_cgates.ControlledGate):
-            gate = instruction_name[1:]
+            gate = instruction_name[1:]  # trim the leading c
             controls = [qargs[0].index]
             targets = [qargs[1].index]
-            # If this is a "double" control, we use two control qubits.
+            # If this is a multi-control, use more than one qubit.
             if instruction.num_ctrl_qubits > 1:
-                if gate[0] == "c":
-                    gate = gate[1:]
                 controls = [qargs[i].index for i in range(instruction.num_ctrl_qubits)]
                 targets = [qargs[instruction.num_ctrl_qubits].index]
             if gate == "swap":
