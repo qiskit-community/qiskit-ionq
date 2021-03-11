@@ -33,7 +33,7 @@ from qiskit.circuit.library import *
 from math import pi
 
 from qiskit_ionq_provider import exceptions
-from qiskit_ionq_provider.helpers import qiskit_circ_to_ionq_circ, ionq_basis_gates
+from qiskit_ionq_provider.helpers import qiskit_circ_to_ionq_circ
 
 compiler_directives = ["barrier"]
 unsupported_instructions = [
