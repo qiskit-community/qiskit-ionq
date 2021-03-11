@@ -43,7 +43,7 @@ from . import exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
-# also not a full list of the gates IonQ's backend takes — please refer to IonQ docs for that.
+# also not an exact/complete list of the gates IonQ's backend takes by name — please refer to IonQ docs for that.
 ionq_basis_gates = [
     "ccx",
     "ch",
@@ -87,7 +87,6 @@ ionq_basis_gates = [
     "z",
 ]
 
-# TODO: make sure mega-multi controlled gates work.
 ionq_api_aliases = {
     q_gates.p.CPhaseGate: "cz",
     q_gates.sx.CSXGate: "cv",
@@ -154,7 +153,6 @@ def qiskit_circ_to_ionq_circ(input_circuit):
         # Default conversion is simple, just gate & target.
         converted = {"gate": instruction_name, "targets": [qargs[0].index]}
         # re-alias certain names
-        print(instruction.__class__)
         if instruction.__class__ in ionq_api_aliases:
             new_name = ionq_api_aliases.get(instruction.__class__)
             converted["gate"] = new_name
@@ -169,7 +167,6 @@ def qiskit_circ_to_ionq_circ(input_circuit):
         ):
             converted["targets"] = [qargs[0].index, qargs[1].index]
 
-        print(isinstance(instruction, q_cgates.ControlledGate))
         # If this is a controlled gate, make sure to set control qubits.
         if isinstance(instruction, q_cgates.ControlledGate):
             gate = instruction_name[1:]
