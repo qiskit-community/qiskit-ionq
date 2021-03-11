@@ -29,8 +29,6 @@
 
 import pytest
 from qiskit.circuit import QuantumCircuit, instruction
-from qiskit.circuit.library import *
-from math import pi
 
 from qiskit_ionq_provider import exceptions
 from qiskit_ionq_provider.helpers import qiskit_circ_to_ionq_circ
