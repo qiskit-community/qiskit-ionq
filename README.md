@@ -133,11 +133,11 @@ print(job.get_counts())
 
 ### Basis gates and transpilation
 
-The IonQ provider provides access to the full IonQ cloud backend, which includes its own transpilation and compilation pipeline. As such IonQ backends have a wide set of "basis gates" that they will accept — effectively anything the IonQ API will accept. They are `ccx, ch, cnot, cp, crx, cry, crz, cswap, csx, cx, cy, cz, fredkin, h, i, id, mcp/mcphase, mct, mcx/mcx_gray, measure, p, rx, rxx, ry, ryy, rz, rzz, s, sdg, swap, sx, sxdg, t, tdg, toffoli, x, y` and `z`.
+The IonQ provider provides access to the full IonQ cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ backends have a wide set of "basis gates" that they will accept — effectively anything the IonQ API will accept. They are `ccx, ch, cnot, cp, crx, cry, crz, cswap, csx, cx, cy, cz, fredkin, h, i, id, mcp, mct, mcx, measure, p, rx, rxx, ry, ryy, rz, rzz, s, sdg, swap, sx, sxdg, t, tdg, toffoli, x, y` and `z`.
 
 If you have circuits that you'd like to run on IonQ backends that use other gates than this (`u` or `iswap` for example), you will either need to manually rewrite the circuit to only use the above list, or use the Qiskit transpiler, per the example below. Please note that not all circuits can be automatically transpiled.
 
-If you'd like lower-level access (i.e. programming in native gates and skipping our compilation/transpilation pipeline), please reach out to your IonQ contact for information.
+If you'd like lower-level access—the ability to program in native gates and skip our compilation/transpilation pipeline—please reach out to your IonQ contact for further information.
 
 ```python
 from qiskit import QuantumCircuit, transpile
