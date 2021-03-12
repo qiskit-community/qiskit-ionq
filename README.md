@@ -11,6 +11,10 @@ systems.
 
 The example python notebook (in `/example`) should help you understand basic usage.
 
+## API Access
+
+The IonQ Provider uses IonQ's REST API, and using the provider requires an API access token from IonQ. If you would like to use IonQ as a Qiskit provider, please contact sales@ionq.co to request more information about gaining access to the IonQ API.
+
 ## Installation
 
 You can install the provider using pip:
@@ -20,8 +24,6 @@ pip install qiskit-ionq-provider
 ```
 
 ## Provider Setup
-
-The IonQ Provider uses IonQ's REST API.
 
 To instantiate the provider, make sure you have an access token then create a provider:
 
@@ -47,59 +49,6 @@ from qiskit_ionq_provider import IonQProvider
 provider = IonQProvider()
 ```
 
-## Running Tests
-
-This package uses the [pytest](https://docs.pytest.org/en/stable/) test runner.
-
-To use pytest directly, just run:
-
-```bash
-pytest [pytest-args]
-```
-
-Alternatively, you may also use setuptools integration by running tests through `setup.py`, e.g.:
-
-```bash
-python setup.py test --addopts="[pytest-args]"
-```
-
-### Fixtures
-
-Global pytest fixtures for the test suite can be found in the top-level [test/conftest.py](./test/conftest.py) file.
-
-## IonQ API Access
-
-If you would like to use IonQ as a Qiskit provider, please contact
-sales@ionq.co to request more information about gaining access to the IonQ API.
-
-## Setting up the IonQ Provider
-
-Once the `qiskit-ionq-provider` package has been installed, you can use it to run circuits on the IonQ platform.
-
-### IonQ API Credentials
-
-The IonQ Provider uses IonQ's REST API.
-
-To instantiate the provider, make sure you have an IonQ API key then create a provider:
-
-```python
-from qiskit_ionq_provider import IonQProvider
-
-provider = IonQProvider("superseekr!t-token")
-```
-
-Alternatively, the provider will attempt to use credentials from the environment variable `QISKIT_IONQ_API_TOKEN`:
-
-```bash
-export QISKIT_IONQ_API_TOKEN="superseekr!t-token"
-```
-
-```python
-from qiskit_ionq_provider import IonQProvider
-
-provider = IonQProvider()
-```
-
 Once the provider has been instantiated, it may be used to access supported backends:
 
 ```python
@@ -112,7 +61,7 @@ simulator_backend = provider.get_backend("ionq_simulator")
 
 ### Submitting a Circuit
 
-Once a provider has been created, it may be used to submit circuits.
+Once a a backend has been specified, it may be used to submit circuits.
 For example, running a Bell State:
 
 ```python
@@ -133,7 +82,7 @@ print(job.get_counts())
 
 ### Basis gates and transpilation
 
-The IonQ provider provides access to the full IonQ cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ backends have a wide set of "basis gates" that they will accept — effectively anything the IonQ API will accept. They are `ccx, ch, cnot, cp, crx, cry, crz, cswap, csx, cx, cy, cz, fredkin, h, i, id, mcp, mct, mcx, measure, p, rx, rxx, ry, ryy, rz, rzz, s, sdg, swap, sx, sxdg, t, tdg, toffoli, x, y` and `z`.
+The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. They are `ccx, ch, cnot, cp, crx, cry, crz, cswap, csx, cx, cy, cz, fredkin, h, i, id, mcp, mct, mcx, measure, p, rx, rxx, ry, ryy, rz, rzz, s, sdg, swap, sx, sxdg, t, tdg, toffoli, x, y` and `z`.
 
 If you have circuits that you'd like to run on IonQ backends that use other gates than this (`u` or `iswap` for example), you will either need to manually rewrite the circuit to only use the above list, or use the Qiskit transpiler, per the example below. Please note that not all circuits can be automatically transpiled.
 
@@ -148,6 +97,30 @@ qc2.u(pi, pi/2, pi/4, 0)
 qc2.measure(0,0)
 transpiled_circuit = transpile(qc2, simulator_backend)
 ```
+
+## Contributing
+
+If you'd like to contribute to the IonQ Provider, please take a look at the [contribution guidelines](CONTRIBUTING.md). This project adheres the Qiskit Community code of conduct. By participating, you are are agreeing to uphold this code.
+
+## Running Tests
+
+This package uses the [pytest](https://docs.pytest.org/en/stable/) test runner.
+
+To use pytest directly, just run:
+
+```bash
+pytest [pytest-args]
+```
+
+Alternatively, you may also use setuptools integration by running tests through `setup.py`, e.g.:
+
+```bash
+python setup.py test --addopts="[pytest-args]"
+```
+
+### Fixtures
+
+Global pytest fixtures for the test suite can be found in the top-level [test/conftest.py](./test/conftest.py) file.
 
 ## Documentation
 
