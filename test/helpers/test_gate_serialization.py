@@ -125,7 +125,9 @@ def test_individual_instruction_serialization(gate_name, gate_args, expected_ser
     """Test that individual gates are correctly serialized
 
     Args:
-        serialization (tuple): an instruction, its args, and its correct serialization
+        gate_name (str): the qiskit gate to test, as its QuantumCircuit method name
+        gate_args (list): the arguments for the gate. Will have different entries and cardinality depending on the gate
+        expected_serialization (list): expected serialization of the gate as a (normally single-element) list of instructions in IonQ API JSON format
 
     """
     qc = QuantumCircuit(6, 6)
