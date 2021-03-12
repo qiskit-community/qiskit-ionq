@@ -42,6 +42,51 @@ unsupported_instructions = [
     "custom-gate-2",
 ]
 
+gate_serializations = [
+    ("ccx", [0, 1, 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
+    ("ch", [0, 1], [{"gate": "h", "targets": [1], "controls": [0]}]),
+    ("cnot", [0, 1], [{"gate": "x", "targets": [1], "controls": [0]}]),
+    ("cp", [0.5, 0, 1], [{"gate": "z", "rotation": 0.5, "targets": [1], "controls": [0]}]),
+    ("crx", [0.5, 0, 1], [{"gate": "rx", "rotation": 0.5, "targets": [1], "controls": [0]}]),
+    ("cry", [0.5, 0, 1], [{"gate": "ry", "rotation": 0.5, "targets": [1], "controls": [0]}]),
+    ("crz", [0.5, 0, 1], [{"gate": "rz", "rotation": 0.5, "targets": [1], "controls": [0]}]),
+    ("cswap", [0, 1, 2], [{"gate": "swap", "targets": [1, 2], "controls": [0]}]),
+    ("csx", [0, 1], [{"gate": "v", "targets": [1], "controls": [0]}]),
+    ("cx", [0, 1], [{"gate": "x", "targets": [1], "controls": [0]}]),
+    ("cy", [0, 1], [{"gate": "y", "targets": [1], "controls": [0]}]),
+    ("cz", [0, 1], [{"gate": "z", "targets": [1], "controls": [0]}]),
+    ("fredkin", [0, 1, 2], [{"gate": "swap", "targets": [1, 2], "controls": [0]}]),
+    ("h", [0], [{"gate": "h", "targets": [0]}]),
+    ("i", [0], []),
+    ("id", [0], []),
+    ("mcp", [0.5, [0, 1], 2], [{"gate": "z", "rotation": 0.5, "targets": [2], "controls": [0, 1]}]),
+    ("mct", [[0, 1], 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
+    ("mcx", [[0, 1], 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
+    # make sure that multi-control can take any number of controls
+    ("mcx", [[0, 1, 2], 3], [{"gate": "x", "targets": [3], "controls": [0, 1, 2]}]),
+    ("mcx", [[0, 1, 2, 3], 4], [{"gate": "x", "targets": [4], "controls": [0, 1, 2, 3]}]),
+    ("mcx", [[0, 1, 2, 3, 4], 5], [{"gate": "x", "targets": [5], "controls": [0, 1, 2, 3, 4]}]),
+    ("measure", [0, 0], []),
+    ("p", [0.5, 0], [{"gate": "z", "rotation": 0.5, "targets": [0]}]),
+    ("rx", [0.5, 0], [{"gate": "rx", "rotation": 0.5, "targets": [0]}]),
+    ("rxx", [0.5, 0, 1], [{"gate": "xx", "rotation": 0.5, "targets": [0, 1]}]),
+    ("ry", [0.5, 0], [{"gate": "ry", "rotation": 0.5, "targets": [0]}]),
+    ("ryy", [0.5, 0, 1], [{"gate": "yy", "rotation": 0.5, "targets": [0, 1]}]),
+    ("rz", [0.5, 0], [{"gate": "rz", "rotation": 0.5, "targets": [0]}]),
+    ("rzz", [0.5, 0, 1], [{"gate": "zz", "rotation": 0.5, "targets": [0, 1]}]),
+    ("s", [0], [{"gate": "s", "targets": [0]}]),
+    ("sdg", [0], [{"gate": "si", "targets": [0]}]),
+    ("swap", [0, 1], [{"gate": "swap", "targets": [0, 1]}]),
+    ("sx", [0], [{"gate": "v", "targets": [0]}]),
+    ("sxdg", [0], [{"gate": "vi", "targets": [0]}]),
+    ("t", [0], [{"gate": "t", "targets": [0]}]),
+    ("tdg", [0], [{"gate": "ti", "targets": [0]}]),
+    ("toffoli", [0, 1, 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
+    ("x", [0], [{"gate": "x", "targets": [0]}]),
+    ("y", [0], [{"gate": "y", "targets": [0]}]),
+    ("z", [0], [{"gate": "z", "targets": [0]}]),
+]
+
 
 @pytest.mark.parametrize("directive", compiler_directives)
 def test_compiler_directives(directive):
@@ -73,6 +118,22 @@ def test_unsupported_instructions(instruction_name):
     with pytest.raises(exceptions.IonQGateError) as exc:
         qiskit_circ_to_ionq_circ(qc)
     assert exc.value.gate_name == unsupported.name
+
+
+@pytest.mark.parametrize("gate_name, gate_args, expected_serialization", gate_serializations)
+def test_individual_instruction_serialization(gate_name, gate_args, expected_serialization):
+    """Test that individual gates are correctly serialized
+
+    Args:
+        gate_name (str): the qiskit gate to test, as its QuantumCircuit method name
+        gate_args (list): the arguments for the gate. Will have different entries and cardinality depending on the gate
+        expected_serialization (list): expected serialization of the gate as a (normally single-element) list of instructions in IonQ API JSON format
+
+    """
+    qc = QuantumCircuit(6, 6)
+    getattr(qc, gate_name)(*gate_args)
+    serialized, _, _ = qiskit_circ_to_ionq_circ(qc)
+    assert serialized == expected_serialization
 
 
 def test_measurement_only_circuit():

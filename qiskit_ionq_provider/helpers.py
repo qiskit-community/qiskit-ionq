@@ -41,41 +41,77 @@ from qiskit.assembler import disassemble
 
 from . import exceptions
 
+# the qiskit gates that the IonQ backend can serialize to our IR
+# not the actual hardware basis gates for the system — we do our own transpilation pass.
+# also not an exact/complete list of the gates IonQ's backend takes by name — please refer to IonQ docs for that.
 ionq_basis_gates = [
-    "x",
-    "y",
-    "z",
-    "rx",
-    "ry",
-    "rz",
-    "h",
-    "not",
+    "ccx",
+    "ch",
     "cnot",
-    "cx",
-    "s",
-    "si",
-    "t",
-    "ti",
-    "v",
-    "vi",
-    "xx",
-    "yy",
-    "zz",
-    "swap",
-]
-
-# gates that we don't take by name but can serialze correctly to our IR
-acceptable_aliases = [
+    "cp",
+    "crx",
+    "cry",
+    "crz",
+    "cswap",
+    "csx",
     "cx",
     "cy",
     "cz",
-    "crx",
-    "crz",
-    "cry",
-    "ch",
-    "ccx",
-    "cswap",
+    "fredkin",
+    "h",
+    "i",
+    "id",
+    "mcp",
+    "mcphase",
+    "mct",
+    "mcx",
+    "mcx_gray",
+    "measure",
+    "p",
+    "rx",
+    "rxx",
+    "ry",
+    "ryy",
+    "rz",
+    "rzz",
+    "s",
+    "sdg",
+    "swap",
+    "sx",
+    "sxdg",
+    "t",
+    "tdg",
+    "toffoli",
+    "x",
+    "y",
+    "z",
 ]
+
+ionq_api_aliases = {
+    q_gates.p.CPhaseGate: "cz",
+    q_gates.sx.CSXGate: "cv",
+    q_gates.p.MCPhaseGate: "cz",
+    q_gates.x.CCXGate: "cx",  # just one C for all mcx
+    q_gates.x.C3XGate: "cx",  # just one C for all mcx
+    q_gates.x.C4XGate: "cx",  # just one C for all mcx
+    q_gates.x.MCXGate: "cx",  # just one C for all mcx
+    q_gates.x.MCXGrayCode: "cx",  # just one C for all mcx
+    q_gates.t.TdgGate: "ti",
+    q_gates.p.PhaseGate: "z",
+    q_gates.RXXGate: "xx",
+    q_gates.RYYGate: "yy",
+    q_gates.RZZGate: "zz",
+    q_gates.s.SdgGate: "si",
+    q_gates.sx.SXGate: "v",
+    q_gates.sx.SXdgGate: "vi",
+}
+
+multi_target_uncontrolled_gates = (
+    q_gates.SwapGate,
+    q_gates.RXXGate,
+    q_gates.RYYGate,
+    q_gates.RZZGate,
+)
 
 
 def qiskit_circ_to_ionq_circ(input_circuit):
@@ -111,8 +147,12 @@ def qiskit_circ_to_ionq_circ(input_circuit):
             num_meas += 1
             continue
 
+        # serialized identity gate is a no-op
+        if isinstance(instruction, q_gates.i.IGate):
+            continue
+
         # Raise out for instructions we don't support.
-        if instruction_name not in ionq_basis_gates and instruction_name not in acceptable_aliases:
+        if instruction_name not in ionq_basis_gates:
             raise exceptions.IonQGateError(instruction_name)
 
         # Process the instruction and convert.
@@ -123,21 +163,26 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
         # Default conversion is simple, just gate & target.
         converted = {"gate": instruction_name, "targets": [qargs[0].index]}
+        # re-alias certain names
+        if instruction.__class__ in ionq_api_aliases:
+            new_name = ionq_api_aliases.get(instruction.__class__)
+            converted["gate"] = new_name
+            instruction_name = new_name
 
-        # Make sure swap uses all qargs.
-        if isinstance(instruction, q_gates.SwapGate):
+        # Make sure uncontrolled multi-targets use all qargs.
+        if isinstance(instruction, multi_target_uncontrolled_gates):
             converted["targets"] = [qargs[0].index, qargs[1].index]
+
         # If this is a controlled gate, make sure to set control qubits.
-        elif isinstance(instruction, q_cgates.ControlledGate):
-            gate = instruction_name[1:]
+        if isinstance(instruction, q_cgates.ControlledGate):
+            gate = instruction_name[1:]  # trim the leading c
             controls = [qargs[0].index]
             targets = [qargs[1].index]
-            # If this is a "double" control, we use two control qubits.
-            if gate[0] == "c":
-                gate = gate[1:]
-                controls = [qargs[0].index, qargs[1].index]
-                targets = [qargs[2].index]
-            elif gate == "swap":
+            # If this is a multi-control, use more than one qubit.
+            if instruction.num_ctrl_qubits > 1:
+                controls = [qargs[i].index for i in range(instruction.num_ctrl_qubits)]
+                targets = [qargs[instruction.num_ctrl_qubits].index]
+            if gate == "swap":
                 # If this is a cswap, we have two targets:
                 targets = [qargs[-2].index, qargs[-1].index]
 

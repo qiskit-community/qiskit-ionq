@@ -133,9 +133,11 @@ print(job.get_counts())
 
 ### Basis gates and transpilation
 
-IonQ backends have a different set of basis gates than IBM backends. They are ` x, y, z, rx, ry, rz, h, not, cnot, cx, s, si, t, ti, v, vi, xx, yy, zz` and `swap`.
+The IonQ provider provides access to the full IonQ cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ backends have a wide set of "basis gates" that they will accept — effectively anything the IonQ API will accept. They are `ccx, ch, cnot, cp, crx, cry, crz, cswap, csx, cx, cy, cz, fredkin, h, i, id, mcp, mct, mcx, measure, p, rx, rxx, ry, ryy, rz, rzz, s, sdg, swap, sx, sxdg, t, tdg, toffoli, x, y` and `z`.
 
-If you have circuits that you'd like to run on IonQ backends that use other gates than this (`u` or `cswap` for example), you will either need to manually rewrite the circuit to only use the above list, or use the qiskit transpiler, per the example below. Not all circuits can be automatically transpiled.
+If you have circuits that you'd like to run on IonQ backends that use other gates than this (`u` or `iswap` for example), you will either need to manually rewrite the circuit to only use the above list, or use the Qiskit transpiler, per the example below. Please note that not all circuits can be automatically transpiled.
+
+If you'd like lower-level access—the ability to program in native gates and skip our compilation/transpilation pipeline—please reach out to your IonQ contact for further information.
 
 ```python
 from qiskit import QuantumCircuit, transpile
