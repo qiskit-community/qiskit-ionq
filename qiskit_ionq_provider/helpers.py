@@ -106,6 +106,13 @@ ionq_api_aliases = {
     q_gates.sx.SXdgGate: "vi",
 }
 
+multi_target_uncontrolled_gates = (
+    q_gates.SwapGate,
+    q_gates.RXXGate,
+    q_gates.RYYGate,
+    q_gates.RZZGate,
+)
+
 
 def qiskit_circ_to_ionq_circ(input_circuit):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
@@ -162,13 +169,8 @@ def qiskit_circ_to_ionq_circ(input_circuit):
             converted["gate"] = new_name
             instruction_name = new_name
 
-        # Make sure multi-targets use all qargs.
-        if (
-            isinstance(instruction, q_gates.SwapGate)
-            or isinstance(instruction, q_gates.RXXGate)
-            or isinstance(instruction, q_gates.RYYGate)
-            or isinstance(instruction, q_gates.RZZGate)
-        ):
+        # Make sure uncontrolled multi-targets use all qargs.
+        if isinstance(instruction, multi_target_uncontrolled_gates):
             converted["targets"] = [qargs[0].index, qargs[1].index]
 
         # If this is a controlled gate, make sure to set control qubits.
