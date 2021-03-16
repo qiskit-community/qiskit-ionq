@@ -83,60 +83,40 @@ def spy(instance, attr):
         ({"qubits": 2, "metadata": {}}, "Cannot remap counts without result data!"),
     ],
 )
-def test_remap_counts__bad_input(data, error_msg):
-    """Test that _remap_counts raises specific exceptions based on provided input.
+def test_build_counts__bad_input(data, error_msg):
+    """Test that _build_counts raises specific exceptions based on provided input.
 
     Args:
         data (dict): A dict that will trigger known exception cases.
         error_msg (str): The expected error message based on ``data``.
     """
     with pytest.raises(exceptions.IonQJobError) as exc_info:
-        ionq_job._remap_counts(data)
+        ionq_job._build_counts(data)
     assert exc_info.value.message == error_msg
 
-def test_remap_counts():
+def test_build_counts():
     """Test basic count remapping."""
     result = {
         "qubits": 3,
-        "data": {"histogram": {"5": 0.5, "7": 0.5}},
+        "data": {
+            "histogram": {
+                "5": 0.5, 
+                "7": 0.5
+            }, 
+            "registers": {
+                "meas_mapped": {
+                    "3": 0.5, 
+                    "7": 0.5,
+                }
+            }
+        },
         "metadata": {
             "shots": 100,
-            "output_map": json.dumps([0,2,1]),
             "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3})
         },
     }
-    counts = ionq_job._remap_counts(result)
+    counts = ionq_job._build_counts(result)
     assert {"0x3": 50, "0x7": 50} == counts
-
-def test_remap_counts__with_unused_clbit():
-    """Test count remapping when you have a clbit that never had a measurement mapped to it."""
-    result = {
-        "qubits": 3,
-        "data": {"histogram": {"5": 0.5, "7": 0.5}},
-        "metadata": {
-            "shots": 100,
-            "output_map": json.dumps([0,None,1]),
-            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3})
-        },
-    }
-    counts = ionq_job._remap_counts(result)
-    assert {"0x1": 50, "0x5": 50} == counts
-
-def test_remap_counts__can_be_additive():  # pylint: disable=invalid-name
-    """Test that counts can be additive for a given qubit mapping."""
-    result = {
-        "qubits": 3,
-        "data": {"histogram": {"5": 0.5, "7": 0.5}},
-        "metadata": {
-            "shots": 100,
-            "output_map": json.dumps([0,2]),
-            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 2})
-        },
-    }
-    counts = ionq_job._remap_counts(result)
-    # half the output was bitstring 101, half 111, and we're ignoring qubit 1, so:
-    # 0.5 * 100 + 0.5 * 100 == 100
-    assert {"0x3": 100} == counts
 
 def test_results_meta(formatted_result):
     """Test basic job attribute values."""
@@ -151,7 +131,7 @@ def test_results_meta(formatted_result):
 def test_counts(formatted_result):
     """Test counts based on a dummy result (see global conftest.py)."""
     counts = formatted_result.get_counts()
-    assert {"00": 617, "01": 617} == counts
+    assert {"01": 617, "11": 617} == counts
 
 
 def test_counts__simulator_probs(simulator_backend, requests_mock):
@@ -166,7 +146,7 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
 
     formatted_result = job.result()
     counts = formatted_result.get_counts()
-    assert {"00": 0.5, "01": 0.499999} == counts
+    assert {"01": 0.499999, "11": 0.5} == counts
 
 
 def test_submit__without_circuit(mock_backend, requests_mock):

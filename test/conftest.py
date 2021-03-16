@@ -96,7 +96,6 @@ def dummy_job_response(job_id, status="completed"):
             "shots": "1234",
             "qobj_id": "test_qobj_id",
             "output_length": "2",
-            "output_map": "[1,0]",
             "qiskit_header": qiskit_header,
         },
         "execution_time": 8,
@@ -105,7 +104,12 @@ def dummy_job_response(job_id, status="completed"):
         "request": 1600000000,
         "start": 1600000001,
         "response": 1600000002,
-        "data": {"histogram": {"0": 0.5, "2": 0.499999}},
+        "data": {
+            "histogram": {"0": 0.5, "2": 0.499999},
+            "registers": {
+                "meas_mapped": {"1": 0.499999, "3": 0.5}
+            },  # implies measurement map of [1,0]
+        },
         "target": "qpu",
         "id": job_id,
     }

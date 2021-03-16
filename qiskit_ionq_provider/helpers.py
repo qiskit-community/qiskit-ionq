@@ -302,10 +302,10 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
             "qubits": circuit.num_qubits,
             "circuit": ionq_circ,
         },
+        "registers": {"meas_mapped": json.dumps(meas_map)},
         # store a couple of things we'll need later for result formatting
         "metadata": {
             "shots": str(passed_args["shots"]),
-            "output_map": json.dumps(meas_map),
             "qiskit_header": qiskit_header,
         },
     }
