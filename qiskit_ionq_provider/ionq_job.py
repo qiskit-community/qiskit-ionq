@@ -85,7 +85,6 @@ def _build_counts(result, retain_probabilities=False):
     # Build counts.
     counts = {}
     for key, val in output_probs.items():
-        # we iterate big-endian, but flip for final output
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
         hex_bits = hex(int(bits, 2))
         count = val if retain_probabilities else round(val * shots)

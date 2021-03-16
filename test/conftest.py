@@ -89,7 +89,6 @@ def dummy_job_response(job_id, status="completed"):
             "global_phase": 0,
         }
     )
-    # implicit measurement map of [1,0] based
     return {
         "status": status,
         "predicted_execution_time": 4,
@@ -107,7 +106,9 @@ def dummy_job_response(job_id, status="completed"):
         "response": 1600000002,
         "data": {
             "histogram": {"0": 0.5, "2": 0.499999},
-            "registers": {"meas_mapped": {"1": 0.499999, "3": 0.5}},
+            "registers": {
+                "meas_mapped": {"1": 0.499999, "3": 0.5}
+            },  # implies measurement map of [1,0]
         },
         "target": "qpu",
         "id": job_id,

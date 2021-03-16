@@ -146,7 +146,7 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
 
     formatted_result = job.result()
     counts = formatted_result.get_counts()
-    assert {"11": 0.5, "01": 0.499999} == counts
+    assert {"01": 0.499999, "11": 0.5} == counts
 
 
 def test_submit__without_circuit(mock_backend, requests_mock):
