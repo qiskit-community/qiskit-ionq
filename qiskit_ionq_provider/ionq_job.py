@@ -45,7 +45,7 @@ from .helpers import decompress_metadata_string_to_dict
 from . import constants, exceptions
 
 
-def _remap_counts(result, retain_probabilities=False):
+def _build_counts(result, retain_probabilities=False):
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
     Args:
@@ -74,38 +74,22 @@ def _remap_counts(result, retain_probabilities=False):
     # Pull metadata, histogram, and num_qubits to perform the mapping.
     metadata = result["metadata"]
     num_qubits = result["qubits"]
-    header = decompress_metadata_string_to_dict(metadata.get("qiskit_header"))
-    memory_slots = header.get("memory_slots") or None
 
     # Get shot count.
     shots = metadata.get("shots")
     shots = int(shots) if shots is not None else 1024  # We do this in cas>e shots was 0.
 
-    # Parse the output mapping from API metadata.
-    json_output_map = metadata.get("output_map") or "{}"
-    output_map = json.loads(json_output_map)
+    # Grab the mapped output from response.
+    output_probs = result["data"].get("registers", {}).get("meas_mapped", {})
 
-    # output length will be the number of memory slots (classical register size), or num_qubits.
-    output_length = len(output_map)
-    offset = num_qubits - 1
-
-    # Remap counts.
+    # Build counts.
     counts = {}
-    histogram = result["data"].get("histogram") or {}
-    for key, val in histogram.items():
+    for key, val in output_probs.items():
+        # we iterate big-endian, but flip for final output
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
-        red_bits = ["0"] * output_length
-        for clbit, qubit in enumerate(output_map):
-            if qubit == None:
-                red_bits[clbit] = str(0)
-            else:
-                red_bits[clbit] = str(bits[offset - int(qubit)])
-
-        # we iterated big-endian, but flip for final output
-        qiskit_bitstring = hex(int("".join(red_bits)[::-1], 2))
-        sum_next = val if retain_probabilities else round(val * shots)
-        count_sum = counts.get(qiskit_bitstring) or 0
-        counts[qiskit_bitstring] = count_sum + sum_next
+        hex_bits = hex(int(bits, 2))
+        count = val if retain_probabilities else round(val * shots)
+        counts[hex_bits] = count
     return counts
 
 
@@ -297,7 +281,7 @@ class IonQJob(JobV1):
         }
         if self._status == jobstatus.JobStatus.DONE:
             job_result["data"] = {
-                "counts": _remap_counts(result, retain_probabilities=is_simulator)
+                "counts": _build_counts(result, retain_probabilities=is_simulator)
             }
         elif self._status == jobstatus.JobStatus.ERROR:
             failure = result.get("failure") or {}

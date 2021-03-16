@@ -53,8 +53,8 @@ def test_output_map__with_multiple_measurements_to_different_clbits(simulator_ba
         passed_args={"shots": 200},
     )
     actual = json.loads(ionq_json)
-    actual_metadata = actual.pop("metadata") or {}
-    actual_output_map = json.loads(actual_metadata.pop("output_map") or "{}")
+    actual_maps = actual.pop("registers") or {}
+    actual_output_map = json.loads(actual_maps.pop("meas_mapped") or "{}")
 
     assert actual_output_map == [0, 0]
 
@@ -74,8 +74,8 @@ def test_output_map__with_multiple_measurements_to_same_clbit(simulator_backend)
         passed_args={"shots": 200},
     )
     actual = json.loads(ionq_json)
-    actual_metadata = actual.pop("metadata") or {}
-    actual_output_map = json.loads(actual_metadata.pop("output_map") or "{}")
+    actual_maps = actual.pop("registers") or {}
+    actual_output_map = json.loads(actual_maps.pop("meas_mapped") or "{}")
 
     assert actual_output_map == [1, None]
 
@@ -132,7 +132,7 @@ def test_full_circuit(simulator_backend):
     expected_metadata = {
         "shots": "200",
     }
-    expected = {
+    expected_rest_of_payload = {
         "lang": "json",
         "target": "simulator",
         "shots": 200,
@@ -147,13 +147,14 @@ def test_full_circuit(simulator_backend):
 
     actual = json.loads(ionq_json)
     actual_metadata = actual.pop("metadata") or {}
-    actual_output_map = json.loads(actual_metadata.pop("output_map") or "{}")
     actual_metadata_header = decompress_metadata_string_to_dict(
         actual_metadata.pop("qiskit_header") or None
     )
+    actual_maps = actual.pop("registers") or {}
+    actual_output_map = json.loads(actual_maps.pop("meas_mapped") or "{}")
 
     # check dict equality:
-    assert actual == expected
     assert actual_metadata == expected_metadata
     assert actual_metadata_header == expected_metadata_header
     assert actual_output_map == expected_output_map
+    assert actual == expected_rest_of_payload
