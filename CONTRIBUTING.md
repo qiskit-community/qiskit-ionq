@@ -19,8 +19,8 @@ When you're ready to make a pull request, please make sure the following is true
 
 1. The code matches the project's code style
 2. The documentation, including any docstrings for changed methods, has been updated
-3. If appropriate for your change, that new tests have been added to address any new functionality
-4. All of the tests (new and old) pass!
+3. If appropriate for your change, that new tests have been added to address any new functionality, or that existing tests have been updated as appropriate
+4. All of the tests (new and old) still pass!
 
 ### Running the tests
 
