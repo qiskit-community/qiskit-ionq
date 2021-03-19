@@ -114,7 +114,7 @@ To use pytest directly, just run:
 pytest [pytest-args]
 ```
 
-Alternatively, you may also use setuptools integration by running tests through `setup.py`, e.g.:
+Alternatively, you may use the setuptools integration by running tests through `setup.py`, e.g.:
 
 ```bash
 python setup.py test --addopts="[pytest-args]"
