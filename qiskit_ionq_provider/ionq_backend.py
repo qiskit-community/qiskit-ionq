@@ -186,10 +186,11 @@ class IonQBackend(Backend):
         """
         for kwarg in kwargs:
             if not hasattr(self.options, kwarg):
-                warnings.warn("Option %s is not used by this backend" % kwarg,
-                              UserWarning, stacklevel=2)
-        if 'shots' not in kwargs:
-            kwargs['shots'] = self.options.shots
+                warnings.warn(
+                    "Option %s is not used by this backend" % kwarg, UserWarning, stacklevel=2
+                )
+        if "shots" not in kwargs:
+            kwargs["shots"] = self.options.shots
         passed_args = kwargs
 
         job = ionq_job.IonQJob(
@@ -248,7 +249,7 @@ class IonQSimulatorBackend(IonQBackend):
     """
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ
-    def run(self, circuit, shots=None):
+    def run(self, circuit, **kwargs):
         """Create and run a job on IonQ's Simulator Backend.
 
         .. WARNING:
