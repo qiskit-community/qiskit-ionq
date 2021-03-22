@@ -54,7 +54,7 @@ def test_output_map__with_multiple_measurements_to_different_clbits(simulator_ba
     )
     actual = json.loads(ionq_json)
     actual_maps = actual.pop("registers") or {}
-    actual_output_map = json.loads(actual_maps.pop("meas_mapped") or "{}")
+    actual_output_map = actual_maps.pop("meas_mapped")
 
     assert actual_output_map == [0, 0]
 
@@ -75,7 +75,7 @@ def test_output_map__with_multiple_measurements_to_same_clbit(simulator_backend)
     )
     actual = json.loads(ionq_json)
     actual_maps = actual.pop("registers") or {}
-    actual_output_map = json.loads(actual_maps.pop("meas_mapped") or "{}")
+    actual_output_map = actual_maps.pop("meas_mapped")
 
     assert actual_output_map == [1, None]
 
@@ -151,7 +151,7 @@ def test_full_circuit(simulator_backend):
         actual_metadata.pop("qiskit_header") or None
     )
     actual_maps = actual.pop("registers") or {}
-    actual_output_map = json.loads(actual_maps.pop("meas_mapped") or "{}")
+    actual_output_map = actual_maps.pop("meas_mapped") or []
 
     # check dict equality:
     assert actual_metadata == expected_metadata

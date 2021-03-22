@@ -157,7 +157,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
         # Process the instruction and convert.
         rotation = {}
-        if any(instruction.params):
+        if len(instruction.params) > 0:
             # The float is here to cast Qiskit ParameterExpressions to numbers
             rotation = {"rotation": float(instruction.params[0])}
 
@@ -302,7 +302,7 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
             "qubits": circuit.num_qubits,
             "circuit": ionq_circ,
         },
-        "registers": {"meas_mapped": json.dumps(meas_map)},
+        "registers": {"meas_mapped": meas_map},
         # store a couple of things we'll need later for result formatting
         "metadata": {
             "shots": str(passed_args["shots"]),
