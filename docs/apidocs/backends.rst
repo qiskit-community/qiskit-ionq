@@ -3,5 +3,5 @@
 IonQ Backends
 =============
 
-.. automodule:: qiskit_ionq_provider.ionq_backend
+.. automodule:: qiskit_ionq.ionq_backend
    :members:

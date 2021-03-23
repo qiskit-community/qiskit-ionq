@@ -26,7 +26,7 @@
 # limitations under the License.
 
 import pytest
-from qiskit_ionq_provider import IonQProvider
+from qiskit_ionq import IonQProvider
 from .. import conftest
 
 

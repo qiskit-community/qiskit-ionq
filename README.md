@@ -20,7 +20,7 @@ The IonQ Provider uses IonQ's REST API, and using the provider requires an API a
 You can install the provider using pip:
 
 ```bash
-pip install qiskit-ionq-provider
+pip install qiskit-ionq
 ```
 
 ## Provider Setup
@@ -28,7 +28,7 @@ pip install qiskit-ionq-provider
 To instantiate the provider, make sure you have an access token then create a provider:
 
 ```python
-from qiskit_ionq_provider import IonQProvider
+from qiskit_ionq import IonQProvider
 
 provider = IonQProvider("token")
 ```
@@ -44,7 +44,7 @@ export QISKIT_IONQ_API_TOKEN="token"
 Then invoke instantiate the provider without any arguments:
 
 ```python
-from qiskit_ionq_provider import IonQProvider
+from qiskit_ionq import IonQProvider
 
 provider = IonQProvider()
 ```
@@ -102,7 +102,7 @@ transpiled_circuit = transpile(qc2, simulator_backend)
 
 If you'd like to contribute to the IonQ Provider, please take a look at the [contribution guidelines](CONTRIBUTING.md). This project adheres the Qiskit Community code of conduct. By participating, you are are agreeing to uphold this code.
 
-If you have an enhancement request or bug report, we encourage you to open an issue in [this repo's issues tracker](https://github.com/qiskit-community/qiskit-ionq-provider/issues). If you have a support question or general discussion topic, we recommend instead asking on the [Qiskit community slack](https://qiskit.slack.com/) (you can join using [this link](https://ibm.co/joinqiskitslack)) or the [Quantum Computing StackExchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
+If you have an enhancement request or bug report, we encourage you to open an issue in [this repo's issues tracker](https://github.com/qiskit-partners/qiskit-ionq/issues). If you have a support question or general discussion topic, we recommend instead asking on the [Qiskit community slack](https://qiskit.slack.com/) (you can join using [this link](https://ibm.co/joinqiskitslack)) or the [Quantum Computing StackExchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
 ## Running Tests
 
@@ -141,4 +141,4 @@ open build/html/index.html
 The IonQ logo and Q mark are copyright IonQ, Inc. All rights reserved.
 
 [ionq]: https://www.ionq.com/
-[apache license 2.0]: https://github.com/qiskit-community/qiskit-ionq-provider/blob/master/LICENSE.txt
+[apache license 2.0]: https://github.com/qiskit-partners/qiskit-ionq/blob/master/LICENSE.txt

@@ -34,8 +34,8 @@ from qiskit import QuantumCircuit
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
 
-from qiskit_ionq_provider import exceptions, ionq_job
-from qiskit_ionq_provider.helpers import compress_dict_to_metadata_string
+from qiskit_ionq import exceptions, ionq_job
+from qiskit_ionq.helpers import compress_dict_to_metadata_string
 
 from .. import conftest
 

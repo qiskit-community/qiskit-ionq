@@ -33,7 +33,7 @@ from unittest import mock
 import pytest
 from qiskit import QuantumCircuit
 
-from qiskit_ionq_provider import exceptions, ionq_client, ionq_job
+from qiskit_ionq import exceptions, ionq_client, ionq_job
 
 from .. import conftest
 

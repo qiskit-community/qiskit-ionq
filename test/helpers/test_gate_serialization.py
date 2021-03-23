@@ -30,8 +30,8 @@
 import pytest
 from qiskit.circuit import QuantumCircuit, instruction
 
-from qiskit_ionq_provider import exceptions
-from qiskit_ionq_provider.helpers import qiskit_circ_to_ionq_circ
+from qiskit_ionq import exceptions
+from qiskit_ionq.helpers import qiskit_circ_to_ionq_circ
 
 compiler_directives = ["barrier"]
 unsupported_instructions = [

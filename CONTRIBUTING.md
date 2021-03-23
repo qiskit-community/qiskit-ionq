@@ -11,7 +11,7 @@ https://qiskit.org/documentation/contributing_to_qiskit.html
 
 All contributions are welcome.
 
-If you've noticed a bug or have a feature request, we encourage to open an issue in [this repo's issues tracker](https://github.com/qiskit-community/qiskit-ionq-provider/issues), whether or not you plan to address it yourself.
+If you've noticed a bug or have a feature request, we encourage to open an issue in [this repo's issues tracker](https://github.com/qiskit-partners/qiskit-ionq/issues), whether or not you plan to address it yourself.
 
 If you intend to contribute code, please still start the contribution process by opening a new issue or making a comment on an existing issue briefly explaining what you intend to address and how. This helps us understand your intent/approach and provide support and commentary before you take the time to actually write code, and ensures multiple people aren't accidentally working on the same thing.
 

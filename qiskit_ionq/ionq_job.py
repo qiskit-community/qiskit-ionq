@@ -155,7 +155,7 @@ class IonQJob(JobV1):
         .. ATTENTION::
 
             Result counts for jobs processed by
-            :class:`IonQSimulatorBackend <qiskit_ionq_provider.ionq_backend.IonQSimulatorBackend>`
+            :class:`IonQSimulatorBackend <qiskit_ionq.ionq_backend.IonQSimulatorBackend>`
             are expressed as probabilites, rather than a multiple of shots.
 
         Args:

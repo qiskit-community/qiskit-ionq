@@ -35,7 +35,7 @@ here = os.path.dirname(os.path.realpath(__file__))
 readme_path = os.path.join(here, "README.md")
 requirements_path = os.path.join(here, "requirements.txt")
 test_requirements_path = os.path.join(here, "requirements-test.txt")
-version_path = os.path.join(here, "qiskit_ionq_provider", "version.py")
+version_path = os.path.join(here, "qiskit_ionq", "version.py")
 
 with open(readme_path, "r") as _fp:
     long_description = _fp.read()
@@ -53,7 +53,7 @@ with open(version_path) as _fp:
     exec(_fp.read())  # pylint: disable=exec-used
 
 setup(
-    name="qiskit-ionq-provider",
+    name="qiskit-ionq",
     version=__version__,
     author="IonQ",
     author_email="info@ionq.com",
@@ -61,7 +61,7 @@ setup(
     description="Qiskit provider for IonQ backends",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/qiskit-community/qiskit-ionq-provider",
+    url="https://github.com/qiskit-partners/qiskit-ionq",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",
@@ -85,7 +85,7 @@ setup(
     zip_safe=False,
     include_package_data=True,
     project_urls={
-        "Bug Tracker": "https://github.com/qiskit-community/qiskit-ionq-provider/issues",
-        "Source Code": "https://github.com/qiskit-community/qiskit-ionq-provider",
+        "Bug Tracker": "https://github.com/qiskit-partners/qiskit-ionq/issues",
+        "Source Code": "https://github.com/qiskit-partners/qiskit-ionq",
     },
 )
