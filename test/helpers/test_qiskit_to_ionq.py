@@ -31,7 +31,7 @@ import json
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
-from qiskit_ionq_provider.helpers import (
+from qiskit_ionq.helpers import (
     qiskit_to_ionq,
     compress_dict_to_metadata_string,
     decompress_metadata_string_to_dict,

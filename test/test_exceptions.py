@@ -31,7 +31,7 @@ from unittest import mock
 
 import pytest
 
-from qiskit_ionq_provider import exceptions
+from qiskit_ionq import exceptions
 
 
 def test_base_str_and_repr():

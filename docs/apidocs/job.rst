@@ -3,5 +3,5 @@
 IonQ Job
 ========
 
-.. automodule:: qiskit_ionq_provider.ionq_job
+.. automodule:: qiskit_ionq.ionq_job
    :members:

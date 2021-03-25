@@ -96,9 +96,7 @@ class IonQProvider:
         """
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
-            raise QiskitBackendNotFoundError(
-                "More than one backend matches criteria."
-            )
+            raise QiskitBackendNotFoundError("More than one backend matches criteria.")
         if not backends:
             raise QiskitBackendNotFoundError("No backend matches criteria.")
 
@@ -135,7 +133,7 @@ class BackendService:
 
         ..jupyter-execute::
 
-            from qiskit_ionq_provider import IonQProvider
+            from qiskit_ionq import IonQProvider
             ionq = IonQProvider('TOKEN')
             sim = ionq.backends(filters=lambda x: x.configuration().simulator)
             print(sim)

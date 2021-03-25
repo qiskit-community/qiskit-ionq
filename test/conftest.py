@@ -33,8 +33,8 @@ import requests_mock as _requests_mock
 from qiskit.providers import models as q_models
 from requests_mock import adapter as rm_adapter
 
-from qiskit_ionq_provider import ionq_backend, ionq_job, ionq_provider
-from qiskit_ionq_provider.helpers import compress_dict_to_metadata_string
+from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
+from qiskit_ionq.helpers import compress_dict_to_metadata_string
 
 
 class MockBackend(ionq_backend.IonQBackend):
