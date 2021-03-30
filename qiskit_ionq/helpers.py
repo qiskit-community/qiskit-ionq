@@ -143,7 +143,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
         # Don't process measurement instructions.
         if instruction_name == "measure":
-            meas_map[int(cargs[0].index)] = int(qargs[0].index)
+            meas_map[input_circuit.clbits.index(cargs[0])] = input_circuit.qubits.index(qargs[0])
             num_meas += 1
             continue
 
