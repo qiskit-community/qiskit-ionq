@@ -94,29 +94,28 @@ def test_build_counts__bad_input(data, error_msg):
         ionq_job._build_counts(data)
     assert exc_info.value.message == error_msg
 
+
 def test_build_counts():
     """Test basic count remapping."""
     result = {
         "qubits": 3,
         "data": {
-            "histogram": {
-                "5": 0.5, 
-                "7": 0.5
-            }, 
+            "histogram": {"5": 0.5, "7": 0.5},
             "registers": {
                 "meas_mapped": {
-                    "3": 0.5, 
+                    "3": 0.5,
                     "7": 0.5,
                 }
-            }
+            },
         },
         "metadata": {
             "shots": 100,
-            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3})
+            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3}),
         },
     }
     counts = ionq_job._build_counts(result)
     assert {"0x3": 50, "0x7": 50} == counts
+
 
 def test_results_meta(formatted_result):
     """Test basic job attribute values."""
@@ -318,6 +317,70 @@ def test_result__from_circuit(mock_backend, requests_mock):
     assert job.result().job_id == "test_id"
 
 
+def test_result__failed_from_api(mock_backend, requests_mock):
+    """Test result fetching when the job fails on the API side (e.g. due to bad input)
+
+    Args:
+        mock_backend (MockBackend): A mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    # Create the job:
+    job_id = "test_id"
+    job_result = conftest.dummy_failed_job(job_id)
+    client = mock_backend.client
+
+    # Create a job ref (this won't call status, since circuit is not None).
+    job = ionq_job.IonQJob(mock_backend, None, circuit=QuantumCircuit(1, 1))
+
+    # Mock the create:
+    create_path = client.make_path("jobs")
+    requests_mock.post(create_path, status_code=200, json=job_result)
+
+    # Submit the job.
+    job.submit()
+
+    # Mock the fetch from `result`, since status should still be "initializing".
+    fetch_path = client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, status_code=200, json=job_result)
+
+    with pytest.raises(exceptions.IonQJobFailureError) as exc:
+        job.result()
+    # assert fails
+    assert 'Failure from IonQ API "ExampleError: example error"' in str(exc.value)
+
+
+def test_result__cancelled(mock_backend, requests_mock):
+    """Test result fetching when the job fails on the API side (e.g. due to bad input)
+
+    Args:
+        mock_backend (MockBackend): A mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    # Create the job:
+    job_id = "test_id"
+    job_result = conftest.dummy_job_response(job_id, "canceled")
+    client = mock_backend.client
+
+    # Create a job ref (this won't call status, since circuit is not None).
+    job = ionq_job.IonQJob(mock_backend, None, circuit=QuantumCircuit(1, 1))
+
+    # Mock the create:
+    create_path = client.make_path("jobs")
+    requests_mock.post(create_path, status_code=200, json=job_result)
+
+    # Submit the job.
+    job.submit()
+
+    # Mock the fetch from `result`, since status should still be "initializing".
+    fetch_path = client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, status_code=200, json=job_result)
+
+    with pytest.raises(exceptions.IonQJobStateError) as exc:
+        job.result()
+    # assert fails
+    assert 'Job was cancelled"' in str(exc.value)
+
+
 def test_status__no_job_id(mock_backend):
     """Test status() returns early when the job has not yet been created.
 
@@ -365,15 +428,3 @@ def test_status__already_final_state(mock_backend, requests_mock):  # pylint: di
 
     job_fetch_spy.assert_not_called()
     assert actual_status is job._status is jobstatus.JobStatus.DONE
-
-
-def test_status__not_finished():
-    pass
-
-
-def test_status__bad_response_status():
-    pass
-
-
-def test_status__transition():
-    pass
