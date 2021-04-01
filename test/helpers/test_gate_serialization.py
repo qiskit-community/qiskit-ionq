@@ -28,7 +28,7 @@
 """Test the qobj_to_ionq function."""
 
 import pytest
-from qiskit.circuit import QuantumCircuit, instruction
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, instruction
 
 from qiskit_ionq import exceptions
 from qiskit_ionq.helpers import qiskit_circ_to_ionq_circ
@@ -212,5 +212,38 @@ def test_unordered_instructions_are_not_mid_circuit_measurement():
     qc.measure(1, 1)
     qc.x(0)
     expected = [{"gate": "x", "targets": [0]}]
+    built, _, _ = qiskit_circ_to_ionq_circ(qc)
+    assert built == expected
+
+
+def test_circuit_with_multiple_registers():
+    """Test that mid-circuit measurement is only an error if
+    you try and put an instruction on a measured qubit."""
+    qr0 = QuantumRegister(2, "qr0")
+    qr1 = QuantumRegister(2, "qr1")
+    cr0 = ClassicalRegister(2, "cr0")
+    cr1 = ClassicalRegister(2, "cr1")
+
+    qc = QuantumCircuit(
+        qr0,
+        qr1,
+        cr0,
+        cr1,
+    )
+
+    qc.x(qr0[0])
+    qc.h(qr0[1])
+    qc.y(qr1[0])
+    qc.z(qr1[1])
+    qc.cnot(qr0[0], qr1[0])
+    qc.measure([qr0[0], qr0[1], qr1[0], qr1[1]], [cr0[0], cr0[1], cr1[0], cr1[1]])
+
+    expected = [
+        {"gate": "x", "targets": [0]},
+        {"gate": "h", "targets": [1]},
+        {"gate": "y", "targets": [2]},
+        {"gate": "z", "targets": [3]},
+        {"gate": "x", "controls": [0], "targets": [2]},
+    ]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected

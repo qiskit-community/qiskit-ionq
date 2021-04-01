@@ -39,7 +39,7 @@ from qiskit_ionq.helpers import (
 
 
 def test_output_map__with_multiple_measurements_to_different_clbits(simulator_backend):
-    """Test a full circuit
+    """Test output mapping handles multiple measurements from the same qubit to different clbits correctly
 
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
@@ -60,7 +60,7 @@ def test_output_map__with_multiple_measurements_to_different_clbits(simulator_ba
 
 
 def test_output_map__with_multiple_measurements_to_same_clbit(simulator_backend):
-    """Test a full circuit
+    """Test output mapping handles multiple measurements to same clbit correctly
 
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
@@ -80,6 +80,32 @@ def test_output_map__with_multiple_measurements_to_same_clbit(simulator_backend)
     assert actual_output_map == [1, None]
 
 
+def test_output_map__with_multiple_registers(simulator_backend):
+    """Test output map with multiple registers
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    qr0 = QuantumRegister(2, "qr0")
+    qr1 = QuantumRegister(2, "qr1")
+    cr0 = ClassicalRegister(2, "cr0")
+    cr1 = ClassicalRegister(2, "cr1")
+
+    qc = QuantumCircuit(qr0, qr1, cr0, cr1, name="test_name")
+    qc.measure([qr0[0], qr0[1], qr1[0], qr1[1]], [cr0[0], cr0[1], cr1[0], cr1[1]])
+
+    ionq_json = qiskit_to_ionq(
+        qc,
+        simulator_backend.name(),
+        passed_args={"shots": 123},
+    )
+    actual = json.loads(ionq_json)
+    actual_maps = actual.pop("registers") or {}
+    actual_output_map = actual_maps.pop("meas_mapped")
+
+    assert actual_output_map == [0, 1, 2, 3]
+
+
 def test_metadata_header__with_multiple_registers(simulator_backend):
     """Test correct metadata headers when we have multiple qregs and cregs"""
     qr0 = QuantumRegister(2, "qr0")
@@ -87,19 +113,34 @@ def test_metadata_header__with_multiple_registers(simulator_backend):
     cr0 = ClassicalRegister(2, "cr0")
     cr1 = ClassicalRegister(2, "cr1")
 
-    qc = QuantumCircuit(qr0, qr1, cr0, cr1)
+    qc = QuantumCircuit(qr0, qr1, cr0, cr1, name="test_name")
     qc.measure([qr1[0], qr1[1]], [cr1[0], cr1[1]])
 
+    ionq_json = qiskit_to_ionq(
+        qc,
+        simulator_backend.name(),
+        passed_args={"shots": 200},
+    )
+
     expected_metadata_header = {
-        "memory_slots": 2,
+        "memory_slots": 4,
         "global_phase": 0,
-        "n_qubits": 2,
+        "n_qubits": 4,
         "name": "test_name",
         "creg_sizes": [["cr0", 2], ["cr1", 2]],
-        "clbit_labels": [["cr0", 0], ["cr0", 1], ["cr1", 3], ["cr1", 4]],
-        "qreg_sizes": [["qr0", 2]],
-        "qubit_labels": [["qr0", 0], ["qr0", 1], ["qr1", 3], ["qr1", 4]],
+        "clbit_labels": [["cr0", 0], ["cr0", 1], ["cr1", 0], ["cr1", 1]],
+        "qreg_sizes": [["qr0", 2], ["qr1", 2]],
+        "qubit_labels": [["qr0", 0], ["qr0", 1], ["qr1", 0], ["qr1", 1]],
     }
+
+    actual = json.loads(ionq_json)
+    actual_metadata = actual.pop("metadata") or {}
+    actual_metadata_header = decompress_metadata_string_to_dict(
+        actual_metadata.pop("qiskit_header") or None
+    )
+
+    # check dict equality:
+    assert actual_metadata_header == expected_metadata_header
 
 
 def test_full_circuit(simulator_backend):

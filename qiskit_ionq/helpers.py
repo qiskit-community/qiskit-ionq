@@ -143,7 +143,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
         # Don't process measurement instructions.
         if instruction_name == "measure":
-            meas_map[int(cargs[0].index)] = int(qargs[0].index)
+            meas_map[input_circuit.clbits.index(cargs[0])] = input_circuit.qubits.index(qargs[0])
             num_meas += 1
             continue
 
@@ -162,7 +162,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
             rotation = {"rotation": float(instruction.params[0])}
 
         # Default conversion is simple, just gate & target.
-        converted = {"gate": instruction_name, "targets": [qargs[0].index]}
+        converted = {"gate": instruction_name, "targets": [input_circuit.qubits.index(qargs[0])]}
         # re-alias certain names
         if instruction.__class__ in ionq_api_aliases:
             new_name = ionq_api_aliases.get(instruction.__class__)
@@ -171,20 +171,28 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
         # Make sure uncontrolled multi-targets use all qargs.
         if isinstance(instruction, multi_target_uncontrolled_gates):
-            converted["targets"] = [qargs[0].index, qargs[1].index]
+            converted["targets"] = [
+                input_circuit.qubits.index(qargs[0]),
+                input_circuit.qubits.index(qargs[1]),
+            ]
 
         # If this is a controlled gate, make sure to set control qubits.
         if isinstance(instruction, q_cgates.ControlledGate):
             gate = instruction_name[1:]  # trim the leading c
-            controls = [qargs[0].index]
-            targets = [qargs[1].index]
+            controls = [input_circuit.qubits.index(qargs[0])]
+            targets = [input_circuit.qubits.index(qargs[1])]
             # If this is a multi-control, use more than one qubit.
             if instruction.num_ctrl_qubits > 1:
-                controls = [qargs[i].index for i in range(instruction.num_ctrl_qubits)]
-                targets = [qargs[instruction.num_ctrl_qubits].index]
+                controls = [
+                    input_circuit.qubits.index(qargs[i]) for i in range(instruction.num_ctrl_qubits)
+                ]
+                targets = [input_circuit.qubits.index(qargs[instruction.num_ctrl_qubits])]
             if gate == "swap":
                 # If this is a cswap, we have two targets:
-                targets = [qargs[-2].index, qargs[-1].index]
+                targets = [
+                    input_circuit.qubits.index(qargs[-2]),
+                    input_circuit.qubits.index(qargs[-1]),
+                ]
 
             # Update converted gate values.
             converted.update(
