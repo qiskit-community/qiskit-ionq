@@ -112,6 +112,14 @@ class IonQJobError(IonQError, JobError):
     """Errors generated from improper usage of IonQJob objects."""
 
 
+class IonQJobFailureError(IonQError, JobError):
+    """Errors generated from jobs that fail on the API side."""
+
+
+class IonQJobStateError(IonQError, JobError):
+    """Errors generated from attempting to do something to a job that its state would not allow"""
+
+
 class IonQGateError(IonQError, JobError):
     """Errors generated from invalid gate defs
 

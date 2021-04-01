@@ -85,7 +85,7 @@ def dummy_job_response(job_id, status="completed"):
             "clbit_labels": [["c", 0], ["c", 1]],
             "memory_slots": 2,
             "creg_sizes": [["c", 2]],
-            "name": "test-circuit",
+            "name": job_id,
             "global_phase": 0,
         }
     )
@@ -110,6 +110,41 @@ def dummy_job_response(job_id, status="completed"):
                 "meas_mapped": {"1": 0.499999, "3": 0.5}
             },  # implies measurement map of [1,0]
         },
+        "target": "qpu",
+        "id": job_id,
+    }
+
+
+def dummy_failed_job(job_id):
+    """A dummy response payload for a failed job.
+
+    Args:
+        job_id (str): An arbitrary job id.
+        status (str): A provided status string.
+
+    Returns:
+        dict: A json response dict.
+
+    """
+    qiskit_header = compress_dict_to_metadata_string(
+        {
+            "qubit_labels": [["q", 0], ["q", 1]],
+            "n_qubits": 2,
+            "qreg_sizes": [["q", 2]],
+            "clbit_labels": [["c", 0], ["c", 1]],
+            "memory_slots": 2,
+            "creg_sizes": [["c", 2]],
+            "name": job_id,
+            "global_phase": 0,
+        }
+    )
+    return {
+        "failure": {"error": "example error", "code": "ExampleError"},
+        "status": "failed",
+        "metadata": {"shots": "1", "qiskit_header": qiskit_header},
+        "type": "circuit",
+        "request": 1600000000,
+        "response": 1600000002,
         "target": "qpu",
         "id": job_id,
     }

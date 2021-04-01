@@ -270,6 +270,7 @@ class IonQJob(JobV1):
 
         # Format the inner result payload.
         success = self._status == jobstatus.JobStatus.DONE
+        time_taken = (result.get("execution_time") / 1000) if success else None
         metadata = result.get("metadata") or {}
         qiskit_header = decompress_metadata_string_to_dict(metadata.get("qiskit_header", None))
         job_result = {
@@ -282,11 +283,16 @@ class IonQJob(JobV1):
             job_result["data"] = {
                 "counts": _build_counts(result, retain_probabilities=is_simulator)
             }
-        elif self._status == jobstatus.JobStatus.ERROR:
+        if self._status == jobstatus.JobStatus.ERROR:
             failure = result.get("failure") or {}
-            job_result["status"] = failure.get("error")
-        elif self._status == jobstatus.JobStatus.CANCELLED:
-            job_result["status"] = "Job was cancelled"
+            failure_type = failure.get("code", "")
+            failure_message = failure.get("error", "")
+            error_message = f'Unable to retreive result for job {self.job_id()}. Failure from IonQ API "{failure_type}: {failure_message}"'
+            self._job_error_msg = error_message
+            raise exceptions.IonQJobFailureError(error_message)
+        if self._status == jobstatus.JobStatus.CANCELLED:
+            error_message = f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'
+            raise exceptions.IonQJobStateError(error_message)
 
         # Create a qiskit result to express the IonQ job result data.
         backend = self.backend()
@@ -298,7 +304,7 @@ class IonQJob(JobV1):
                 "backend_version": backend_version,
                 "qobj_id": metadata.get("qobj_id"),
                 "success": success,
-                "time_taken": result.get("execution_time") / 1000,
+                "time_taken": time_taken,
             }
         )
 
