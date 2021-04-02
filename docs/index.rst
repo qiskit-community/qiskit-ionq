@@ -1,13 +1,15 @@
-.. Qiskit IonQ Provider Documentation
 
-Welcome to Qiskit IonQ Provider's documentation!
-================================================
+
+==================================
+Qiskit IonQ Provider documentation
+==================================
 
 .. toctree::
    :maxdepth: 1
 
    Installation <guides/install>
    IonQ API Access <guides/access>
+   Submitting circuits <guides/usage>
 
 
 .. toctree::
