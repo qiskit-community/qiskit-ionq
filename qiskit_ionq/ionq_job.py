@@ -77,7 +77,7 @@ def _build_counts(result, retain_probabilities=False):
 
     # Get shot count.
     shots = metadata.get("shots")
-    shots = int(shots) if shots is not None else 1024  # We do this in cas>e shots was 0.
+    shots = int(shots) if shots is not None else 1024  # We do this in case shots was 0.
 
     # Grab the mapped output from response.
     output_probs = result["data"].get("registers", {}).get("meas_mapped", {})
@@ -275,7 +275,7 @@ class IonQJob(JobV1):
         qiskit_header = decompress_metadata_string_to_dict(metadata.get("qiskit_header", None))
         job_result = {
             "data": {},
-            "shots": metadata.get("shots", 1),
+            "shots": int(metadata.get("shots", "1")),
             "header": qiskit_header or {},
             "success": success,
         }

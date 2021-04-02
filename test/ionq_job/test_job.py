@@ -36,6 +36,7 @@ from qiskit.providers import jobstatus
 
 from qiskit_ionq import exceptions, ionq_job
 from qiskit_ionq.helpers import compress_dict_to_metadata_string
+from qiskit.qobj.utils import MeasLevel
 
 from .. import conftest
 
@@ -266,6 +267,33 @@ def test_result__timeout(mock_backend, requests_mock):
     assert exc_info.value.message == "Timed out waiting for job to complete."
 
 
+expected_result = {
+    "backend_name": "ionq_mock_backend",
+    "backend_version": "0.0.1",
+    "job_id": "test_id",
+    "qobj_id": "test_qobj_id",
+    "results": [
+        {
+            "data": {"counts": {"0x1": 617, "0x3": 617}},
+            "header": {
+                "clbit_labels": [["c", 0], ["c", 1]],
+                "creg_sizes": [["c", 2]],
+                "global_phase": 0,
+                "memory_slots": 2,
+                "n_qubits": 2,
+                "name": "test_id",
+                "qreg_sizes": [["q", 2]],
+                "qubit_labels": [["q", 0], ["q", 1]],
+            },
+            "meas_level": MeasLevel.CLASSIFIED,
+            "shots": 1234,
+            "success": True,
+        }
+    ],
+    "success": True,
+    "time_taken": 0.008,
+}
+# Validate the result
 def test_result(mock_backend, requests_mock):
     """Test basic "happy path" for result fetching.
 
@@ -284,7 +312,8 @@ def test_result(mock_backend, requests_mock):
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.result().job_id == "test_id"
+
+    assert job.result().to_dict() == expected_result
 
 
 def test_result__from_circuit(mock_backend, requests_mock):
@@ -313,8 +342,8 @@ def test_result__from_circuit(mock_backend, requests_mock):
     fetch_path = client.make_path("jobs", job_id)
     requests_mock.get(fetch_path, status_code=200, json=job_result)
 
-    # Validate the new job_id.
-    assert job.result().job_id == "test_id"
+    # Validate the result and its format. should be the same as base case.
+    assert job.result().to_dict() == expected_result
 
 
 def test_result__failed_from_api(mock_backend, requests_mock):
