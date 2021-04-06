@@ -24,10 +24,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Test basic provider API methods."""
 
-import pytest
 from qiskit_ionq import IonQProvider
-from .. import conftest
 
 
 def test_provider_autocomplete():

@@ -36,7 +36,6 @@
    :class:`BaseJob <qiskit.providers.BaseJob>`.
 """
 
-import json
 import numpy as np
 
 from qiskit.providers import JobV1, jobstatus
@@ -58,7 +57,7 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
         use_sampler (bool): for counts generation, whether to use simple shots*probabilities (for qpu) or a sampler (for simulator)
         sampler_seed (int): ability to provide a seed for the randomness in the sampler for repeatable results. passed as `np.random.RandomState(seed)`. If none, `np.random` is used
 
-    Returns: 
+    Returns:
         (dict[str, float], dict[str, float]): A tuple (counts, probabilities), respectively a dict of qiskit compatible ``counts``
         and a dict of the job's probabilities as a``Counts`` object, mostly relevant for simulator work.
 
@@ -182,7 +181,7 @@ class IonQJob(JobV1):
             Result counts for jobs processed by
             :class:`IonQSimulatorBackend <qiskit_ionq.ionq_backend.IonQSimulatorBackend>`
             are returned from the API as probabilities, and are converted to counts via
-            simple statistical sampling that occurs on the cient side. 
+            simple statistical sampling that occurs on the cient side.
 
             To obtain the true probabilities, use the get_probabilties() method instead.
 
@@ -293,6 +292,10 @@ class IonQJob(JobV1):
 
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
+
+        Raises:
+            IonQJobFailureError: If the remote job has an error status.
+            IonQJobStateError: If the job was cancelled before this method fetches it.
         """
 
         # Different backends can have differing result data:
@@ -326,8 +329,10 @@ class IonQJob(JobV1):
             failure = result.get("failure") or {}
             failure_type = failure.get("code", "")
             failure_message = failure.get("error", "")
-            error_message = f'Unable to retreive result for job {self.job_id()}. Failure from IonQ API "{failure_type}: {failure_message}"'
-            self._job_error_msg = error_message
+            error_message = (
+                f"Unable to retreive result for job {self.job_id()}. "
+                f'Failure from IonQ API "{failure_type}: {failure_message}"'
+            )
             raise exceptions.IonQJobFailureError(error_message)
         if self._status == jobstatus.JobStatus.CANCELLED:
             error_message = f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'

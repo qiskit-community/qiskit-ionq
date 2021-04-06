@@ -129,13 +129,17 @@ def test_unsupported_instructions(instruction_name):
 
 
 @pytest.mark.parametrize("gate_name, gate_args, expected_serialization", gate_serializations)
-def test_individual_instruction_serialization(gate_name, gate_args, expected_serialization):
+def test_individual_instruction_serialization(
+    gate_name, gate_args, expected_serialization
+):  # pylint: disable=invalid-name
     """Test that individual gates are correctly serialized
 
     Args:
         gate_name (str): the qiskit gate to test, as its QuantumCircuit method name
-        gate_args (list): the arguments for the gate. Will have different entries and cardinality depending on the gate
-        expected_serialization (list): expected serialization of the gate as a (normally single-element) list of instructions in IonQ API JSON format
+        gate_args (list): the arguments for the gate. Will have different
+            entries and cardinality depending on the gate
+        expected_serialization (list): expected serialization of the gate as a
+            (normally single-element) list of instructions in IonQ API JSON format
 
     """
     qc = QuantumCircuit(6, 6)
@@ -193,7 +197,10 @@ def test_rotation_from_instruction_params():
 
 
 def test_no_mid_circuit_measurement():
-    """Test that putting an instruction on a qubit that has been measured is an invalid instruction"""
+    """
+    Test that putting an instruction on a qubit that has been measured is an
+    invalid instruction
+    """
     qc = QuantumCircuit(2, 2)
     qc.measure(1, 1)
     qc.x(1)

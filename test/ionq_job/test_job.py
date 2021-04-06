@@ -26,7 +26,6 @@
 # limitations under the License.
 
 """Test basic behavior of :class:`IonQJob`."""
-import json
 from unittest import mock
 
 import pytest

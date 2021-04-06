@@ -36,14 +36,13 @@ import base64
 
 from qiskit.circuit import controlledgate as q_cgates
 from qiskit.circuit.library import standard_gates as q_gates
-from qiskit.qobj import QasmQobj
-from qiskit.assembler import disassemble
 
 from . import exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
-# also not an exact/complete list of the gates IonQ's backend takes by name — please refer to IonQ docs for that.
+# also not an exact/complete list of the gates IonQ's backend takes
+#   by name — please refer to IonQ docs for that.
 ionq_basis_gates = [
     "ccx",
     "ch",
@@ -124,6 +123,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
+        IonQMidCircuitMeasurementError: If a mid-circuit measurement is detected.
 
     Returns:
         list[dict]: A list of instructions in a converted dict format.
@@ -213,7 +213,16 @@ def qiskit_circ_to_ionq_circ(input_circuit):
     return output_circuit, num_meas, meas_map
 
 
+<<<<<<< HEAD
 def get_register_sizes_and_labels(registers):
+    """Returns a tuple of sizes and labels in for a given register
+
+    Args:
+        registers (list): A list of of qiskit registers.
+
+    Returns:
+        tuple: A list of sizes and labels for the provided list of registers.
+    """
     sizes = []
     labels = []
 
@@ -236,14 +245,21 @@ def get_register_sizes_and_labels(registers):
 # so we try and pack it down into a more-compressed string format
 # and raise if it's still too long
 # TODO: make this behavior a little nicer (dict metadata) on IonQ side; fix here when we do
-def compress_dict_to_metadata_string(metadata_dict):
-    """Convert a dict to a compact string format (dumped, gzipped, base64 encoded) for storing in IonQ API metadata
+def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-name
+    """
+    Convert a dict to a compact string format (dumped, gzipped, base64 encoded)
+    for storing in IonQ API metadata
 
     Parameters:
-        metadata_dict: a dict with metadata relevant to building the results object on a returned job.
+        metadata_dict (dict): a dict with metadata relevant to building the results
+            object on a returned job.
 
     Returns:
         str: encoded string
+
+    Raises:
+        IonQMetadataStringError: If the base64 encoded `json.dumps`'d dict is
+            greater than 400 characters.
     """
     serialized = json.dumps(metadata_dict)
     compressed = gzip.compress(serialized.encode("utf-8"))
@@ -255,12 +271,14 @@ def compress_dict_to_metadata_string(metadata_dict):
     return encoded_string
 
 
-def decompress_metadata_string_to_dict(input_string):
-    """Convert compact string format (dumped, gzipped, base64 encoded) from IonQ API metadata back into a dict
-    relevant to building the results object on a returned job.
+def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid-name
+    """
+    Convert compact string format (dumped, gzipped, base64 encoded) from
+    IonQ API metadata back into a dict relevant to building the results object
+    on a returned job.
 
     Parameters:
-        input_string: compressed string format of metadata dict
+        input_string (str): compressed string format of metadata dict
 
     Returns:
         dict: decompressed metadata dict

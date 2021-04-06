@@ -179,7 +179,6 @@ class IonQBackend(Backend):
         Args:
             circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
                 A Qiskit QuantumCircuit object.
-            shots (int): The number of shots to evaluate.
 
         Returns:
             IonQJob: A reference to the job that was submitted.
@@ -258,7 +257,6 @@ class IonQSimulatorBackend(IonQBackend):
         Args:
             circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
                 A Qiskit QuantumCircuit object.
-            shots (int): (Ignored) The number of shots to evaluate.
 
         Returns:
             IonQJob: A reference to the job that was submitted.
