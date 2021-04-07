@@ -53,7 +53,6 @@ gate_serializations = [
     ("cry", [0.5, 0, 1], [{"gate": "ry", "rotation": 0.5, "targets": [1], "controls": [0]}]),
     ("crz", [0, 0, 1], [{"gate": "rz", "rotation": 0, "targets": [1], "controls": [0]}]),
     ("crz", [0.5, 0, 1], [{"gate": "rz", "rotation": 0.5, "targets": [1], "controls": [0]}]),
-    ("cswap", [0, 1, 2], [{"gate": "swap", "targets": [1, 2], "controls": [0]}]),
     ("csx", [0, 1], [{"gate": "v", "targets": [1], "controls": [0]}]),
     ("cx", [0, 1], [{"gate": "x", "targets": [1], "controls": [0]}]),
     ("cy", [0, 1], [{"gate": "y", "targets": [1], "controls": [0]}]),
@@ -224,12 +223,7 @@ def test_circuit_with_multiple_registers():
     cr0 = ClassicalRegister(2, "cr0")
     cr1 = ClassicalRegister(2, "cr1")
 
-    qc = QuantumCircuit(
-        qr0,
-        qr1,
-        cr0,
-        cr1,
-    )
+    qc = QuantumCircuit(qr0, qr1, cr0, cr1,)
 
     qc.x(qr0[0])
     qc.h(qr0[1])

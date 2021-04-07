@@ -52,7 +52,6 @@ ionq_basis_gates = [
     "crx",
     "cry",
     "crz",
-    "cswap",
     "csx",
     "cx",
     "cy",
@@ -196,11 +195,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
             # Update converted gate values.
             converted.update(
-                {
-                    "gate": gate,
-                    "controls": controls,
-                    "targets": targets,
-                }
+                {"gate": gate, "controls": controls, "targets": targets,}
             )
 
         # if there's a valid instruction after a measurement,
@@ -306,16 +301,10 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         "lang": "json",
         "target": backend_name[5:],
         "shots": passed_args["shots"],
-        "body": {
-            "qubits": circuit.num_qubits,
-            "circuit": ionq_circ,
-        },
+        "body": {"qubits": circuit.num_qubits, "circuit": ionq_circ,},
         "registers": {"meas_mapped": meas_map},
         # store a couple of things we'll need later for result formatting
-        "metadata": {
-            "shots": str(passed_args["shots"]),
-            "qiskit_header": qiskit_header,
-        },
+        "metadata": {"shots": str(passed_args["shots"]), "qiskit_header": qiskit_header,},
     }
     return json.dumps(ionq_json)
 
