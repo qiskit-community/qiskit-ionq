@@ -196,11 +196,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
             # Update converted gate values.
             converted.update(
-                {
-                    "gate": gate,
-                    "controls": controls,
-                    "targets": targets,
-                }
+                {"gate": gate, "controls": controls, "targets": targets,}
             )
 
         # if there's a valid instruction after a measurement,
@@ -209,25 +205,29 @@ def qiskit_circ_to_ionq_circ(input_circuit):
             # and raise if so — no mid-circuit measurement!
             controls_and_targets = converted.get("targets", []) + converted.get("controls", [])
             if any(i in meas_map for i in controls_and_targets):
-                raise exceptions.IonQMidCircuitMeasurementError(qargs[0].index, instruction_name)
+                raise exceptions.IonQMidCircuitMeasurementError(
+                    input_circuit.qubits.index(qargs[0]), instruction_name
+                )
 
         output_circuit.append({**converted, **rotation})
 
     return output_circuit, num_meas, meas_map
 
 
-def get_register_sizes_and_labels(register):
+def get_register_sizes_and_labels(registers):
     sizes = []
     labels = []
 
-    for bit in register:
-        size = [bit.register.name, bit.register.size]
-        label = [bit.register.name, bit.index]
+    for register in registers:
+        for index, _ in enumerate(register):
+            # we actually don't need to know anything about the bit itself, just its position
+            size = [register.name, register.size]
+            label = [register.name, index]
 
-        if size not in sizes:
-            sizes.append(size)
+            if size not in sizes:
+                sizes.append(size)
 
-        labels.append(label)
+            labels.append(label)
 
     return sizes, labels
 
@@ -286,9 +286,9 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         dict: A dict with IonQ API compatible values.
     """
     passed_args = passed_args or {}
-    ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
-    creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.clbits)
-    qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qubits)
+    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit)
+    creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
+    qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
     qiskit_header = compress_dict_to_metadata_string(
         {
             "memory_slots": circuit.num_clbits,  # int
@@ -306,16 +306,10 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         "lang": "json",
         "target": backend_name[5:],
         "shots": passed_args["shots"],
-        "body": {
-            "qubits": circuit.num_qubits,
-            "circuit": ionq_circ,
-        },
+        "body": {"qubits": circuit.num_qubits, "circuit": ionq_circ,},
         "registers": {"meas_mapped": meas_map},
         # store a couple of things we'll need later for result formatting
-        "metadata": {
-            "shots": str(passed_args["shots"]),
-            "qiskit_header": qiskit_header,
-        },
+        "metadata": {"shots": str(passed_args["shots"]), "qiskit_header": qiskit_header,},
     }
     return json.dumps(ionq_json)
 
