@@ -52,7 +52,6 @@ ionq_basis_gates = [
     "crx",
     "cry",
     "crz",
-    "cswap",
     "csx",
     "cx",
     "cy",
