@@ -126,6 +126,12 @@ def test_counts(formatted_result):
     assert {"01": 617, "11": 617} == counts
 
 
+def test_probabilities(formatted_result):
+    """Test counts based on a dummy result (see global conftest.py)."""
+    probabilities = formatted_result.get_probabilities()
+    assert {"01": 0.499999, "11": 0.5} == probabilities
+
+
 def test_counts__simulator_probs(simulator_backend, requests_mock):
     """Test that the simulator uses the sampler to produce counts and probs"""
     # Dummy job ID for formatted results fixture.
@@ -139,6 +145,22 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
     formatted_result = job.result()
     counts = formatted_result.get_counts()
     probabilities = formatted_result.get_probabilities()
+    assert {"01": 609, "11": 625} == counts
+    assert {"01": 0.499999, "11": 0.5} == probabilities
+
+
+def test_counts_and_probs_from_job(simulator_backend, requests_mock):
+    """Test that the helper methods on the job return the same data as the methods on the result"""
+    # Dummy job ID for formatted results fixture.
+    job_id = "test_id"
+
+    # Create the request path for accessing the dummy job:
+    path = simulator_backend.client.make_path("jobs", job_id)
+    requests_mock.get(path, json=conftest.dummy_job_response(job_id))
+    job = ionq_job.IonQJob(simulator_backend, job_id)
+
+    counts = job.get_counts()
+    probabilities = job.get_probabilities()
     assert {"01": 609, "11": 625} == counts
     assert {"01": 0.499999, "11": 0.5} == probabilities
 
