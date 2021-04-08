@@ -37,6 +37,7 @@
 """
 
 import json
+import numpy as np
 
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
@@ -48,11 +49,18 @@ from . import constants, exceptions
 def _build_counts(result, use_sampler=False, sampler_seed=None):
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
+    .. NOTE:: For simulator jobs, this method builds counts using a randomly generated sampling of the probabilities returned
+    from the API. Because this is a random process, rebuilding the results object (by e.g. restarting the kernel and getting the
+    job again) without providing a sampler_seed in the run method may result in slightly different counts.
+
     Args:
         result (dict): A REST API response.
+        use_sampler (bool): for counts generation, whether to use simple shots*probabilities (for qpu) or a sampler (for simulator)
+        sampler_seed (int): ability to provide a seed for the randomness in the sampler for repeatable results. passed as `np.random.RandomState(seed)`. If none, `np.random` is used
 
-    Returns:
-        dict[str, float]: A dict of qiskit compatible ``counts``.
+    Returns: 
+        (dict[str, float], dict[str, float]): A tuple (counts, probabilities), respectively a dict of qiskit compatible ``counts``
+        and a dict of the job's probabilities as a``Counts`` object, mostly relevant for simulator work.
 
     Raises:
         IonQJobError: In the event that ``result`` has missing or invalid job properties.
@@ -82,15 +90,22 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
 
     sampled = {}
     if use_sampler:
-        for key, val in output_probs.items():
-            sampled[val] = round(val * shots)  # TODO: use a real sampler
+        rand = np.random.RandomState(sampler_seed) if sampler_seed is not None else np.random
+        outcomes, weights = zip(*output_probs.items())
+        weights = np.array(weights)
+        outcomes = np.array(outcomes)
+        weights /= weights.sum()
+        rand_values = rand.choice(outcomes, shots, p=weights)
+
+        for key, _ in output_probs.items():
+            sampled[key] = np.count_nonzero(rand_values == key)
 
     # Build counts.
     counts = {}
     for key, val in output_probs.items():
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
         hex_bits = hex(int(bits, 2))
-        count = sampled[val] if use_sampler else round(val * shots)
+        count = sampled[key] if use_sampler else round(val * shots)
         counts[hex_bits] = count
     # build probs
     probabilities = {}
@@ -291,7 +306,9 @@ class IonQJob(JobV1):
         success = self._status == jobstatus.JobStatus.DONE
         time_taken = (result.get("execution_time") / 1000) if success else None
         metadata = result.get("metadata") or {}
-        sampler_seed = int(metadata.get("sampler_seed")) if metadata.get("sampler_seed") is not None else None
+        sampler_seed = (
+            int(metadata.get("sampler_seed")) if metadata.get("sampler_seed") is not None else None
+        )
         qiskit_header = decompress_metadata_string_to_dict(metadata.get("qiskit_header", None))
         job_result = {
             "data": {},
