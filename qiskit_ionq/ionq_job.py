@@ -41,7 +41,7 @@ import numpy as np
 
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
-from qiskit.result import Result
+from .ionq_result import IonQResult as Result
 from .helpers import decompress_metadata_string_to_dict
 from . import constants, exceptions
 
@@ -94,7 +94,9 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
         outcomes, weights = zip(*output_probs.items())
         weights = np.array(weights)
         outcomes = np.array(outcomes)
-        weights /= weights.sum()
+        weights /= (
+            weights.sum()
+        )  # just in case the sum isn't exactly 1 — sometimes the API returns e.g. 0.499999 due to floating point error
         rand_values = rand.choice(outcomes, shots, p=weights)
 
         for key, _ in output_probs.items():

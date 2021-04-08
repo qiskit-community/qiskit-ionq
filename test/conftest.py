@@ -55,13 +55,7 @@ class MockBackend(ionq_backend.IonQBackend):
                 "memory": False,
                 "max_shots": 0,
                 "basis_gates": [],
-                "gates": [
-                    {
-                        "name": "TODO",
-                        "parameters": [],
-                        "qasm_def": "TODO",
-                    }
-                ],
+                "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO",}],
             }
         )
         super().__init__(config, provider=provider)
@@ -93,8 +87,9 @@ def dummy_job_response(job_id, status="completed"):
         "status": status,
         "predicted_execution_time": 4,
         "metadata": {
-            "shots": "1234",
             "qobj_id": "test_qobj_id",
+            "shots": 1234,
+            "sampler_seed": 42,
             "output_length": "2",
             "qiskit_header": qiskit_header,
         },

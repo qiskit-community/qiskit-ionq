@@ -26,7 +26,7 @@
 # limitations under the License.
 
 """
-Helper methods for mapping a qobj (:mod:`Qiskit Quantum Objects <qiskit.qobj>`)
+Helper methods for mapping Qiskit classes
 to IonQ REST API compatible values.
 """
 
@@ -196,11 +196,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
             # Update converted gate values.
             converted.update(
-                {
-                    "gate": gate,
-                    "controls": controls,
-                    "targets": targets,
-                }
+                {"gate": gate, "controls": controls, "targets": targets,}
             )
 
         # if there's a valid instruction after a measurement,
@@ -286,7 +282,7 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         dict: A dict with IonQ API compatible values.
     """
     passed_args = passed_args or {}
-    ionq_circ, num_meas, meas_map = qiskit_circ_to_ionq_circ(circuit)
+    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.clbits)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qubits)
     qiskit_header = compress_dict_to_metadata_string(
@@ -306,16 +302,13 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         "lang": "json",
         "target": backend_name[5:],
         "shots": passed_args["shots"],
-        "body": {
-            "qubits": circuit.num_qubits,
-            "circuit": ionq_circ,
-        },
+        "body": {"qubits": circuit.num_qubits, "circuit": ionq_circ,},
         "registers": {"meas_mapped": meas_map},
         # store a couple of things we'll need later for result formatting
         "metadata": {
-            "shots": str(passed_args["shots"]),
+            "shots": passed_args.get("shots"),
+            "sampler_seed": passed_args.get("sampler_seed"),
             "qiskit_header": qiskit_header,
-            "sampler_seed": str(passed_args["sampler_seed"])
         },
     }
     return json.dumps(ionq_json)

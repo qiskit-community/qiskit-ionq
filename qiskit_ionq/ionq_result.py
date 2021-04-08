@@ -50,17 +50,16 @@ class IonQResult(Result):
         **kwargs
     ):
         super().__init__(
-            self,
             backend_name,
             backend_version,
             qobj_id,
             job_id,
             success,
             results,
-            date=None,
-            status=None,
-            header=None,
-            **kwargs
+            date=date,
+            status=status,
+            header=header,
+            **kwargs,
         )
 
     def get_probabilities(self, experiment=None):
@@ -77,7 +76,7 @@ class IonQResult(Result):
             except (AttributeError, QiskitError):  # header is not available
                 header = None
 
-            if "counts" in self.data(key).keys():
+            if "probabilities" in self.data(key).keys():
                 if header:
                     counts_header = {
                         k: v
