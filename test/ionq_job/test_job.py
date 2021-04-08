@@ -101,7 +101,7 @@ def test_build_counts():
             "registers": {"meas_mapped": {"3": 0.5, "7": 0.5,}},
         },
         "metadata": {
-            "shots": 100,
+            "shots": "100",
             "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3}),
         },
     }

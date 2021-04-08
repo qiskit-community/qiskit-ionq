@@ -160,7 +160,7 @@ def test_full_circuit(simulator_backend):
         "qubit_labels": [["q", 0], ["q", 1]],
     }
     expected_output_map = [1, 0]
-    expected_metadata = {"shots": 200, "sampler_seed": 42}
+    expected_metadata = {"shots": "200", "sampler_seed": "42"}
     expected_rest_of_payload = {
         "lang": "json",
         "target": "simulator",

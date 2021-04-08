@@ -88,8 +88,8 @@ def dummy_job_response(job_id, status="completed"):
         "predicted_execution_time": 4,
         "metadata": {
             "qobj_id": "test_qobj_id",
-            "shots": 1234,
-            "sampler_seed": 42,
+            "shots": "1234",
+            "sampler_seed": "42",
             "output_length": "2",
             "qiskit_header": qiskit_header,
         },

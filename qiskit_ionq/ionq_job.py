@@ -82,8 +82,8 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
     num_qubits = result["qubits"]
 
     # Get shot count.
-    shots = metadata.get("shots")
-    shots = int(shots) if shots is not None else 1024  # We do this in case shots was 0.
+    shots = metadata.get("shots", "1024")
+    shots = int(shots) if shots.isdigit() else 1024  # We do this in case shots was 0 or None.
 
     # Grab the mapped output from response.
     output_probs = result["data"].get("registers", {}).get("meas_mapped", {})
@@ -309,12 +309,14 @@ class IonQJob(JobV1):
         time_taken = (result.get("execution_time") / 1000) if success else None
         metadata = result.get("metadata") or {}
         sampler_seed = (
-            int(metadata.get("sampler_seed")) if metadata.get("sampler_seed") is not None else None
+            int(metadata.get("sampler_seed", ""))
+            if metadata.get("sampler_seed", "").isdigit()
+            else None
         )
         qiskit_header = decompress_metadata_string_to_dict(metadata.get("qiskit_header", None))
         job_result = {
             "data": {},
-            "shots": int(metadata.get("shots", "1024")),
+            "shots": int(metadata.get("shots") if metadata.get("shots").isdigit() else 1024),
             "header": qiskit_header or {},
             "success": success,
         }

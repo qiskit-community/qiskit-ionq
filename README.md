@@ -76,13 +76,17 @@ qc.measure([0, 1], [0, 1])
 # Run the circuit on IonQ's platform:
 job = simulator_backend.run(qc)
 
-# Print the results:
+# Print the results.
 print(job.get_counts())
+
+# The simulator specifically provides the the ideal probabilities and creates
+# counts by sampling from these probabilities. The raw probabilities are also accessible:
+print(job.get_probabilities())
 ```
 
 ### Basis gates and transpilation
 
-The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. They are `ccx, ch, cnot, cp, crx, cry, crz, cswap, csx, cx, cy, cz, fredkin, h, i, id, mcp, mct, mcx, measure, p, rx, rxx, ry, ryy, rz, rzz, s, sdg, swap, sx, sxdg, t, tdg, toffoli, x, y` and `z`.
+The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. They are `ccx, ch, cnot, cp, crx, cry, crz, csx, cx, cy, cz, h, i, id, mcp, mct, mcx, measure, p, rx, rxx, ry, ryy, rz, rzz, s, sdg, swap, sx, sxdg, t, tdg, toffoli, x, y` and `z`.
 
 If you have circuits that you'd like to run on IonQ backends that use other gates than this (`u` or `iswap` for example), you will either need to manually rewrite the circuit to only use the above list, or use the Qiskit transpiler, per the example below. Please note that not all circuits can be automatically transpiled.
 

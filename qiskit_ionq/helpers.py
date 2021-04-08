@@ -304,13 +304,13 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     ionq_json = {
         "lang": "json",
         "target": backend_name[5:],
-        "shots": passed_args["shots"],
+        "shots": passed_args.get("shots"),
         "body": {"qubits": circuit.num_qubits, "circuit": ionq_circ,},
         "registers": {"meas_mapped": meas_map},
         # store a couple of things we'll need later for result formatting
         "metadata": {
-            "shots": passed_args.get("shots"),
-            "sampler_seed": passed_args.get("sampler_seed"),
+            "shots": str(passed_args.get("shots")),
+            "sampler_seed": str(passed_args.get("sampler_seed")),
             "qiskit_header": qiskit_header,
         },
     }
