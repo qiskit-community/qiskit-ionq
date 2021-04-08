@@ -45,13 +45,11 @@ from .helpers import decompress_metadata_string_to_dict
 from . import constants, exceptions
 
 
-def _build_counts(result, retain_probabilities=False):
+def _build_counts(result, use_sampler=False, sampler_seed=None):
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
     Args:
         result (dict): A REST API response.
-        retain_probabilities (bool): Retain probabilities from the response instead
-            of converting them to counts.
 
     Returns:
         dict[str, float]: A dict of qiskit compatible ``counts``.
@@ -82,14 +80,27 @@ def _build_counts(result, retain_probabilities=False):
     # Grab the mapped output from response.
     output_probs = result["data"].get("registers", {}).get("meas_mapped", {})
 
+    sampled = {}
+    if use_sampler:
+        for key, val in output_probs.items():
+            sampled[val] = round(val * shots)  # TODO: use a real sampler
+
     # Build counts.
     counts = {}
     for key, val in output_probs.items():
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
         hex_bits = hex(int(bits, 2))
-        count = val if retain_probabilities else round(val * shots)
+        count = sampled[val] if use_sampler else round(val * shots)
         counts[hex_bits] = count
-    return counts
+    # build probs
+    probabilities = {}
+    for key, val in output_probs.items():
+        bits = bin(int(key))[2:].rjust(num_qubits, "0")
+        hex_bits = hex(int(bits, 2))
+        prob = val
+        probabilities[hex_bits] = prob
+
+    return (counts, probabilities)
 
 
 class IonQJob(JobV1):
@@ -117,7 +128,7 @@ class IonQJob(JobV1):
     def __init__(self, backend, job_id, client=None, circuit=None, passed_args=None):
         super().__init__(backend, job_id)
         self._client = client or backend.client
-        self._passed_args = passed_args or {"shots": 1024}
+        self._passed_args = passed_args or {"shots": 1024, "sampler_seed": None}
         self._result = None
         self._status = None
 
@@ -156,7 +167,10 @@ class IonQJob(JobV1):
 
             Result counts for jobs processed by
             :class:`IonQSimulatorBackend <qiskit_ionq.ionq_backend.IonQSimulatorBackend>`
-            are expressed as probabilites, rather than a multiple of shots.
+            are returned from the API as probabilities, and are converted to counts via
+            simple statistical sampling that occurs on the cient side. 
+
+            To obtain the true probabilities, use the get_probabilties() method instead.
 
         Args:
              circuit (str or QuantumCircuit or int or None): Optional. The index of the experiment.
@@ -165,6 +179,11 @@ class IonQJob(JobV1):
             dict: A dictionary of counts.
         """
         return self.result().get_counts(circuit)
+
+    def get_probabilities(self, circuit=None):
+        """Return the probabilities for the job.
+        """
+        return self.result().get_probabilities()
 
     def result(self):
         """Retrieve job result data.
@@ -272,17 +291,19 @@ class IonQJob(JobV1):
         success = self._status == jobstatus.JobStatus.DONE
         time_taken = (result.get("execution_time") / 1000) if success else None
         metadata = result.get("metadata") or {}
+        sampler_seed = int(metadata.get("sampler_seed")) if metadata.get("sampler_seed") is not None else None
         qiskit_header = decompress_metadata_string_to_dict(metadata.get("qiskit_header", None))
         job_result = {
             "data": {},
-            "shots": int(metadata.get("shots", "1")),
+            "shots": int(metadata.get("shots", "1024")),
             "header": qiskit_header or {},
             "success": success,
         }
         if self._status == jobstatus.JobStatus.DONE:
-            job_result["data"] = {
-                "counts": _build_counts(result, retain_probabilities=is_simulator)
-            }
+            (counts, probabilities) = _build_counts(
+                result, use_sampler=is_simulator, sampler_seed=sampler_seed
+            )
+            job_result["data"] = {"counts": counts, "probabilities": probabilities}
         if self._status == jobstatus.JobStatus.ERROR:
             failure = result.get("failure") or {}
             failure_type = failure.get("code", "")

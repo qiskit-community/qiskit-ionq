@@ -315,6 +315,7 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         "metadata": {
             "shots": str(passed_args["shots"]),
             "qiskit_header": qiskit_header,
+            "sampler_seed": str(passed_args["sampler_seed"])
         },
     }
     return json.dumps(ionq_json)

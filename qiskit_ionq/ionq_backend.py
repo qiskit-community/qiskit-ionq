@@ -193,13 +193,7 @@ class IonQBackend(Backend):
             kwargs["shots"] = self.options.shots
         passed_args = kwargs
 
-        job = ionq_job.IonQJob(
-            self,
-            None,
-            self.client,
-            circuit=circuit,
-            passed_args=passed_args,
-        )
+        job = ionq_job.IonQJob(self, None, self.client, circuit=circuit, passed_args=passed_args,)
         job.submit()
         return job
 
@@ -248,6 +242,10 @@ class IonQSimulatorBackend(IonQBackend):
         probabilites, rather than a multiple of shots.
     """
 
+    @classmethod
+    def _default_options(cls):
+        return Options(shots=1024, sampler_seed=None)
+
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ
     def run(self, circuit, **kwargs):
         """Create and run a job on IonQ's Simulator Backend.
@@ -265,7 +263,7 @@ class IonQSimulatorBackend(IonQBackend):
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
-        return super().run(circuit, shots=1)
+        return super().run(circuit, **kwargs)
 
     def calibration(self):
         """Simulators have no calibration data.
