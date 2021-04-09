@@ -26,8 +26,6 @@
 # limitations under the License.
 
 """global pytest fixtures"""
-import json
-
 import pytest
 import requests_mock as _requests_mock
 from qiskit.providers import models as q_models
@@ -110,7 +108,7 @@ def dummy_job_response(job_id, status="completed"):
     }
 
 
-def dummy_failed_job(job_id):
+def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-type-doc
     """A dummy response payload for a failed job.
 
     Args:

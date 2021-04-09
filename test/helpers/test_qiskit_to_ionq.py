@@ -31,15 +31,15 @@ import json
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
-from qiskit_ionq.helpers import (
-    qiskit_to_ionq,
-    compress_dict_to_metadata_string,
-    decompress_metadata_string_to_dict,
-)
+from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string_to_dict
 
 
-def test_output_map__with_multiple_measurements_to_different_clbits(simulator_backend):
-    """Test output mapping handles multiple measurements from the same qubit to different clbits correctly
+def test_output_map__with_multiple_measurements_to_different_clbits(
+    simulator_backend,
+):  # pylint: disable=invalid-name
+    """
+    Test output mapping handles multiple measurements from the same qubit to
+    different clbits correctly
 
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
@@ -57,7 +57,9 @@ def test_output_map__with_multiple_measurements_to_different_clbits(simulator_ba
     assert actual_output_map == [0, 0]
 
 
-def test_output_map__with_multiple_measurements_to_same_clbit(simulator_backend):
+def test_output_map__with_multiple_measurements_to_same_clbit(
+    simulator_backend,
+):  # pylint: disable=invalid-name
     """Test output mapping handles multiple measurements to same clbit correctly
 
     Args:
@@ -76,7 +78,7 @@ def test_output_map__with_multiple_measurements_to_same_clbit(simulator_backend)
     assert actual_output_map == [1, None]
 
 
-def test_output_map__with_multiple_registers(simulator_backend):
+def test_output_map__with_multiple_registers(simulator_backend):  # pylint: disable=invalid-name
     """Test output map with multiple registers
 
     Args:
@@ -100,7 +102,9 @@ def test_output_map__with_multiple_registers(simulator_backend):
     assert actual_output_map == [0, 1, 2, 3]
 
 
-def test_metadata_header__with_multiple_registers(simulator_backend):
+def test_metadata_header__with_multiple_registers(
+    simulator_backend,
+):  # pylint: disable=invalid-name
     """Test correct metadata headers when we have multiple qregs and cregs"""
     qr0 = QuantumRegister(2, "qr0")
     qr1 = QuantumRegister(2, "qr1")

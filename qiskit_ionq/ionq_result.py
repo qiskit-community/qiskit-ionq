@@ -36,33 +36,30 @@ from . import exceptions
 
 
 class IonQResult(Result):
-    def __init__(
-        self,
-        backend_name,
-        backend_version,
-        qobj_id,
-        job_id,
-        success,
-        results,
-        date=None,
-        status=None,
-        header=None,
-        **kwargs
-    ):
-        super().__init__(
-            backend_name,
-            backend_version,
-            qobj_id,
-            job_id,
-            success,
-            results,
-            date=date,
-            status=status,
-            header=header,
-            **kwargs,
-        )
+    """
+    An IonQ-specific result object.
+
+    The primary reason this class extends the base Qiskit result object is to
+    provide an API for retrieving result probabilities directly.
+    """
 
     def get_probabilities(self, experiment=None):
+        """
+        Get probabilities for the experiment.
+
+        If ``experiment`` is None, ``self.results`` will be used in its place.
+
+        Args:
+            experiment (Union[int, QuantumCircuit, Schedule, dict], optional): If provided, this
+                argument is used to get an experiment using Result's ``_get_experiment`` method.
+
+        Raises:
+            IonQJobError: A given experiment in our results had no probabilities.
+
+        Returns:
+            Union[Counts, list(Counts)]: Single count if the result list
+                was size one, else the entire list.
+        """
         if experiment is None:
             exp_keys = range(len(self.results))
         else:
@@ -94,4 +91,3 @@ class IonQResult(Result):
         if len(dict_list) == 1:
             return dict_list[0]
         return dict_list
-

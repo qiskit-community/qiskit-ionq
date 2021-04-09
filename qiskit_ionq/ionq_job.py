@@ -36,7 +36,6 @@
    :class:`BaseJob <qiskit.providers.BaseJob>`.
 """
 
-import json
 import numpy as np
 
 from qiskit.providers import JobV1, jobstatus
@@ -49,21 +48,29 @@ from . import constants, exceptions
 def _build_counts(result, use_sampler=False, sampler_seed=None):
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
-    .. NOTE:: For simulator jobs, this method builds counts using a randomly generated sampling of the probabilities returned
-    from the API. Because this is a random process, rebuilding the results object (by e.g. restarting the kernel and getting the
-    job again) without providing a sampler_seed in the run method may result in slightly different counts.
+    .. NOTE:: For simulator jobs, this method builds counts using a randomly
+        generated sampling of the probabilities returned from the API. Because
+        this is a random process, rebuilding the results object (by e.g.
+        restarting the kernel and getting the job again) without providing a
+        sampler_seed in the run method may result in slightly different counts.
 
     Args:
         result (dict): A REST API response.
-        use_sampler (bool): for counts generation, whether to use simple shots*probabilities (for qpu) or a sampler (for simulator)
-        sampler_seed (int): ability to provide a seed for the randomness in the sampler for repeatable results. passed as `np.random.RandomState(seed)`. If none, `np.random` is used
+        use_sampler (bool): for counts generation, whether to use
+            simple shots * probabilities (for qpu) or a sampler (for simulator)
+        sampler_seed (int): ability to provide a seed for the randomness in the
+            sampler for repeatable results. passed as
+            `np.random.RandomState(seed)`. If none, `np.random` is used
 
-    Returns: 
-        (dict[str, float], dict[str, float]): A tuple (counts, probabilities), respectively a dict of qiskit compatible ``counts``
-        and a dict of the job's probabilities as a``Counts`` object, mostly relevant for simulator work.
+    Returns:
+        tuple(dict[str, float], dict[str, float]): A tuple (counts, probabilities),
+            respectively a dict of qiskit compatible ``counts`` and a dict of
+            the job's probabilities as a``Counts`` object, mostly relevant for
+            simulator work.
 
     Raises:
-        IonQJobError: In the event that ``result`` has missing or invalid job properties.
+        IonQJobError: In the event that ``result`` has missing or invalid job
+            properties.
     """
     # Short circuit when we don't have all the information we need.
     if not result:
@@ -94,7 +101,8 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
         outcomes, weights = zip(*output_probs.items())
         weights = np.array(weights)
         outcomes = np.array(outcomes)
-        # just in case the sum isn't exactly 1 — sometimes the API returns e.g. 0.499999 due to floating point error
+        # just in case the sum isn't exactly 1 — sometimes the API returns
+        #   e.g. 0.499999 due to floating point error
         weights /= weights.sum()
         rand_values = rand.choice(outcomes, shots, p=weights)
 
@@ -182,20 +190,31 @@ class IonQJob(JobV1):
             Result counts for jobs processed by
             :class:`IonQSimulatorBackend <qiskit_ionq.ionq_backend.IonQSimulatorBackend>`
             are returned from the API as probabilities, and are converted to counts via
-            simple statistical sampling that occurs on the cient side. 
+            simple statistical sampling that occurs on the cient side.
 
             To obtain the true probabilities, use the get_probabilties() method instead.
 
         Args:
-             circuit (str or QuantumCircuit or int or None): Optional. The index of the experiment.
+            circuit (str or QuantumCircuit or int or None): Optional.
+                The index of the experiment.
 
         Returns:
             dict: A dictionary of counts.
         """
         return self.result().get_counts(circuit)
 
-    def get_probabilities(self, circuit=None):
-        """Return the probabilities for the job.
+    def get_probabilities(self, circuit=None):  # pylint: disable=unused-argument
+        """
+        Return the probabilities for the job.
+
+        This is effectively a pass-through to
+            :meth:`get_probabilities <qiskit_ionq.ionq_result.IonQResult.get_probabilities>`
+
+        Args:
+            circuit (str or QuantumCircuit or int or None): Optional.
+
+        Returns:
+            tuple(dict[str, float], dict[str, float]): A tuple counts, probabilities.
         """
         return self.result().get_probabilities()
 
@@ -293,6 +312,10 @@ class IonQJob(JobV1):
 
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
+
+        Raises:
+            IonQJobFailureError: If the remote job has an error status.
+            IonQJobStateError: If the job was cancelled before this method fetches it.
         """
 
         # Different backends can have differing result data:
@@ -326,8 +349,10 @@ class IonQJob(JobV1):
             failure = result.get("failure") or {}
             failure_type = failure.get("code", "")
             failure_message = failure.get("error", "")
-            error_message = f'Unable to retreive result for job {self.job_id()}. Failure from IonQ API "{failure_type}: {failure_message}"'
-            self._job_error_msg = error_message
+            error_message = (
+                f"Unable to retreive result for job {self.job_id()}. "
+                f'Failure from IonQ API "{failure_type}: {failure_message}"'
+            )
             raise exceptions.IonQJobFailureError(error_message)
         if self._status == jobstatus.JobStatus.CANCELLED:
             error_message = f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'

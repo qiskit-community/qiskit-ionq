@@ -45,7 +45,8 @@ def test_base_str_and_repr():
 def test_gate_error():
     """Test that IonQAPIError has specific instance attributes."""
     err = exceptions.IonQGateError("a gate")
-    expected = "gate 'a gate' not supported on IonQ backends. Please use the qiskit.transpile method or manually rewrite to remove the gate"
+    expected = "gate 'a gate' not supported on IonQ backends. " \
+               "Please use the qiskit.transpile method or manually rewrite to remove the gate"
     assert err.message == expected
 
 
