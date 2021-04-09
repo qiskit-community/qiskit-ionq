@@ -77,14 +77,13 @@ class IonQResult(Result):
                 header = None
 
             if "probabilities" in self.data(key).keys():
+                counts_header = {}
                 if header:
                     counts_header = {
                         k: v
                         for k, v in header.items()
                         if k in {"time_taken", "creg_sizes", "memory_slots"}
                     }
-                else:
-                    counts_header = {}
                 dict_list.append(Counts(self.data(key)["probabilities"], **counts_header))
             else:
                 raise exceptions.IonQJobError(
@@ -94,6 +93,5 @@ class IonQResult(Result):
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
             return dict_list[0]
-        else:
-            return dict_list
+        return dict_list
 
