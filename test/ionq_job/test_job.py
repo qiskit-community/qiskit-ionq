@@ -277,7 +277,7 @@ def test_result__timeout(mock_backend, requests_mock):
     assert exc_info.value.message == "Timed out waiting for job to complete."
 
 
-expected_result = {``
+expected_result = {
     "backend_name": "ionq_mock_backend",
     "backend_version": "0.0.1",
     "job_id": "test_id",

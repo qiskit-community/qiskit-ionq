@@ -57,7 +57,6 @@ gate_serializations = [
     ("cx", [0, 1], [{"gate": "x", "targets": [1], "controls": [0]}]),
     ("cy", [0, 1], [{"gate": "y", "targets": [1], "controls": [0]}]),
     ("cz", [0, 1], [{"gate": "z", "targets": [1], "controls": [0]}]),
-    ("fredkin", [0, 1, 2], [{"gate": "swap", "targets": [1, 2], "controls": [0]}]),
     ("h", [0], [{"gate": "h", "targets": [0]}]),
     ("i", [0], []),
     ("id", [0], []),
