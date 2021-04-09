@@ -33,9 +33,9 @@ from qiskit import QuantumCircuit
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
 
+from qiskit.qobj.utils import MeasLevel
 from qiskit_ionq import exceptions, ionq_job
 from qiskit_ionq.helpers import compress_dict_to_metadata_string
-from qiskit.qobj.utils import MeasLevel
 
 from .. import conftest
 
@@ -65,7 +65,11 @@ def spy(instance, attr):
         mock.MagicMock: A mock object that will spy on ``attr``.
     """
     actual_attr = getattr(instance, attr)
-    patch = mock.patch.object(instance, attr, wraps=actual_attr,)
+    patch = mock.patch.object(
+        instance,
+        attr,
+        wraps=actual_attr,
+    )
     return patch
 
 
@@ -97,7 +101,12 @@ def test_build_counts():
         "qubits": 3,
         "data": {
             "histogram": {"5": 0.5, "7": 0.5},
-            "registers": {"meas_mapped": {"3": 0.5, "7": 0.5,}},
+            "registers": {
+                "meas_mapped": {
+                    "3": 0.5,
+                    "7": 0.5,
+                }
+            },
         },
         "metadata": {
             "shots": "100",
@@ -176,7 +185,9 @@ def test_submit__without_circuit(mock_backend, requests_mock):
     # Mock the initial status call.
     fetch_path = mock_backend.client.make_path("jobs", job_id)
     requests_mock.get(
-        fetch_path, status_code=200, json=conftest.dummy_job_response(job_id),
+        fetch_path,
+        status_code=200,
+        json=conftest.dummy_job_response(job_id),
     )
 
     # Create the job (this calls .status())
@@ -203,7 +214,9 @@ def test_submit(mock_backend, requests_mock):
     # Mock the initial status call.
     fetch_path = mock_backend.client.make_path("jobs")
     requests_mock.post(
-        fetch_path, status_code=200, json=conftest.dummy_job_response("server_job_id"),
+        fetch_path,
+        status_code=200,
+        json=conftest.dummy_job_response("server_job_id"),
     )
 
     # Create a job ref (this does not call status, since circuit is not None).
@@ -228,7 +241,9 @@ def test_cancel(mock_backend, requests_mock):
     client = mock_backend.client
     fetch_path = client.make_path("jobs", job_id)
     requests_mock.get(
-        fetch_path, status_code=200, json=conftest.dummy_job_response(job_id),
+        fetch_path,
+        status_code=200,
+        json=conftest.dummy_job_response(job_id),
     )
 
     # Mock a request to cancel.
