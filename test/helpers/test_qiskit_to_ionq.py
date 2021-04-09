@@ -25,7 +25,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test the qobj_to_ionq function."""
+"""Test the qiskit_to_ionq function."""
 
 import json
 
@@ -48,9 +48,7 @@ def test_output_map__with_multiple_measurements_to_different_clbits(simulator_ba
     qc.measure(0, 0)
     qc.measure(0, 1)
     ionq_json = qiskit_to_ionq(
-        qc,
-        simulator_backend.name(),
-        passed_args={"shots": 200},
+        qc, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
     actual_maps = actual.pop("registers") or {}
@@ -69,9 +67,7 @@ def test_output_map__with_multiple_measurements_to_same_clbit(simulator_backend)
     qc.measure(0, 0)
     qc.measure(1, 0)
     ionq_json = qiskit_to_ionq(
-        qc,
-        simulator_backend.name(),
-        passed_args={"shots": 200},
+        qc, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
     actual_maps = actual.pop("registers") or {}
@@ -95,9 +91,7 @@ def test_output_map__with_multiple_registers(simulator_backend):
     qc.measure([qr0[0], qr0[1], qr1[0], qr1[1]], [cr0[0], cr0[1], cr1[0], cr1[1]])
 
     ionq_json = qiskit_to_ionq(
-        qc,
-        simulator_backend.name(),
-        passed_args={"shots": 123},
+        qc, simulator_backend.name(), passed_args={"shots": 123, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
     actual_maps = actual.pop("registers") or {}
@@ -117,9 +111,7 @@ def test_metadata_header__with_multiple_registers(simulator_backend):
     qc.measure([qr1[0], qr1[1]], [cr1[0], cr1[1]])
 
     ionq_json = qiskit_to_ionq(
-        qc,
-        simulator_backend.name(),
-        passed_args={"shots": 200},
+        qc, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
     )
 
     expected_metadata_header = {
@@ -155,9 +147,7 @@ def test_full_circuit(simulator_backend):
     qc.measure(1, 0)
     qc.measure(0, 1)
     ionq_json = qiskit_to_ionq(
-        qc,
-        simulator_backend.name(),
-        passed_args={"shots": 200},
+        qc, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
     )
     expected_metadata_header = {
         "memory_slots": 2,
@@ -170,9 +160,7 @@ def test_full_circuit(simulator_backend):
         "qubit_labels": [["q", 0], ["q", 1]],
     }
     expected_output_map = [1, 0]
-    expected_metadata = {
-        "shots": "200",
-    }
+    expected_metadata = {"shots": "200", "sampler_seed": "42"}
     expected_rest_of_payload = {
         "lang": "json",
         "target": "simulator",

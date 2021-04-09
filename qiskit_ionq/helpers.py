@@ -26,7 +26,7 @@
 # limitations under the License.
 
 """
-Helper methods for mapping a qobj (:mod:`Qiskit Quantum Objects <qiskit.qobj>`)
+Helper methods for mapping Qiskit classes
 to IonQ REST API compatible values.
 """
 
@@ -304,11 +304,15 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     ionq_json = {
         "lang": "json",
         "target": backend_name[5:],
-        "shots": passed_args["shots"],
+        "shots": passed_args.get("shots"),
         "body": {"qubits": circuit.num_qubits, "circuit": ionq_circ,},
         "registers": {"meas_mapped": meas_map},
         # store a couple of things we'll need later for result formatting
-        "metadata": {"shots": str(passed_args["shots"]), "qiskit_header": qiskit_header,},
+        "metadata": {
+            "shots": str(passed_args.get("shots")),
+            "sampler_seed": str(passed_args.get("sampler_seed")),
+            "qiskit_header": qiskit_header,
+        },
     }
     return json.dumps(ionq_json)
 

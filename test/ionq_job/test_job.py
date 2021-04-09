@@ -66,11 +66,7 @@ def spy(instance, attr):
         mock.MagicMock: A mock object that will spy on ``attr``.
     """
     actual_attr = getattr(instance, attr)
-    patch = mock.patch.object(
-        instance,
-        attr,
-        wraps=actual_attr,
-    )
+    patch = mock.patch.object(instance, attr, wraps=actual_attr,)
     return patch
 
 
@@ -102,20 +98,16 @@ def test_build_counts():
         "qubits": 3,
         "data": {
             "histogram": {"5": 0.5, "7": 0.5},
-            "registers": {
-                "meas_mapped": {
-                    "3": 0.5,
-                    "7": 0.5,
-                }
-            },
+            "registers": {"meas_mapped": {"3": 0.5, "7": 0.5,}},
         },
         "metadata": {
-            "shots": 100,
+            "shots": "100",
             "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3}),
         },
     }
-    counts = ionq_job._build_counts(result)
-    assert {"0x3": 50, "0x7": 50} == counts
+    (counts, probabilties) = ionq_job._build_counts(result)
+    assert ({"0x3": 50, "0x7": 50}) == counts
+    assert ({"0x3": 0.5, "0x7": 0.5}) == probabilties
 
 
 def test_results_meta(formatted_result):
@@ -134,8 +126,14 @@ def test_counts(formatted_result):
     assert {"01": 617, "11": 617} == counts
 
 
+def test_probabilities(formatted_result):
+    """Test counts based on a dummy result (see global conftest.py)."""
+    probabilities = formatted_result.get_probabilities()
+    assert {"01": 0.499999, "11": 0.5} == probabilities
+
+
 def test_counts__simulator_probs(simulator_backend, requests_mock):
-    """Test that the simulator retains counts as probabilities."""
+    """Test that the simulator uses the sampler to produce counts and probs"""
     # Dummy job ID for formatted results fixture.
     job_id = "test_id"
 
@@ -146,7 +144,25 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
 
     formatted_result = job.result()
     counts = formatted_result.get_counts()
-    assert {"01": 0.499999, "11": 0.5} == counts
+    probabilities = formatted_result.get_probabilities()
+    assert {"01": 609, "11": 625} == counts
+    assert {"01": 0.499999, "11": 0.5} == probabilities
+
+
+def test_counts_and_probs_from_job(simulator_backend, requests_mock):
+    """Test that the helper methods on the job return the same data as the methods on the result"""
+    # Dummy job ID for formatted results fixture.
+    job_id = "test_id"
+
+    # Create the request path for accessing the dummy job:
+    path = simulator_backend.client.make_path("jobs", job_id)
+    requests_mock.get(path, json=conftest.dummy_job_response(job_id))
+    job = ionq_job.IonQJob(simulator_backend, job_id)
+
+    counts = job.get_counts()
+    probabilities = job.get_probabilities()
+    assert {"01": 609, "11": 625} == counts
+    assert {"01": 0.499999, "11": 0.5} == probabilities
 
 
 def test_submit__without_circuit(mock_backend, requests_mock):
@@ -161,9 +177,7 @@ def test_submit__without_circuit(mock_backend, requests_mock):
     # Mock the initial status call.
     fetch_path = mock_backend.client.make_path("jobs", job_id)
     requests_mock.get(
-        fetch_path,
-        status_code=200,
-        json=conftest.dummy_job_response(job_id),
+        fetch_path, status_code=200, json=conftest.dummy_job_response(job_id),
     )
 
     # Create the job (this calls .status())
@@ -190,9 +204,7 @@ def test_submit(mock_backend, requests_mock):
     # Mock the initial status call.
     fetch_path = mock_backend.client.make_path("jobs")
     requests_mock.post(
-        fetch_path,
-        status_code=200,
-        json=conftest.dummy_job_response("server_job_id"),
+        fetch_path, status_code=200, json=conftest.dummy_job_response("server_job_id"),
     )
 
     # Create a job ref (this does not call status, since circuit is not None).
@@ -217,9 +229,7 @@ def test_cancel(mock_backend, requests_mock):
     client = mock_backend.client
     fetch_path = client.make_path("jobs", job_id)
     requests_mock.get(
-        fetch_path,
-        status_code=200,
-        json=conftest.dummy_job_response(job_id),
+        fetch_path, status_code=200, json=conftest.dummy_job_response(job_id),
     )
 
     # Mock a request to cancel.
@@ -274,7 +284,10 @@ expected_result = {
     "qobj_id": "test_qobj_id",
     "results": [
         {
-            "data": {"counts": {"0x1": 617, "0x3": 617}},
+            "data": {
+                "counts": {"0x1": 617, "0x3": 617},
+                "probabilities": {"0x1": 0.499999, "0x3": 0.5},
+            },
             "header": {
                 "clbit_labels": [["c", 0], ["c", 1]],
                 "creg_sizes": [["c", 2]],
