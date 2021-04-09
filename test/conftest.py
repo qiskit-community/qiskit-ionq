@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -53,7 +52,13 @@ class MockBackend(ionq_backend.IonQBackend):
                 "memory": False,
                 "max_shots": 0,
                 "basis_gates": [],
-                "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO",}],
+                "gates": [
+                    {
+                        "name": "TODO",
+                        "parameters": [],
+                        "qasm_def": "TODO",
+                    }
+                ],
             }
         )
         super().__init__(config, provider=provider)
