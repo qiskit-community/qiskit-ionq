@@ -192,7 +192,13 @@ class IonQBackend(Backend):
             kwargs["shots"] = self.options.shots
         passed_args = kwargs
 
-        job = ionq_job.IonQJob(self, None, self.client, circuit=circuit, passed_args=passed_args,)
+        job = ionq_job.IonQJob(
+            self,
+            None,
+            self.client,
+            circuit=circuit,
+            passed_args=passed_args,
+        )
         job.submit()
         return job
 
@@ -245,7 +251,7 @@ class IonQSimulatorBackend(IonQBackend):
     def _default_options(cls):
         return Options(shots=1024, sampler_seed=None)
 
-    # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ
+    # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,useless-super-delegation
     def run(self, circuit, **kwargs):
         """Create and run a job on IonQ's Simulator Backend.
 

@@ -195,7 +195,11 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
             # Update converted gate values.
             converted.update(
-                {"gate": gate, "controls": controls, "targets": targets,}
+                {
+                    "gate": gate,
+                    "controls": controls,
+                    "targets": targets,
+                }
             )
 
         # if there's a valid instruction after a measurement,
@@ -213,7 +217,6 @@ def qiskit_circ_to_ionq_circ(input_circuit):
     return output_circuit, num_meas, meas_map
 
 
-<<<<<<< HEAD
 def get_register_sizes_and_labels(registers):
     """Returns a tuple of sizes and labels in for a given register
 
@@ -323,7 +326,10 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         "lang": "json",
         "target": backend_name[5:],
         "shots": passed_args.get("shots"),
-        "body": {"qubits": circuit.num_qubits, "circuit": ionq_circ,},
+        "body": {
+            "qubits": circuit.num_qubits,
+            "circuit": ionq_circ,
+        },
         "registers": {"meas_mapped": meas_map},
         # store a couple of things we'll need later for result formatting
         "metadata": {
