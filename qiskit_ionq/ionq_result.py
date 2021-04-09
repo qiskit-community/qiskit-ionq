@@ -43,32 +43,6 @@ class IonQResult(Result):
     provide an API for retrieving result probabilities directly.
     """
 
-    def __init__(
-        self,
-        backend_name,
-        backend_version,
-        qobj_id,
-        job_id,
-        success,
-        results,
-        date=None,
-        status=None,
-        header=None,
-        **kwargs
-    ):
-        super().__init__(
-            backend_name,
-            backend_version,
-            qobj_id,
-            job_id,
-            success,
-            results,
-            date=date,
-            status=status,
-            header=header,
-            **kwargs,
-        )
-
     def get_probabilities(self, experiment=None):
         """
         Get probabilities for the experiment.
