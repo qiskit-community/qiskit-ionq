@@ -10,5 +10,6 @@ Qiskit IonQ Provider API Reference
    provider
    backends
    client
+   result
    exceptions
    helpers

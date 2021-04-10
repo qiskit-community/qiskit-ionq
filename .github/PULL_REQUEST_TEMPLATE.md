@@ -1,7 +1,7 @@
 <!--
 ⚠️ If you do not respect this template, your pull request will be closed.
 ⚠️ Your pull request title should be short, detailed and understandable for all.
-⚠️ If your pull request addreses an open issue, please link to the issue.
+⚠️ If your pull request addresses an open issue, please link to the issue.
 
 ✅ I have added tests to cover my changes.
 ✅ I have updated the documentation accordingly.
@@ -12,8 +12,4 @@
 
 ### Summary
 
-
-
 ### Details and comments
-
-
