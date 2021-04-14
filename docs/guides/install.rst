@@ -3,7 +3,7 @@ Installing the Qiskit IonQ Provider
 
 .. WARNING::
 
-      **The Qiskit IonQ Provider requires** ``qiskit<=0.24.0``!
+      **The Qiskit IonQ Provider requires** ``qiskit>=0.25.0``!
 
       To ensure you are on the latest version, run::
 
