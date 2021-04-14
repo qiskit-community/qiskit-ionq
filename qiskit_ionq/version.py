@@ -34,7 +34,7 @@ from typing import List
 here = pathlib.Path(".").absolute()
 
 # major, minor, micro
-VERSION_INFO = ".".join(map(str, (0, 1, 0)))
+VERSION_INFO = ".".join(map(str, (0, 1, 1)))
 
 
 def _minimal_ext_cmd(cmd: List[str]) -> bytes:
