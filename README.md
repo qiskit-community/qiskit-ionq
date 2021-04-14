@@ -17,7 +17,7 @@ The IonQ Provider uses IonQ's REST API, and using the provider requires an API a
 
 ## Installation
 
-> :warning: **The Qiskit IonQ Provider is not compatible with** `qiskit<=0.24.0`!
+> :warning: **The Qiskit IonQ Provider requires** `qiskit<=0.24.0`!
 >
 > To ensure you are on the latest version, run:
 >
