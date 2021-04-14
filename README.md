@@ -17,7 +17,7 @@ The IonQ Provider uses IonQ's REST API, and using the provider requires an API a
 
 ## Installation
 
-> :warning: **The Qiskit IonQ Provider requires** `qiskit-terra>=0.17.0`!
+> :information_source: **The Qiskit IonQ Provider requires** `qiskit-terra>=0.17.0`!
 >
 > To ensure you are on the latest version, run:
 >
