@@ -54,7 +54,6 @@ ionq_basis_gates = [
     "cx",
     "cy",
     "cz",
-    "fredkin",
     "h",
     "i",
     "id",
