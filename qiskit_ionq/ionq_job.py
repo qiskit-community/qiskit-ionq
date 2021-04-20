@@ -98,11 +98,12 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
     if use_sampler:
         rand = np.random.RandomState(sampler_seed)
         outcomes, weights = zip(*output_probs.items())
-        weights = np.array(weights)
-        outcomes = np.array(outcomes)
+        weights = np.array(weights).astype(float)
         # just in case the sum isn't exactly 1 — sometimes the API returns
-        #   e.g. 0.499999 due to floating point error
+        #  e.g. 0.499999 due to floating point error
         weights /= weights.sum()
+        outcomes = np.array(outcomes)
+
         rand_values = rand.choice(outcomes, shots, p=weights)
 
         sampled.update({key: np.count_nonzero(rand_values == key) for key in output_probs})
