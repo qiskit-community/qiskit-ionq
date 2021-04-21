@@ -32,6 +32,8 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string_to_dict
 
+from qiskit.compiler import assemble
+
 
 def test_output_map__with_multiple_measurements_to_different_clbits(
     simulator_backend,
@@ -151,6 +153,61 @@ def test_full_circuit(simulator_backend):
     qc.measure(0, 1)
     ionq_json = qiskit_to_ionq(
         qc, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
+    )
+    expected_metadata_header = {
+        "memory_slots": 2,
+        "global_phase": 0,
+        "n_qubits": 2,
+        "name": "test_name",
+        "creg_sizes": [["c", 2]],
+        "clbit_labels": [["c", 0], ["c", 1]],
+        "qreg_sizes": [["q", 2]],
+        "qubit_labels": [["q", 0], ["q", 1]],
+    }
+    expected_output_map = [1, 0]
+    expected_metadata = {"shots": "200", "sampler_seed": "42"}
+    expected_rest_of_payload = {
+        "lang": "json",
+        "target": "simulator",
+        "shots": 200,
+        "body": {
+            "qubits": 2,
+            "circuit": [
+                {"gate": "x", "controls": [1], "targets": [0]},
+                {"gate": "h", "targets": [1]},
+            ],
+        },
+    }
+
+    actual = json.loads(ionq_json)
+    actual_metadata = actual.pop("metadata") or {}
+    actual_metadata_header = decompress_metadata_string_to_dict(
+        actual_metadata.pop("qiskit_header") or None
+    )
+    actual_maps = actual.pop("registers") or {}
+    actual_output_map = actual_maps.pop("meas_mapped") or []
+
+    # check dict equality:
+    assert actual_metadata == expected_metadata
+    assert actual_metadata_header == expected_metadata_header
+    assert actual_output_map == expected_output_map
+    assert actual == expected_rest_of_payload
+
+
+def test_full_circuit_from_qobj(simulator_backend):
+    """Test a full circuit
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    qc = QuantumCircuit(2, 2, name="test_name")
+    qc.cnot(1, 0)
+    qc.h(1)
+    qc.measure(1, 0)
+    qc.measure(0, 1)
+    qobj = assemble(qc, backend=simulator_backend, shots=200)
+    ionq_json = qiskit_to_ionq(
+        qobj, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
     )
     expected_metadata_header = {
         "memory_slots": 2,

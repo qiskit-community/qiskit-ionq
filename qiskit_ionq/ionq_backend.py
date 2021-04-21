@@ -191,13 +191,7 @@ class IonQBackend(Backend):
             kwargs["shots"] = self.options.shots
         passed_args = kwargs
 
-        job = ionq_job.IonQJob(
-            self,
-            None,
-            self.client,
-            circuit=circuit,
-            passed_args=passed_args,
-        )
+        job = ionq_job.IonQJob(self, None, self.client, circuit=circuit, passed_args=passed_args,)
         job.submit()
         return job
 
@@ -290,7 +284,7 @@ class IonQSimulatorBackend(IonQBackend):
                 "memory": False,
                 "n_qubits": 29,
                 "conditional": False,
-                "max_shots": 1,
+                "max_shots": None,
                 "max_experiments": 1,
                 "open_pulse": False,
                 "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO"}],
