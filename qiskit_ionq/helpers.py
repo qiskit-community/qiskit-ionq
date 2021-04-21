@@ -290,7 +290,7 @@ def qiskit_to_ionq(circuit_or_qobj, backend_name, passed_args=None):
     """Serialize a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
-        circuit_or_qobj (:class:`qiskit.circuit.QuantumCircuit` or :class:`qiskit.qobj.QasmQobj`):   
+        circuit_or_qobj (:class:`qiskit.circuit.QuantumCircuit` or :class:`qiskit.qobj.QasmQobj`):
             A Qiskit quantum circuit or qobj containing a circuit in QASM.
         backend_name (str): Backend name.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.

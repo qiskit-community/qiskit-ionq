@@ -239,7 +239,8 @@ class IonQJob(JobV1):
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
         """
-        _ = kwargs  # we ignore all result args like timeout etc, but consume them for compatibility reasons
+        # we ignore all result args like timeout etc, but consume them for compatibility reasons
+        _ = kwargs
 
         # Short-circuit if we have already cached the result for this job.
         if self._result is not None:
