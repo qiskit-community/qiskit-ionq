@@ -31,7 +31,7 @@ import pathlib
 import subprocess
 from typing import List
 
-here = pathlib.Path(__file__).parent.absolute()
+here = pathlib.Path(__file__).parent.parent.absolute()
 
 # major, minor, micro
 VERSION_INFO = ".".join(map(str, (0, 1, 1)))
