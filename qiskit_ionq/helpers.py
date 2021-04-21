@@ -286,22 +286,23 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuitOrQobj, backend_name, passed_args=None):
+def qiskit_to_ionq(circuit_or_qobj, backend_name, passed_args=None):
     """Serialize a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
-        circuitOrQobj (:class:`qiskit.circuit.QuantumCircuit` or :class:`qiskit.qobj.QasmQobj`): A Qiskit quantum circuit or qobj containing a circuit in QASM.
+        circuit_or_qobj (:class:`qiskit.circuit.QuantumCircuit` or :class:`qiskit.qobj.QasmQobj`):   
+            A Qiskit quantum circuit or qobj containing a circuit in QASM.
         backend_name (str): Backend name.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
         dict: A dict with IonQ API compatible values.
     """
-    circuit = circuitOrQobj
+    circuit = circuit_or_qobj
     # if the submit job method gets passed a Qobj (possible via e.g. the Qiskit.execute method),
     # pull the circuit off the Qobj. We don't need any of the rest of the context it provides.
-    if isinstance(circuitOrQobj, QasmQobj):
-        circuit_list, _, _ = disassemble(circuitOrQobj)
+    if isinstance(circuit_or_qobj, QasmQobj):
+        circuit_list, _, _ = disassemble(circuit_or_qobj)
         circuit = circuit_list.pop()
 
     passed_args = passed_args or {}

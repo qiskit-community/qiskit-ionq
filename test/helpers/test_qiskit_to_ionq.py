@@ -29,10 +29,9 @@
 import json
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.compiler import assemble
 
 from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string_to_dict
-
-from qiskit.compiler import assemble
 
 
 def test_output_map__with_multiple_measurements_to_different_clbits(
