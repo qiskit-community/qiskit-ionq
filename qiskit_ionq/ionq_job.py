@@ -217,7 +217,7 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
-    def result(self):
+    def result(self, **kwargs):
         """Retrieve job result data.
 
         .. NOTE::

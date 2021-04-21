@@ -60,12 +60,6 @@ gate_serializations = [
     ("i", [0], []),
     ("id", [0], []),
     ("mcp", [0.5, [0, 1], 2], [{"gate": "z", "rotation": 0.5, "targets": [2], "controls": [0, 1]}]),
-    ("mct", [[0, 1], 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
-    ("mcx", [[0, 1], 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
-    # make sure that multi-control can take any number of controls
-    ("mcx", [[0, 1, 2], 3], [{"gate": "x", "targets": [3], "controls": [0, 1, 2]}]),
-    ("mcx", [[0, 1, 2, 3], 4], [{"gate": "x", "targets": [4], "controls": [0, 1, 2, 3]}]),
-    ("mcx", [[0, 1, 2, 3, 4], 5], [{"gate": "x", "targets": [5], "controls": [0, 1, 2, 3, 4]}]),
     ("measure", [0, 0], []),
     ("p", [0, 0], [{"gate": "z", "rotation": 0, "targets": [0]}]),
     ("p", [0.5, 0], [{"gate": "z", "rotation": 0.5, "targets": [0]}]),

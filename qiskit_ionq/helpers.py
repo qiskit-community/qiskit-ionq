@@ -35,6 +35,8 @@ import base64
 
 from qiskit.circuit import controlledgate as q_cgates
 from qiskit.circuit.library import standard_gates as q_gates
+from qiskit.qobj import QasmQobj
+from qiskit.assembler import disassemble
 
 from . import exceptions
 
@@ -59,9 +61,7 @@ ionq_basis_gates = [
     "id",
     "mcp",
     "mcphase",
-    "mct",
-    "mcx",
-    "mcx_gray",
+    # no mcx for now until terra issue 6271 is resolved
     "measure",
     "p",
     "rx",
@@ -90,8 +90,6 @@ ionq_api_aliases = {
     q_gates.x.CCXGate: "cx",  # just one C for all mcx
     q_gates.x.C3XGate: "cx",  # just one C for all mcx
     q_gates.x.C4XGate: "cx",  # just one C for all mcx
-    q_gates.x.MCXGate: "cx",  # just one C for all mcx
-    q_gates.x.MCXGrayCode: "cx",  # just one C for all mcx
     q_gates.t.TdgGate: "ti",
     q_gates.p.PhaseGate: "z",
     q_gates.RXXGate: "xx",
@@ -193,11 +191,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
             # Update converted gate values.
             converted.update(
-                {
-                    "gate": gate,
-                    "controls": controls,
-                    "targets": targets,
-                }
+                {"gate": gate, "controls": controls, "targets": targets,}
             )
 
         # if there's a valid instruction after a measurement,
@@ -292,17 +286,24 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend_name, passed_args=None):
-    """Convert a Qiskit circuit to a IonQ compatible dict.
+def qiskit_to_ionq(circuitOrQobj, backend_name, passed_args=None):
+    """Serialize a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
-        circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
+        circuitOrQobj (:class:`qiskit.circuit.QuantumCircuit` or :class:`qiskit.qobj.QasmQobj`): A Qiskit quantum circuit or qobj containing a circuit in QASM.
         backend_name (str): Backend name.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
         dict: A dict with IonQ API compatible values.
     """
+    circuit = circuitOrQobj
+    # if the submit job method gets passed a Qobj (possible via e.g. the Qiskit.execute method),
+    # pull the circuit off the Qobj. We don't need any of the rest of the context it provides.
+    if isinstance(circuitOrQobj, QasmQobj):
+        circuit_list, _, _ = disassemble(circuitOrQobj)
+        circuit = circuit_list.pop()
+
     passed_args = passed_args or {}
     ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
@@ -324,10 +325,7 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         "lang": "json",
         "target": backend_name[5:],
         "shots": passed_args.get("shots"),
-        "body": {
-            "qubits": circuit.num_qubits,
-            "circuit": ionq_circ,
-        },
+        "body": {"qubits": circuit.num_qubits, "circuit": ionq_circ,},
         "registers": {"meas_mapped": meas_map},
         # store a couple of things we'll need later for result formatting
         "metadata": {
