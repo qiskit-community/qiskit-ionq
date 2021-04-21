@@ -31,7 +31,7 @@ import pathlib
 import subprocess
 from typing import List
 
-here = pathlib.Path(".").absolute()
+pkg_parent = pathlib.Path(__file__).parent.parent.absolute()
 
 # major, minor, micro
 VERSION_INFO = ".".join(map(str, (0, 1, 1)))
@@ -53,7 +53,7 @@ def _minimal_ext_cmd(cmd: List[str]) -> bytes:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
-        cwd=str(here),
+        cwd=str(pkg_parent),
     )
     out = proc.communicate()[0]
     if proc.returncode > 0:
@@ -78,7 +78,7 @@ def get_version_info() -> str:
     # Adding the git rev number needs to be done inside
     # write_version_py(), otherwise the import of scipy.version messes
     # up the build under Python 3.
-    git_dir = here / ".git"
+    git_dir = pkg_parent / ".git"
     if not git_dir.exists():
         return VERSION_INFO
 

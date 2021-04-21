@@ -57,7 +57,7 @@ setup(
     version=__version__,
     author="IonQ",
     author_email="info@ionq.com",
-    packages=find_packages(exclude=["test"]),
+    packages=find_packages(exclude=["test*"]),
     description="Qiskit provider for IonQ backends",
     long_description=long_description,
     long_description_content_type="text/markdown",
