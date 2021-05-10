@@ -175,13 +175,27 @@ class IonQBackend(Backend):
     def run(self, circuit, **kwargs):
         """Create and run a job on an IonQ Backend.
 
+        .. NOTE::
+
+            IonQ backends do not support multi-experiment jobs.
+            If ``circuit`` is provided as a list with more than one element
+            then this method will raise out with a RuntimeError.
+
         Args:
             circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
                 A Qiskit QuantumCircuit object.
 
         Returns:
             IonQJob: A reference to the job that was submitted.
+
+        Raises:
+            RuntimeError: If a multi-experiment circuit was provided.
         """
+        if isinstance(circuit, (list, tuple)):
+            if len(circuit) > 1:
+                raise RuntimeError("Multi-experiment jobs are not supported!")
+            circuit = circuit[0]
+
         for kwarg in kwargs:
             if not hasattr(self.options, kwarg):
                 warnings.warn(

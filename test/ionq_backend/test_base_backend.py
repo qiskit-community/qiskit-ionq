@@ -128,7 +128,7 @@ def test_create_client_exceptions(mock_backend, creds, msg):
 
 
 def test_run(mock_backend, requests_mock):
-    """Test that the backend `run` submits a job and returns that job.
+    """Test that the backend `run` submits a circuit and returns its job.
 
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend.
@@ -145,3 +145,35 @@ def test_run(mock_backend, requests_mock):
 
     assert isinstance(job, ionq_job.IonQJob)
     assert job.job_id() == "fake_job"
+
+
+def test_run_single_element_list(mock_backend, requests_mock):
+    """Test that the backend `run` submits a circuit in a single-element list.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    path = mock_backend.client.make_path("jobs")
+    dummy_response = conftest.dummy_job_response("fake_job")
+
+    # Mock the call to submit:
+    requests_mock.post(path, json=dummy_response, status_code=200)
+
+    # Run a dummy circuit.
+    job = mock_backend.run([QuantumCircuit(1, 1)])
+
+    assert isinstance(job, ionq_job.IonQJob)
+    assert job.job_id() == "fake_job"
+
+
+def test_run_raises_multiexp_job(mock_backend):
+    """Test that the backend `run` raises out if more than one circuit is provided.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+    """
+    # Run a dummy circuit.
+    with pytest.raises(RuntimeError) as excinfo:
+        mock_backend.run([QuantumCircuit(1, 1), QuantumCircuit(1, 1)])
+    assert str(excinfo.value) == "Multi-experiment jobs are not supported!"
