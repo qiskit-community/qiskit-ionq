@@ -38,19 +38,6 @@ from qiskit_ionq import exceptions, ionq_client, ionq_job
 from .. import conftest
 
 
-def test_status_not_implemented(mock_backend):
-    """Test that by default, `status` is not implemented.
-
-    Args:
-        mock_backend (MockBackend): A fake/mock IonQBackend.
-    """
-
-    with pytest.raises(NotImplementedError) as exc_info:
-        mock_backend.status()
-
-    assert str(exc_info.value) == "Backend status check is not supported."
-
-
 def test_status_dummy_response(mock_backend):
     """[summary]
 
