@@ -31,6 +31,7 @@ from unittest import mock
 
 import pytest
 from qiskit import QuantumCircuit
+from qiskit.providers.models.backendstatus import BackendStatus
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
 
@@ -48,6 +49,17 @@ def test_status_not_implemented(mock_backend):
         mock_backend.status()
 
     assert str(exc_info.value) == "Backend status check is not supported."
+
+
+def test_status_dummy_response(mock_backend):
+    """[summary]
+
+    Args:
+        mock_backend ([type]): [description]
+    """
+    status = mock_backend.status()
+    assert isinstance(status, BackendStatus)
+    assert status.operational is True
 
 
 def test_client_property(mock_backend):
