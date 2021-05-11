@@ -39,10 +39,10 @@ from .. import conftest
 
 
 def test_status_dummy_response(mock_backend):
-    """[summary]
+    """Test that the IonQBackend returns an aribtrary backend status.
 
     Args:
-        mock_backend ([type]): [description]
+        mock_backend (MockBackend): A fake/mock IonQBackend.
     """
     status = mock_backend.status()
     assert isinstance(status, BackendStatus)
