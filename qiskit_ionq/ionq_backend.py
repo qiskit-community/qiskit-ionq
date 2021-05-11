@@ -31,6 +31,7 @@ import warnings
 import dateutil.parser
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
 from . import exceptions, ionq_client, ionq_job
@@ -175,13 +176,27 @@ class IonQBackend(Backend):
     def run(self, circuit, **kwargs):
         """Create and run a job on an IonQ Backend.
 
+        .. NOTE::
+
+            IonQ backends do not support multi-experiment jobs.
+            If ``circuit`` is provided as a list with more than one element
+            then this method will raise out with a RuntimeError.
+
         Args:
             circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
                 A Qiskit QuantumCircuit object.
 
         Returns:
             IonQJob: A reference to the job that was submitted.
+
+        Raises:
+            RuntimeError: If a multi-experiment circuit was provided.
         """
+        if isinstance(circuit, (list, tuple)):
+            if len(circuit) > 1:
+                raise RuntimeError("Multi-experiment jobs are not supported!")
+            circuit = circuit[0]
+
         for kwarg in kwargs:
             if not hasattr(self.options, kwarg):
                 warnings.warn(
@@ -206,18 +221,24 @@ class IonQBackend(Backend):
         return ionq_job.IonQJob(self, job_id, self.client)
 
     def retrieve_jobs(self, job_ids):
-        """get a list of jobs from a specific backend, job id """
+        """get a list of jobs from a specific backend, job id"""
 
         return [ionq_job.IonQJob(self, job_id, self.client) for job_id in job_ids]
 
     # TODO: Implement backend status checks.
     def status(self):
-        """Not yet implemented.
+        """Return a backend status object to the caller.
 
-        Raises:
-            NotImplementedError: This behavior is not currently supported.
+        Returns:
+            BackendStatus: the status of the backend.
         """
-        raise NotImplementedError("Backend status check is not supported.")
+        return BackendStatus(
+            backend_name=self.name(),
+            backend_version="1",
+            operational=True,
+            pending_jobs=0,
+            status_msg="",
+        )
 
     def calibration(self):
         """Fetch the most recent calibration data for this backend.
