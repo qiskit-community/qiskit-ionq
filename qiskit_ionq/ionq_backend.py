@@ -31,6 +31,7 @@ import warnings
 import dateutil.parser
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
 from . import exceptions, ionq_client, ionq_job
@@ -220,18 +221,24 @@ class IonQBackend(Backend):
         return ionq_job.IonQJob(self, job_id, self.client)
 
     def retrieve_jobs(self, job_ids):
-        """get a list of jobs from a specific backend, job id """
+        """get a list of jobs from a specific backend, job id"""
 
         return [ionq_job.IonQJob(self, job_id, self.client) for job_id in job_ids]
 
     # TODO: Implement backend status checks.
     def status(self):
-        """Not yet implemented.
+        """Return a backend status object to the caller.
 
-        Raises:
-            NotImplementedError: This behavior is not currently supported.
+        Returns:
+            BackendStatus: the status of the backend.
         """
-        raise NotImplementedError("Backend status check is not supported.")
+        return BackendStatus(
+            backend_name=self.name(),
+            backend_version="1",
+            operational=True,
+            pending_jobs=0,
+            status_msg="",
+        )
 
     def calibration(self):
         """Fetch the most recent calibration data for this backend.
