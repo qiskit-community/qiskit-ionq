@@ -3,11 +3,11 @@ Installing the Qiskit IonQ Provider
 
 .. NOTE::
 
-      **The Qiskit IonQ Provider requires** ``qiskit-terra>=0.17.0``!
+      **The Qiskit IonQ Provider requires** ``qiskit-terra>=0.17.4``!
 
       To ensure you are on the latest version, run::
 
-         pip install -U "qiskit-terra>=0.17.0"
+         pip install -U "qiskit-terra>=0.17.4"
 
 
 You can install the provider using pip::

@@ -17,12 +17,12 @@ The IonQ Provider uses IonQ's REST API, and using the provider requires an API a
 
 ## Installation
 
-> :information_source: **The Qiskit IonQ Provider requires** `qiskit-terra>=0.17.0`!
+> :information_source: **The Qiskit IonQ Provider requires** `qiskit-terra>=0.17.4`!
 >
 > To ensure you are on the latest version, run:
 >
 > ```bash
-> pip install -U "qiskit-terra>=0.17.0"
+> pip install -U "qiskit-terra>=0.17.4"
 > ```
 
 You can install the provider using pip:
