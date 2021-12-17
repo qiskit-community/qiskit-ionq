@@ -28,6 +28,7 @@
 
 import json
 
+import pytest
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string_to_dict
@@ -99,6 +100,46 @@ def test_output_map__with_multiple_registers(simulator_backend):  # pylint: disa
     actual_output_map = actual_maps.pop("meas_mapped")
 
     assert actual_output_map == [0, 1, 2, 3]
+
+
+def test_output_map__with_circuit_wrapped_in_list(
+    simulator_backend,
+):  # pylint: disable=invalid-name
+    """Test output mapping handles measurement correctly when input circuit is wrapped in a list
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    qc = QuantumCircuit(1, 1, name="test_name")
+    qc.measure(0, 0)
+    ionq_json = qiskit_to_ionq(
+        [qc], simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
+    )
+    actual = json.loads(ionq_json)
+    actual_maps = actual.pop("registers") or {}
+    actual_output_map = actual_maps.pop("meas_mapped")
+
+    assert actual_output_map == [0]
+
+
+def test_output_map__with_multiple_circuits(simulator_backend):  # pylint: disable=invalid-name
+    """Test that `qiskit_to_ionq` raises out if more than one circuit is provided
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    qc0 = QuantumCircuit(1, 1, name="test_name_0")
+    qc0.measure(0, 0)
+
+    qc1 = QuantumCircuit(1, 1, name="test_name_1")
+    qc1.x(0)
+    qc1.measure(0, 0)
+
+    with pytest.raises(RuntimeError) as exc:
+        qiskit_to_ionq(
+            [qc0, qc1], simulator_backend.name(), passed_args={"shots": 123, "sampler_seed": 42}
+        )
+    assert str(exc.value) == "Multi-experiment jobs are not supported!"
 
 
 def test_metadata_header__with_multiple_registers(

@@ -246,3 +246,27 @@ def test_circuit_with_multiple_registers():
     ]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected
+
+
+def test_simple_circuit_wrapped_in_list():
+    """Test basic structure of a simple circuit when wrapped in a list."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    expected = [{"gate": "h", "targets": [0]}]
+    built, _, _ = qiskit_circ_to_ionq_circ([qc])
+    assert built == expected
+
+
+def test_multi_circuit_list():
+    """
+    Test that `qiskit_circ_to_ionq_circ` raises out if more than one circuit is provided.
+    """
+    qc0 = QuantumCircuit(1, 1)
+    qc0.measure(0, 0)
+    qc1 = QuantumCircuit(1, 1)
+    qc1.x(0)
+    qc1.measure(0, 0)
+    with pytest.raises(RuntimeError) as exc:
+        qiskit_circ_to_ionq_circ([qc0, qc1])
+    assert str(exc.value) == "Multi-experiment jobs are not supported!"
