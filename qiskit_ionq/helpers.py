@@ -113,21 +113,33 @@ multi_target_uncontrolled_gates = (
 def qiskit_circ_to_ionq_circ(input_circuit):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
+    .. NOTE::
+        IonQ backends do not support multi-experiment jobs.
+        If ``input_circuit`` is provided as a list with more than one element
+        then this method will raise out with a RuntimeError.
+
     .. ATTENTION:: This function ignores the following compiler directives:
        * ``barrier``
 
     Parameters:
-        circ (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
+        input_circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
         IonQMidCircuitMeasurementError: If a mid-circuit measurement is detected.
+        RuntimeError: If a multi-experiment circuit was provided.
 
     Returns:
         list[dict]: A list of instructions in a converted dict format.
         int: The number of measurements.
         dict: The measurement map from qubit number to classical bit number.
     """
+
+    if isinstance(input_circuit, (list, tuple)):
+        if len(input_circuit) > 1:
+            raise RuntimeError("Multi-experiment jobs are not supported!")
+        input_circuit = input_circuit[0]
+
     compiler_directives = ["barrier"]
     output_circuit = []
     num_meas = 0
@@ -295,14 +307,28 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
 def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
+    .. NOTE::
+        IonQ backends do not support multi-experiment jobs.
+        If ``circuit`` is provided as a list with more than one element
+        then this method will raise out with a RuntimeError.
+
     Parameters:
         circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         backend_name (str): Backend name.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
+    Raises:
+        RuntimeError: If a multi-experiment circuit was provided.
+
     Returns:
         dict: A dict with IonQ API compatible values.
     """
+
+    if isinstance(circuit, (list, tuple)):
+        if len(circuit) > 1:
+            raise RuntimeError("Multi-experiment jobs are not supported!")
+        circuit = circuit[0]
+
     passed_args = passed_args or {}
     ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
