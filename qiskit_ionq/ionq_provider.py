@@ -141,5 +141,5 @@ class BackendService:
         # pylint: disable=arguments-differ
         backends = self._backends
         if name:
-            backends = [b for b in self._backends if b.name() == name]
+            backends = [b for b in self._backends if name.startswith(b.name())]
         return filter_backends(backends, filters, **kwargs)
