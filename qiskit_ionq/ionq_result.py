@@ -83,7 +83,7 @@ class IonQResult(Result):
                 dict_list.append(Counts(self.data(key)["probabilities"], **counts_header))
             else:
                 raise exceptions.IonQJobError(
-                    'No probabilities for experiment "{}"'.format(repr(key))
+                    f'No probabilities for experiment "{repr(key}"'
                 )
 
         # Return first item of dict_list if size is 1

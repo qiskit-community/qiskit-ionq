@@ -64,7 +64,7 @@ class IonQAPIError(IonQError):
         Args:
             response (:class:`Response <requests.Response>`): An IonQ REST API response.
 
-        Raises:
+        Returns:
             IonQAPIError: instance of `cls` with error detail from `response`.
 
         """
@@ -87,7 +87,7 @@ class IonQAPIError(IonQError):
             error_data = response_json.get("error")
             message = error_data.get("message") or message
             error_type = error_data.get("type") or error_type
-        raise cls(message, status_code, error_type)
+        return cls(message, status_code, error_type)
 
     def __init__(self, message, status_code, error_type):
         self.status_code = status_code
