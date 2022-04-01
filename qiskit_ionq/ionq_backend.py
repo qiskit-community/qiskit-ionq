@@ -172,7 +172,7 @@ class IonQBackend(Backend):
 
         return ionq_client.IonQClient(token, url)
 
-    # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ
+    # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,arguments-renamed
     def run(self, circuit, **kwargs):
         """Create and run a job on an IonQ Backend.
 
@@ -200,7 +200,7 @@ class IonQBackend(Backend):
         for kwarg in kwargs:
             if not hasattr(self.options, kwarg):
                 warnings.warn(
-                    "Option %s is not used by this backend" % kwarg, UserWarning, stacklevel=2
+                    f"Option {kwarg} is not used by this backend", UserWarning, stacklevel=2
                 )
         if "shots" not in kwargs:
             kwargs["shots"] = self.options.shots

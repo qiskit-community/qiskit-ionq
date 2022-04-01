@@ -87,7 +87,7 @@ def test_api_error_from_response():
     fake_response.status_code = 500
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(fake_response)
 
     err = exc.value
     assert err.message == "an error"
@@ -107,7 +107,7 @@ def test_error_format__code_message():
     )
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(fake_response)
 
     err = exc.value
     assert err.status_code == 500
@@ -128,7 +128,7 @@ def test_error_format_bad_request():
     )
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(fake_response)
 
     err = exc.value
     assert err.status_code == 500
@@ -150,7 +150,7 @@ def test_error_format__nested_error():
     )
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(fake_response)
 
     err = exc.value
     assert err.status_code == 500
@@ -165,7 +165,7 @@ def test_error_format__default():
     fake_response.json = mock.MagicMock(return_value={})
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(fake_response)
 
     err = exc.value
     assert err.status_code == 500
