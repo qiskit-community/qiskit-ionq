@@ -26,6 +26,7 @@
 
 """Test basic behavior of :class:`IonQJob`."""
 from unittest import mock
+import warnings
 
 import pytest
 from qiskit import QuantumCircuit
@@ -272,7 +273,7 @@ def test_result__timeout(mock_backend, requests_mock):
     job_id = "test_id"
     client = mock_backend.client
     job_result = conftest.dummy_job_response(job_id)
-    job_result.update({"status": "submitted"})
+    job_result.update({"status": "submitted", "warning": { "messages": ["TimedOut"]}})
 
     # Mock the job response API call.
     path = client.make_path("jobs", job_id)
@@ -285,8 +286,11 @@ def test_result__timeout(mock_backend, requests_mock):
     exc_patch = mock.patch.object(job, "wait_for_final_state", side_effect=q_exc.JobTimeoutError())
 
     # Use the patch, then expect `result` to raise out.
-    with exc_patch, pytest.raises(exceptions.IonQJobTimeoutError) as exc_info:
+    with exc_patch, pytest.raises(exceptions.IonQJobTimeoutError) as exc_info,
+         warnings.catch_warnings(record=True) as w:
         job.result()
+        assert len(w) == 1
+        assert "TimedOut" in str(w[0].message)
     assert exc_info.value.message == "Timed out waiting for job to complete."
 
 
