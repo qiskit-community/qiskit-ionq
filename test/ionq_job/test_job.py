@@ -286,8 +286,7 @@ def test_result__timeout(mock_backend, requests_mock):
     exc_patch = mock.patch.object(job, "wait_for_final_state", side_effect=q_exc.JobTimeoutError())
 
     # Use the patch, then expect `result` to raise out.
-    with exc_patch, pytest.raises(exceptions.IonQJobTimeoutError) as exc_info,
-         warnings.catch_warnings(record=True) as w:
+    with exc_patch, pytest.raises(exceptions.IonQJobTimeoutError) as exc_info,  warnings.catch_warnings(record=True) as w:
         job.result()
         assert len(w) == 1
         assert "TimedOut" in str(w[0].message)
