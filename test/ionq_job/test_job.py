@@ -65,7 +65,11 @@ def spy(instance, attr):
         mock.MagicMock: A mock object that will spy on ``attr``.
     """
     actual_attr = getattr(instance, attr)
-    patch = mock.patch.object(instance, attr, wraps=actual_attr,)
+    patch = mock.patch.object(
+        instance,
+        attr,
+        wraps=actual_attr,
+    )
     return patch
 
 
@@ -97,7 +101,12 @@ def test_build_counts():
         "qubits": 3,
         "data": {
             "histogram": {"5": 0.5, "7": 0.5},
-            "registers": {"meas_mapped": {"3": 0.5, "7": 0.5,}},
+            "registers": {
+                "meas_mapped": {
+                    "3": 0.5,
+                    "7": 0.5,
+                }
+            },
         },
         "metadata": {
             "shots": "100",
@@ -152,13 +161,18 @@ def test_build_counts__with_int():
     """Test that a result with an integer doesn't break everything."""
     result = {
         "qubits": 1,
-        "data": {"histogram": {"1": 1}, "registers": {"meas_mapped": {"1": 1}},},
+        "data": {
+            "histogram": {"1": 1},
+            "registers": {"meas_mapped": {"1": 1}},
+        },
         "metadata": {
             "shots": "100",
             "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3}),
         },
     }
-    counts, probabilties = ionq_job._build_counts(result, use_sampler=True, sampler_seed=42)
+    counts, probabilties = ionq_job._build_counts(
+        result, use_sampler=True, sampler_seed=42
+    )
     assert ({"0x1": 100}) == counts
     assert ({"0x1": 1.0}) == probabilties
 
@@ -191,7 +205,9 @@ def test_submit__without_circuit(mock_backend, requests_mock):
     # Mock the initial status call.
     fetch_path = mock_backend.client.make_path("jobs", job_id)
     requests_mock.get(
-        fetch_path, status_code=200, json=conftest.dummy_job_response(job_id),
+        fetch_path,
+        status_code=200,
+        json=conftest.dummy_job_response(job_id),
     )
 
     # Create the job (this calls .status())
@@ -218,7 +234,9 @@ def test_submit(mock_backend, requests_mock):
     # Mock the initial status call.
     fetch_path = mock_backend.client.make_path("jobs")
     requests_mock.post(
-        fetch_path, status_code=200, json=conftest.dummy_job_response("server_job_id"),
+        fetch_path,
+        status_code=200,
+        json=conftest.dummy_job_response("server_job_id"),
     )
 
     # Create a job ref (this does not call status, since circuit is not None).
@@ -243,7 +261,9 @@ def test_cancel(mock_backend, requests_mock):
     client = mock_backend.client
     fetch_path = client.make_path("jobs", job_id)
     requests_mock.get(
-        fetch_path, status_code=200, json=conftest.dummy_job_response(job_id),
+        fetch_path,
+        status_code=200,
+        json=conftest.dummy_job_response(job_id),
     )
 
     # Mock a request to cancel.
@@ -273,7 +293,7 @@ def test_result__timeout(mock_backend, requests_mock):
     job_id = "test_id"
     client = mock_backend.client
     job_result = conftest.dummy_job_response(job_id)
-    job_result.update({"status": "submitted", "warning": { "messages": ["TimedOut"]}})
+    job_result.update({"status": "submitted", "warning": {"messages": ["TimedOut"]}})
 
     # Mock the job response API call.
     path = client.make_path("jobs", job_id)
@@ -283,10 +303,14 @@ def test_result__timeout(mock_backend, requests_mock):
     job = ionq_job.IonQJob(mock_backend, job_id)
 
     # Patch `wait_for_final_state` to force throwing a timeout.
-    exc_patch = mock.patch.object(job, "wait_for_final_state", side_effect=q_exc.JobTimeoutError())
+    exc_patch = mock.patch.object(
+        job, "wait_for_final_state", side_effect=q_exc.JobTimeoutError()
+    )
 
     # Use the patch, then expect `result` to raise out.
-    with exc_patch, pytest.raises(exceptions.IonQJobTimeoutError) as exc_info,  warnings.catch_warnings(record=True) as w:
+    with exc_patch, pytest.raises(
+        exceptions.IonQJobTimeoutError
+    ) as exc_info, warnings.catch_warnings(record=True) as w:
         job.result()
         assert len(w) == 1
         assert "TimedOut" in str(w[0].message)
@@ -459,7 +483,9 @@ def test_status__no_job_id(mock_backend):
     assert actual_status is job._status is jobstatus.JobStatus.INITIALIZING
 
 
-def test_status__already_final_state(mock_backend, requests_mock):  # pylint: disable=invalid-name
+def test_status__already_final_state(
+    mock_backend, requests_mock
+):  # pylint: disable=invalid-name
     """Test status() returns early when the job is already completed.
 
     Args:
