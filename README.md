@@ -118,9 +118,9 @@ If you have an enhancement request or bug report, we encourage you to open an is
 
 ## Running Tests
 
-This package uses the [pytest](https://docs.pytest.org/en/stable/) test runner and the
-[pytest-cov](https://pypi.org/project/pytest-cov/) package for reporting test coverage.
-These can be installed with `pip install pytest pytest-cov`.
+This package uses the [pytest](https://docs.pytest.org/en/stable/) test runner, and other packages
+for mocking interfactions, reporting coverage, etc.
+These can be installed with `pip install -r requirements-test.txt`.
 
 To use pytest directly, just run:
 
