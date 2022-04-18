@@ -41,4 +41,20 @@ def test_provider_getbackend():
     pro = IonQProvider("123456")
 
     for backend in pro.backends():
-        assert backend == pro.get_backend(backend.name())
+        resolved = pro.get_backend(backend.name())
+        assert backend == resolved
+
+
+def test_backend_eq():
+    """Verifies equality works for various backends"""
+    pro = IonQProvider("123456")
+
+    sub1 = pro.get_backend('ionq_qpu.sub.1')
+    sub2 = pro.get_backend('ionq_qpu.sub.2')
+    also_sub1 = pro.get_backend('ionq_qpu.sub.1')
+    simulator = pro.get_backend('ionq_simulator')
+
+    assert sub1 == also_sub1
+    assert sub1 != sub2
+    assert also_sub1 != sub2
+    assert sub1 != simulator

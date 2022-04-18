@@ -110,7 +110,7 @@ def test_build_counts():
 
 def test_results_meta(formatted_result):
     """Test basic job attribute values."""
-    assert formatted_result.backend_name == "ionq_qpu"
+    assert formatted_result.backend_name.startswith("ionq_qpu")
     assert formatted_result.backend_version == "0.0.1"
     assert formatted_result.qobj_id == "test_qobj_id"
     assert formatted_result.job_id == "test_id"
@@ -413,7 +413,7 @@ def test_result__cancelled(mock_backend, requests_mock):
     """
     # Create the job:
     job_id = "test_id"
-    job_result = conftest.dummy_job_response(job_id, "canceled")
+    job_result = conftest.dummy_job_response(job_id, status="canceled")
     client = mock_backend.client
 
     # Create a job ref (this won't call status, since circuit is not None).
