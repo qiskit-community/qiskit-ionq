@@ -26,6 +26,7 @@
 
 """IonQ provider backends."""
 
+import abc
 import warnings
 
 import dateutil.parser
@@ -252,6 +253,19 @@ class IonQBackend(Backend):
             return None
         return Calibration(calibration_data)
 
+    @abc.abstractmethod
+    def with_name(self, name):
+        """Helper method that returns this backend with a more specific target system."""
+        pass
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name() == other.name()
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 class IonQSimulatorBackend(IonQBackend):
     """
@@ -297,11 +311,11 @@ class IonQSimulatorBackend(IonQBackend):
         """
         return None
 
-    def __init__(self, provider):
+    def __init__(self, provider, name="ionq_simulator"):
         """Base class for interfacing with an IonQ backend"""
         config = BackendConfiguration.from_dict(
             {
-                "backend_name": "ionq_simulator",
+                "backend_name": name,
                 "backend_version": "0.0.1",
                 "simulator": True,
                 "local": False,
@@ -319,14 +333,17 @@ class IonQSimulatorBackend(IonQBackend):
         )
         super().__init__(configuration=config, provider=provider)
 
+    def with_name(self, name):
+        """Helper method that returns this backend with a more specific target system."""
+        return IonQSimulatorBackend(self._provider, name)
 
 class IonQQPUBackend(IonQBackend):
     """IonQ Backend for running qpu-based jobs."""
 
-    def __init__(self, provider):
+    def __init__(self, provider, name="ionq_qpu"):
         config = BackendConfiguration.from_dict(
             {
-                "backend_name": "ionq_qpu",
+                "backend_name": name,
                 "backend_version": "0.0.1",
                 "simulator": False,
                 "local": False,
@@ -343,6 +360,11 @@ class IonQQPUBackend(IonQBackend):
             }
         )
         super().__init__(configuration=config, provider=provider)
+
+    def with_name(self, name):
+        """Helper method that returns this backend with a more specific target system."""
+        return IonQQPUBackend(self._provider, name)
+
 
 
 __all__ = ["IonQBackend", "IonQQPUBackend", "IonQSimulatorBackend"]

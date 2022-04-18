@@ -37,10 +37,10 @@ from qiskit_ionq.helpers import compress_dict_to_metadata_string
 class MockBackend(ionq_backend.IonQBackend):
     """A mock backend for testing super-class behavior in isolation."""
 
-    def __init__(self, provider):  # pylint: disable=redefined-outer-name
+    def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
         config = q_models.BackendConfiguration.from_dict(
             {
-                "backend_name": "ionq_mock_backend",
+                "backend_name": name,
                 "backend_version": "0.0.1",
                 "simulator": True,
                 "local": True,
@@ -63,12 +63,16 @@ class MockBackend(ionq_backend.IonQBackend):
         )
         super().__init__(config, provider=provider)
 
+    def with_name(self, name):
+        """Helper method that returns this backend with a more specific target system."""
+        return MockBackend(self._provider, name)
 
-def dummy_job_response(job_id, status="completed"):
+def dummy_job_response(job_id, target="mock_backend", status="completed"):
     """A dummy response payload for `job_id`.
 
     Args:
         job_id (str): An arbitrary job id.
+        target (str): Backend target string.
         status (str): A provided status string.
 
     Returns:
@@ -108,7 +112,7 @@ def dummy_job_response(job_id, status="completed"):
                 "meas_mapped": {"1": 0.499999, "3": 0.5}
             },  # implies measurement map of [1,0]
         },
-        "target": "qpu",
+        "target": target,
         "id": job_id,
     }
 
@@ -255,7 +259,7 @@ def formatted_result(provider):
     job_id = "test_id"
 
     # Create a backend and client to use for accessing the job.
-    backend = provider.get_backend("ionq_qpu")
+    backend = provider.get_backend("ionq_qpu.aria.1")
     client = backend.create_client()
 
     # Create the request path for accessing the dummy job:
@@ -264,7 +268,7 @@ def formatted_result(provider):
     # mock a job response
     with _default_requests_mock() as requests_mock:
         # Mock the response with our dummy job response.
-        requests_mock.get(path, json=dummy_job_response(job_id))
+        requests_mock.get(path, json=dummy_job_response(job_id, "qpu.aria.1"))
 
         # Create the job (this calls self.status(), which will fetch the job).
         job = ionq_job.IonQJob(backend, job_id, client)
