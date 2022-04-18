@@ -99,7 +99,7 @@ class IonQProvider:
         if not backends:
             raise QiskitBackendNotFoundError("No backend matches criteria.")
 
-        return backends[0].with_target(name)
+        return backends[0].with_name(name)
 
 
 class BackendService:

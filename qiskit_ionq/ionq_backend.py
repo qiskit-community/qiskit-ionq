@@ -254,8 +254,8 @@ class IonQBackend(Backend):
         return Calibration(calibration_data)
 
     @abc.abstractmethod
-    def with_target(self, target):
-        """Helper method that returns this backend with a more specific target."""
+    def with_name(self, name):
+        """Helper method that returns this backend with a more specific target system."""
         pass
 
     def __eq__(self, other):
@@ -311,11 +311,11 @@ class IonQSimulatorBackend(IonQBackend):
         """
         return None
 
-    def __init__(self, provider, target=None):
+    def __init__(self, provider, name="ionq_simulator"):
         """Base class for interfacing with an IonQ backend"""
         config = BackendConfiguration.from_dict(
             {
-                "backend_name": target or "ionq_simulator",
+                "backend_name": name,
                 "backend_version": "0.0.1",
                 "simulator": True,
                 "local": False,
@@ -333,18 +333,17 @@ class IonQSimulatorBackend(IonQBackend):
         )
         super().__init__(configuration=config, provider=provider)
 
-    def with_target(self, target):
-        """Helper method that returns this backend with a more specific target."""
-        return IonQSimulatorBackend(self._provider, target)
+    def with_name(self, name):
+        """Helper method that returns this backend with a more specific target system."""
+        return IonQSimulatorBackend(self._provider, name)
 
 class IonQQPUBackend(IonQBackend):
     """IonQ Backend for running qpu-based jobs."""
 
-    def __init__(self, provider, target=None):
-        self._target = target
+    def __init__(self, provider, name="ionq_qpu"):
         config = BackendConfiguration.from_dict(
             {
-                "backend_name": target or "ionq_qpu",
+                "backend_name": name,
                 "backend_version": "0.0.1",
                 "simulator": False,
                 "local": False,
@@ -362,9 +361,9 @@ class IonQQPUBackend(IonQBackend):
         )
         super().__init__(configuration=config, provider=provider)
 
-    def with_target(self, target):
-        """Helper method that returns this backend with a more specific target."""
-        return IonQQPUBackend(self._provider, target)
+    def with_name(self, name):
+        """Helper method that returns this backend with a more specific target system."""
+        return IonQQPUBackend(self._provider, name)
 
 
 
