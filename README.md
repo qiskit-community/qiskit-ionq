@@ -69,7 +69,7 @@ simulator_backend = provider.get_backend("ionq_simulator")
 
 ### Submitting a Circuit
 
-Once a a backend has been specified, it may be used to submit circuits.
+Once a backend has been specified, it may be used to submit circuits.
 For example, running a Bell State:
 
 ```python
@@ -112,13 +112,15 @@ transpiled_circuit = transpile(qc2, simulator_backend)
 
 ## Contributing
 
-If you'd like to contribute to the IonQ Provider, please take a look at the [contribution guidelines](CONTRIBUTING.md). This project adheres the Qiskit Community code of conduct. By participating, you are are agreeing to uphold this code.
+If you'd like to contribute to the IonQ Provider, please take a look at the [contribution guidelines](CONTRIBUTING.md). This project adheres the Qiskit Community code of conduct. By participating, you are agreeing to uphold this code.
 
 If you have an enhancement request or bug report, we encourage you to open an issue in [this repo's issues tracker](https://github.com/qiskit-partners/qiskit-ionq/issues). If you have a support question or general discussion topic, we recommend instead asking on the [Qiskit community slack](https://qiskit.slack.com/) (you can join using [this link](https://ibm.co/joinqiskitslack)) or the [Quantum Computing StackExchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
 ## Running Tests
 
-This package uses the [pytest](https://docs.pytest.org/en/stable/) test runner.
+This package uses the [pytest](https://docs.pytest.org/en/stable/) test runner, and other packages
+for mocking interfactions, reporting coverage, etc.
+These can be installed with `pip install -r requirements-test.txt`.
 
 To use pytest directly, just run:
 

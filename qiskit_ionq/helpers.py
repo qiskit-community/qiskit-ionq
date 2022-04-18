@@ -117,7 +117,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
        * ``barrier``
 
     Parameters:
-        circ (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
+        input_circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
@@ -301,7 +301,7 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
-        dict: A dict with IonQ API compatible values.
+        str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
     ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit)
