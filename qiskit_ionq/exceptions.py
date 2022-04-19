@@ -130,7 +130,7 @@ class IonQGateError(IonQError, JobError):
         self.gate_name = gate_name
         super().__init__(
             (f"gate '{gate_name}' not supported on IonQ backends. "
-             + "Please use the qiskit.transpile method or manually rewrite to remove the gate"
+              "Please use the qiskit.transpile method or manually rewrite to remove the gate"
             )
         )
 
