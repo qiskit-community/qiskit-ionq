@@ -351,8 +351,9 @@ class IonQQPUBackend(IonQBackend):
                 "description": "IonQ QPU",
                 "basis_gates": ionq_basis_gates,
                 "memory": False,
-                # This is a generic backend for all IonQ hardware, the server will do more specific qubit count checks.
-                # In the future, dynamic backend configuration from the server will be used in place of these hard-coded caps.
+                # This is a generic backend for all IonQ hardware, the server will do more specific qubit count 
+                # checks. In the future, dynamic backend configuration from the server will be used in place of
+                # these hard-coded caps.
                 "n_qubits": 23,
                 "conditional": False,
                 "max_shots": 10000,
