@@ -36,7 +36,7 @@ from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
 from . import exceptions, ionq_client, ionq_job
-from .helpers import ionq_basis_gates
+from .helpers import GATESET_LANG_MAP 
 
 
 class Calibration:
@@ -254,8 +254,13 @@ class IonQBackend(Backend):
         return Calibration(calibration_data)
 
     @abc.abstractmethod
-    def with_name(self, name):
+    def with_name(self, name, **kwargs):
         """Helper method that returns this backend with a more specific target system."""
+        pass
+    
+    @abc.abstractmethod
+    def lang(self):
+        """Helper method returning the language this backend is targeting."""
         pass
 
     def __eq__(self, other):
@@ -310,9 +315,13 @@ class IonQSimulatorBackend(IonQBackend):
             NoneType: None
         """
         return None
+    
+    def lang(self):
+        return self._lang 
 
-    def __init__(self, provider, name="ionq_simulator"):
+    def __init__(self, provider, name="ionq_simulator", lang="qis"):
         """Base class for interfacing with an IonQ backend"""
+        self._lang = lang
         config = BackendConfiguration.from_dict(
             {
                 "backend_name": name,
@@ -321,7 +330,7 @@ class IonQSimulatorBackend(IonQBackend):
                 "local": False,
                 "coupling_map": None,
                 "description": "IonQ simulator",
-                "basis_gates": ionq_basis_gates,
+                "basis_gates": GATESET_LANG_MAP[lang],
                 "memory": False,
                 "n_qubits": 29,
                 "conditional": False,
@@ -333,14 +342,18 @@ class IonQSimulatorBackend(IonQBackend):
         )
         super().__init__(configuration=config, provider=provider)
 
-    def with_name(self, name):
+    def with_name(self, name, **kwargs):
         """Helper method that returns this backend with a more specific target system."""
-        return IonQSimulatorBackend(self._provider, name)
+        return IonQSimulatorBackend(self._provider, name, **kwargs)
 
 class IonQQPUBackend(IonQBackend):
     """IonQ Backend for running qpu-based jobs."""
 
-    def __init__(self, provider, name="ionq_qpu"):
+    def lang(self):
+        return self._lang 
+
+    def __init__(self, provider, name="ionq_qpu", lang="qis"):
+        self._lang = lang
         config = BackendConfiguration.from_dict(
             {
                 "backend_name": name,
@@ -349,7 +362,7 @@ class IonQQPUBackend(IonQBackend):
                 "local": False,
                 "coupling_map": None,
                 "description": "IonQ QPU",
-                "basis_gates": ionq_basis_gates,
+                "basis_gates": GATESET_LANG_MAP[lang],
                 "memory": False,
                 # This is a generic backend for all IonQ hardware, the server will do more specific
                 # qubit count checks. In the future, dynamic backend configuration from the server
@@ -364,9 +377,9 @@ class IonQQPUBackend(IonQBackend):
         )
         super().__init__(configuration=config, provider=provider)
 
-    def with_name(self, name):
+    def with_name(self, name, **kwargs):
         """Helper method that returns this backend with a more specific target system."""
-        return IonQQPUBackend(self._provider, name)
+        return IonQQPUBackend(self._provider, name, **kwargs)
 
 
 

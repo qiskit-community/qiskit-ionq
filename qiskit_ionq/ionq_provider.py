@@ -82,10 +82,11 @@ class IonQProvider:
             ]
         )
 
-    def get_backend(self, name=None, **kwargs):
+    def get_backend(self, name=None, lang="qis", **kwargs):
         """Return a single backend matching the specified filtering.
         Args:
             name (str): name of the backend.
+            lang (str): language used (QIS or native), defaults to QIS.
             **kwargs: dict used for filtering.
         Returns:
             Backend: a backend matching the filtering.
@@ -99,7 +100,7 @@ class IonQProvider:
         if not backends:
             raise QiskitBackendNotFoundError("No backend matches criteria.")
 
-        return backends[0].with_name(name)
+        return backends[0].with_name(name, lang=lang)
 
 
 class BackendService:

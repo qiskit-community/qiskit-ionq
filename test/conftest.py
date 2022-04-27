@@ -37,6 +37,9 @@ from qiskit_ionq.helpers import compress_dict_to_metadata_string
 class MockBackend(ionq_backend.IonQBackend):
     """A mock backend for testing super-class behavior in isolation."""
 
+    def lang(self):
+        return "qis"
+
     def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
         config = q_models.BackendConfiguration.from_dict(
             {

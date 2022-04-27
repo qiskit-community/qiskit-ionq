@@ -109,8 +109,20 @@ multi_target_uncontrolled_gates = (
     q_gates.RZZGate,
 )
 
+# https://ionq.com/best-practices
+ionq_native_basis_gates = [
+    "gpi", # All single qubit gates turn into GPI/GPI2
+    "gpi2",
+    "ms", # Global MS gate
+]
 
-def qiskit_circ_to_ionq_circ(input_circuit):
+# Each language corresponds to a different set of basis gates.
+GATESET_LANG_MAP = {
+        "qis": ionq_basis_gates,
+        "native": ionq_native_basis_gates,
+}
+
+def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
     .. ATTENTION:: This function ignores the following compiler directives:
@@ -118,6 +130,8 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
     Parameters:
         input_circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
+        lang (string): The language to use, can be QIS (required transpilation pass in IonQ 
+          backend) or native (optional Qiskit transpilation pass).
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
@@ -149,7 +163,7 @@ def qiskit_circ_to_ionq_circ(input_circuit):
             continue
 
         # Raise out for instructions we don't support.
-        if instruction_name not in ionq_basis_gates:
+        if instruction_name not in GATESET_LANG_MAP[lang]:
             raise exceptions.IonQGateError(instruction_name)
 
         # Process the instruction and convert.
@@ -292,19 +306,21 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend_name, passed_args=None):
+def qiskit_to_ionq(circuit, backend_name, lang="qis", passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
         circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         backend_name (str): Backend name.
+        lang (str): Language, controls which gates are valid (only native operations
+          or QIS, which transpiles in the IonQ backend).
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
-    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit)
+    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, lang)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
     qiskit_header = compress_dict_to_metadata_string(
@@ -321,7 +337,7 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     )
 
     ionq_json = {
-        "lang": "json",
+        "lang": lang,
         "target": backend_name[5:],
         "shots": passed_args.get("shots"),
         "body": {
