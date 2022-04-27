@@ -126,11 +126,12 @@ class MSGate(ControlledGate):
         self,
         label: Optional[str] = None,
     ):
-        """Create new CRY gate."""
+        """Create new MS gate."""
         super().__init__(
             "ms",
             1,
-            num_control_qubits=1,
+            [],
+            num_ctrl_qubits=1,
             label=label,
         )
 
