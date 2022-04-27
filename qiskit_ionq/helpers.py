@@ -109,8 +109,21 @@ multi_target_uncontrolled_gates = (
     q_gates.RZZGate,
 )
 
+# https://ionq.com/best-practices
+ionq_native_basis_gates = [
+    "gpi",  # All single qubit gates turn into GPI/GPI2
+    "gpi2",
+    "ms",  # Global MS gate
+]
 
-def qiskit_circ_to_ionq_circ(input_circuit):
+# Each language corresponds to a different set of basis gates.
+GATESET_LANG_MAP = {
+    "qis": ionq_basis_gates,
+    "native": ionq_native_basis_gates,
+}
+
+
+def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
     .. ATTENTION:: This function ignores the following compiler directives:
@@ -118,6 +131,8 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
     Parameters:
         input_circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
+        lang (string): The language to use, can be QIS (required transpilation pass in IonQ
+          backend) or native (optional Qiskit transpilation pass).
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
@@ -140,7 +155,9 @@ def qiskit_circ_to_ionq_circ(input_circuit):
 
         # Don't process measurement instructions.
         if instruction_name == "measure":
-            meas_map[input_circuit.clbits.index(cargs[0])] = input_circuit.qubits.index(qargs[0])
+            meas_map[input_circuit.clbits.index(cargs[0])] = input_circuit.qubits.index(
+                qargs[0]
+            )
             num_meas += 1
             continue
 
@@ -149,17 +166,32 @@ def qiskit_circ_to_ionq_circ(input_circuit):
             continue
 
         # Raise out for instructions we don't support.
-        if instruction_name not in ionq_basis_gates:
-            raise exceptions.IonQGateError(instruction_name)
+        if instruction_name not in GATESET_LANG_MAP[lang]:
+            raise exceptions.IonQGateError(instruction_name, lang)
 
         # Process the instruction and convert.
         rotation = {}
         if len(instruction.params) > 0:
-            # The float is here to cast Qiskit ParameterExpressions to numbers
-            rotation = {"rotation": float(instruction.params[0])}
+            if lang == "qis" or len(instruction.params) == 1:
+                # The float is here to cast Qiskit ParameterExpressions to numbers
+                rotation = {"rotation" if lang == "qis" else "phase": float(instruction.params[0])}
+            else:
+                rotation = {"phases": [ float(t) for t in instruction.params ]}
 
-        # Default conversion is simple, just gate & target.
-        converted = {"gate": instruction_name, "targets": [input_circuit.qubits.index(qargs[0])]}
+
+        # Default conversion is simple, just gate & target(s).
+        targets =  [input_circuit.qubits.index(qargs[0])]
+        if instruction_name == "ms":
+            targets.append(input_circuit.qubits.index(qargs[1]))
+
+        converted = {
+            "gate": instruction_name,
+            "targets": targets
+        } if instruction_name not in {"gpi", "gpi2"} else {
+            "gate": instruction_name,
+            "target": targets[0],
+        }
+
         # re-alias certain names
         if instruction.__class__ in ionq_api_aliases:
             new_name = ionq_api_aliases.get(instruction.__class__)
@@ -181,9 +213,12 @@ def qiskit_circ_to_ionq_circ(input_circuit):
             # If this is a multi-control, use more than one qubit.
             if instruction.num_ctrl_qubits > 1:
                 controls = [
-                    input_circuit.qubits.index(qargs[i]) for i in range(instruction.num_ctrl_qubits)
+                    input_circuit.qubits.index(qargs[i])
+                    for i in range(instruction.num_ctrl_qubits)
                 ]
-                targets = [input_circuit.qubits.index(qargs[instruction.num_ctrl_qubits])]
+                targets = [
+                    input_circuit.qubits.index(qargs[instruction.num_ctrl_qubits])
+                ]
             if gate == "swap":
                 # If this is a cswap, we have two targets:
                 targets = [
@@ -204,7 +239,9 @@ def qiskit_circ_to_ionq_circ(input_circuit):
         if num_meas > 0:
             # see if any of the involved qubits have been measured,
             # and raise if so — no mid-circuit measurement!
-            controls_and_targets = converted.get("targets", []) + converted.get("controls", [])
+            controls_and_targets = converted.get("targets", []) + converted.get(
+                "controls", []
+            )
             if any(i in meas_map for i in controls_and_targets):
                 raise exceptions.IonQMidCircuitMeasurementError(
                     input_circuit.qubits.index(qargs[0]), instruction_name
@@ -292,19 +329,21 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend_name, passed_args=None):
+def qiskit_to_ionq(circuit, backend_name, lang="qis", passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
         circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         backend_name (str): Backend name.
+        lang (str): Language, controls which gates are valid (only native operations
+          or QIS, which transpiles in the IonQ backend).
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
-    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit)
+    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, lang)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
     qiskit_header = compress_dict_to_metadata_string(
@@ -321,14 +360,14 @@ def qiskit_to_ionq(circuit, backend_name, passed_args=None):
     )
 
     ionq_json = {
-        "lang": "json",
+        "lang": lang,
         "target": backend_name[5:],
         "shots": passed_args.get("shots"),
         "body": {
             "qubits": circuit.num_qubits,
             "circuit": ionq_circ,
         },
-        "registers": {"meas_mapped": meas_map},
+        "registers": {"meas_mapped": meas_map} if meas_map else {},
         # store a couple of things we'll need later for result formatting
         "metadata": {
             "shots": str(passed_args.get("shots")),

@@ -80,7 +80,9 @@ class IonQResult(Result):
                         for k, v in header.items()
                         if k in {"time_taken", "creg_sizes", "memory_slots"}
                     }
-                dict_list.append(Counts(self.data(key)["probabilities"], **counts_header))
+                dict_list.append(
+                    Counts(self.data(key)["probabilities"], **counts_header)
+                )
             else:
                 raise exceptions.IonQJobError(
                     f'No probabilities for experiment "{repr(key)}"'

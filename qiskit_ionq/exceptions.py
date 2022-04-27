@@ -126,16 +126,18 @@ class IonQGateError(IonQError, JobError):
         gate_name: The name of the gate which caused this error.
     """
 
-    def __init__(self, gate_name):
+    def __init__(self, gate_name, lang):
         self.gate_name = gate_name
+        self.lang = lang
         super().__init__(
-            (f"gate '{gate_name}' not supported on IonQ backends. "
-              "Please use the qiskit.transpile method or manually rewrite to remove the gate"
+            (f"gate '{gate_name}' is not supported on the '{lang}' IonQ backends. "
+              "Please use the qiskit.transpile method, manually rewrite to remove the gate, "
+              "or change the language selection as appropriate."
             )
         )
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(gate_name={self.gate_name!r})"
+        return f"{self.__class__.__name__}(gate_name={self.gate_name!r}, lang={self.lang!r})"
 
 
 class IonQMidCircuitMeasurementError(IonQError, JobError):

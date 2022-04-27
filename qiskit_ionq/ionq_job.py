@@ -93,10 +93,14 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
 
     # Get shot count.
     shots = metadata.get("shots", "1024")
-    shots = int(shots) if shots.isdigit() else 1024  # We do this in case shots was 0 or None.
+    shots = (
+        int(shots) if shots.isdigit() else 1024
+    )  # We do this in case shots was 0 or None.
 
     # Grab the mapped output from response.
-    output_probs = result["data"].get("registers", {}).get("meas_mapped", {})
+    output_probs = (result["data"].get("registers", {}) or {}).get("meas_mapped", {})
+    if not output_probs:
+        output_probs = result["data"].get("histogram", {})
 
     sampled = {}
     if use_sampler:
@@ -110,7 +114,9 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
 
         rand_values = rand.choice(outcomes, shots, p=weights)
 
-        sampled.update({key: np.count_nonzero(rand_values == key) for key in output_probs})
+        sampled.update(
+            {key: np.count_nonzero(rand_values == key) for key in output_probs}
+        )
 
     # Build counts.
     counts = {}
@@ -252,7 +258,9 @@ class IonQJob(JobV1):
         try:
             self.wait_for_final_state()
         except JobTimeoutError as ex:
-            raise exceptions.IonQJobTimeoutError("Timed out waiting for job to complete.") from ex
+            raise exceptions.IonQJobTimeoutError(
+                "Timed out waiting for job to complete."
+            ) from ex
 
         return self._result
 
@@ -283,7 +291,9 @@ class IonQJob(JobV1):
         try:
             status_enum = constants.APIJobStatus(api_response_status)
         except ValueError as ex:
-            raise exceptions.IonQJobError(f"Unknown job status {api_response_status}") from ex
+            raise exceptions.IonQJobError(
+                f"Unknown job status {api_response_status}"
+            ) from ex
 
         # Map it to a qiskit JobStatus key
         try:
@@ -297,7 +307,9 @@ class IonQJob(JobV1):
         try:
             self._status = jobstatus.JobStatus[status_enum.value]
         except KeyError as ex:
-            raise exceptions.IonQJobError(f"Qiskit has no JobStatus named '{status_enum}'") from ex
+            raise exceptions.IonQJobError(
+                f"Qiskit has no JobStatus named '{status_enum}'"
+            ) from ex
 
         # if done, also put the result on the job obj
         # so we don't have to make an API call again if user wants results
@@ -337,10 +349,14 @@ class IonQJob(JobV1):
             if metadata.get("sampler_seed", "").isdigit()
             else None
         )
-        qiskit_header = decompress_metadata_string_to_dict(metadata.get("qiskit_header", None))
+        qiskit_header = decompress_metadata_string_to_dict(
+            metadata.get("qiskit_header", None)
+        )
         job_result = {
             "data": {},
-            "shots": int(metadata.get("shots") if metadata.get("shots").isdigit() else 1024),
+            "shots": int(
+                metadata.get("shots") if metadata.get("shots").isdigit() else 1024
+            ),
             "header": qiskit_header or {},
             "success": success,
         }
@@ -359,7 +375,9 @@ class IonQJob(JobV1):
             )
             raise exceptions.IonQJobFailureError(error_message)
         if self._status == jobstatus.JobStatus.CANCELLED:
-            error_message = f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'
+            error_message = (
+                f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'
+            )
             raise exceptions.IonQJobStateError(error_message)
 
         if 'warning' in job_result and 'messages'in job_result['warning']:

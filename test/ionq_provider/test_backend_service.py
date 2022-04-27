@@ -41,8 +41,10 @@ def test_provider_getbackend():
     pro = IonQProvider("123456")
 
     for backend in pro.backends():
-        resolved = pro.get_backend(backend.name())
-        assert backend == resolved
+        qis = pro.get_backend(backend.name())
+        native = pro.get_backend(backend.name(), lang="native")
+        assert backend == qis
+        assert backend != native
 
 
 def test_backend_eq():
