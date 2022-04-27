@@ -36,7 +36,7 @@ from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
 from . import exceptions, ionq_client, ionq_job
-from .helpers import GATESET_LANG_MAP 
+from .helpers import GATESET_LANG_MAP
 
 
 class Calibration:
@@ -159,7 +159,9 @@ class IonQBackend(Backend):
             ) from ex
 
         if token is None:
-            raise exceptions.IonQCredentialsError("Credentials `token` may not be None!")
+            raise exceptions.IonQCredentialsError(
+                "Credentials `token` may not be None!"
+            )
 
         try:
             url = credentials["url"]
@@ -201,7 +203,9 @@ class IonQBackend(Backend):
         for kwarg in kwargs:
             if not hasattr(self.options, kwarg):
                 warnings.warn(
-                    f"Option {kwarg} is not used by this backend", UserWarning, stacklevel=2
+                    f"Option {kwarg} is not used by this backend",
+                    UserWarning,
+                    stacklevel=2,
                 )
         if "shots" not in kwargs:
             kwargs["shots"] = self.options.shots
@@ -257,7 +261,7 @@ class IonQBackend(Backend):
     def with_name(self, name, **kwargs):
         """Helper method that returns this backend with a more specific target system."""
         pass
-    
+
     @abc.abstractmethod
     def lang(self):
         """Helper method returning the language this backend is targeting."""
@@ -271,6 +275,7 @@ class IonQBackend(Backend):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
 
 class IonQSimulatorBackend(IonQBackend):
     """
@@ -315,9 +320,9 @@ class IonQSimulatorBackend(IonQBackend):
             NoneType: None
         """
         return None
-    
+
     def lang(self):
-        return self._lang 
+        return self._lang
 
     def __init__(self, provider, name="ionq_simulator", lang="qis"):
         """Base class for interfacing with an IonQ backend"""
@@ -346,11 +351,12 @@ class IonQSimulatorBackend(IonQBackend):
         """Helper method that returns this backend with a more specific target system."""
         return IonQSimulatorBackend(self._provider, name, **kwargs)
 
+
 class IonQQPUBackend(IonQBackend):
     """IonQ Backend for running qpu-based jobs."""
 
     def lang(self):
-        return self._lang 
+        return self._lang
 
     def __init__(self, provider, name="ionq_qpu", lang="qis"):
         self._lang = lang
@@ -380,7 +386,6 @@ class IonQQPUBackend(IonQBackend):
     def with_name(self, name, **kwargs):
         """Helper method that returns this backend with a more specific target system."""
         return IonQQPUBackend(self._provider, name, **kwargs)
-
 
 
 __all__ = ["IonQBackend", "IonQQPUBackend", "IonQSimulatorBackend"]

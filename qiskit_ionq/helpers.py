@@ -111,16 +111,17 @@ multi_target_uncontrolled_gates = (
 
 # https://ionq.com/best-practices
 ionq_native_basis_gates = [
-    "gpi", # All single qubit gates turn into GPI/GPI2
+    "gpi",  # All single qubit gates turn into GPI/GPI2
     "gpi2",
-    "ms", # Global MS gate
+    "ms",  # Global MS gate
 ]
 
 # Each language corresponds to a different set of basis gates.
 GATESET_LANG_MAP = {
-        "qis": ionq_basis_gates,
-        "native": ionq_native_basis_gates,
+    "qis": ionq_basis_gates,
+    "native": ionq_native_basis_gates,
 }
+
 
 def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
@@ -130,7 +131,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
 
     Parameters:
         input_circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
-        lang (string): The language to use, can be QIS (required transpilation pass in IonQ 
+        lang (string): The language to use, can be QIS (required transpilation pass in IonQ
           backend) or native (optional Qiskit transpilation pass).
 
     Raises:
@@ -154,7 +155,9 @@ def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
 
         # Don't process measurement instructions.
         if instruction_name == "measure":
-            meas_map[input_circuit.clbits.index(cargs[0])] = input_circuit.qubits.index(qargs[0])
+            meas_map[input_circuit.clbits.index(cargs[0])] = input_circuit.qubits.index(
+                qargs[0]
+            )
             num_meas += 1
             continue
 
@@ -173,7 +176,10 @@ def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
             rotation = {"rotation": float(instruction.params[0])}
 
         # Default conversion is simple, just gate & target.
-        converted = {"gate": instruction_name, "targets": [input_circuit.qubits.index(qargs[0])]}
+        converted = {
+            "gate": instruction_name,
+            "targets": [input_circuit.qubits.index(qargs[0])],
+        }
         # re-alias certain names
         if instruction.__class__ in ionq_api_aliases:
             new_name = ionq_api_aliases.get(instruction.__class__)
@@ -195,9 +201,12 @@ def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
             # If this is a multi-control, use more than one qubit.
             if instruction.num_ctrl_qubits > 1:
                 controls = [
-                    input_circuit.qubits.index(qargs[i]) for i in range(instruction.num_ctrl_qubits)
+                    input_circuit.qubits.index(qargs[i])
+                    for i in range(instruction.num_ctrl_qubits)
                 ]
-                targets = [input_circuit.qubits.index(qargs[instruction.num_ctrl_qubits])]
+                targets = [
+                    input_circuit.qubits.index(qargs[instruction.num_ctrl_qubits])
+                ]
             if gate == "swap":
                 # If this is a cswap, we have two targets:
                 targets = [
@@ -218,7 +227,9 @@ def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
         if num_meas > 0:
             # see if any of the involved qubits have been measured,
             # and raise if so — no mid-circuit measurement!
-            controls_and_targets = converted.get("targets", []) + converted.get("controls", [])
+            controls_and_targets = converted.get("targets", []) + converted.get(
+                "controls", []
+            )
             if any(i in meas_map for i in controls_and_targets):
                 raise exceptions.IonQMidCircuitMeasurementError(
                     input_circuit.qubits.index(qargs[0]), instruction_name

@@ -55,7 +55,6 @@ class GPIGate(Gate):
         """Create new GPI gate."""
         super().__init__("gpi", 1, [phi], label=label)
 
-
     def inverse(self):
         r"""Return inverted GPI gate.
         :math:`GPI(\lambda){\phi} = GPI(\phi)`
@@ -64,9 +63,10 @@ class GPIGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI gate."""
-        top = cmath.exp(self.params[0]*1j)
-        bot = cmath.exp(-self.params[0]*1j)
+        top = cmath.exp(self.params[0] * 1j)
+        bot = cmath.exp(-self.params[0] * 1j)
         return numpy.array([[0, top], [bot, 0]], dtype=dtype)
+
 
 class GPI2Gate(Gate):
     r"""Single-qubit GPI2 gate.
@@ -89,7 +89,6 @@ class GPI2Gate(Gate):
         """Create new GPI2 gate."""
         super().__init__("gpi2", 1, [phi], label=label)
 
-
     def inverse(self):
         r"""Return inverted GPI2 gate.
         :math:`GPI2(\lambda){\phi} = GPI2(-\phi)`
@@ -98,9 +97,10 @@ class GPI2Gate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI gate."""
-        top = -1j*cmath.exp(-self.params[0]*1j)
-        bot = -1j*cmath.exp(self.params[0]*1j)
+        top = -1j * cmath.exp(-self.params[0] * 1j)
+        bot = -1j * cmath.exp(self.params[0] * 1j)
         return numpy.array([[1, top], [bot, 1]], dtype=dtype)
+
 
 class MSGate(ControlledGate):
     r"""Entangling 2-Qubit MS gate.
@@ -137,5 +137,6 @@ class MSGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the MS gate."""
         return numpy.array(
-            [[1, 0, 0, -1j], [0, 1, -1j, 0], [0, -1j, 1, 0], [-1j, 0, 0, 0]], dtype=dtype
+            [[1, 0, 0, -1j], [0, 1, -1j, 0], [0, -1j, 1, 0], [-1j, 0, 0, 0]],
+            dtype=dtype,
         )
