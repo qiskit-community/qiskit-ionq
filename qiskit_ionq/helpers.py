@@ -130,7 +130,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
        * ``barrier``
 
     Parameters:
-        input_circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
+        input_circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         lang (string): The language to use, can be QIS (required transpilation pass in IonQ
           backend, which is sent standard gates) or native (only IonQ native gates are allowed,
           in the future we may provide transpilation to these gates in Qiskit).
