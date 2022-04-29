@@ -35,12 +35,16 @@
    :class:`BaseJob <qiskit.providers.BaseJob>`.
 """
 
+import warnings
 import numpy as np
 
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
 from .helpers import decompress_metadata_string_to_dict
+
+
+
 from . import constants, exceptions
 
 
@@ -357,6 +361,10 @@ class IonQJob(JobV1):
         if self._status == jobstatus.JobStatus.CANCELLED:
             error_message = f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'
             raise exceptions.IonQJobStateError(error_message)
+
+        if 'warning' in job_result and 'messages'in job_result['warning']:
+            for warning in job_result['warning']['messages']:
+                warnings.warn(warning)
 
         # Create a qiskit result to express the IonQ job result data.
         backend = self.backend()
