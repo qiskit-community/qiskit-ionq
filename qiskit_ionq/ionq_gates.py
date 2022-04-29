@@ -94,7 +94,7 @@ class GPI2Gate(Gate):
         return GPI2Gate(self.params[0] + math.pi)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the GPI gate."""
+        """Return a numpy.array for the GPI2 gate."""
         top = -1j * cmath.exp(self.params[0] * -1j)
         bot = -1j * cmath.exp(self.params[0] * 1j)
         return numpy.array([[1, top], [bot, 1]], dtype=dtype)/math.sqrt(2)
