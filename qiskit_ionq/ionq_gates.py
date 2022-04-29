@@ -151,4 +151,3 @@ class MSGate(Gate):
         :math:`MS(\lambda){\phi_0, \phi_1} = MS(\phi_1, \phi_0)`
         """
         return MSGate(self.params[1], self.params[0])
-
