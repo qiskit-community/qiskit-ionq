@@ -58,7 +58,7 @@ class GPIGate(Gate):
         r"""Return inverted GPI gate.
         :math:`GPI(\lambda){\phi} = GPI(\phi)`
         """
-        return GPIGate(self.params[0])
+        return self
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI gate."""
@@ -89,15 +89,15 @@ class GPI2Gate(Gate):
 
     def inverse(self):
         r"""Return inverted GPI2 gate.
-        :math:`GPI2(\lambda){\phi} = GPI2(-\phi)`
+        :math:`GPI2(\lambda){\phi} = GPI2(\phi + \pi)`
         """
-        return GPI2Gate(-self.params[0])
+        return GPI2Gate(self.params[0] + math.pi)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI gate."""
-        top = -1j * cmath.exp(-self.params[0] * 1j)
+        top = -1j * cmath.exp(self.params[0] * -1j)
         bot = -1j * cmath.exp(self.params[0] * 1j)
-        return numpy.array([[1, top], [bot, 1]], dtype=dtype)
+        return numpy.array([[1, top], [bot, 1]], dtype=dtype)/math.sqrt(2)
 
 
 class MSGate(Gate):
@@ -142,6 +142,13 @@ class MSGate(Gate):
         diag = math.cos(tee)
         adiag = -1j*math.sin(tee)
         return numpy.array(
-            [[diag, 0, 0, -adiag], [0, diag, adiag, 0], [0, adiag, diag, 0], [adiag, 0, 0, diag]],
+            [[diag, 0, 0, adiag], [0, diag, adiag, 0], [0, adiag, diag, 0], [adiag, 0, 0, diag]],
             dtype=dtype,
         )
+
+    def inverse(self):
+        r"""Return inverted MS gate.
+        :math:`MS(\lambda){\phi_0, \phi_1} = MS(\phi_1, \phi_0)`
+        """
+        return MSGate(self.params[1], self.params[0])
+

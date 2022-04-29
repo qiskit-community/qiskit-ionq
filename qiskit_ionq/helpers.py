@@ -132,7 +132,8 @@ def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
     Parameters:
         input_circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`): A quantum circuit.
         lang (string): The language to use, can be QIS (required transpilation pass in IonQ
-          backend) or native (optional Qiskit transpilation pass).
+          backend, which is sent standard gates) or native (only IonQ native gates are allowed,
+          in the future we may provide transpilation to these gates in Qiskit).
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
@@ -335,8 +336,8 @@ def qiskit_to_ionq(circuit, backend_name, lang="qis", passed_args=None):
     Parameters:
         circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         backend_name (str): Backend name.
-        lang (str): Language, controls which gates are valid (only native operations
-          or QIS, which transpiles in the IonQ backend).
+        lang (str): Language, controls which gates are valid (`native` operations
+          or `qis`, which transpiles in the IonQ backend from standard Qiskit gates).
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
