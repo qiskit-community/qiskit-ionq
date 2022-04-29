@@ -111,9 +111,9 @@ multi_target_uncontrolled_gates = (
 
 # https://ionq.com/best-practices
 ionq_native_basis_gates = [
-    "gpi",  # All single qubit gates turn into GPI/GPI2
+    "gpi",  # TODO All single qubit gates can transpile into GPI/GPI2
     "gpi2",
-    "ms",  # Global MS gate
+    "ms",  # Pairwise MS gate
 ]
 
 # Each language corresponds to a different set of basis gates.
