@@ -35,7 +35,7 @@ import pytest
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate
 
 
-@pytest.mark.parametrize("phase", [0, 0.1, 0.4, math.pi/2, math.pi, 2*math.pi])
+@pytest.mark.parametrize("phase", [0, 0.1, 0.4, math.pi / 2, math.pi, 2 * math.pi])
 def test_gpi_inverse(phase):
     """Tests that the inverse GPI gate is correct."""
     gate = GPIGate(phase)
@@ -44,7 +44,8 @@ def test_gpi_inverse(phase):
     inv = numpy.array(gate.inverse())
     numpy.testing.assert_array_almost_equal(inv, numpy.linalg.inv(mat))
 
-@pytest.mark.parametrize("phase", [0, 0.1, 0.4, math.pi/2, math.pi, 2*math.pi])
+
+@pytest.mark.parametrize("phase", [0, 0.1, 0.4, math.pi / 2, math.pi, 2 * math.pi])
 def test_gpi2_inverse(phase):
     """Tests that the inverse GPI2 gate is correct."""
     gate = GPI2Gate(phase)
@@ -53,7 +54,11 @@ def test_gpi2_inverse(phase):
     inv = numpy.array(gate.inverse())
     numpy.testing.assert_array_almost_equal(inv, numpy.linalg.inv(mat))
 
-@pytest.mark.parametrize("phases", [(0, 1), (0.1, 1), (0.4, 1), (math.pi/2, 0), (0, math.pi), (0.1, 2*math.pi)])
+
+@pytest.mark.parametrize(
+    "phases",
+    [(0, 1), (0.1, 1), (0.4, 1), (math.pi / 2, 0), (0, math.pi), (0.1, 2 * math.pi)],
+)
 def test_ms_inverse(phases):
     """Tests that the inverse MS gate is correct."""
     gate = MSGate(phases[0], phases[1])
