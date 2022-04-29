@@ -129,11 +129,12 @@ class IonQGateError(IonQError, JobError):
     def __init__(self, gate_name):
         self.gate_name = gate_name
         super().__init__(
-            f"gate '{gate_name}' not supported on IonQ backends. "
-            "Please use the qiskit.transpile method or manually rewrite to remove the gate"
+            (f"gate '{gate_name}' not supported on IonQ backends. "
+              "Please use the qiskit.transpile method or manually rewrite to remove the gate"
+            )
         )
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.__class__.__name__}(gate_name={self.gate_name!r})"
 
 
