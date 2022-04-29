@@ -54,12 +54,6 @@ class GPIGate(Gate):
         """Create new GPI gate."""
         super().__init__("gpi", 1, [phi], label=label)
 
-    def inverse(self):
-        r"""Return inverted GPI gate.
-        :math:`GPI(\lambda){\phi} = GPI(\phi)`
-        """
-        return self
-
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI gate."""
         top = cmath.exp(self.params[0] * 1j)
@@ -86,12 +80,6 @@ class GPI2Gate(Gate):
     def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
         """Create new GPI2 gate."""
         super().__init__("gpi2", 1, [phi], label=label)
-
-    def inverse(self):
-        r"""Return inverted GPI2 gate.
-        :math:`GPI2(\lambda){\phi} = GPI2(\phi + \pi)`
-        """
-        return GPI2Gate(self.params[0] + math.pi)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI2 gate."""
@@ -145,9 +133,3 @@ class MSGate(Gate):
             [[diag, 0, 0, adiag], [0, diag, adiag, 0], [0, adiag, diag, 0], [adiag, 0, 0, diag]],
             dtype=dtype,
         )
-
-    def inverse(self):
-        r"""Return inverted MS gate.
-        :math:`MS(\lambda){\phi_0, \phi_1} = MS(\phi_1, \phi_0)`
-        """
-        return MSGate(self.params[1], self.params[0])
