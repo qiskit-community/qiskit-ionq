@@ -36,7 +36,7 @@ from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
 from . import exceptions, ionq_client, ionq_job
-from .helpers import GATESET_LANG_MAP
+from .helpers import GATESET_MAP
 
 
 class Calibration:
@@ -263,13 +263,13 @@ class IonQBackend(Backend):
         pass
 
     @abc.abstractmethod
-    def lang(self):
-        """Helper method returning the language this backend is targeting."""
+    def gateset(self):
+        """Helper method returning the gateset this backend is targeting."""
         pass
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return self.name() == other.name() and self.lang() == other.lang()
+            return self.name() == other.name() and self.gateset() == other.gateset()
         else:
             return False
 
@@ -321,12 +321,12 @@ class IonQSimulatorBackend(IonQBackend):
         """
         return None
 
-    def lang(self):
-        return self._lang
+    def gateset(self):
+        return self._gateset
 
-    def __init__(self, provider, name="ionq_simulator", lang="qis"):
+    def __init__(self, provider, name="ionq_simulator", gateset="qis"):
         """Base class for interfacing with an IonQ backend"""
-        self._lang = lang
+        self._gateset = gateset
         config = BackendConfiguration.from_dict(
             {
                 "backend_name": name,
@@ -335,7 +335,7 @@ class IonQSimulatorBackend(IonQBackend):
                 "local": False,
                 "coupling_map": None,
                 "description": "IonQ simulator",
-                "basis_gates": GATESET_LANG_MAP[lang],
+                "basis_gates": GATESET_MAP[gateset],
                 "memory": False,
                 "n_qubits": 29,
                 "conditional": False,
@@ -355,11 +355,11 @@ class IonQSimulatorBackend(IonQBackend):
 class IonQQPUBackend(IonQBackend):
     """IonQ Backend for running qpu-based jobs."""
 
-    def lang(self):
-        return self._lang
+    def gateset(self):
+        return self._gateset
 
-    def __init__(self, provider, name="ionq_qpu", lang="qis"):
-        self._lang = lang
+    def __init__(self, provider, name="ionq_qpu", gateset="qis"):
+        self._gateset = gateset
         config = BackendConfiguration.from_dict(
             {
                 "backend_name": name,
@@ -368,7 +368,7 @@ class IonQQPUBackend(IonQBackend):
                 "local": False,
                 "coupling_map": None,
                 "description": "IonQ QPU",
-                "basis_gates": GATESET_LANG_MAP[lang],
+                "basis_gates": GATESET_MAP[gateset],
                 "memory": False,
                 # This is a generic backend for all IonQ hardware, the server will do more specific
                 # qubit count checks. In the future, dynamic backend configuration from the server

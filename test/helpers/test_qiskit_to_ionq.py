@@ -173,10 +173,11 @@ def test_full_circuit(simulator_backend):
     expected_output_map = [1, 0]
     expected_metadata = {"shots": "200", "sampler_seed": "42"}
     expected_rest_of_payload = {
-        "lang": "qis",
+        "lang": "json",
         "target": "simulator",
         "shots": 200,
         "body": {
+            "gateset": "qis",
             "qubits": 2,
             "circuit": [
                 {"gate": "x", "controls": [1], "targets": [0]},
@@ -206,7 +207,7 @@ def test_circuit_transpile(simulator_backend):
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
-    new_backend = simulator_backend.with_name("ionq_simulator", lang="native")
+    new_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
     circ = QuantumCircuit(2, 2, name="blame_test")
     circ.cnot(1, 0)
     circ.h(1)
@@ -233,10 +234,10 @@ def test_circuit_incorrect(simulator_backend):
         qiskit_to_ionq(
             circ,
             simulator_backend.name(),
-            lang="native",
+            gateset="native",
             passed_args={"shots": 200, "sampler_seed": 23},
         )
-    assert exc_info.value.lang == "native"
+    assert exc_info.value.gateset == "native"
 
 
 def test_native_circuit_incorrect(simulator_backend):
@@ -252,10 +253,10 @@ def test_native_circuit_incorrect(simulator_backend):
         qiskit_to_ionq(
             circ,
             simulator_backend.name(),
-            lang="qis",
+            gateset="qis",
             passed_args={"shots": 200, "sampler_seed": 23},
         )
-    assert exc_info.value.lang == "qis"
+    assert exc_info.value.gateset == "qis"
     assert exc_info.value.gate_name == "gpi"
 
 
@@ -288,7 +289,7 @@ def test_full_native_circuit(simulator_backend):
     ionq_json = qiskit_to_ionq(
         qc,
         simulator_backend.name(),
-        lang="native",
+        gateset="native",
         passed_args={"shots": 200, "sampler_seed": 23},
     )
     expected_metadata_header = {
@@ -303,10 +304,11 @@ def test_full_native_circuit(simulator_backend):
     }
     expected_metadata = {"shots": "200", "sampler_seed": "23"}
     expected_rest_of_payload = {
-        "lang": "native",
+        "lang": "json",
         "target": "simulator",
         "shots": 200,
         "body": {
+            "gateset": "native",
             "qubits": 3,
             "circuit": [
                 {"gate": "gpi", "target": 0, "phase": 0.1},

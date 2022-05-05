@@ -117,13 +117,13 @@ ionq_native_basis_gates = [
 ]
 
 # Each language corresponds to a different set of basis gates.
-GATESET_LANG_MAP = {
+GATESET_MAP = {
     "qis": ionq_basis_gates,
     "native": ionq_native_basis_gates,
 }
 
 
-def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
+def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
     .. ATTENTION:: This function ignores the following compiler directives:
@@ -131,9 +131,9 @@ def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
 
     Parameters:
         input_circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
-        lang (string): The language to use, can be QIS (required transpilation pass in IonQ
-          backend, which is sent standard gates) or native (only IonQ native gates are allowed,
-          in the future we may provide transpilation to these gates in Qiskit).
+        gateset (string): Set of gates to target. It can be QIS (required transpilation pass in
+          IonQ backend, which is sent standard gates) or native (only IonQ native gates are
+          allowed, in the future we may provide transpilation to these gates in Qiskit).
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
@@ -167,31 +167,35 @@ def qiskit_circ_to_ionq_circ(input_circuit, lang="qis"):
             continue
 
         # Raise out for instructions we don't support.
-        if instruction_name not in GATESET_LANG_MAP[lang]:
-            raise exceptions.IonQGateError(instruction_name, lang)
+        if instruction_name not in GATESET_MAP[gateset]:
+            raise exceptions.IonQGateError(instruction_name, gateset)
 
         # Process the instruction and convert.
         rotation = {}
         if len(instruction.params) > 0:
-            if lang == "qis" or len(instruction.params) == 1:
+            if gateset == "qis" or len(instruction.params) == 1:
                 # The float is here to cast Qiskit ParameterExpressions to numbers
-                rotation = {"rotation" if lang == "qis" else "phase": float(instruction.params[0])}
+                rotation = {
+                    "rotation"
+                    if gateset == "qis"
+                    else "phase": float(instruction.params[0])
+                }
             else:
-                rotation = {"phases": [ float(t) for t in instruction.params ]}
-
+                rotation = {"phases": [float(t) for t in instruction.params]}
 
         # Default conversion is simple, just gate & target(s).
-        targets =  [input_circuit.qubits.index(qargs[0])]
+        targets = [input_circuit.qubits.index(qargs[0])]
         if instruction_name == "ms":
             targets.append(input_circuit.qubits.index(qargs[1]))
 
-        converted = {
-            "gate": instruction_name,
-            "targets": targets
-        } if instruction_name not in {"gpi", "gpi2"} else {
-            "gate": instruction_name,
-            "target": targets[0],
-        }
+        converted = (
+            {"gate": instruction_name, "targets": targets}
+            if instruction_name not in {"gpi", "gpi2"}
+            else {
+                "gate": instruction_name,
+                "target": targets[0],
+            }
+        )
 
         # re-alias certain names
         if instruction.__class__ in ionq_api_aliases:
@@ -330,13 +334,13 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend_name, lang="qis", passed_args=None):
+def qiskit_to_ionq(circuit, backend_name, gateset="qis", passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
         circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         backend_name (str): Backend name.
-        lang (str): Language, controls which gates are valid (`native` operations
+        gateset (str): Controls which gates are valid (`native` operations
           or `qis`, which transpiles in the IonQ backend from standard Qiskit gates).
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
@@ -344,7 +348,7 @@ def qiskit_to_ionq(circuit, backend_name, lang="qis", passed_args=None):
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
-    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, lang)
+    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, gateset)
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
     qiskit_header = compress_dict_to_metadata_string(
@@ -361,10 +365,11 @@ def qiskit_to_ionq(circuit, backend_name, lang="qis", passed_args=None):
     )
 
     ionq_json = {
-        "lang": lang,
+        "lang": "json",
         "target": backend_name[5:],
         "shots": passed_args.get("shots"),
         "body": {
+            "gateset": gateset,
             "qubits": circuit.num_qubits,
             "circuit": ionq_circ,
         },

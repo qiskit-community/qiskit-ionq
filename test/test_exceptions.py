@@ -43,12 +43,12 @@ def test_base_str_and_repr():
 
 def test_gate_error_str_and_repr():
     """Test that IonQAPIError has a str/repr that includes args."""
-    err = exceptions.IonQGateError("a gate", "b lang")
-    str_expected = ("IonQGateError(\"gate 'a gate' is not supported on the 'b lang' IonQ backends."
+    err = exceptions.IonQGateError("a gate", "b set")
+    str_expected = ("IonQGateError(\"gate 'a gate' is not supported on the 'b set' IonQ backends."
                     " Please use the qiskit.transpile method, manually rewrite to remove the gate,"
-                    " or change the language selection as appropriate.\")"
+                    " or change the gateset selection as appropriate.\")"
                    )
-    repr_expected = "IonQGateError(gate_name='a gate', lang='b lang')"
+    repr_expected = "IonQGateError(gate_name='a gate', gateset='b set')"
     assert str(err) == str_expected
     assert repr(err) == repr_expected
 

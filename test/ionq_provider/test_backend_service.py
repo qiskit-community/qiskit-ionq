@@ -42,7 +42,7 @@ def test_provider_getbackend():
 
     for backend in pro.backends():
         qis = pro.get_backend(backend.name())
-        native = pro.get_backend(backend.name(), lang="native")
+        native = pro.get_backend(backend.name(), gateset="native")
         assert backend == qis
         assert backend != native
 
