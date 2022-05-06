@@ -85,7 +85,7 @@ class GPI2Gate(Gate):
         """Return a numpy.array for the GPI2 gate."""
         top = -1j * cmath.exp(self.params[0] * -1j)
         bot = -1j * cmath.exp(self.params[0] * 1j)
-        return numpy.array([[1, top], [bot, 1]], dtype=dtype)/math.sqrt(2)
+        return numpy.array([[1, top], [bot, 1]], dtype=dtype) / math.sqrt(2)
 
 
 class MSGate(Gate):
@@ -126,8 +126,13 @@ class MSGate(Gate):
         """Return a numpy.array for the MS gate."""
         phi0 = self.params[0]
         phi1 = self.params[1]
-        diag = 1/math.sqrt(2)
+        diag = 1 / math.sqrt(2)
         return numpy.array(
-            [[diag, 0, 0, diag*-1j*cmath.exp(-1j*(phi0+phi1))], [0, diag, diag*-1j*cmath.exp(-1j*(phi0-phi1)), 0], [0, diag*-1j*cmath.exp(1j*(phi0-phi1)), diag, 0], [diag*-1j*cmath.exp(1j*(phi0+phi1)), 0, 0, diag]],
+            [
+                [diag, 0, 0, diag * -1j * cmath.exp(-1j * (phi0 + phi1))],
+                [0, diag, diag * -1j * cmath.exp(-1j * (phi0 - phi1)), 0],
+                [0, diag * -1j * cmath.exp(1j * (phi0 - phi1)), diag, 0],
+                [diag * -1j * cmath.exp(1j * (phi0 + phi1)), 0, 0, diag],
+            ],
             dtype=dtype,
         )
