@@ -100,13 +100,11 @@ class MSGate(Gate):
     **Matrix representation:**
     .. math::
         MS(\phi_0, _\phi_1) q_0, q_1 =
-            MS(\phi_1 - \phi_0) =
-            MS(t) =
             \frac{1}{\sqrt{2}}\begin{pmatrix}
-                \cos(t) & 0         & 0 & -i*\sin(t) \\
-                0 & \cos(t) & -i*\sin(t) & 0 \\
-                0 & -i*\sin(t) & \cos(t) & 0 \\
-                -i*\sin(t) & 0 & 0 & \cos(t)
+                1 & 0         & 0 & -i*e^(-i*(\phi_0+\phi_1) \\
+                0 & 1 & -i*e^(-i*(\phi_0-\phi_1) & 0 \\
+                0 & -i*e^(i*(\phi_0-\phi_1) & 1 & 0 \\
+                -i*e^(i*(\phi_0+\phi_1) & 0 & 0 & 1
             \end{pmatrix}
     """
 
@@ -126,10 +124,10 @@ class MSGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the MS gate."""
-        tee = self.params[1] - self.params[0]
-        diag = math.cos(tee)
-        adiag = -1j*math.sin(tee)
+        phi0 = self.params[0]
+        phi1 = self.params[1]
+        diag = 1/math.sqrt(2)
         return numpy.array(
-            [[diag, 0, 0, adiag], [0, diag, adiag, 0], [0, adiag, diag, 0], [adiag, 0, 0, diag]],
+            [[diag, 0, 0, diag*-1j*cmath.exp(-1j*(phi0+phi1))], [0, diag, diag*-1j*cmath.exp(-1j*(phi0-phi1)), 0], [0, diag*-1j*cmath.exp(1j*(phi0-phi1)), diag, 0], [diag*-1j*cmath.exp(1j*(phi0+phi1)), 0, 0, diag]],
             dtype=dtype,
         )
