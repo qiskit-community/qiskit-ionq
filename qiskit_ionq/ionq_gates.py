@@ -45,8 +45,8 @@ class GPIGate(Gate):
     .. math::
         GPI(\phi) =
             \begin{pmatrix}
-                0 & e^{-i\phi} \\
-                e^{-i\phi} & 0
+                0 & e^{-i*2*\pi*\phi} \\
+                e^{-i*2*\pi*\phi} & 0
             \end{pmatrix}
     """
 
@@ -56,8 +56,8 @@ class GPIGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI gate."""
-        top = cmath.exp(self.params[0] * 1j)
-        bot = cmath.exp(-self.params[0] * 1j)
+        top = cmath.exp(self.params[0] * 2 * math.pi * 1j)
+        bot = cmath.exp(-self.params[0] * 2 * math.pi * 1j)
         return numpy.array([[0, top], [bot, 0]], dtype=dtype)
 
 
@@ -72,8 +72,8 @@ class GPI2Gate(Gate):
     .. math::
         GPI2(\phi) =
             \begin{pmatrix}
-                1 & -i*e^{-i\phi} \\
-                -i*e^{i\phi} & 1
+                1 & -i*e^{-i*2*\pi*\phi} \\
+                -i*e^{i*2*\pi*\phi} & 1
             \end{pmatrix}
     """
 
@@ -83,8 +83,8 @@ class GPI2Gate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI2 gate."""
-        top = -1j * cmath.exp(self.params[0] * -1j)
-        bot = -1j * cmath.exp(self.params[0] * 1j)
+        top = -1j * cmath.exp(self.params[0] * 2 * math.pi * -1j)
+        bot = -1j * cmath.exp(self.params[0] * 2 * math.pi * 1j)
         return numpy.array([[1, top], [bot, 1]], dtype=dtype) / math.sqrt(2)
 
 
@@ -101,10 +101,10 @@ class MSGate(Gate):
     .. math::
         MS(\phi_0, _\phi_1) q_0, q_1 =
             \frac{1}{\sqrt{2}}\begin{pmatrix}
-                1 & 0         & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1} \\
-                0 & 1 & -i*e^{-i*2*\pi(\phi_0-\phi_1} & 0 \\
-                0 & -i*e^(i*2*\pi{\phi_0-\phi_1} & 1 & 0 \\
-                -i*e^(i*2*\pi{\phi_0+\phi_1} & 0 & 0 & 1
+                1 & 0         & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1)} \\
+                0 & 1 & -i*e^{-i*2*\pi(\phi_0-\phi_1)} & 0 \\
+                0 & -i*e^{i*2*\pi(\phi_0-\phi_1)} & 1 & 0 \\
+                -i*e^{i*2*\pi(\phi_0+\phi_1)} & 0 & 0 & 1
             \end{pmatrix}
     """
 
