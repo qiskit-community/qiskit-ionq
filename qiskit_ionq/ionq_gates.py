@@ -101,10 +101,10 @@ class MSGate(Gate):
     .. math::
         MS(\phi_0, _\phi_1) q_0, q_1 =
             \frac{1}{\sqrt{2}}\begin{pmatrix}
-                1 & 0         & 0 & -i*e^{-i*(\phi_0+\phi_1} \\
-                0 & 1 & -i*e^{-i*(\phi_0-\phi_1} & 0 \\
-                0 & -i*e^(i*{\phi_0-\phi_1} & 1 & 0 \\
-                -i*e^(i*{\phi_0+\phi_1} & 0 & 0 & 1
+                1 & 0         & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1} \\
+                0 & 1 & -i*e^{-i*2*\pi(\phi_0-\phi_1} & 0 \\
+                0 & -i*e^(i*2*\pi{\phi_0-\phi_1} & 1 & 0 \\
+                -i*e^(i*2*\pi{\phi_0+\phi_1} & 0 & 0 & 1
             \end{pmatrix}
     """
 
@@ -129,10 +129,10 @@ class MSGate(Gate):
         diag = 1 / math.sqrt(2)
         return numpy.array(
             [
-                [diag, 0, 0, diag * -1j * cmath.exp(-1j * (phi0 + phi1))],
-                [0, diag, diag * -1j * cmath.exp(-1j * (phi0 - phi1)), 0],
-                [0, diag * -1j * cmath.exp(1j * (phi0 - phi1)), diag, 0],
-                [diag * -1j * cmath.exp(1j * (phi0 + phi1)), 0, 0, diag],
+                [diag, 0, 0, diag * -1j * cmath.exp(-1j * 2 * math.pi * (phi0 + phi1))],
+                [0, diag, diag * -1j * cmath.exp(-1j * 2 * math.pi * (phi0 - phi1)), 0],
+                [0, diag * -1j * cmath.exp(1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
+                [diag * -1j * cmath.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
             ],
             dtype=dtype,
         )
