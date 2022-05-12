@@ -117,6 +117,22 @@ def test_build_counts():
     assert ({"0x3": 50, "0x7": 50}) == counts
     assert ({"0x3": 0.5, "0x7": 0.5}) == probabilties
 
+def test_build_counts_native():
+    """Test no remapping for native gates."""
+    result = {
+        "qubits": 3,
+        "data": {
+            "histogram": {"5": 0.5, "7": 0.5},
+        },
+        "metadata": {
+            "shots": "100",
+            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3}),
+        },
+    }
+    (counts, probabilties) = ionq_job._build_counts(result)
+    assert ({"0x5": 50, "0x7": 50}) == counts
+    assert ({"0x5": 0.5, "0x7": 0.5}) == probabilties
+
 
 def test_results_meta(formatted_result):
     """Test basic job attribute values."""

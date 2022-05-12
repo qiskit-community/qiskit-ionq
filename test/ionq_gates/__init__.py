@@ -23,9 +23,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""Provider for IonQ backends"""
-
-from .ionq_provider import IonQProvider
-from .version import __version__
-from .ionq_gates import GPIGate, GPI2Gate, MSGate

@@ -27,10 +27,16 @@
 """Test the qiskit_to_ionq function."""
 
 import json
+import pytest
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.compiler import transpile
+from qiskit.exceptions import QiskitError
+from qiskit.transpiler.exceptions import TranspilerError
 
+from qiskit_ionq.exceptions import IonQGateError
 from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string_to_dict
+from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate
 
 
 def test_output_map__with_multiple_measurements_to_different_clbits(
@@ -77,7 +83,9 @@ def test_output_map__with_multiple_measurements_to_same_clbit(
     assert actual_output_map == [1, None]
 
 
-def test_output_map__with_multiple_registers(simulator_backend):  # pylint: disable=invalid-name
+def test_output_map__with_multiple_registers(
+    simulator_backend,
+):  # pylint: disable=invalid-name
     """Test output map with multiple registers
 
     Args:
@@ -169,6 +177,7 @@ def test_full_circuit(simulator_backend):
         "target": "simulator",
         "shots": 200,
         "body": {
+            "gateset": "qis",
             "qubits": 2,
             "circuit": [
                 {"gate": "x", "controls": [1], "targets": [0]},
@@ -189,4 +198,135 @@ def test_full_circuit(simulator_backend):
     assert actual_metadata == expected_metadata
     assert actual_metadata_header == expected_metadata_header
     assert actual_output_map == expected_output_map
+    assert actual == expected_rest_of_payload
+
+
+def test_circuit_transpile(simulator_backend):
+    """Test a full circuit on a native backend via transpilation
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    new_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
+    circ = QuantumCircuit(2, 2, name="blame_test")
+    circ.cnot(1, 0)
+    circ.h(1)
+    circ.measure(1, 0)
+    circ.measure(0, 1)
+
+    with pytest.raises(TranspilerError) as exc_info:
+        transpile(circ, backend=new_backend)
+    assert "Unable to map source basis" in exc_info.value.message
+
+
+def test_circuit_incorrect(simulator_backend):
+    """Test a full circuit on a native backend
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    circ = QuantumCircuit(2, 2, name="blame_test")
+    circ.cnot(1, 0)
+    circ.h(1)
+    circ.measure(1, 0)
+    circ.measure(0, 1)
+    with pytest.raises(IonQGateError) as exc_info:
+        qiskit_to_ionq(
+            circ,
+            simulator_backend.name(),
+            gateset="native",
+            passed_args={"shots": 200, "sampler_seed": 23},
+        )
+    assert exc_info.value.gateset == "native"
+
+
+def test_native_circuit_incorrect(simulator_backend):
+    """Test a full native circuit on a QIS backend
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    circ = QuantumCircuit(3, name="blame_test")
+    circ.append(GPIGate(0.1), [0])
+    circ.append(GPI2Gate(0.2), [1])
+    with pytest.raises(IonQGateError) as exc_info:
+        qiskit_to_ionq(
+            circ,
+            simulator_backend.name(),
+            gateset="qis",
+            passed_args={"shots": 200, "sampler_seed": 23},
+        )
+    assert exc_info.value.gateset == "qis"
+    assert exc_info.value.gate_name == "gpi"
+
+
+def test_native_circuit_transpile(simulator_backend):
+    """Test a full native circuit on a QIS backend via transpilation
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    circ = QuantumCircuit(3, name="blame_test")
+    circ.append(GPIGate(0.1), [0])
+    circ.append(GPI2Gate(0.2), [1])
+    circ.append(MSGate(0.2, 0.3), [1, 2])
+
+    with pytest.raises(QiskitError) as exc_info:
+        transpile(circ, backend=simulator_backend)
+    assert "Cannot unroll the circuit to the given basis" in exc_info.value.message
+
+
+def test_full_native_circuit(simulator_backend):
+    """Test a full native circuit
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    qc = QuantumCircuit(3, name="blame_test")
+    qc.append(GPIGate(0.1), [0])
+    qc.append(GPI2Gate(0.2), [1])
+    qc.append(MSGate(0.2, 0.3), [1, 2])
+    ionq_json = qiskit_to_ionq(
+        qc,
+        simulator_backend.name(),
+        gateset="native",
+        passed_args={"shots": 200, "sampler_seed": 23},
+    )
+    expected_metadata_header = {
+        "memory_slots": 0,
+        "global_phase": 0,
+        "n_qubits": 3,
+        "name": "blame_test",
+        "creg_sizes": [],
+        "clbit_labels": [],
+        "qreg_sizes": [["q", 3]],
+        "qubit_labels": [["q", 0], ["q", 1], ["q", 2]],
+    }
+    expected_metadata = {"shots": "200", "sampler_seed": "23"}
+    expected_rest_of_payload = {
+        "lang": "json",
+        "target": "simulator",
+        "shots": 200,
+        "body": {
+            "gateset": "native",
+            "qubits": 3,
+            "circuit": [
+                {"gate": "gpi", "target": 0, "phase": 0.1},
+                {"gate": "gpi2", "target": 1, "phase": 0.2},
+                {"gate": "ms", "targets": [1, 2], "phases": [0.2, 0.3]},
+            ],
+        },
+    }
+
+    actual = json.loads(ionq_json)
+    actual_metadata = actual.pop("metadata") or {}
+    actual_metadata_header = decompress_metadata_string_to_dict(
+        actual_metadata.pop("qiskit_header") or None
+    )
+    registers = actual.pop("registers") or {}
+
+    # check dict equality:
+    assert actual_metadata == expected_metadata
+    assert actual_metadata_header == expected_metadata_header
+    assert "meas_mapped" not in registers
     assert actual == expected_rest_of_payload

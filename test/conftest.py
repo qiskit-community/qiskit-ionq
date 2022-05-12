@@ -37,6 +37,9 @@ from qiskit_ionq.helpers import compress_dict_to_metadata_string
 class MockBackend(ionq_backend.IonQBackend):
     """A mock backend for testing super-class behavior in isolation."""
 
+    def gateset(self):
+        return "qis"
+
     def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
         config = q_models.BackendConfiguration.from_dict(
             {
@@ -63,9 +66,9 @@ class MockBackend(ionq_backend.IonQBackend):
         )
         super().__init__(config, provider=provider)
 
-    def with_name(self, name):
+    def with_name(self, name, **kwargs):
         """Helper method that returns this backend with a more specific target system."""
-        return MockBackend(self._provider, name)
+        return MockBackend(self._provider, name, **kwargs)
 
 def dummy_job_response(job_id, target="mock_backend", status="completed"):
     """A dummy response payload for `job_id`.
