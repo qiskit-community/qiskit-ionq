@@ -42,11 +42,13 @@ class GPIGate(Gate):
         q_0: ┤ GPI(ϴ)├
              └───────┘
     **Matrix Representation:**
+    
     .. math::
-        GPI(\phi) =
+    
+       GPI(\phi) =
             \begin{pmatrix}
                 0 & e^{-i*2*\pi*\phi} \\
-                e^{-i*2*\pi*\phi} & 0
+                e^{i*2*\pi*\phi} & 0
             \end{pmatrix}
     """
 
@@ -69,7 +71,9 @@ class GPI2Gate(Gate):
         q_0: ┤GPI2(ϴ)├
              └───────┘
     **Matrix Representation:**
+
     .. math::
+
         GPI2(\phi) =
             \begin{pmatrix}
                 1 & -i*e^{-i*2*\pi*\phi} \\
@@ -98,8 +102,10 @@ class MSGate(Gate):
         q_1: ┤       ├-
              └───────┘
     **Matrix representation:**
+
     .. math::
-        MS(\phi_0, _\phi_1) q_0, q_1 =
+
+       MS(\phi_0, _\phi_1) q_0, q_1 =
             \frac{1}{\sqrt{2}}\begin{pmatrix}
                 1 & 0         & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1)} \\
                 0 & 1 & -i*e^{-i*2*\pi(\phi_0-\phi_1)} & 0 \\
