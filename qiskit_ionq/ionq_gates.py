@@ -56,8 +56,8 @@ class GPIGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI gate."""
-        top = cmath.exp(self.params[0] * 2 * math.pi * 1j)
-        bot = cmath.exp(-self.params[0] * 2 * math.pi * 1j)
+        top = cmath.exp(-self.params[0] * 2 * math.pi * 1j)
+        bot = cmath.exp(self.params[0] * 2 * math.pi * 1j)
         return numpy.array([[0, top], [bot, 0]], dtype=dtype)
 
 
