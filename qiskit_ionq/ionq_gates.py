@@ -42,9 +42,9 @@ class GPIGate(Gate):
         q_0: ┤ GPI(ϴ)├
              └───────┘
     **Matrix Representation:**
-    
+ 
     .. math::
-    
+
        GPI(\phi) =
             \begin{pmatrix}
                 0 & e^{-i*2*\pi*\phi} \\
