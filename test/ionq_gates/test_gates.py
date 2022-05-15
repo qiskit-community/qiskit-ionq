@@ -32,14 +32,24 @@ import numpy
 
 import pytest
 
+from qiskit.circuit.library import XGate, YGate, RXGate, RYGate
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate
 
+# Gate equivalences
+@pytest.mark.parametrize("gate,phase", [(XGate(), 0), (YGate(), 0.25)])
+def test_gpi_equivalences(gate, phase):
+    gpi = GPIGate(phase)
+    numpy.testing.assert_array_almost_equal(numpy.array(gate), numpy.array(gpi))
+
+@pytest.mark.parametrize("gate,phase", [(RXGate(math.pi/2), 1), (RYGate(math.pi/2), 0.25)])
+def test_gpi2_equivalences(gate, phase):
+    gpi = GPI2Gate(phase)
+    numpy.testing.assert_array_almost_equal(numpy.array(gate), numpy.array(gpi))
 
 @pytest.mark.parametrize("phase", [0, 0.1, 0.4, math.pi / 2, math.pi, 2 * math.pi])
 def test_gpi_inverse(phase):
     """Tests that the GPI gate is unitary."""
     gate = GPIGate(phase)
-
     mat = numpy.array(gate)
     numpy.testing.assert_array_almost_equal(mat.dot(mat.conj().T), numpy.identity(2))
 
