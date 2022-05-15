@@ -35,14 +35,15 @@ import pytest
 from qiskit.circuit.library import XGate, YGate, RXGate, RYGate
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate
 
-# Gate equivalences
 @pytest.mark.parametrize("gate,phase", [(XGate(), 0), (YGate(), 0.25)])
 def test_gpi_equivalences(gate, phase):
+    """Tests equivalence of the GPI gate at specific phases."""
     gpi = GPIGate(phase)
     numpy.testing.assert_array_almost_equal(numpy.array(gate), numpy.array(gpi))
 
 @pytest.mark.parametrize("gate,phase", [(RXGate(math.pi/2), 1), (RYGate(math.pi/2), 0.25)])
 def test_gpi2_equivalences(gate, phase):
+    """Tests equivalence of the GPI2 gate at specific phases."""
     gpi = GPI2Gate(phase)
     numpy.testing.assert_array_almost_equal(numpy.array(gate), numpy.array(gpi))
 
