@@ -109,7 +109,7 @@ multi_target_uncontrolled_gates = (
     q_gates.RZZGate,
 )
 
-# https://ionq.com/best-practices
+# https://ionq.com/docs/getting-started-with-native-gates
 ionq_native_basis_gates = [
     "gpi",  # TODO All single qubit gates can transpile into GPI/GPI2
     "gpi2",
