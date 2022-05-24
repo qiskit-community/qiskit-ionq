@@ -70,8 +70,10 @@ class IonQAPIError(IonQError):
         """
         # TODO: Pending API changes will cleanup this error logic:
         status_code = response.status_code
-        response_json = response.json()
-
+        try:
+          response_json = response.json()
+        except jd.JSONDecodeError:
+          response_json = {}
         # Defaults, if items cannot be extracted from the response.
         error_type = "internal_error"
         message = "No error details provided."
