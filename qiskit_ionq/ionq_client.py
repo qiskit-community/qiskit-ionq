@@ -32,6 +32,23 @@ from . import exceptions
 from .helpers import qiskit_to_ionq
 
 
+# https://support.cloudflare.com/hc/en-us/articles/115003014512-4xx-Client-Error
+# "Cloudflare will generate and serve a 409 response for a Error 1001: DNS Resolution Error."
+# We may want to condition on the body as well, to allow for some GET requests to return 409 in
+# the future.
+RETRIABLE_FOR_GETS = {requests.codes.conflict}
+# Retriable regardless of the source
+# Handle 52x responses from cloudflare.
+# See https://support.cloudflare.com/hc/en-us/articles/115003011431/
+RETRIABLE_STATUS_CODES = {
+    requests.codes.internal_server_error,
+    requests.codes.service_unavailable,
+    *list(range(520, 530)),
+}
+
+def _is_retriable(code, method):
+    return code in RETRIABLE_STATUS_CODES or (method == "GET" and code in RETRIABLE_FOR_GETS)
+
 class IonQClient:
     """IonQ API Client
 
@@ -84,10 +101,14 @@ class IonQClient:
         as_json = qiskit_to_ionq(
             job.circuit, job.backend().name(), job.backend().gateset(), job._passed_args
         )
-        req_path = self.make_path("jobs")
-        res = requests.post(req_path, data=as_json, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
+        while True:
+          req_path = self.make_path("jobs")
+          res = requests.post(req_path, data=as_json, headers=self.api_headers)
+          if res.status_code != 200:
+            if not is_retriable(res.status_code, "post"):
+              raise exceptions.IonQAPIError.from_response(res)
+          else:
+            break
         return res.json()
 
     def retrieve_job(self, job_id: str):
@@ -104,12 +125,15 @@ class IonQClient:
         Returns:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
-
-        req_path = self.make_path("jobs", job_id)
-        res = requests.get(req_path, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
-        return res.json()
+        while True:
+          req_path = self.make_path("jobs", job_id)
+          res = requests.get(req_path, headers=self.api_headers)
+          if res.status_code != 200:
+            if not is_retriable(res.status_code, "get"):
+              raise exceptions.IonQAPIError.from_response(res)
+          else:
+            break
+          return res.json()
 
     def cancel_job(self, job_id: str):
         """Attempt to cancel a job which has not yet run.
