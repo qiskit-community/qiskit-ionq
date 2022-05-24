@@ -27,6 +27,8 @@
 """Exceptions for the IonQ Provider."""
 import warnings
 
+import json.decoder as jd
+
 from qiskit.exceptions import QiskitError
 from qiskit.providers import JobError, JobTimeoutError
 
@@ -71,9 +73,9 @@ class IonQAPIError(IonQError):
         # TODO: Pending API changes will cleanup this error logic:
         status_code = response.status_code
         try:
-          response_json = response.json()
+            response_json = response.json()
         except jd.JSONDecodeError:
-          response_json = {}
+            response_json = { 'invalid_json': response.text }
         # Defaults, if items cannot be extracted from the response.
         error_type = "internal_error"
         message = "No error details provided."
