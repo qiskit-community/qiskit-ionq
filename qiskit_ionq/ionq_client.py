@@ -107,7 +107,7 @@ class IonQClient:
             req_path = self.make_path("jobs")
             res = requests.post(req_path, data=as_json, headers=self.api_headers)
             if res.status_code != 200:
-                if not _is_retriable(res.status_code, "post"):
+                if not _is_retriable(res.status_code, "POST"):
                     raise exceptions.IonQAPIError.from_response(res)
             else:
                 break
@@ -131,7 +131,7 @@ class IonQClient:
             req_path = self.make_path("jobs", job_id)
             res = requests.get(req_path, headers=self.api_headers)
             if res.status_code != 200:
-                if not _is_retriable(res.status_code, "get"):
+                if not _is_retriable(res.status_code, "GET"):
                     raise exceptions.IonQAPIError.from_response(res)
             else:
                 break
