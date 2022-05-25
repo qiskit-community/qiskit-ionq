@@ -28,28 +28,12 @@
 
 import requests
 
+from retry import retry
+
 from . import exceptions
 from .helpers import qiskit_to_ionq
+from .exceptions import IonQRetriableError
 
-# pylint: disable=no-member
-
-# https://support.cloudflare.com/hc/en-us/articles/115003014512-4xx-Client-Error
-# "Cloudflare will generate and serve a 409 response for a Error 1001: DNS Resolution Error."
-# We may want to condition on the body as well, to allow for some GET requests to return 409 in
-# the future.
-RETRIABLE_FOR_GETS = {requests.codes.conflict}
-# Retriable regardless of the source
-# Handle 52x responses from cloudflare.
-# See https://support.cloudflare.com/hc/en-us/articles/115003011431/
-RETRIABLE_STATUS_CODES = {
-    requests.codes.internal_server_error,
-    requests.codes.service_unavailable,
-    *list(range(520, 530)),
-}
-# pylint: enable=no-member
-
-def _is_retriable(code, method):
-    return code in RETRIABLE_STATUS_CODES or (method == "GET" and code in RETRIABLE_FOR_GETS)
 
 class IonQClient:
     """IonQ API Client
@@ -86,6 +70,7 @@ class IonQClient:
         """
         return "/".join([self._url] + list(parts))
 
+    @retry(exceptions=IonQRetriableError, tries=5)
     def submit_job(self, job) -> dict:
         """Submit job to IonQ API
 
@@ -103,16 +88,12 @@ class IonQClient:
         as_json = qiskit_to_ionq(
             job.circuit, job.backend().name(), job.backend().gateset(), job._passed_args
         )
-        while True:
-            req_path = self.make_path("jobs")
-            res = requests.post(req_path, data=as_json, headers=self.api_headers)
-            if res.status_code != 200:
-                if not _is_retriable(res.status_code, "POST"):
-                    raise exceptions.IonQAPIError.from_response(res)
-            else:
-                break
+        req_path = self.make_path("jobs")
+        res = requests.post(req_path, data=as_json, headers=self.api_headers)
+        exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def retrieve_job(self, job_id: str):
         """Retrieve job information from the IonQ API.
 
@@ -127,16 +108,12 @@ class IonQClient:
         Returns:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
-        while True:
-            req_path = self.make_path("jobs", job_id)
-            res = requests.get(req_path, headers=self.api_headers)
-            if res.status_code != 200:
-                if not _is_retriable(res.status_code, "GET"):
-                    raise exceptions.IonQAPIError.from_response(res)
-            else:
-                break
+        req_path = self.make_path("jobs", job_id)
+        res = requests.get(req_path, headers=self.api_headers)
+        exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
+    @retry(exceptions=IonQRetriableError, tries=5)
     def cancel_job(self, job_id: str):
         """Attempt to cancel a job which has not yet run.
 
@@ -153,10 +130,10 @@ class IonQClient:
         """
         req_path = self.make_path("jobs", job_id, "status", "cancel")
         res = requests.put(req_path, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
+        exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
+    @retry(exceptions=IonQRetriableError, tries=3)
     def delete_job(self, job_id: str):
         """Delete a job and associated data.
 
@@ -171,10 +148,10 @@ class IonQClient:
         """
         req_path = self.make_path("jobs", job_id)
         res = requests.delete(req_path, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
+        exceptions.IonQAPIError.raise_for_status(requests)
         return res.json()
 
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_calibration_data(self, backend_name: str) -> dict:
         """Retrieve calibration data for a specified backend.
 
@@ -211,8 +188,7 @@ class IonQClient:
         """
         req_path = self.make_path("calibrations")
         res = requests.get(req_path, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
+        exceptions.IonQAPIError.raise_for_status(requests)
 
         # Get calibrations and filter down to the target
         response = res.json()
