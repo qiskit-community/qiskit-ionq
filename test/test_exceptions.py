@@ -31,7 +31,7 @@ from unittest import mock
 import pytest
 
 from qiskit_ionq import exceptions
-
+from qiskit_ionq.exceptions import IonQRetriableError
 
 def test_base_str_and_repr():
     """Test basic str and repr support."""
@@ -89,6 +89,49 @@ def test_api_error_from_response():
     assert err.message == "an error"
     assert err.status_code == 500
     assert err.error_type == "internal_error"
+
+def test_api_error_raise_for_status():
+    """Test that IonQAPIError can be made directly from a response JSON dict."""
+    fake_response = mock.MagicMock()
+    fake_response.json = mock.MagicMock(
+        return_value={
+            "error": {
+                "type": "internal_error",
+                "message": "an error",
+            }
+        }
+    )
+    fake_response.status_code = 500
+
+    with pytest.raises(exceptions.IonQRetriableError) as exc:
+        exceptions.IonQAPIError.raise_for_status(fake_response)
+
+    err = exc.value._cause
+    assert err.message == "an error"
+    assert err.status_code == 500
+    assert err.error_type == "internal_error"
+
+def test_retriable_raise_for_status():
+    """Test that IonQAPIError can be made directly from a response JSON dict."""
+    fake_response = mock.MagicMock()
+    fake_response.json = mock.MagicMock(
+        return_value={
+            "error": {
+                "type": "invalid_request",
+                "message": "an error",
+            }
+        }
+    )
+    fake_response.status_code = 400
+
+    with pytest.raises(exceptions.IonQAPIError) as exc:
+        exceptions.IonQAPIError.raise_for_status(fake_response)
+
+    err = exc.value
+    assert err.message == "an error"
+    assert err.status_code == 400
+    assert err.error_type == "invalid_request"
+    assert err is not IonQRetriableError
 
 
 def test_error_format__code_message():

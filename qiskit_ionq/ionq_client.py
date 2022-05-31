@@ -28,8 +28,11 @@
 
 import requests
 
+from retry import retry
+
 from . import exceptions
 from .helpers import qiskit_to_ionq
+from .exceptions import IonQRetriableError
 
 
 class IonQClient:
@@ -67,6 +70,7 @@ class IonQClient:
         """
         return "/".join([self._url] + list(parts))
 
+    @retry(exceptions=IonQRetriableError, tries=5)
     def submit_job(self, job) -> dict:
         """Submit job to IonQ API
 
@@ -86,10 +90,10 @@ class IonQClient:
         )
         req_path = self.make_path("jobs")
         res = requests.post(req_path, data=as_json, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
+        exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def retrieve_job(self, job_id: str):
         """Retrieve job information from the IonQ API.
 
@@ -104,13 +108,12 @@ class IonQClient:
         Returns:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
-
         req_path = self.make_path("jobs", job_id)
         res = requests.get(req_path, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
+        exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
+    @retry(exceptions=IonQRetriableError, tries=5)
     def cancel_job(self, job_id: str):
         """Attempt to cancel a job which has not yet run.
 
@@ -127,10 +130,10 @@ class IonQClient:
         """
         req_path = self.make_path("jobs", job_id, "status", "cancel")
         res = requests.put(req_path, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
+        exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
+    @retry(exceptions=IonQRetriableError, tries=3)
     def delete_job(self, job_id: str):
         """Delete a job and associated data.
 
@@ -145,10 +148,10 @@ class IonQClient:
         """
         req_path = self.make_path("jobs", job_id)
         res = requests.delete(req_path, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
+        exceptions.IonQAPIError.raise_for_status(requests)
         return res.json()
 
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_calibration_data(self, backend_name: str) -> dict:
         """Retrieve calibration data for a specified backend.
 
@@ -185,8 +188,7 @@ class IonQClient:
         """
         req_path = self.make_path("calibrations")
         res = requests.get(req_path, headers=self.api_headers)
-        if res.status_code != 200:
-            raise exceptions.IonQAPIError.from_response(res)
+        exceptions.IonQAPIError.raise_for_status(requests)
 
         # Get calibrations and filter down to the target
         response = res.json()

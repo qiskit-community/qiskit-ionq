@@ -27,6 +27,10 @@
 """Exceptions for the IonQ Provider."""
 import warnings
 
+import json.decoder as jd
+
+import requests
+
 from qiskit.exceptions import QiskitError
 from qiskit.providers import JobError, JobTimeoutError
 
@@ -48,6 +52,31 @@ class IonQCredentialsError(IonQError):
 class IonQClientError(IonQError):
     """Errors that arise from unexpected behavior while using IonQClient."""
 
+class IonQRetriableError(IonQError):
+    """Errors that do not indicate a failure related to the request, and can be retried."""
+
+    def __init__(self, cause):
+        self._cause = cause
+        super().__init__(cause.message)
+
+# pylint: disable=no-member
+
+# https://support.cloudflare.com/hc/en-us/articles/115003014512-4xx-Client-Error
+# "Cloudflare will generate and serve a 409 response for a Error 1001: DNS Resolution Error."
+# We may want to condition on the body as well, to allow for some GET requests to return 409 in
+# the future.
+_RETRIABLE_FOR_GETS = {requests.codes.conflict}
+# Retriable regardless of the source
+# Handle 52x responses from cloudflare.
+# See https://support.cloudflare.com/hc/en-us/articles/115003011431/
+_RETRIABLE_STATUS_CODES = {
+    requests.codes.internal_server_error,
+    requests.codes.service_unavailable,
+    *list(range(520, 530)),
+}
+# pylint: enable=no-member
+def _is_retriable(method, code):
+    return code in _RETRIABLE_STATUS_CODES or (method == "GET" and code in _RETRIABLE_FOR_GETS)
 
 class IonQAPIError(IonQError):
     """Base exception for fatal API errors.
@@ -56,6 +85,23 @@ class IonQAPIError(IonQError):
         status_code(int): An HTTP response status code.
         error_type(str): An error type string from the IonQ REST API.
     """
+
+    @classmethod
+    def raise_for_status(cls, response):
+        """Raise an instance of the exception class from an API response object if needed.
+        Args:
+            response (:class:`Response <requests.Response>`): An IonQ REST API response.
+
+        Raises:
+            IonQAPIError: instance of `cls` with error detail from `response`."""
+        status_code = response.status_code
+        if status_code == 200:
+            return None
+        res = cls.from_response(response)
+        raise (IonQRetriableError(res)
+                if _is_retriable(response.request.method, status_code)
+                else res)
+
 
     @classmethod
     def from_response(cls, response):
@@ -70,8 +116,10 @@ class IonQAPIError(IonQError):
         """
         # TODO: Pending API changes will cleanup this error logic:
         status_code = response.status_code
-        response_json = response.json()
-
+        try:
+            response_json = response.json()
+        except jd.JSONDecodeError:
+            response_json = { 'invalid_json': response.text }
         # Defaults, if items cannot be extracted from the response.
         error_type = "internal_error"
         message = "No error details provided."
