@@ -60,6 +60,7 @@ class IonQClient:
         return {
             "Authorization": f"apiKey {self._token}",
             "Content-Type": "application/json",
+            "User-Agent": "Qiskit-IonQ (Python)",
         }
 
     def make_path(self, *parts):
