@@ -364,7 +364,7 @@ def qiskit_to_ionq(circuit, backend_name, gateset="qis", passed_args=None):
         }
     )
 
-    ionq_json = {
+    ionq_json = passed_args.get("api_settings", {}) | {
         "lang": "json",
         "target": backend_name[5:],
         "shots": passed_args.get("shots"),
