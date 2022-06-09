@@ -38,9 +38,9 @@ from qiskit import __version__ as qiskit_terra_version
 from qiskit.circuit import controlledgate as q_cgates
 from qiskit.circuit.library import standard_gates as q_gates
 
-from . import exceptions
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
+from . import exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
@@ -403,7 +403,9 @@ def get_user_agent():
     provider_version_string = f"qiskit-ionq/{version('qiskit_ionq')}"
     qiskit_terra_version_string = f"qiskit-terra/{qiskit_terra_version}"
     python_version_string = f"python/{platform.python_version()}"
-    return f"User-Agent: {provider_version_string} ({qiskit_terra_version_string}) {os_string} ({python_version_string})"
+    return f"User-Agent: {provider_version_string} " \
+           f"({qiskit_terra_version_string}) {os_string} " \
+           f"({python_version_string})"
 
 
 __all__ = [
