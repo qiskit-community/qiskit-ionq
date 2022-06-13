@@ -381,7 +381,7 @@ def qiskit_to_ionq(circuit, backend_name, gateset="qis", passed_args=None):
             "qiskit_header": qiskit_header,
         },
     }
-    settings = passed_args.get("api_settings", None)
+    settings = passed_args.get("job_settings", None)
     if settings is not None:
         ionq_json["settings"] = settings
     return json.dumps(ionq_json)
