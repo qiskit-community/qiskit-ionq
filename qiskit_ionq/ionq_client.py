@@ -31,7 +31,7 @@ import requests
 from retry import retry
 
 from . import exceptions
-from .helpers import qiskit_to_ionq
+from .helpers import qiskit_to_ionq, get_user_agent
 from .exceptions import IonQRetriableError
 
 
@@ -49,6 +49,7 @@ class IonQClient:
         if url and url.endswith("/"):
             url = url[:-1]
         self._url = url
+        self._user_agent = get_user_agent()
 
     @property
     def api_headers(self):
@@ -60,6 +61,7 @@ class IonQClient:
         return {
             "Authorization": f"apiKey {self._token}",
             "Content-Type": "application/json",
+            "User-Agent": self._user_agent,
         }
 
     def make_path(self, *parts):
