@@ -41,9 +41,9 @@ def test_user_agent_header():
 
     user_agent_info_keywords = ["qiskit-ionq", "qiskit-terra", "os", "python"]
     # Checks if all keywords are present in user-agent string.
-    is_all_user_agent_keywords_avail = all(keyword in generated_user_agent for keyword in
+    all_user_agent_keywords_avail = all(keyword in generated_user_agent for keyword in
                                         user_agent_info_keywords)
 
     # Checks whether there is at-least 3 version strings from qiskit-ionq, qiskit-terra, python.
     has_all_version_strings = len(re.findall(r"\s*([\d.]+)", generated_user_agent)) >= 3
-    assert is_all_user_agent_keywords_avail and has_all_version_strings
+    assert all_user_agent_keywords_avail and has_all_version_strings
