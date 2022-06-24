@@ -173,7 +173,7 @@ class IonQBackend(Backend):
         if url is None:
             raise exceptions.IonQCredentialsError("Credentials `url` may not be None!")
 
-        return ionq_client.IonQClient(token, url)
+        return ionq_client.IonQClient(token, url, self._provider.custom_headers)
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,arguments-renamed
     def run(self, circuit, **kwargs):
