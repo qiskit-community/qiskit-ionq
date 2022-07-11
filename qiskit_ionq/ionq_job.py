@@ -389,6 +389,9 @@ class IonQJob(JobV1):
         return Result.from_dict(
             {
                 "results": [job_result],
+                # Qiskit/experiments relies on this being present in this location in the
+                # ExperimentData class.
+                "metadata": qiskit_header or {},
                 "job_id": self.job_id(),
                 "backend_name": backend_name,
                 "backend_version": backend_version,
