@@ -364,7 +364,11 @@ class IonQJob(JobV1):
             (counts, probabilities) = _build_counts(
                 result, use_sampler=is_simulator, sampler_seed=sampler_seed
             )
-            job_result["data"] = {"counts": counts, "probabilities": probabilities}
+            job_result["data"] = {"counts": counts, "probabilities": probabilities,
+                # Qiskit/experiments relies on this being present in this location in the
+                # ExperimentData class.
+                "metadata": qiskit_header or {},
+            }
         if self._status == jobstatus.JobStatus.ERROR:
             failure = result.get("failure") or {}
             failure_type = failure.get("code", "")
