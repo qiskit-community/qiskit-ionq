@@ -393,7 +393,6 @@ class IonQJob(JobV1):
         return Result.from_dict(
             {
                 "results": [job_result],
-
                 "job_id": self.job_id(),
                 "backend_name": backend_name,
                 "backend_version": backend_version,
