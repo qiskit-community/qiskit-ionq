@@ -338,21 +338,21 @@ expected_result = {
     "backend_version": "0.0.1",
     "job_id": "test_id",
     "qobj_id": "test_qobj_id",
-    "metadata": {
-                "clbit_labels": [["c", 0], ["c", 1]],
-                "creg_sizes": [["c", 2]],
-                "global_phase": 0,
-                "memory_slots": 2,
-                "n_qubits": 2,
-                "name": "test_id",
-                "qreg_sizes": [["q", 2]],
-                "qubit_labels": [["q", 0], ["q", 1]],
-    },
     "results": [
         {
             "data": {
                 "counts": {"0x1": 617, "0x3": 617},
                 "probabilities": {"0x1": 0.499999, "0x3": 0.5},
+                "metadata": {
+                            "clbit_labels": [["c", 0], ["c", 1]],
+                            "creg_sizes": [["c", 2]],
+                            "global_phase": 0,
+                            "memory_slots": 2,
+                            "n_qubits": 2,
+                            "name": "test_id",
+                            "qreg_sizes": [["q", 2]],
+                            "qubit_labels": [["q", 0], ["q", 1]],
+                },
             },
             "header": {
                 "clbit_labels": [["c", 0], ["c", 1]],
