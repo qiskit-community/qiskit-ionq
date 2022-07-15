@@ -125,7 +125,7 @@ class IonQBackend(Backend):
 
     @classmethod
     def _default_options(cls):
-        return Options(shots=1024)
+        return Options(shots=1024, job_settings=None)
 
     @property
     def client(self):
@@ -293,7 +293,7 @@ class IonQSimulatorBackend(IonQBackend):
 
     @classmethod
     def _default_options(cls):
-        return Options(shots=1024, sampler_seed=None)
+        return Options(shots=1024, job_settings=None, sampler_seed=None)
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,useless-super-delegation
     def run(self, circuit, **kwargs):
