@@ -72,8 +72,9 @@ class IonQProvider:
 
     name = "ionq_provider"
 
-    def __init__(self, token: str = None, url: str = None):
+    def __init__(self, token: str = None, url: str = None, custom_headers: dict = None):
         super().__init__()
+        self.custom_headers = custom_headers
         self.credentials = resolve_credentials(token, url)
         self.backends = BackendService(
             [

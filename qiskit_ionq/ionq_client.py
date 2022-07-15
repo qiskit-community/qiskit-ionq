@@ -41,10 +41,12 @@ class IonQClient:
     Attributes:
         _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.1"``
         _token(str): An API Access Token to use with the IonQ API.
+        _custom_headers(dict): Extra headers to add to the request.
     """
 
-    def __init__(self, token=None, url=None):
+    def __init__(self, token=None, url=None, custom_headers=None):
         self._token = token
+        self._custom_headers = custom_headers or {}
         # strip trailing slashes from our base URL.
         if url and url.endswith("/"):
             url = url[:-1]
@@ -59,6 +61,7 @@ class IonQClient:
             dict[str, str]: A dict of :class:`requests.Request` headers.
         """
         return {
+            **self._custom_headers,
             "Authorization": f"apiKey {self._token}",
             "Content-Type": "application/json",
             "User-Agent": self._user_agent,
