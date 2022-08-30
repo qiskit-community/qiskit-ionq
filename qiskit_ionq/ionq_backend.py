@@ -209,6 +209,9 @@ class IonQBackend(Backend):
                 )
         if "shots" not in kwargs:
             kwargs["shots"] = self.options.shots
+        # TODO: Should we merge the two maps, or warn if both are set?
+        if "job_settings" not in kwargs:
+            kwargs["job_settings"] = self.options.job_settings
         passed_args = kwargs
 
         job = ionq_job.IonQJob(

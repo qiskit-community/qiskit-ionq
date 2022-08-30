@@ -371,9 +371,6 @@ expected_result = {
     ],
     "success": True,
     "time_taken": 0.008,
-    "status": None,
-    "date": None,
-    "header": None,
 }
 # Validate the result
 def test_result(mock_backend, requests_mock):
