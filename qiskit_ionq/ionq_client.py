@@ -94,7 +94,7 @@ class IonQClient:
             job.circuit, job.backend().name(), job.backend().gateset(), job._passed_args
         )
         req_path = self.make_path("jobs")
-        res = requests.post(req_path, data=as_json, headers=self.api_headers)
+        res = requests.post(req_path, data=as_json, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -114,7 +114,7 @@ class IonQClient:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         req_path = self.make_path("jobs", job_id)
-        res = requests.get(req_path, headers=self.api_headers)
+        res = requests.get(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -134,7 +134,7 @@ class IonQClient:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         req_path = self.make_path("jobs", job_id, "status", "cancel")
-        res = requests.put(req_path, headers=self.api_headers)
+        res = requests.put(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -152,7 +152,7 @@ class IonQClient:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         req_path = self.make_path("jobs", job_id)
-        res = requests.delete(req_path, headers=self.api_headers)
+        res = requests.delete(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(requests)
         return res.json()
 
@@ -192,7 +192,7 @@ class IonQClient:
             dict: A dictionary of an IonQ backend's calibration data.
         """
         req_path = self.make_path("calibrations")
-        res = requests.get(req_path, headers=self.api_headers)
+        res = requests.get(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(requests)
 
         # Get calibrations and filter down to the target
