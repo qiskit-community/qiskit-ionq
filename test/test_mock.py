@@ -35,7 +35,7 @@ from requests_mock import adapter as rm_adapter
 
 def test_global_mock():
     """test the global requests mock"""
-    response = requests.get("https://www.google.com")
+    response = requests.get("https://www.google.com", timeout=30)
     assert response.text == "UNHANDLED REQUEST. PLEASE MOCK WITH requests_mock."
 
 
@@ -46,7 +46,7 @@ def test_fixture_mock(requests_mock):
         requests_mock (:class:`requests_mock.Mocker`): A requests mocker.
     """
     requests_mock.get("https://www.google.com", text="function mock")
-    response = requests.get("https://www.google.com")
+    response = requests.get("https://www.google.com", timeout=30)
     assert response.text == "function mock"
 
 
@@ -90,13 +90,13 @@ class TestUnittestCompatibility(unittest.TestCase):
         Test the class-scoped requests mock, which is setup
         in :meth:`init_requests_mock`
         """
-        response = requests.get("https://www.google.com")
+        response = requests.get("https://www.google.com", timeout=30)
         self.assertEqual(response.text, "class fixture mock")
 
     def test_method_mock(self):
         """Test a method-scoped mock overrides the global."""
         self.requests_mock.get("https://www.google.com", text="instance method fixture mock")
-        response = requests.get("https://www.google.com")
+        response = requests.get("https://www.google.com", timeout=30)
         self.assertEqual(response.text, "instance method fixture mock")
 
     def test_another_method_mock(self):
@@ -105,5 +105,5 @@ class TestUnittestCompatibility(unittest.TestCase):
             "https://www.google.com",
             text="another instance method fixture mock",
         )
-        response = requests.get("https://www.google.com")
+        response = requests.get("https://www.google.com", timeout=30)
         self.assertEqual(response.text, "another instance method fixture mock")

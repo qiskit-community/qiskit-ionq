@@ -70,13 +70,14 @@ class MockBackend(ionq_backend.IonQBackend):
         """Helper method that returns this backend with a more specific target system."""
         return MockBackend(self._provider, name, **kwargs)
 
-def dummy_job_response(job_id, target="mock_backend", status="completed"):
+def dummy_job_response(job_id, target="mock_backend", status="completed", job_settings=None):
     """A dummy response payload for `job_id`.
 
     Args:
         job_id (str): An arbitrary job id.
         target (str): Backend target string.
         status (str): A provided status string.
+        job_settings (dict): Settings provided to the API.
 
     Returns:
         dict: A json response dict.
@@ -117,6 +118,7 @@ def dummy_job_response(job_id, target="mock_backend", status="completed"):
         },
         "target": target,
         "id": job_id,
+        "settings": (job_settings or {}),
     }
 
 
@@ -260,9 +262,11 @@ def formatted_result(provider):
     """
     # Dummy job ID for formatted results fixture.
     job_id = "test_id"
+    settings = { "lorem": {"ipsum":"dolor"} }
 
     # Create a backend and client to use for accessing the job.
     backend = provider.get_backend("ionq_qpu.aria.1")
+    backend.set_options(job_settings=settings)
     client = backend.create_client()
 
     # Create the request path for accessing the dummy job:
@@ -271,7 +275,8 @@ def formatted_result(provider):
     # mock a job response
     with _default_requests_mock() as requests_mock:
         # Mock the response with our dummy job response.
-        requests_mock.get(path, json=dummy_job_response(job_id, "qpu.aria.1"))
+        requests_mock.get(path,
+                json=dummy_job_response(job_id, "qpu.aria.1", "completed", settings))
 
         # Create the job (this calls self.status(), which will fetch the job).
         job = ionq_job.IonQJob(backend, job_id, client)
