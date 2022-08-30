@@ -212,6 +212,9 @@ class IonQBackend(Backend):
         # TODO: Should we merge the two maps, or warn if both are set?
         if "job_settings" not in kwargs:
             kwargs["job_settings"] = self.options.job_settings
+        elif self.options.job_settings is not None:
+            warnings.warn(("Option job_settings is set on the backend, and on the request. "
+                           "Ignoring the backend specified option."), UserWarning, stacklevel=2)
         passed_args = kwargs
 
         job = ionq_job.IonQJob(
