@@ -295,7 +295,7 @@ class IonQSimulatorBackend(IonQBackend):
 
     .. ATTENTION::
 
-        When noise_model ideal is specified,  calling 
+        When noise_model ideal is specified, calling
         :meth:`get_counts <qiskit_ionq.ionq_job.IonQJob.get_counts>`
         on a job processed by this backend will return counts expressed as
         probabilites, rather than a multiple of shots.

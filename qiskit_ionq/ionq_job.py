@@ -44,7 +44,6 @@ from .ionq_result import IonQResult as Result
 from .helpers import decompress_metadata_string_to_dict
 
 
-
 from . import constants, exceptions
 
 
@@ -338,7 +337,9 @@ class IonQJob(JobV1):
         backend = self.backend()
         backend_name = backend.name()
         backend_version = backend.configuration().backend_version
-        is_ideal_simulator = backend_name == "ionq_simulator" and backend.options.noise_model == "ideal"
+        is_ideal_simulator = (
+            backend_name == "ionq_simulator" and backend.options.noise_model == "ideal"
+        )
 
         # Format the inner result payload.
         success = self._status == jobstatus.JobStatus.DONE
@@ -364,7 +365,9 @@ class IonQJob(JobV1):
             (counts, probabilities) = _build_counts(
                 result, use_sampler=is_ideal_simulator, sampler_seed=sampler_seed
             )
-            job_result["data"] = {"counts": counts, "probabilities": probabilities,
+            job_result["data"] = {
+                "counts": counts,
+                "probabilities": probabilities,
                 # Qiskit/experiments relies on this being present in this location in the
                 # ExperimentData class.
                 "metadata": qiskit_header or {},
@@ -384,8 +387,8 @@ class IonQJob(JobV1):
             )
             raise exceptions.IonQJobStateError(error_message)
 
-        if 'warning' in job_result and 'messages'in job_result['warning']:
-            for warning in job_result['warning']['messages']:
+        if "warning" in job_result and "messages" in job_result["warning"]:
+            for warning in job_result["warning"]["messages"]:
                 warnings.warn(warning)
 
         # Create a qiskit result to express the IonQ job result data.
