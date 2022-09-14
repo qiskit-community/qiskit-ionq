@@ -338,7 +338,7 @@ class IonQJob(JobV1):
         backend = self.backend()
         backend_name = backend.name()
         backend_version = backend.configuration().backend_version
-        is_simulator = backend_name == "ionq_simulator"
+        is_ideal_simulator = backend_name == "ionq_simulator" and backend.options.noise_model == "ideal"
 
         # Format the inner result payload.
         success = self._status == jobstatus.JobStatus.DONE
@@ -362,7 +362,7 @@ class IonQJob(JobV1):
         }
         if self._status == jobstatus.JobStatus.DONE:
             (counts, probabilities) = _build_counts(
-                result, use_sampler=is_simulator, sampler_seed=sampler_seed
+                result, use_sampler=is_ideal_simulator, sampler_seed=sampler_seed
             )
             job_result["data"] = {"counts": counts, "probabilities": probabilities,
                 # Qiskit/experiments relies on this being present in this location in the

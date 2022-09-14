@@ -286,20 +286,22 @@ class IonQBackend(Backend):
 class IonQSimulatorBackend(IonQBackend):
     """
     IonQ Backend for running simulated jobs.
+
+    
     .. ATTENTION::
 
-        The maximum shot-count for a state vector sim is always ``1``.
+        When noise_model ideal is specified, the maximum shot-count for a state vector sim is always ``1``.
 
     .. ATTENTION::
 
-        Calling :meth:`get_counts <qiskit_ionq.ionq_job.IonQJob.get_counts>`
+        When noise_model ideal is specified,  calling :meth:`get_counts <qiskit_ionq.ionq_job.IonQJob.get_counts>`
         on a job processed by this backend will return counts expressed as
         probabilites, rather than a multiple of shots.
     """
 
     @classmethod
     def _default_options(cls):
-        return Options(shots=1024, job_settings=None, sampler_seed=None)
+        return Options(shots=1024, job_settings=None, sampler_seed=None, noise_model='ideal')
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,useless-super-delegation
     def run(self, circuit, **kwargs):
