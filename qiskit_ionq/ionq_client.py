@@ -91,7 +91,7 @@ class IonQClient:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         as_json = qiskit_to_ionq(
-            job.circuit, job.backend().name(), job.backend().gateset(), job._passed_args
+                job.circuit, job.backend(), job._passed_args
         )
         req_path = self.make_path("jobs")
         res = requests.post(req_path, data=as_json, headers=self.api_headers, timeout=30)

@@ -338,21 +338,19 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend_name, gateset="qis", passed_args=None):
+def qiskit_to_ionq(circuit, backend, passed_args=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
         circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
-        backend_name (str): Backend name.
-        gateset (str): Controls which gates are valid (`native` operations
-          or `qis`, which transpiles in the IonQ backend from standard Qiskit gates).
+        backend (:class:`qiskit_ionq.IonQBackend`): The IonQ backend.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
 
     Returns:
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
-    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, gateset)
+    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
     qiskit_header = compress_dict_to_metadata_string(
@@ -368,12 +366,13 @@ def qiskit_to_ionq(circuit, backend_name, gateset="qis", passed_args=None):
         }
     )
 
+    target = backend.name()[5:]
     ionq_json = {
         "lang": "json",
-        "target": backend_name[5:],
+        "target": target,
         "shots": passed_args.get("shots"),
         "body": {
-            "gateset": gateset,
+            "gateset": backend.gateset(),
             "qubits": circuit.num_qubits,
             "circuit": ionq_circ,
         },
@@ -385,6 +384,11 @@ def qiskit_to_ionq(circuit, backend_name, gateset="qis", passed_args=None):
             "qiskit_header": qiskit_header,
         },
     }
+    if target == "simulator":
+        ionq_json["noise"] = {
+                "model": backend.options.noise_model,
+                "seed": backend.options.sampler_seed,
+        }
     settings = passed_args.get("job_settings") or None
     if settings is not None:
         ionq_json["settings"] = settings

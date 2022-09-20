@@ -53,7 +53,7 @@ def test_output_map__with_multiple_measurements_to_different_clbits(
     qc.measure(0, 0)
     qc.measure(0, 1)
     ionq_json = qiskit_to_ionq(
-        qc, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
+        qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
     actual_maps = actual.pop("registers") or {}
@@ -74,7 +74,7 @@ def test_output_map__with_multiple_measurements_to_same_clbit(
     qc.measure(0, 0)
     qc.measure(1, 0)
     ionq_json = qiskit_to_ionq(
-        qc, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
+        qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
     actual_maps = actual.pop("registers") or {}
@@ -100,7 +100,7 @@ def test_output_map__with_multiple_registers(
     qc.measure([qr0[0], qr0[1], qr1[0], qr1[1]], [cr0[0], cr0[1], cr1[0], cr1[1]])
 
     ionq_json = qiskit_to_ionq(
-        qc, simulator_backend.name(), passed_args={"shots": 123, "sampler_seed": 42}
+        qc, simulator_backend, passed_args={"shots": 123, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
     actual_maps = actual.pop("registers") or {}
@@ -122,7 +122,7 @@ def test_metadata_header__with_multiple_registers(
     qc.measure([qr1[0], qr1[1]], [cr1[0], cr1[1]])
 
     ionq_json = qiskit_to_ionq(
-        qc, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
+        qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
 
     expected_metadata_header = {
@@ -158,7 +158,7 @@ def test_full_circuit(simulator_backend):
     qc.measure(1, 0)
     qc.measure(0, 1)
     ionq_json = qiskit_to_ionq(
-        qc, simulator_backend.name(), passed_args={"shots": 200, "sampler_seed": 42}
+        qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
     expected_metadata_header = {
         "memory_slots": 2,
@@ -176,6 +176,10 @@ def test_full_circuit(simulator_backend):
         "lang": "json",
         "target": "simulator",
         "shots": 200,
+        "noise": {
+            "model": "ideal",
+            "seed": None,
+        },
         "body": {
             "gateset": "qis",
             "qubits": 2,
@@ -225,6 +229,7 @@ def test_circuit_incorrect(simulator_backend):
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
+    native_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
     circ = QuantumCircuit(2, 2, name="blame_test")
     circ.cnot(1, 0)
     circ.h(1)
@@ -233,8 +238,7 @@ def test_circuit_incorrect(simulator_backend):
     with pytest.raises(IonQGateError) as exc_info:
         qiskit_to_ionq(
             circ,
-            simulator_backend.name(),
-            gateset="native",
+            native_backend,
             passed_args={"shots": 200, "sampler_seed": 23},
         )
     assert exc_info.value.gateset == "native"
@@ -252,8 +256,7 @@ def test_native_circuit_incorrect(simulator_backend):
     with pytest.raises(IonQGateError) as exc_info:
         qiskit_to_ionq(
             circ,
-            simulator_backend.name(),
-            gateset="qis",
+            simulator_backend,
             passed_args={"shots": 200, "sampler_seed": 23},
         )
     assert exc_info.value.gateset == "qis"
@@ -282,14 +285,14 @@ def test_full_native_circuit(simulator_backend):
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
+    native_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
     qc = QuantumCircuit(3, name="blame_test")
     qc.append(GPIGate(0.1), [0])
     qc.append(GPI2Gate(0.2), [1])
     qc.append(MSGate(0.2, 0.3), [1, 2])
     ionq_json = qiskit_to_ionq(
         qc,
-        simulator_backend.name(),
-        gateset="native",
+        native_backend,
         passed_args={"shots": 200, "sampler_seed": 23},
     )
     expected_metadata_header = {
@@ -307,6 +310,10 @@ def test_full_native_circuit(simulator_backend):
         "lang": "json",
         "target": "simulator",
         "shots": 200,
+        "noise": {
+            "model": "ideal",
+            "seed": None,
+        },
         "body": {
             "gateset": "native",
             "qubits": 3,
