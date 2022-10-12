@@ -106,7 +106,7 @@ class MSGate(Gate):
     .. math::
 
        MS(\phi_0, _\phi_1, \theta) q_0, q_1 =
-            \frac{1}{\sqrt{2}}\begin{pmatrix}
+            \begin{pmatrix}
                 cos{\th} & 0         & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1)}*sin{\th} \\
                 0 & cos{\th} & -i*e^{-i*2*\pi(\phi_0-\phi_1)}*sin{\th} & 0 \\
                 0 & -i*e^{i*2*\pi(\phi_0-\phi_1)} & cos{\th}*sin{\th} & 0 \\
