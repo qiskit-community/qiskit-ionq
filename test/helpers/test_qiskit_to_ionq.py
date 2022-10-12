@@ -272,7 +272,7 @@ def test_native_circuit_transpile(simulator_backend):
     circ = QuantumCircuit(3, name="blame_test")
     circ.append(GPIGate(0.1), [0])
     circ.append(GPI2Gate(0.2), [1])
-    circ.append(MSGate(0.2, 0.3), [1, 2])
+    circ.append(MSGate(0.2, 0.3, 0.25), [1, 2])
 
     with pytest.raises(QiskitError) as exc_info:
         transpile(circ, backend=simulator_backend)
@@ -289,7 +289,7 @@ def test_full_native_circuit(simulator_backend):
     qc = QuantumCircuit(3, name="blame_test")
     qc.append(GPIGate(0.1), [0])
     qc.append(GPI2Gate(0.2), [1])
-    qc.append(MSGate(0.2, 0.3), [1, 2])
+    qc.append(MSGate(0.2, 0.3, 0.25), [1, 2])
     ionq_json = qiskit_to_ionq(
         qc,
         native_backend,
@@ -320,7 +320,7 @@ def test_full_native_circuit(simulator_backend):
             "circuit": [
                 {"gate": "gpi", "target": 0, "phase": 0.1},
                 {"gate": "gpi2", "target": 1, "phase": 0.2},
-                {"gate": "ms", "targets": [1, 2], "phases": [0.2, 0.3]},
+                {"gate": "ms", "targets": [1, 2], "phases": [0.2, 0.3], "angle": 0.25},
             ],
         },
     }
@@ -331,6 +331,8 @@ def test_full_native_circuit(simulator_backend):
         actual_metadata.pop("qiskit_header") or None
     )
     registers = actual.pop("registers") or {}
+
+    print(actual)
 
     # check dict equality:
     assert actual_metadata == expected_metadata

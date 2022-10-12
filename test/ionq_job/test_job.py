@@ -375,6 +375,8 @@ expected_result = {
     "date": None,
     "header": None,
 }
+
+
 # Validate the result
 def test_result(mock_backend, requests_mock):
     """Test basic "happy path" for result fetching.
