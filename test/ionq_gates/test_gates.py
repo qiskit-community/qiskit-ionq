@@ -65,8 +65,13 @@ def test_gpi2_inverse(phase):
 
 
 @pytest.mark.parametrize(
-    "params",
-    [(0, 1, 0.25), (0.1, 1, 0.25), (0.4, 1, 0.25), (math.pi / 2, 0, 0.25), (0, math.pi, 0.25), (0.1, 2 * math.pi, 0.25)],
+    "params", [
+        (0, 1, 0.25),
+        (0.1, 1, 0.25),
+        (0.4, 1, 0.25),
+        (math.pi / 2, 0, 0.25),
+        (0, math.pi, 0.25),
+        (0.1, 2 * math.pi, 0.25)],
 )
 def test_ms_inverse(params):
     """Tests that the MS gate is unitary."""
