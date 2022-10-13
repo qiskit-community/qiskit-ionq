@@ -332,8 +332,6 @@ def test_full_native_circuit(simulator_backend):
     )
     registers = actual.pop("registers") or {}
 
-    print(actual)
-
     # check dict equality:
     assert actual_metadata == expected_metadata
     assert actual_metadata_header == expected_metadata_header
