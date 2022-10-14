@@ -107,10 +107,10 @@ class MSGate(Gate):
 
        MS(\phi_0, _\phi_1, \theta) q_0, q_1 =
             \begin{pmatrix}
-                cos{\th} & 0 & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1)}*sin{\th} \\
-                0 & cos{\th} & -i*e^{-i*2*\pi(\phi_0-\phi_1)}*sin{\th} & 0 \\
-                0 & -i*e^{i*2*\pi(\phi_0-\phi_1)}*sin(\th) & cos{\th} & 0 \\
-                -i*e^{i*2*\pi(\phi_0+\phi_1)}*sin{\th} & 0 & 0 & cos{\th}
+                cos{\th/2} & 0 & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1)}*sin{\th/2} \\
+                0 & cos{\th/2} & -i*e^{-i*2*\pi(\phi_0-\phi_1)}*sin{\th/2} & 0 \\
+                0 & -i*e^{i*2*\pi(\phi_0-\phi_1)}*sin(\th/2) & cos{\th/2} & 0 \\
+                -i*e^{i*2*\pi(\phi_0+\phi_1)}*sin{\th/2} & 0 & 0 & cos{\th/2}
             \end{pmatrix}
     """
 
@@ -134,8 +134,8 @@ class MSGate(Gate):
         phi0 = self.params[0]
         phi1 = self.params[1]
         theta = self.params[2]
-        diag = numpy.cos(2 * math.pi * theta)
-        sin = numpy.sin(2 * math.pi * theta)
+        diag = numpy.cos(math.pi * theta)
+        sin = numpy.sin(math.pi * theta)
 
         return numpy.array(
             [
