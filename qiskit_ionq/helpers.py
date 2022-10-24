@@ -185,7 +185,10 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
                     else "phase": float(instruction.params[0])
                 }
             else:
-                rotation = {"phases": [float(t) for t in instruction.params]}
+                rotation = {
+                    "phases": [float(t) for t in instruction.params[:2]],
+                    "angle": instruction.params[2]
+                }
 
         # Default conversion is simple, just gate & target(s).
         targets = [input_circuit.qubits.index(qargs[0])]

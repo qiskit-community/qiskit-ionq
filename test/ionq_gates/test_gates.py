@@ -65,12 +65,17 @@ def test_gpi2_inverse(phase):
 
 
 @pytest.mark.parametrize(
-    "phases",
-    [(0, 1), (0.1, 1), (0.4, 1), (math.pi / 2, 0), (0, math.pi), (0.1, 2 * math.pi)],
+    "params", [
+        (0, 1, 0.25),
+        (0.1, 1, 0.25),
+        (0.4, 1, 0.25),
+        (math.pi / 2, 0, 0.25),
+        (0, math.pi, 0.25),
+        (0.1, 2 * math.pi, 0.25)],
 )
-def test_ms_inverse(phases):
+def test_ms_inverse(params):
     """Tests that the MS gate is unitary."""
-    gate = MSGate(phases[0], phases[1])
+    gate = MSGate(params[0], params[1], params[2])
 
     mat = numpy.array(gate)
     numpy.testing.assert_array_almost_equal(mat.dot(mat.conj().T), numpy.identity(4))
