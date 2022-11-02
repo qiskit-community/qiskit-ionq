@@ -383,7 +383,7 @@ class IonQQPUBackend(IonQBackend):
                 # This is a generic backend for all IonQ hardware, the server will do more specific
                 # qubit count checks. In the future, dynamic backend configuration from the server
                 # will be used in place of these hard-coded caps.
-                "n_qubits": 23,
+                "n_qubits": 32,
                 "conditional": False,
                 "max_shots": 10000,
                 "max_experiments": 1,
