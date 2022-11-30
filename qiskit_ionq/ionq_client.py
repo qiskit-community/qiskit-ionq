@@ -26,8 +26,8 @@
 
 """Basic API Client for IonQ's REST API"""
 
-import requests
 import warnings
+import requests
 
 from retry import retry
 
