@@ -167,18 +167,17 @@ class IonQClient:
         Calibration::
 
             {
-                "id": <str>,
-                "date": <int>,
+                "calibration_time": <int>,
                 "target": <str>,
-                "qubits": <int>,
+                "num_qubits": <int>,
                 "connectivity": [<int>, ...],
-                "fidelity": {
+                "fidelities": {
                     "spam": {
                         "mean": <int>,
                         "stderr": <int>
                     }
                 },
-                "timing": {
+                "timings": {
                     "readout": <int>,
                     "reset": <int>
                 }
