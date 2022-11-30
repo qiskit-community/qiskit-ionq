@@ -27,7 +27,7 @@
 """IonQ provider backends."""
 
 import abc
-import datetime
+from datetime import datetime
 import warnings
 
 import dateutil.parser
