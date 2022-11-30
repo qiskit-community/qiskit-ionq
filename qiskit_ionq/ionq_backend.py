@@ -27,9 +27,9 @@
 """IonQ provider backends."""
 
 import abc
+from datetime import datetime
 import warnings
 
-import dateutil.parser
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.models.backendstatus import BackendStatus
@@ -50,6 +50,15 @@ class Calibration:
         self._data = data
 
     @property
+    def uuid(self):
+        """The ID of the calibration.
+
+        Returns:
+           str: The ID.
+        """
+        return self._data["id"]
+
+    @property
     def num_qubits(self):
         """The number of qubits available.
 
@@ -65,7 +74,7 @@ class Calibration:
         Returns:
             str: The name of the target hardware backend.
         """
-        return self._data["target"]
+        return self._data["backend"]
 
     @property
     def calibration_time(self):
@@ -74,7 +83,7 @@ class Calibration:
         Returns:
             datetime.datetime: A datetime object with the time.
         """
-        return dateutil.parser.isoparse(self._data["date"])
+        return datetime.fromtimestamp(self._data["date"])
 
     @property
     def fidelities(self):
@@ -347,7 +356,7 @@ class IonQSimulatorBackend(IonQBackend):
                 "description": "IonQ simulator",
                 "basis_gates": GATESET_MAP[gateset],
                 "memory": False,
-                "n_qubits": 32,
+                "n_qubits": 32, # Varied based on noise model, but enforced server-side.
                 "conditional": False,
                 "max_shots": 1,
                 "max_experiments": 1,

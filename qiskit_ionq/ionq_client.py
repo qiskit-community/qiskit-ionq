@@ -153,7 +153,7 @@ class IonQClient:
         """
         req_path = self.make_path("jobs", job_id)
         res = requests.delete(req_path, headers=self.api_headers, timeout=30)
-        exceptions.IonQAPIError.raise_for_status(requests)
+        exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
@@ -166,46 +166,35 @@ class IonQClient:
         Calibration::
 
             {
-                "pages": <int>,
-                "calibrations": [
-                    {
-                        "id": <str>,
-                        "date": <int>,
-                        "target": <str>,
-                        "qubits": <int>,
-                        "connectivity": [<int>, ...],
-                        "fidelity": {
-                            "spam": {
-                                "mean": <int>,
-                                "stderr": <int>
-                            }
-                        },
-                        "timing": {
-                            "readout": <int>,
-                            "reset": <int>
-                        }
+                "id": <str>,
+                "calibration_time": <int>,
+                "target": <str>,
+                "num_qubits": <int>,
+                "connectivity": [<int>, ...],
+                "fidelity": {
+                    "spam": {
+                        "mean": <int>,
+                        "stderr": <int>
                     }
-                ]
+                },
+                "timing": {
+                    "readout": <int>,
+                    "reset": <int>
+                }
             }
 
         Returns:
             dict: A dictionary of an IonQ backend's calibration data.
         """
-        req_path = self.make_path("calibrations")
+        req_path = self.make_path("/".join([
+            "characterizations/backends",
+            backend_name[5:],
+            "current"
+        ]))
         res = requests.get(req_path, headers=self.api_headers, timeout=30)
-        exceptions.IonQAPIError.raise_for_status(requests)
+        exceptions.IonQAPIError.raise_for_status(res)
 
-        # Get calibrations and filter down to the target
-        response = res.json()
-        calibrations = response.get("calibrations") or []
-        calibrations = [c for c in calibrations if c.get("target") == backend_name]
-
-        # If nothing was found, just return None.
-        if len(calibrations) == 0:
-            return None
-
-        # Calibrations are in most recent order in the response, so get the first.
-        return calibrations[0]
+        return res.json()
 
 
 __all__ = ["IonQClient"]
