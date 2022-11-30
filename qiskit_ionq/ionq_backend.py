@@ -51,7 +51,7 @@ class Calibration:
         self._data = data
 
     @property
-    def id(self):
+    def uuid(self):
         """The ID of the calibration.
 
         Returns:
