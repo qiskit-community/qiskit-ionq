@@ -347,7 +347,7 @@ class IonQSimulatorBackend(IonQBackend):
                 "description": "IonQ simulator",
                 "basis_gates": GATESET_MAP[gateset],
                 "memory": False,
-                "n_qubits": 32,
+                "n_qubits": 32, # Varied based on noise model, but enforced server-side.
                 "conditional": False,
                 "max_shots": 1,
                 "max_experiments": 1,

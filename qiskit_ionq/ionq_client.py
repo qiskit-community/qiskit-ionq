@@ -27,6 +27,7 @@
 """Basic API Client for IonQ's REST API"""
 
 import requests
+import warnings
 
 from retry import retry
 
@@ -153,7 +154,7 @@ class IonQClient:
         """
         req_path = self.make_path("jobs", job_id)
         res = requests.delete(req_path, headers=self.api_headers, timeout=30)
-        exceptions.IonQAPIError.raise_for_status(requests)
+        exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
@@ -191,21 +192,34 @@ class IonQClient:
         Returns:
             dict: A dictionary of an IonQ backend's calibration data.
         """
-        req_path = self.make_path("calibrations")
+        req_path = self.make_path("backends")
         res = requests.get(req_path, headers=self.api_headers, timeout=30)
-        exceptions.IonQAPIError.raise_for_status(requests)
+        exceptions.IonQAPIError.raise_for_status(res)
 
         # Get calibrations and filter down to the target
         response = res.json()
-        calibrations = response.get("calibrations") or []
-        calibrations = [c for c in calibrations if c.get("target") == backend_name]
+        warnings.warn(f"{response}")
+        backend = [b for b in response if backend_name.endswith(b.get("backend")) ]
 
         # If nothing was found, just return None.
-        if len(calibrations) == 0:
+        if len(backend) == 0:
+            warnings.warn(f"Backend {backend_name} not found")
             return None
 
-        # Calibrations are in most recent order in the response, so get the first.
-        return calibrations[0]
+        if len(backend) > 1:
+            warnings.warn(f"Backend {backend_name} matches multiple, using the first found")
+            return None
+
+        characterization_url = backend[0].get("characterization_url")
+        if len(characterization_url) == 0:
+            warnings.warn(f"Backend {backend} did not have calibration data")
+            return None
+
+        full_url = self.make_path(characterization_url[1:])
+        res = requests.get(full_url, headers=self.api_headers, timeout=30)
+        exceptions.IonQAPIError.raise_for_status(res)
+
+        return res.json()
 
 
 __all__ = ["IonQClient"]
