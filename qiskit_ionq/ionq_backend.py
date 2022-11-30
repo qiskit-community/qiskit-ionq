@@ -27,6 +27,7 @@
 """IonQ provider backends."""
 
 import abc
+import datetime
 import warnings
 
 import dateutil.parser
@@ -50,6 +51,15 @@ class Calibration:
         self._data = data
 
     @property
+    def id(self):
+        """The ID of the calibration.
+
+        Returns:
+           str: The ID.
+        """
+        return self._data["id"]
+
+    @property
     def num_qubits(self):
         """The number of qubits available.
 
@@ -65,7 +75,7 @@ class Calibration:
         Returns:
             str: The name of the target hardware backend.
         """
-        return self._data["target"]
+        return self._data["backend"]
 
     @property
     def calibration_time(self):
@@ -74,7 +84,7 @@ class Calibration:
         Returns:
             datetime.datetime: A datetime object with the time.
         """
-        return dateutil.parser.isoparse(self._data["date"])
+        return datetime.fromtimestamp(self._data["date"])
 
     @property
     def fidelities(self):

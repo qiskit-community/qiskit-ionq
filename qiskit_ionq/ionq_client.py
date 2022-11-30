@@ -167,17 +167,18 @@ class IonQClient:
         Calibration::
 
             {
+                "id": <str>,
                 "calibration_time": <int>,
                 "target": <str>,
                 "num_qubits": <int>,
                 "connectivity": [<int>, ...],
-                "fidelities": {
+                "fidelity": {
                     "spam": {
                         "mean": <int>,
                         "stderr": <int>
                     }
                 },
-                "timings": {
+                "timing": {
                     "readout": <int>,
                     "reset": <int>
                 }
@@ -186,31 +187,8 @@ class IonQClient:
         Returns:
             dict: A dictionary of an IonQ backend's calibration data.
         """
-        req_path = self.make_path("backends")
+        req_path = self.make_path("/".join(["characterizations/backends", backend_name[5:], "current"]))
         res = requests.get(req_path, headers=self.api_headers, timeout=30)
-        exceptions.IonQAPIError.raise_for_status(res)
-
-        # Get calibrations and filter down to the target
-        response = res.json()
-        warnings.warn(f"{response}")
-        backend = [b for b in response if backend_name.endswith(b.get("backend")) ]
-
-        # If nothing was found, just return None.
-        if len(backend) == 0:
-            warnings.warn(f"Backend {backend_name} not found")
-            return None
-
-        if len(backend) > 1:
-            warnings.warn(f"Backend {backend_name} matches multiple, using the first found")
-            return None
-
-        characterization_url = backend[0].get("characterization_url")
-        if len(characterization_url) == 0:
-            warnings.warn(f"Backend {backend} did not have calibration data")
-            return None
-
-        full_url = self.make_path(characterization_url[1:])
-        res = requests.get(full_url, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
 
         return res.json()
