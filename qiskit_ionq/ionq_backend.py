@@ -30,7 +30,6 @@ import abc
 from datetime import datetime
 import warnings
 
-import dateutil.parser
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.models.backendstatus import BackendStatus

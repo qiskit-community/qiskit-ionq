@@ -26,7 +26,6 @@
 
 """Basic API Client for IonQ's REST API"""
 
-import warnings
 import requests
 
 from retry import retry
@@ -187,7 +186,11 @@ class IonQClient:
         Returns:
             dict: A dictionary of an IonQ backend's calibration data.
         """
-        req_path = self.make_path("/".join(["characterizations/backends", backend_name[5:], "current"]))
+        req_path = self.make_path("/".join([
+            "characterizations/backends",
+            backend_name[5:],
+            "current"
+        ]))
         res = requests.get(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
 
