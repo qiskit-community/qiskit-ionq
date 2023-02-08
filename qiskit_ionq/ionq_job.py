@@ -48,10 +48,19 @@ from . import constants, exceptions
 
 
 def map_output(data, clbits, num_qubits):
+    """Map histogram according to measured bits"""
+
+    if not clbits:
+        return {}
+
     mapped_output = {}
+
     for value, probability in data.items():
         bitstring = bin(int(value))[2:].rjust(num_qubits, "0")[::-1]
-        def valid_index(i): return i is not None and 0 <= i < len(bitstring)
+
+        def valid_index(i):
+            return i is not None and 0 <= i < len(bitstring)
+
         bitvalue = int(''.join(
             [(bitstring[i] if valid_index(i) else '0') for i in clbits]
         )[::-1], 2)
@@ -270,6 +279,8 @@ class IonQJob(JobV1):
         Raises:
             IonQJobError: If the IonQ job status was unknown or otherwise
                 unmappable to a qiskit job status.
+            IonQJobFailureError: If the job fails
+            IonQJobStateError: If the job was cancelled
 
         Returns:
             JobStatus: An enum value from Qiskit's :class:`JobStatus <qiskit.providers.JobStatus>`.
