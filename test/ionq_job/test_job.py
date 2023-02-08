@@ -486,7 +486,6 @@ def test_result__from_circuit(mock_backend, requests_mock):
 
     # Validate the result and its format. should be the same as base case.
     res = job.result().to_dict()
-    print(res)
     assert res == expected_result
 
 

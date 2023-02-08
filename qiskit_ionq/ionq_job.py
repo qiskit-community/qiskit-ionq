@@ -55,15 +55,15 @@ def map_output(data, clbits, num_qubits):
 
     mapped_output = {}
 
+    def get_bitvalue(bitstring, bit):
+        if bit is not None and 0 <= bit < len(bitstring):
+            return bitstring[bit]
+        return '0'
+
     for value, probability in data.items():
         bitstring = bin(int(value))[2:].rjust(num_qubits, "0")[::-1]
 
-        def valid_index(i):
-            return i is not None and 0 <= i < len(bitstring)
-
-        bitvalue = int(''.join(
-            [(bitstring[i] if valid_index(i) else '0') for i in clbits]
-        )[::-1], 2)
+        bitvalue = int(''.join([get_bitvalue(i, bitstring) for i in clbits])[::-1], 2)
 
         acc_prob = mapped_output.get(bitvalue) or 0
         mapped_output[bitvalue] = acc_prob + probability
