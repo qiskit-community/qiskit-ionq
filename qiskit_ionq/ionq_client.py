@@ -39,7 +39,7 @@ class IonQClient:
     """IonQ API Client
 
     Attributes:
-        _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.1"``
+        _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.3"``
         _token(str): An API Access Token to use with the IonQ API.
         _custom_headers(dict): Extra headers to add to the request.
     """
@@ -194,6 +194,26 @@ class IonQClient:
         res = requests.get(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
 
+        return res.json()
+
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
+    def get_results(self, job_id: str):
+        """Retrieve job results from the IonQ API.
+
+        The returned JSON dict will only have data if job has completed.
+
+        Args:
+            job_id (str): The ID of a job to retrieve.
+
+        Raises:
+            IonQAPIError: When the API returns a non-200 status code.
+
+        Returns:
+            dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
+        """
+        req_path = self.make_path("jobs", job_id, "results")
+        res = requests.get(req_path, headers=self.api_headers, timeout=30)
+        exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
 

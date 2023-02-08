@@ -104,18 +104,13 @@ def dummy_job_response(job_id, target="mock_backend", status="completed", job_se
             "output_length": "2",
             "qiskit_header": qiskit_header,
         },
+        "registers": {"meas_mapped": [0, 1]},
         "execution_time": 8,
         "qubits": 2,
         "type": "circuit",
         "request": 1600000000,
         "start": 1600000001,
         "response": 1600000002,
-        "data": {
-            "histogram": {"0": 0.5, "2": 0.499999},
-            "registers": {
-                "meas_mapped": {"1": 0.499999, "3": 0.5}
-            },  # implies measurement map of [1,0]
-        },
         "target": target,
         "id": job_id,
         "settings": (job_settings or {}),
@@ -271,12 +266,16 @@ def formatted_result(provider):
 
     # Create the request path for accessing the dummy job:
     path = client.make_path("jobs", job_id)
+    results_path = client.make_path("jobs", job_id, "results")
 
     # mock a job response
     with _default_requests_mock() as requests_mock:
         # Mock the response with our dummy job response.
         requests_mock.get(path,
                 json=dummy_job_response(job_id, "qpu.aria.1", "completed", settings))
+
+        requests_mock.get(results_path,
+                json={"0": 0.5, "2": 0.499999})
 
         # Create the job (this calls self.status(), which will fetch the job).
         job = ionq_job.IonQJob(backend, job_id, client)

@@ -44,7 +44,7 @@ def resolve_credentials(token: str = None, url: str = None):
     are loaded from the ``QISKIT_IONQ_API_TOKEN`` and ``QISKIT_IONQ_API_URL``
     environment variables, respectively.
 
-    If no url is discovered, then ``https://api.ionq.co/v0.2`` is used.
+    If no url is discovered, then ``https://api.ionq.co/v0.3`` is used.
 
     Args:
         token (str): IonQ API access token.
@@ -57,7 +57,7 @@ def resolve_credentials(token: str = None, url: str = None):
     env_url = os.environ.get("QISKIT_IONQ_API_URL")
     return {
         "token": token or env_token,
-        "url": url or env_url or "https://api.ionq.co/v0.2",
+        "url": url or env_url or "https://api.ionq.co/v0.3",
     }
 
 
