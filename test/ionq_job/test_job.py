@@ -426,6 +426,9 @@ expected_result = {
     ],
     "success": True,
     "time_taken": 0.008,
+    "status": None,
+    "date": None,
+    "header": None,
 }
 
 
