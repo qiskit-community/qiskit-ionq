@@ -63,4 +63,19 @@ class JobStatusMap(enum.Enum):
     FAILED = jobstatus.JobStatus.ERROR.name
 
 
+class AggregationType(enum.Enum):
+    """Class for job results aggregation enumerated type."""
+
+    AVERAGE = 'average'
+    MAJORITY = 'majority'
+
+
+class ErrorMitigation(enum.Enum):
+    """Class for error mitigation settings enumerated type."""
+
+    NO_SYMMETRIZATION = {"symmetrization": False}
+    SYMMETRIZATION_AVERAGE = {"symmetrization": {"aggregation": "average"}}
+    SYMMETRIZATION_MAJORITY = {"symmetrization": {"aggregation": "majority"}}
+
+
 __all__ = ["APIJobStatus", "JobStatusMap"]

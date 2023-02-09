@@ -27,19 +27,11 @@
 """
 IonQ result implementation that extends to allow for retrieval of probabilities.
 """
-import enum
 
 from qiskit.exceptions import QiskitError
 from qiskit.result import Result
 from qiskit.result.counts import Counts
 from . import exceptions
-
-
-class AggregationType(enum.Enum):
-    """Class for job status enumerated type."""
-
-    AVERAGE = 'average'
-    MAJORITY = 'majority'
 
 
 class IonQResult(Result):

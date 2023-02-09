@@ -35,7 +35,7 @@ from qiskit.providers import jobstatus
 
 from qiskit.qobj.utils import MeasLevel
 from qiskit_ionq import exceptions, ionq_job
-from qiskit_ionq import ionq_result
+from qiskit_ionq.constants import AggregationType
 
 from .. import conftest
 
@@ -481,7 +481,7 @@ def test_result__with_aggregation(mock_backend, requests_mock):
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
 
-    assert job.result(aggregation=ionq_result.AggregationType.AVERAGE).to_dict() == expected_result
+    assert job.result(aggregation=AggregationType.AVERAGE).to_dict() == expected_result
 
 
 def test_result__bad_aggregation(mock_backend, requests_mock):

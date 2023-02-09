@@ -40,7 +40,8 @@ import numpy as np
 
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
-from .ionq_result import (IonQResult as Result, AggregationType)
+from .ionq_result import IonQResult as Result
+from .constants import AggregationType
 from .helpers import decompress_metadata_string_to_dict
 
 
