@@ -257,6 +257,9 @@ class IonQJob(JobV1):
         """
         # TODO: cache results by aggregation type
 
+        if aggregation is not None and not isinstance(aggregation, AggregationType):
+            raise exceptions.IonQJobError("Invalid aggregation type")
+
         # Wait for the job to complete.
         try:
             self.wait_for_final_state()
