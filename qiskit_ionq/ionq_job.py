@@ -47,7 +47,30 @@ from .helpers import decompress_metadata_string_to_dict
 from . import constants, exceptions
 
 
-def _build_counts(result, use_sampler=False, sampler_seed=None):
+def map_output(data, clbits, num_qubits):
+    """Map histogram according to measured bits"""
+
+    if not clbits:
+        return {}
+
+    mapped_output = {}
+
+    def get_bitvalue(bitstring, bit):
+        if bit is not None and 0 <= bit < len(bitstring):
+            return bitstring[bit]
+        return '0'
+
+    for value, probability in data.items():
+        bitstring = bin(int(value))[2:].rjust(num_qubits, "0")[::-1]
+
+        outvalue = int(''.join([get_bitvalue(bitstring, bit) for bit in clbits])[::-1], 2)
+
+        mapped_output[outvalue] = mapped_output.get(outvalue, 0) + probability
+
+    return mapped_output
+
+
+def _build_counts(data, num_qubits, clbits, shots, use_sampler=False, sampler_seed=None):
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
     .. NOTE:: For simulator jobs, this method builds counts using a randomly
@@ -57,7 +80,10 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
         sampler_seed in the run method may result in slightly different counts.
 
     Args:
-        result (dict): A REST API response.
+        data (dict): histogram as returned by the API.
+        num_qubits (int): number of qubits
+        clbits (List[int]): array of classical bits for measurements
+        shots (int): number of shots
         use_sampler (bool): for counts generation, whether to use
             simple shots * probabilities (for qpu) or a sampler (for simulator)
         sampler_seed (int): ability to provide a seed for the randomness in the
@@ -75,31 +101,11 @@ def _build_counts(result, use_sampler=False, sampler_seed=None):
             properties.
     """
     # Short circuit when we don't have all the information we need.
-    if not result:
-        raise exceptions.IonQJobError("Cannot remap counts without an API response!")
-
-    # Check for required result dict keys:
-    if "qubits" not in result:
-        raise exceptions.IonQJobError("Cannot remap counts without qubits!")
-    if "metadata" not in result:
-        raise exceptions.IonQJobError("Cannot remap counts without metadata!")
-    if "data" not in result:
-        raise exceptions.IonQJobError("Cannot remap counts without result data!")
-
-    # Pull metadata, histogram, and num_qubits to perform the mapping.
-    metadata = result["metadata"]
-    num_qubits = result["qubits"]
-
-    # Get shot count.
-    shots = metadata.get("shots", "1024")
-    shots = (
-        int(shots) if shots.isdigit() else 1024
-    )  # We do this in case shots was 0 or None.
+    if not data:
+        raise exceptions.IonQJobError("Cannot remap counts without data!")
 
     # Grab the mapped output from response.
-    output_probs = (result["data"].get("registers", {}) or {}).get("meas_mapped", {})
-    if not output_probs:
-        output_probs = result["data"].get("histogram", {})
+    output_probs = map_output(data, clbits, num_qubits)
 
     sampled = {}
     if use_sampler:
@@ -150,10 +156,7 @@ class IonQJob(JobV1):
         circuit(:mod:`QuantumCircuit <qiskit.QuantumCircuit>`): A possibly ``None``
             Qiskit quantum circuit.
         _result(:class:`Result <qiskit.result.Result>`):
-            The actual Qiskit Result of this job.
-            This attribute is only populated when :meth:`status` is called and
-            the job has reached a one of the status values in ``JOB_FINAL_STATES``
-            from ``qiskit.providers.jobstatus``
+            The actual Qiskit Result of this job when done.
     """
 
     def __init__(self, backend, job_id, client=None, circuit=None, passed_args=None):
@@ -162,6 +165,8 @@ class IonQJob(JobV1):
         self._passed_args = passed_args or {"shots": 1024, "sampler_seed": None}
         self._result = None
         self._status = None
+        self._execution_time = None
+        self._metadata = {}
 
         if circuit is not None:
             self.circuit = circuit
@@ -261,17 +266,20 @@ class IonQJob(JobV1):
                 "Timed out waiting for job to complete."
             ) from ex
 
+        if self._status is jobstatus.JobStatus.DONE:
+            response = self._client.get_results(self._job_id)
+            self._result = self._format_result(response)
+
         return self._result
 
     def status(self):
         """Retrieve the status of a job
 
-        This will also populate :attr:`_result` with a :class:`Result <qiskit.result.Result>`
-        object, if the job's status has reached a "final" state.
-
         Raises:
             IonQJobError: If the IonQ job status was unknown or otherwise
                 unmappable to a qiskit job status.
+            IonQJobFailureError: If the job fails
+            IonQJobStateError: If the job was cancelled
 
         Returns:
             JobStatus: An enum value from Qiskit's :class:`JobStatus <qiskit.providers.JobStatus>`.
@@ -310,14 +318,38 @@ class IonQJob(JobV1):
                 f"Qiskit has no JobStatus named '{status_enum}'"
             ) from ex
 
-        # if done, also put the result on the job obj
-        # so we don't have to make an API call again if user wants results
         if self._status in jobstatus.JOB_FINAL_STATES:
-            self._result = self._format_result(response)
+            self._metadata = response.get("metadata") or {}
+
+        if self._status == jobstatus.JobStatus.DONE:
+            self._num_qubits = response.get("qubits")
+            default_map = list(range(self._num_qubits))
+            self._clbits = (response.get("registers") or {}).get("meas_mapped", default_map)
+            self._execution_time = response.get("execution_time") / 1000
+
+        if self._status == jobstatus.JobStatus.ERROR:
+            failure = response.get("failure") or {}
+            failure_type = failure.get("code", "")
+            failure_message = failure.get("error", "")
+            error_message = (
+                f"Unable to retreive result for job {self.job_id()}. "
+                f'Failure from IonQ API "{failure_type}: {failure_message}"'
+            )
+            raise exceptions.IonQJobFailureError(error_message)
+
+        if self._status == jobstatus.JobStatus.CANCELLED:
+            error_message = (
+                f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'
+            )
+            raise exceptions.IonQJobStateError(error_message)
+
+        if "warning" in response and "messages" in response["warning"]:
+            for warning in response["warning"]["messages"]:
+                warnings.warn(warning)
 
         return self._status
 
-    def _format_result(self, result):
+    def _format_result(self, data):
         """Translate IonQ's result format into a qiskit Result instance.
 
         TODO: If result is (failure, cancelled), this method may fail.
@@ -343,8 +375,7 @@ class IonQJob(JobV1):
 
         # Format the inner result payload.
         success = self._status == jobstatus.JobStatus.DONE
-        time_taken = (result.get("execution_time") / 1000) if success else None
-        metadata = result.get("metadata") or {}
+        metadata = self._metadata
         sampler_seed = (
             int(metadata.get("sampler_seed", ""))
             if metadata.get("sampler_seed", "").isdigit()
@@ -353,17 +384,20 @@ class IonQJob(JobV1):
         qiskit_header = decompress_metadata_string_to_dict(
             metadata.get("qiskit_header", None)
         )
+
+        shots = int(
+            metadata.get("shots") if metadata.get("shots").isdigit() else 1024
+        )
         job_result = {
             "data": {},
-            "shots": int(
-                metadata.get("shots") if metadata.get("shots").isdigit() else 1024
-            ),
+            "shots": shots,
             "header": qiskit_header or {},
             "success": success,
         }
         if self._status == jobstatus.JobStatus.DONE:
             (counts, probabilities) = _build_counts(
-                result, use_sampler=is_ideal_simulator, sampler_seed=sampler_seed
+                data, self._num_qubits, self._clbits, shots,
+                use_sampler=is_ideal_simulator, sampler_seed=sampler_seed
             )
             job_result["data"] = {
                 "counts": counts,
@@ -372,24 +406,6 @@ class IonQJob(JobV1):
                 # ExperimentData class.
                 "metadata": qiskit_header or {},
             }
-        if self._status == jobstatus.JobStatus.ERROR:
-            failure = result.get("failure") or {}
-            failure_type = failure.get("code", "")
-            failure_message = failure.get("error", "")
-            error_message = (
-                f"Unable to retreive result for job {self.job_id()}. "
-                f'Failure from IonQ API "{failure_type}: {failure_message}"'
-            )
-            raise exceptions.IonQJobFailureError(error_message)
-        if self._status == jobstatus.JobStatus.CANCELLED:
-            error_message = (
-                f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'
-            )
-            raise exceptions.IonQJobStateError(error_message)
-
-        if "warning" in job_result and "messages" in job_result["warning"]:
-            for warning in job_result["warning"]["messages"]:
-                warnings.warn(warning)
 
         # Create a qiskit result to express the IonQ job result data.
         backend = self.backend()
@@ -401,7 +417,7 @@ class IonQJob(JobV1):
                 "backend_version": backend_version,
                 "qobj_id": metadata.get("qobj_id"),
                 "success": success,
-                "time_taken": time_taken,
+                "time_taken": self._execution_time,
             }
         )
 

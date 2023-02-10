@@ -35,7 +35,6 @@ from qiskit.providers import jobstatus
 
 from qiskit.qobj.utils import MeasLevel
 from qiskit_ionq import exceptions, ionq_job
-from qiskit_ionq.helpers import compress_dict_to_metadata_string
 
 from .. import conftest
 
@@ -74,62 +73,123 @@ def spy(instance, attr):
 
 
 @pytest.mark.parametrize(
-    "data,error_msg",
+    "qubits, histogram, clbits, mapped_histogram",
     [
-        (None, "Cannot remap counts without an API response!"),
-        ({}, "Cannot remap counts without an API response!"),
-        ({"anything": "anything"}, "Cannot remap counts without qubits!"),
-        ({"qubits": 2}, "Cannot remap counts without metadata!"),
-        ({"qubits": 2, "metadata": {}}, "Cannot remap counts without result data!"),
+        (2, {0: 0.499, 3: 0.499}, [0], {0: 0.499, 1: 0.499}),
+        (2, {0: 0.499, 3: 0.499}, [1], {0: 0.499, 1: 0.499}),
+        (2, {0: 0.499, 3: 0.499}, [0, 1], {0: 0.499, 3: 0.499}),
+        (2, {0: 0.499, 3: 0.499}, [None, 0, 1], {0: 0.499, 6: 0.499}),
+        (2, {0: 0.499, 3: 0.499}, [0, 1, None], {0: 0.499, 3: 0.499}),
+        (4, {3: 0.99}, [0, 1, 2, 3],  {3: 0.99}),
+        (
+            3,
+            {0: 0.4999999999999999, 3: 0.4999999999999999},
+            [0, 1, None], {0: 0.4999999999999999, 3: 0.4999999999999999}
+        ),
+        (
+            2,
+            {
+                0: 0.2499999999999999,
+                1: 0.2499999999999999,
+                2: 0.2499999999999999,
+                3: 0.2499999999999999,
+            },
+            [0, 1],
+            {
+                0: 0.2499999999999999,
+                1: 0.2499999999999999,
+                2: 0.2499999999999999,
+                3: 0.2499999999999999,
+            }
+        ),
+        (
+            4,
+            {
+                0: 0.0625,
+                1: 0.0625,
+                2: 0.0625,
+                3: 0.0625,
+                4: 0.0625,
+                5: 0.0625,
+                6: 0.0625,
+                7: 0.0625,
+                8: 0.0625,
+                9: 0.0625,
+                10: 0.0625,
+                11: 0.0625,
+                12: 0.0625,
+                13: 0.0625,
+                14: 0.0625,
+                15: 0.0625,
+            },
+            [0, 1, 2, 3],
+            {
+                0: 0.0625,
+                1: 0.0625,
+                2: 0.0625,
+                3: 0.0625,
+                4: 0.0625,
+                5: 0.0625,
+                6: 0.0625,
+                7: 0.0625,
+                8: 0.0625,
+                9: 0.0625,
+                10: 0.0625,
+                11: 0.0625,
+                12: 0.0625,
+                13: 0.0625,
+                14: 0.0625,
+                15: 0.0625,
+            },
+        ),
+        (
+            4,
+            {
+                0: 0.2499999999999999,
+                1: 0.2499999999999999,
+                2: 0.2499999999999999,
+                3: 0.2499999999999999,
+            },
+            [0, 1, None, None],
+            {
+                0: 0.2499999999999999,
+                1: 0.2499999999999999,
+                2: 0.2499999999999999,
+                3: 0.2499999999999999,
+            },
+        ),
+        (
+            2,
+            {
+                0: 0.2499999999999999,
+                1: 0.2499999999999999,
+                2: 0.2499999999999999,
+                3: 0.2499999999999999,
+            },
+            [0, 0],
+            {
+                0: 0.4999999999999998,
+                3: 0.4999999999999998,
+            },
+        ),
+        (2, {0: 0.499, 3: 0.499}, [], {}),
     ],
 )
-def test_build_counts__bad_input(data, error_msg):
-    """Test that _build_counts raises specific exceptions based on provided input.
+def test_map_output(histogram, clbits, qubits, mapped_histogram):
+    """Test that map_output maps histogram with classical register correctly"""
+    assert mapped_histogram == ionq_job.map_output(histogram, clbits, qubits)
 
-    Args:
-        data (dict): A dict that will trigger known exception cases.
-        error_msg (str): The expected error message based on ``data``.
-    """
+
+def test_build_counts__bad_input():
+    """Test that _build_counts raises specific exceptions based on provided input."""
     with pytest.raises(exceptions.IonQJobError) as exc_info:
-        ionq_job._build_counts(data)
-    assert exc_info.value.message == error_msg
+        ionq_job._build_counts(None, 1, [], 100)
+    assert exc_info.value.message == "Cannot remap counts without data!"
 
 
 def test_build_counts():
     """Test basic count remapping."""
-    result = {
-        "qubits": 3,
-        "data": {
-            "histogram": {"5": 0.5, "7": 0.5},
-            "registers": {
-                "meas_mapped": {
-                    "3": 0.5,
-                    "7": 0.5,
-                }
-            },
-        },
-        "metadata": {
-            "shots": "100",
-            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3}),
-        },
-    }
-    (counts, probabilties) = ionq_job._build_counts(result)
-    assert ({"0x3": 50, "0x7": 50}) == counts
-    assert ({"0x3": 0.5, "0x7": 0.5}) == probabilties
-
-def test_build_counts_native():
-    """Test no remapping for native gates."""
-    result = {
-        "qubits": 3,
-        "data": {
-            "histogram": {"5": 0.5, "7": 0.5},
-        },
-        "metadata": {
-            "shots": "100",
-            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3}),
-        },
-    }
-    (counts, probabilties) = ionq_job._build_counts(result)
+    (counts, probabilties) = ionq_job._build_counts({"5": 0.5, "7": 0.5}, 3, [0, 1, 2], 100)
     assert ({"0x5": 50, "0x7": 50}) == counts
     assert ({"0x5": 0.5, "0x7": 0.5}) == probabilties
 
@@ -147,13 +207,13 @@ def test_results_meta(formatted_result):
 def test_counts(formatted_result):
     """Test counts based on a dummy result (see global conftest.py)."""
     counts = formatted_result.get_counts()
-    assert {"01": 617, "11": 617} == counts
+    assert {"00": 617, "10": 617} == counts
 
 
 def test_probabilities(formatted_result):
     """Test counts based on a dummy result (see global conftest.py)."""
     probabilities = formatted_result.get_probabilities()
-    assert {"01": 0.499999, "11": 0.5} == probabilities
+    assert {'00': 0.5, '10': 0.499999} == probabilities
 
 
 def test_counts__simulator_probs(simulator_backend, requests_mock):
@@ -164,30 +224,23 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
     # Create the request path for accessing the dummy job:
     path = simulator_backend.client.make_path("jobs", job_id)
     requests_mock.get(path, json=conftest.dummy_job_response(job_id))
+
+    results_path = simulator_backend.client.make_path("jobs", job_id, "results")
+    requests_mock.get(results_path, json={"0": 0.5, "2": 0.499999})
     job = ionq_job.IonQJob(simulator_backend, job_id)
 
     formatted_result = job.result()
     counts = formatted_result.get_counts()
     probabilities = formatted_result.get_probabilities()
-    assert {"01": 609, "11": 625} == counts
-    assert {"01": 0.499999, "11": 0.5} == probabilities
+
+    assert {'00': 609, '10': 625} == counts
+    assert {'00': 0.5, '10': 0.499999} == probabilities
 
 
 def test_build_counts__with_int():
     """Test that a result with an integer doesn't break everything."""
-    result = {
-        "qubits": 1,
-        "data": {
-            "histogram": {"1": 1},
-            "registers": {"meas_mapped": {"1": 1}},
-        },
-        "metadata": {
-            "shots": "100",
-            "qiskit_header": compress_dict_to_metadata_string({"memory_slots": 3}),
-        },
-    }
     counts, probabilties = ionq_job._build_counts(
-        result, use_sampler=True, sampler_seed=42
+        {"1": 1}, 1, [0], 100, use_sampler=True, sampler_seed=42
     )
     assert ({"0x1": 100}) == counts
     assert ({"0x1": 1.0}) == probabilties
@@ -201,12 +254,14 @@ def test_counts_and_probs_from_job(simulator_backend, requests_mock):
     # Create the request path for accessing the dummy job:
     path = simulator_backend.client.make_path("jobs", job_id)
     requests_mock.get(path, json=conftest.dummy_job_response(job_id))
+    results_path = simulator_backend.client.make_path("jobs", job_id, "results")
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
     job = ionq_job.IonQJob(simulator_backend, job_id)
 
     counts = job.get_counts()
     probabilities = job.get_probabilities()
-    assert {"01": 609, "11": 625} == counts
-    assert {"01": 0.499999, "11": 0.5} == probabilities
+    assert {'00': 609, '10': 625} == counts
+    assert {'00': 0.5, '10': 0.499999} == probabilities
 
 
 def test_submit__without_circuit(mock_backend, requests_mock):
@@ -341,8 +396,8 @@ expected_result = {
     "results": [
         {
             "data": {
-                "counts": {"0x1": 617, "0x3": 617},
-                "probabilities": {"0x1": 0.499999, "0x3": 0.5},
+                "counts": {"0x0": 617, "0x2": 617},
+                "probabilities": {"0x0": 0.5, "0x2": 0.499999},
                 "metadata": {
                             "clbit_labels": [["c", 0], ["c", 1]],
                             "creg_sizes": [["c", 2]],
@@ -394,6 +449,9 @@ def test_result(mock_backend, requests_mock):
     path = client.make_path("jobs", job_id)
     requests_mock.get(path, status_code=200, json=job_result)
 
+    results_path = client.make_path("jobs", job_id, "results")
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
 
@@ -409,7 +467,7 @@ def test_result__from_circuit(mock_backend, requests_mock):
     """
     # Create the job:
     job_id = "test_id"
-    job_result = conftest.dummy_job_response(job_id)
+    job_response = conftest.dummy_job_response(job_id)
     client = mock_backend.client
 
     # Create a job ref (this does not call status, since circuit is not None).
@@ -417,17 +475,21 @@ def test_result__from_circuit(mock_backend, requests_mock):
 
     # Mock the create:
     create_path = client.make_path("jobs")
-    requests_mock.post(create_path, status_code=200, json=job_result)
+    requests_mock.post(create_path, status_code=200, json=job_response)
 
     # Submit the job.
     job.submit()
 
     # Mock the fetch from `result`, since status should still be "initializing".
     fetch_path = client.make_path("jobs", job_id)
-    requests_mock.get(fetch_path, status_code=200, json=job_result)
+    requests_mock.get(fetch_path, status_code=200, json=job_response)
+
+    results_path = client.make_path("jobs", job_id, "results")
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Validate the result and its format. should be the same as base case.
-    assert job.result().to_dict() == expected_result
+    res = job.result().to_dict()
+    assert res == expected_result
 
 
 def test_result__failed_from_api(mock_backend, requests_mock):
