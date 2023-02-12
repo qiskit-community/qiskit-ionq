@@ -94,13 +94,14 @@ class IonQAPIError(IonQError):
             response (:class:`Response <requests.Response>`): An IonQ REST API response.
 
         Raises:
-            IonQAPIError: instance of `cls` with error detail from `response`."""
+            IonQAPIError: instance of `cls` with error detail from `response`.
+            IonQRetriableError:  instance of `cls` with error detail from `response`."""
         status_code = response.status_code
         if status_code == 200:
             return None
         res = cls.from_response(response)
         if _is_retriable(response.request.method, status_code):
-          raise IonQRetriableError(res)
+            raise IonQRetriableError(res)
         raise res
 
 
