@@ -99,7 +99,7 @@ class IonQAPIError(IonQError):
         if status_code == 200:
             return None
         res = cls.from_response(response)
-        if _is_retriable(response.request.method, status_code):  
+        if _is_retriable(response.request.method, status_code):
           raise IonQRetriableError(res)
         raise res
 
