@@ -71,6 +71,7 @@ _RETRIABLE_FOR_GETS = {requests.codes.conflict}
 # See https://support.cloudflare.com/hc/en-us/articles/115003011431/
 _RETRIABLE_STATUS_CODES = {
     requests.codes.internal_server_error,
+    requests.codes.bad_gateway,
     requests.codes.service_unavailable,
     *list(range(520, 530)),
 }
