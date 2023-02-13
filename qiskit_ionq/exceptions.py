@@ -71,6 +71,7 @@ _RETRIABLE_FOR_GETS = {requests.codes.conflict}
 # See https://support.cloudflare.com/hc/en-us/articles/115003011431/
 _RETRIABLE_STATUS_CODES = {
     requests.codes.internal_server_error,
+    requests.codes.bad_gateway,
     requests.codes.service_unavailable,
     *list(range(520, 530)),
 }
@@ -93,14 +94,15 @@ class IonQAPIError(IonQError):
             response (:class:`Response <requests.Response>`): An IonQ REST API response.
 
         Raises:
-            IonQAPIError: instance of `cls` with error detail from `response`."""
+            IonQAPIError: instance of `cls` with error detail from `response`.
+            IonQRetriableError:  instance of `cls` with error detail from `response`."""
         status_code = response.status_code
         if status_code == 200:
             return None
         res = cls.from_response(response)
-        raise (IonQRetriableError(res)
-                if _is_retriable(response.request.method, status_code)
-                else res)
+        if _is_retriable(response.request.method, status_code):
+            raise IonQRetriableError(res)
+        raise res
 
 
     @classmethod
