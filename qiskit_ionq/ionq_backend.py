@@ -134,7 +134,7 @@ class IonQBackend(Backend):
 
     @classmethod
     def _default_options(cls):
-        return Options(shots=1024, job_settings=None)
+        return Options(shots=1024, job_settings=None, error_mitigation=None)
 
     @property
     def client(self):
