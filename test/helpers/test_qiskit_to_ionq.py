@@ -344,8 +344,7 @@ def test_full_native_circuit(simulator_backend):
     "error_mitigation,expected",
     [
         (ErrorMitigation.NO_SYMMETRIZATION, {"symmetrization": False}),
-        (ErrorMitigation.SYMMETRIZATION_AVERAGE, {"symmetrization": {"aggregation": "average"}}),
-        (ErrorMitigation.SYMMETRIZATION_MAJORITY, {"symmetrization": {"aggregation": "majority"}}),
+        (ErrorMitigation.SYMMETRIZATION, {"symmetrization": True}),
     ],
 )
 def test__error_mitigation_settings(simulator_backend, error_mitigation, expected):
