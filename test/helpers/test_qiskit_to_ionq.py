@@ -97,7 +97,8 @@ def test_output_map__with_multiple_registers(
     cr1 = ClassicalRegister(2, "cr1")
 
     qc = QuantumCircuit(qr0, qr1, cr0, cr1, name="test_name")
-    qc.measure([qr0[0], qr0[1], qr1[0], qr1[1]], [cr0[0], cr0[1], cr1[0], cr1[1]])
+    qc.measure([qr0[0], qr0[1], qr1[0], qr1[1]],
+               [cr0[0], cr0[1], cr1[0], cr1[1]])
 
     ionq_json = qiskit_to_ionq(
         qc, simulator_backend, passed_args={"shots": 123, "sampler_seed": 42}
@@ -176,6 +177,7 @@ def test_full_circuit(simulator_backend):
         "lang": "json",
         "target": "simulator",
         "shots": 200,
+        "name": "test_name",
         "noise": {
             "model": "ideal",
             "seed": None,
@@ -211,7 +213,8 @@ def test_circuit_transpile(simulator_backend):
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
-    new_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
+    new_backend = simulator_backend.with_name(
+        "ionq_simulator", gateset="native")
     circ = QuantumCircuit(2, 2, name="blame_test")
     circ.cnot(1, 0)
     circ.h(1)
@@ -229,7 +232,8 @@ def test_circuit_incorrect(simulator_backend):
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
-    native_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
+    native_backend = simulator_backend.with_name(
+        "ionq_simulator", gateset="native")
     circ = QuantumCircuit(2, 2, name="blame_test")
     circ.cnot(1, 0)
     circ.h(1)
@@ -285,7 +289,8 @@ def test_full_native_circuit(simulator_backend):
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
-    native_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
+    native_backend = simulator_backend.with_name(
+        "ionq_simulator", gateset="native")
     qc = QuantumCircuit(3, name="blame_test")
     qc.append(GPIGate(0.1), [0])
     qc.append(GPI2Gate(0.2), [1])
@@ -309,6 +314,7 @@ def test_full_native_circuit(simulator_backend):
     expected_rest_of_payload = {
         "lang": "json",
         "target": "simulator",
+        "name": "blame_test",
         "shots": 200,
         "noise": {
             "model": "ideal",
@@ -320,7 +326,8 @@ def test_full_native_circuit(simulator_backend):
             "circuit": [
                 {"gate": "gpi", "target": 0, "phase": 0.1},
                 {"gate": "gpi2", "target": 1, "phase": 0.2},
-                {"gate": "ms", "targets": [1, 2], "phases": [0.2, 0.3], "angle": 0.25},
+                {"gate": "ms", "targets": [1, 2],
+                    "phases": [0.2, 0.3], "angle": 0.25},
             ],
         },
     }
