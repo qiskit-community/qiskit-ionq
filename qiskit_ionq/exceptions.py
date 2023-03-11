@@ -52,6 +52,7 @@ class IonQCredentialsError(IonQError):
 class IonQClientError(IonQError):
     """Errors that arise from unexpected behavior while using IonQClient."""
 
+
 class IonQRetriableError(IonQError):
     """Errors that do not indicate a failure related to the request, and can be retried."""
 
@@ -60,6 +61,7 @@ class IonQRetriableError(IonQError):
         super().__init__(cause.message)
 
 # pylint: disable=no-member
+
 
 # https://support.cloudflare.com/hc/en-us/articles/115003014512-4xx-Client-Error
 # "Cloudflare will generate and serve a 409 response for a Error 1001: DNS Resolution Error."
@@ -76,8 +78,11 @@ _RETRIABLE_STATUS_CODES = {
     *list(range(520, 530)),
 }
 # pylint: enable=no-member
+
+
 def _is_retriable(method, code):
     return code in _RETRIABLE_STATUS_CODES or (method == "GET" and code in _RETRIABLE_FOR_GETS)
+
 
 class IonQAPIError(IonQError):
     """Base exception for fatal API errors.
@@ -104,7 +109,6 @@ class IonQAPIError(IonQError):
             raise IonQRetriableError(res)
         raise res
 
-
     @classmethod
     def from_response(cls, response):
         """Raise an instance of the exception class from an API response object.
@@ -118,10 +122,11 @@ class IonQAPIError(IonQError):
         """
         # TODO: Pending API changes will cleanup this error logic:
         status_code = response.status_code
+        url = response.url
         try:
             response_json = response.json()
         except jd.JSONDecodeError:
-            response_json = { 'invalid_json': response.text }
+            response_json = {'invalid_json': response.text}
         # Defaults, if items cannot be extracted from the response.
         error_type = "internal_error"
         message = "No error details provided."
@@ -137,6 +142,7 @@ class IonQAPIError(IonQError):
             error_data = response_json.get("error")
             message = error_data.get("message") or message
             error_type = error_data.get("type") or error_type
+        message += f" {url}"
         return cls(message, status_code, error_type)
 
     def __init__(self, message, status_code, error_type):
@@ -181,9 +187,9 @@ class IonQGateError(IonQError, JobError):
         self.gateset = gateset
         super().__init__(
             (f"gate '{gate_name}' is not supported on the '{gateset}' IonQ backends. "
-              "Please use the qiskit.transpile method, manually rewrite to remove the gate, "
-              "or change the gateset selection as appropriate."
-            )
+             "Please use the qiskit.transpile method, manually rewrite to remove the gate, "
+             "or change the gateset selection as appropriate."
+             )
         )
 
     def __repr__(self):
