@@ -57,8 +57,8 @@ def test_gate_error_str_and_repr():
 def test_api_error():
     """Test that IonQAPIError has specific instance attributes."""
     err = exceptions.IonQAPIError(
-        "an error https://api.ionq.co/", 500, "internal_error")
-    assert err.message == "an error https://api.ionq.co/"
+        "an error", "http response", 500, "internal_error")
+    assert err.message == "an error"
     assert err.status_code == 500
     assert err.error_type == "internal_error"
 
@@ -66,8 +66,11 @@ def test_api_error():
 def test_api_error_str_and_repr():
     """Test that IonQAPIError has a str/repr that includes args."""
     err = exceptions.IonQAPIError(
-        "an error https://api.ionq.co/", 500, "internal_error")
-    expected = "IonQAPIError(message='an error https://api.ionq.co/',status_code=500,error_type='internal_error')"
+        "an error", "http response", 500, "internal_error")
+    expected = ("IonQAPIError(message='an error',"
+                "http_response='http response',"
+                "status_code=500,"
+                "error_type='internal_error')")
     assert str(err) == expected
     assert repr(err) == repr(expected)
 
@@ -84,13 +87,13 @@ def test_api_error_from_response():
         }
     )
     fake_response.status_code = 500
-    fake_response.url = "https://api.ionq.co/"
+    fake_response.reason = "http failure response"
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
         raise exceptions.IonQAPIError.from_response(fake_response)
 
     err = exc.value
-    assert err.message == "an error https://api.ionq.co/"
+    assert err.message == "an error"
     assert err.status_code == 500
     assert err.error_type == "internal_error"
 
@@ -107,13 +110,13 @@ def test_api_error_raise_for_status():
         }
     )
     fake_response.status_code = 500
-    fake_response.url = "https://api.ionq.co/"
+    fake_response.reason = "http failure response"
 
     with pytest.raises(exceptions.IonQRetriableError) as exc:
         exceptions.IonQAPIError.raise_for_status(fake_response)
 
     err = exc.value._cause
-    assert err.message == "an error https://api.ionq.co/"
+    assert err.message == "an error"
     assert err.status_code == 500
     assert err.error_type == "internal_error"
 
@@ -130,13 +133,13 @@ def test_retriable_raise_for_status():
         }
     )
     fake_response.status_code = 400
-    fake_response.url = "https://api.ionq.co/"
+    fake_response.reason = "http failure response"
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
         exceptions.IonQAPIError.raise_for_status(fake_response)
 
     err = exc.value
-    assert err.message == "an error https://api.ionq.co/"
+    assert err.message == "an error"
     assert err.status_code == 400
     assert err.error_type == "invalid_request"
     assert err is not IonQRetriableError
@@ -146,7 +149,7 @@ def test_error_format__code_message():
     """Test the {"code": <int>, "message": <str>} error response format."""
     fake_response = mock.MagicMock()
     fake_response.status_code = 500
-    fake_response.url = "https://api.ionq.co/"
+    fake_response.reason = "http failure response"
     fake_response.json = mock.MagicMock(
         return_value={
             "code": 500,
@@ -159,7 +162,7 @@ def test_error_format__code_message():
 
     err = exc.value
     assert err.status_code == 500
-    assert err.message == "an error https://api.ionq.co/"
+    assert err.message == "an error"
     assert err.error_type == "internal_error"
 
 
@@ -167,7 +170,7 @@ def test_error_format_bad_request():
     """Test the { "statusCode": <int>, "error": <str>, "message": <str> } error response format."""
     fake_response = mock.MagicMock()
     fake_response.status_code = 500
-    fake_response.url = "https://api.ionq.co/"
+    fake_response.reason = "http failure response"
     fake_response.json = mock.MagicMock(
         return_value={
             "statusCode": 500,
@@ -181,7 +184,7 @@ def test_error_format_bad_request():
 
     err = exc.value
     assert err.status_code == 500
-    assert err.message == "an error https://api.ionq.co/"
+    assert err.message == "an error"
     assert err.error_type == "internal_error"
 
 
@@ -189,7 +192,7 @@ def test_error_format__nested_error():
     """Test the { "error": { "type": <str>, "message: <str> } } error response format."""
     fake_response = mock.MagicMock()
     fake_response.status_code = 500
-    fake_response.url = "https://api.ionq.co/"
+    fake_response.reason = "http failure response"
     fake_response.json = mock.MagicMock(
         return_value={
             "error": {
@@ -204,7 +207,7 @@ def test_error_format__nested_error():
 
     err = exc.value
     assert err.status_code == 500
-    assert err.message == "an error https://api.ionq.co/"
+    assert err.message == "an error"
     assert err.error_type == "internal_error"
 
 
@@ -212,7 +215,7 @@ def test_error_format__default():
     """Test the when no known error format comes back."""
     fake_response = mock.MagicMock()
     fake_response.status_code = 500
-    fake_response.url = "https://api.ionq.co/"
+    fake_response.reason = "http failure response"
     fake_response.json = mock.MagicMock(return_value={})
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
@@ -220,5 +223,5 @@ def test_error_format__default():
 
     err = exc.value
     assert err.status_code == 500
-    assert err.message == "No error details provided. https://api.ionq.co/"
+    assert err.message == "No error details provided."
     assert err.error_type == "internal_error"
