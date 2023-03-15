@@ -26,8 +26,8 @@
 
 """Test basic exceptions behavior"""
 
-import requests
 from unittest import mock
+import requests
 
 import pytest
 
