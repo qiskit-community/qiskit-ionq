@@ -26,6 +26,7 @@
 
 """Test basic exceptions behavior"""
 
+import requests
 from unittest import mock
 
 import pytest
@@ -57,19 +58,32 @@ def test_gate_error_str_and_repr():
 def test_api_error():
     """Test that IonQAPIError has specific instance attributes."""
     err = exceptions.IonQAPIError(
-        "an error", "http response", 500, "internal_error")
+        message="an error",
+        status_code=500,
+        headers={"Content-Type": "text/html"},
+        body="<!doctype html><html><body>Hello IonQ!</body></html>",
+        error_type="internal_error"
+    )
     assert err.message == "an error"
     assert err.status_code == 500
+    assert err.headers == {"Content-Type": "text/html"}
+    assert err.body == "<!doctype html><html><body>Hello IonQ!</body></html>"
     assert err.error_type == "internal_error"
 
 
 def test_api_error_str_and_repr():
     """Test that IonQAPIError has a str/repr that includes args."""
     err = exceptions.IonQAPIError(
-        "an error", "http response", 500, "internal_error")
+        message="an error",
+        status_code=500,
+        headers={"Content-Type": "text/html"},
+        body="<!doctype html><html><body>Hello IonQ!</body></html>",
+        error_type="internal_error"
+    )
     expected = ("IonQAPIError(message='an error',"
-                "http_response='http response',"
                 "status_code=500,"
+                "headers={'Content-Type': 'text/html'},"
+                "body=<!doctype html><html><body>Hello IonQ!</body></html>,"
                 "error_type='internal_error')")
     assert str(err) == expected
     assert repr(err) == repr(expected)
@@ -77,80 +91,108 @@ def test_api_error_str_and_repr():
 
 def test_api_error_from_response():
     """Test that IonQAPIError can be made directly from a response JSON dict."""
-    fake_response = mock.MagicMock()
-    fake_response.json = mock.MagicMock(
+    # Create a response object
+    response = requests.Response()
+    response.status_code = 500
+    response.headers = {"Content-Type": "text/html"}
+    response._content = b"<!doctype html><html><body>Hello IonQ!</body></html>"
+    # Mock the json method of the response object
+    response.json = mock.MagicMock(
         return_value={
             "error": {
-                "type": "internal_error",
                 "message": "an error",
+                "type": "internal_error",
             }
         }
     )
-    fake_response.status_code = 500
-    fake_response.reason = "http failure response"
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        raise exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(response)
 
     err = exc.value
     assert err.message == "an error"
     assert err.status_code == 500
+    assert err.headers == {"Content-Type": "text/html"}
+    assert err.body == "<!doctype html><html><body>Hello IonQ!</body></html>"
     assert err.error_type == "internal_error"
 
 
 def test_api_error_raise_for_status():
     """Test that IonQAPIError can be made directly from a response JSON dict."""
-    fake_response = mock.MagicMock()
-    fake_response.json = mock.MagicMock(
+    # Create a request object
+    request = requests.Request('POST', 'https://api.ionq.co')
+    prepared_request = request.prepare()
+    # Create a response object
+    response = requests.Response()
+    response.status_code = 500
+    response.headers = {"Content-Type": "text/html"}
+    response._content = b"<!doctype html><html><body>Hello IonQ!</body></html>"
+    # Set the request attribute of the response object
+    response.request = prepared_request
+    # Mock the json method of the response object
+    response.json = mock.MagicMock(
         return_value={
             "error": {
-                "type": "internal_error",
                 "message": "an error",
+                "type": "internal_error",
             }
         }
     )
-    fake_response.status_code = 500
-    fake_response.reason = "http failure response"
 
     with pytest.raises(exceptions.IonQRetriableError) as exc:
-        exceptions.IonQAPIError.raise_for_status(fake_response)
+        exceptions.IonQAPIError.raise_for_status(response)
 
     err = exc.value._cause
     assert err.message == "an error"
     assert err.status_code == 500
+    assert err.headers == {"Content-Type": "text/html"}
+    assert err.body == "<!doctype html><html><body>Hello IonQ!</body></html>"
     assert err.error_type == "internal_error"
 
 
 def test_retriable_raise_for_status():
     """Test that IonQAPIError can be made directly from a response JSON dict."""
-    fake_response = mock.MagicMock()
-    fake_response.json = mock.MagicMock(
+    # Create a request object
+    request = requests.Request('POST', 'https://api.ionq.co')
+    prepared_request = request.prepare()
+    # Create a response object
+    response = requests.Response()
+    response.status_code = 400
+    response.headers = {"Content-Type": "text/html"}
+    response._content = b"<!doctype html><html><body>Hello IonQ!</body></html>"
+    # Set the request attribute of the response object
+    response.request = prepared_request
+    # Mock the json method of the response object
+    response.json = mock.MagicMock(
         return_value={
             "error": {
-                "type": "invalid_request",
                 "message": "an error",
+                "type": "invalid_request",
             }
         }
     )
-    fake_response.status_code = 400
-    fake_response.reason = "http failure response"
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        exceptions.IonQAPIError.raise_for_status(fake_response)
+        exceptions.IonQAPIError.raise_for_status(response)
 
     err = exc.value
     assert err.message == "an error"
     assert err.status_code == 400
+    assert err.headers == {"Content-Type": "text/html"}
+    assert err.body == "<!doctype html><html><body>Hello IonQ!</body></html>"
     assert err.error_type == "invalid_request"
     assert err is not IonQRetriableError
 
 
 def test_error_format__code_message():
     """Test the {"code": <int>, "message": <str>} error response format."""
-    fake_response = mock.MagicMock()
-    fake_response.status_code = 500
-    fake_response.reason = "http failure response"
-    fake_response.json = mock.MagicMock(
+    # Create a response object
+    response = requests.Response()
+    response.status_code = 500
+    response.headers = {"Content-Type": "text/html"}
+    response._content = b"<!doctype html><html><body>Hello IonQ!</body></html>"
+    # Mock the json method of the response object
+    response.json = mock.MagicMock(
         return_value={
             "code": 500,
             "message": "an error",
@@ -158,20 +200,25 @@ def test_error_format__code_message():
     )
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        raise exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(response)
 
     err = exc.value
     assert err.status_code == 500
     assert err.message == "an error"
+    assert err.headers == {"Content-Type": "text/html"}
+    assert err.body == "<!doctype html><html><body>Hello IonQ!</body></html>"
     assert err.error_type == "internal_error"
 
 
 def test_error_format_bad_request():
     """Test the { "statusCode": <int>, "error": <str>, "message": <str> } error response format."""
-    fake_response = mock.MagicMock()
-    fake_response.status_code = 500
-    fake_response.reason = "http failure response"
-    fake_response.json = mock.MagicMock(
+    # Create a response object
+    response = requests.Response()
+    response.status_code = 500
+    response.headers = {"Content-Type": "text/html"}
+    response._content = b"<!doctype html><html><body>Hello IonQ!</body></html>"
+    # Mock the json method of the response object
+    response.json = mock.MagicMock(
         return_value={
             "statusCode": 500,
             "error": "internal_error",
@@ -180,20 +227,25 @@ def test_error_format_bad_request():
     )
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        raise exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(response)
 
     err = exc.value
     assert err.status_code == 500
     assert err.message == "an error"
+    assert err.headers == {"Content-Type": "text/html"}
+    assert err.body == "<!doctype html><html><body>Hello IonQ!</body></html>"
     assert err.error_type == "internal_error"
 
 
 def test_error_format__nested_error():
     """Test the { "error": { "type": <str>, "message: <str> } } error response format."""
-    fake_response = mock.MagicMock()
-    fake_response.status_code = 500
-    fake_response.reason = "http failure response"
-    fake_response.json = mock.MagicMock(
+    # Create a response object
+    response = requests.Response()
+    response.status_code = 500
+    response.headers = {"Content-Type": "text/html"}
+    response._content = b"<!doctype html><html><body>Hello IonQ!</body></html>"
+    # Mock the json method of the response object
+    response.json = mock.MagicMock(
         return_value={
             "error": {
                 "message": "an error",
@@ -203,25 +255,32 @@ def test_error_format__nested_error():
     )
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        raise exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(response)
 
     err = exc.value
     assert err.status_code == 500
     assert err.message == "an error"
+    assert err.headers == {"Content-Type": "text/html"}
+    assert err.body == "<!doctype html><html><body>Hello IonQ!</body></html>"
     assert err.error_type == "internal_error"
 
 
 def test_error_format__default():
     """Test the when no known error format comes back."""
-    fake_response = mock.MagicMock()
-    fake_response.status_code = 500
-    fake_response.reason = "http failure response"
-    fake_response.json = mock.MagicMock(return_value={})
+    # Create a response object
+    response = requests.Response()
+    response.status_code = 500
+    response.headers = {"Content-Type": "text/html"}
+    response._content = b"<!doctype html><html><body>Hello IonQ!</body></html>"
+    # Mock the json method of the response object
+    response.json = mock.MagicMock(return_value={})
 
     with pytest.raises(exceptions.IonQAPIError) as exc:
-        raise exceptions.IonQAPIError.from_response(fake_response)
+        raise exceptions.IonQAPIError.from_response(response)
 
     err = exc.value
     assert err.status_code == 500
     assert err.message == "No error details provided."
+    assert err.headers == {"Content-Type": "text/html"}
+    assert err.body == "<!doctype html><html><body>Hello IonQ!</body></html>"
     assert err.error_type == "internal_error"

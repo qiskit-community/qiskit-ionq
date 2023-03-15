@@ -122,7 +122,8 @@ class IonQAPIError(IonQError):
         """
         # TODO: Pending API changes will cleanup this error logic:
         status_code = response.status_code
-        http_response = response.reason
+        headers = response.headers
+        body = response.text
         try:
             response_json = response.json()
         except jd.JSONDecodeError:
@@ -142,20 +143,22 @@ class IonQAPIError(IonQError):
             error_data = response_json.get("error")
             message = error_data.get("message") or message
             error_type = error_data.get("type") or error_type
-        return cls(message, http_response, status_code, error_type)
+        return cls(message, status_code, headers, body, error_type)
 
-    def __init__(self, message, http_response, status_code, error_type):
-        self.status_code = status_code
-        self.http_response = http_response
-        self.error_type = error_type
+    def __init__(self, message, status_code, headers, body, error_type):
         super().__init__(message)
+        self.status_code = status_code
+        self.headers = headers
+        self.body = body
+        self.error_type = error_type
 
     def __str__(self):
         return (
             f"{self.__class__.__name__}("
             f"message={self.message!r},"
-            f"http_response={self.http_response!r},"
-            f"status_code={self.status_code},"
+            f"status_code={self.status_code!r},"
+            f"headers={self.headers},"
+            f"body={self.body},"
             f"error_type={self.error_type!r})"
         )
 
