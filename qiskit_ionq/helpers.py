@@ -40,7 +40,9 @@ from qiskit.circuit.library import standard_gates as q_gates
 
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
+from qiskit_ionq.constants import ErrorMitigation
 from . import exceptions
+
 
 # the qiskit gates that the IonQ backend can serialize to our IR
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
@@ -395,6 +397,9 @@ def qiskit_to_ionq(circuit, backend, passed_args=None):
     settings = passed_args.get("job_settings") or None
     if settings is not None:
         ionq_json["settings"] = settings
+    error_mitigation = passed_args.get("error_mitigation")
+    if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
+        ionq_json["error_mitigation"] = error_mitigation.value
     return json.dumps(ionq_json)
 
 

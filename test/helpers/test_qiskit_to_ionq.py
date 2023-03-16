@@ -37,6 +37,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit_ionq.exceptions import IonQGateError
 from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string_to_dict
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate
+from qiskit_ionq.constants import ErrorMitigation
 
 
 def test_output_map__with_multiple_measurements_to_different_clbits(
@@ -337,3 +338,34 @@ def test_full_native_circuit(simulator_backend):
     assert actual_metadata_header == expected_metadata_header
     assert "meas_mapped" not in registers
     assert actual == expected_rest_of_payload
+
+
+@pytest.mark.parametrize(
+    "error_mitigation,expected",
+    [
+        (ErrorMitigation.NO_SYMMETRIZATION, {"symmetrization": False}),
+        (ErrorMitigation.SYMMETRIZATION, {"symmetrization": True}),
+    ],
+)
+def test__error_mitigation_settings(simulator_backend, error_mitigation, expected):
+    """Test error_mitigation settings get serialized accordingly
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+        error_mitigation (ErrorMitigation): error mitigation setting
+        expected (dict): expected serialization
+    """
+    qc = QuantumCircuit(1, 1)
+
+    args = {
+        "shots": 123,
+        "sampler_seed": 42,
+        "error_mitigation": error_mitigation
+    }
+    ionq_json = qiskit_to_ionq(
+        qc, simulator_backend, passed_args=args
+    )
+    actual = json.loads(ionq_json)
+    actual_error_mitigation = actual.pop("error_mitigation")
+
+    assert actual_error_mitigation == expected
