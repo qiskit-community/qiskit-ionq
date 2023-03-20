@@ -231,7 +231,8 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
                     for i in range(instruction.num_ctrl_qubits)
                 ]
                 targets = [
-                    input_circuit.qubits.index(qargs[instruction.num_ctrl_qubits])
+                    input_circuit.qubits.index(
+                        qargs[instruction.num_ctrl_qubits])
                 ]
             if gate == "swap":
                 # If this is a cswap, we have two targets:
@@ -355,7 +356,8 @@ def qiskit_to_ionq(circuit, backend, passed_args=None):
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
-    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
+    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(
+        circuit, backend.gateset())
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
     qiskit_header = compress_dict_to_metadata_string(
@@ -364,10 +366,14 @@ def qiskit_to_ionq(circuit, backend, passed_args=None):
             "global_phase": circuit.global_phase,  # float
             "n_qubits": circuit.num_qubits,  # int
             "name": circuit.name,  # str
-            "creg_sizes": creg_sizes,  # list of [str, int] tuples cardinality memory_slots
-            "clbit_labels": clbit_labels,  # list of [str, int] tuples cardinality memory_slots
-            "qreg_sizes": qreg_sizes,  # list of [str, int] tuples cardinality num_qubits
-            "qubit_labels": qubit_labels,  # list of [str, int] tuples cardinality num_qubits
+            # list of [str, int] tuples cardinality memory_slots
+            "creg_sizes": creg_sizes,
+            # list of [str, int] tuples cardinality memory_slots
+            "clbit_labels": clbit_labels,
+            # list of [str, int] tuples cardinality num_qubits
+            "qreg_sizes": qreg_sizes,
+            # list of [str, int] tuples cardinality num_qubits
+            "qubit_labels": qubit_labels,
         }
     )
 
@@ -391,8 +397,8 @@ def qiskit_to_ionq(circuit, backend, passed_args=None):
     }
     if target == "simulator":
         ionq_json["noise"] = {
-                "model": backend.options.noise_model,
-                "seed": backend.options.sampler_seed,
+            "model": passed_args.get("noise_model", backend.options.noise_model),
+            "seed": backend.options.sampler_seed,
         }
     settings = passed_args.get("job_settings") or None
     if settings is not None:
