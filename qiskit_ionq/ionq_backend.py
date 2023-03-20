@@ -180,7 +180,8 @@ class IonQBackend(Backend):
             ) from ex
 
         if url is None:
-            raise exceptions.IonQCredentialsError("Credentials `url` may not be None!")
+            raise exceptions.IonQCredentialsError(
+                "Credentials `url` may not be None!")
 
         return ionq_client.IonQClient(token, url, self._provider.custom_headers)
 
@@ -356,7 +357,8 @@ class IonQSimulatorBackend(IonQBackend):
                 "description": "IonQ simulator",
                 "basis_gates": GATESET_MAP[gateset],
                 "memory": False,
-                "n_qubits": 32, # Varied based on noise model, but enforced server-side.
+                # Varied based on noise model, but enforced server-side.
+                "n_qubits": 32,
                 "conditional": False,
                 "max_shots": 1,
                 "max_experiments": 1,
