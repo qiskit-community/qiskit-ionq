@@ -35,7 +35,6 @@ from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
-from qiskit import transpile
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
@@ -192,16 +191,16 @@ class IonQBackend(Backend):
 
     def _transpile_to_supported_gates(self, circuit):
         """Transpile the input circuit to the gates supported by the IonQ backend."""
-        pm = PassManager()
+        pass_manager = PassManager()
 
         # Specify the target basis gates
         target_basis = GATESET_MAP['native']
 
         # Add the BasisTranslator pass with the custom target basis
-        pm.append(BasisTranslator(sel, target_basis))
+        pass_manager.append(BasisTranslator(sel, target_basis))
 
         # Transpile the quantum circuit using the PassManager
-        transpiled_circuit = pm.run(circuit)
+        transpiled_circuit = pass_manager.run(circuit)
         return transpiled_circuit
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,arguments-renamed
