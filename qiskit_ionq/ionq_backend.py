@@ -35,6 +35,11 @@ from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
+from qiskit import transpile
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import BasisTranslator
+from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
 from . import exceptions, ionq_client, ionq_job
 from .helpers import GATESET_MAP
 
