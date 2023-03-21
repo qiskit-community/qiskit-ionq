@@ -180,11 +180,27 @@ class IonQBackend(Backend):
             ) from ex
 
         if url is None:
-            raise exceptions.IonQCredentialsError("Credentials `url` may not be None!")
+            raise exceptions.IonQCredentialsError(
+                "Credentials `url` may not be None!")
 
         return ionq_client.IonQClient(token, url, self._provider.custom_headers)
 
+    def _transpile_to_supported_gates(self, circuit):
+        """Transpile the input circuit to the gates supported by the IonQ backend."""
+        pm = PassManager()
+
+        # Specify the target basis gates
+        target_basis = GATESET_MAP['native']
+
+        # Add the BasisTranslator pass with the custom target basis
+        pm.append(BasisTranslator(sel, target_basis))
+
+        # Transpile the quantum circuit using the PassManager
+        transpiled_circuit = pm.run(circuit)
+        return transpiled_circuit
+
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,arguments-renamed
+
     def run(self, circuit, **kwargs):
         """Create and run a job on an IonQ Backend.
 
@@ -208,6 +224,9 @@ class IonQBackend(Backend):
             if len(circuit) > 1:
                 raise RuntimeError("Multi-experiment jobs are not supported!")
             circuit = circuit[0]
+
+        # Transpile the circuit to the gates supported by the IonQ backend
+        circuit = self._transpile_to_supported_gates(circuit)
 
         for kwarg in kwargs:
             if not hasattr(self.options, kwarg):
@@ -356,7 +375,8 @@ class IonQSimulatorBackend(IonQBackend):
                 "description": "IonQ simulator",
                 "basis_gates": GATESET_MAP[gateset],
                 "memory": False,
-                "n_qubits": 32, # Varied based on noise model, but enforced server-side.
+                # Varied based on noise model, but enforced server-side.
+                "n_qubits": 32,
                 "conditional": False,
                 "max_shots": 1,
                 "max_experiments": 1,
