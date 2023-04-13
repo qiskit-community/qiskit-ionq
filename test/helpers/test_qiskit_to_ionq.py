@@ -177,6 +177,7 @@ def test_full_circuit(simulator_backend):
         "lang": "json",
         "target": "simulator",
         "shots": 200,
+        "name": "test_name",
         "noise": {
             "model": "ideal",
             "seed": None,
@@ -317,6 +318,7 @@ def test_full_native_circuit(simulator_backend):
     expected_rest_of_payload = {
         "lang": "json",
         "target": "simulator",
+        "name": "blame_test",
         "shots": 200,
         "noise": {
             "model": "harmony",
