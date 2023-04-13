@@ -210,6 +210,13 @@ class IonQBackend(Backend):
                 raise RuntimeError("Multi-experiment jobs are not supported!")
             circuit = circuit[0]
 
+        if not self.has_valid_mapping(circuit):
+            warnings.warn(
+                f"Circuit {circuit.name} is not measuring any qubits",
+                UserWarning,
+                stacklevel=2,
+            )
+
         for kwarg in kwargs:
             if not hasattr(self.options, kwarg):
                 warnings.warn(
@@ -245,6 +252,24 @@ class IonQBackend(Backend):
         """get a list of jobs from a specific backend, job id"""
 
         return [ionq_job.IonQJob(self, job_id, self.client) for job_id in job_ids]
+
+    def has_valid_mapping(self, circuit) -> bool:
+        """checks if the circuit has at least one
+        valid qubit -> bit measurement.
+
+        Args:
+            circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
+                A Qiskit QuantumCircuit object.
+
+        Returns:
+            boolean: if the circuit has valid mappings
+        """
+        # Check if a qubit is measured
+        for instruction, _, cargs in circuit.data:
+            if instruction.name == "measure" and len(cargs):
+                return True
+        # If no mappings are found, return False
+        return False
 
     # TODO: Implement backend status checks.
     def status(self):
