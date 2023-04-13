@@ -396,7 +396,7 @@ def qiskit_to_ionq(circuit, backend, passed_args=None):
     }
     if target == "simulator":
         ionq_json["noise"] = {
-            "model": backend.options.noise_model,
+            "model": passed_args.get("noise_model") or backend.options.noise_model,
             "seed": backend.options.sampler_seed,
         }
     settings = passed_args.get("job_settings") or None

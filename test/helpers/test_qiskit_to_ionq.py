@@ -298,7 +298,11 @@ def test_full_native_circuit(simulator_backend):
     ionq_json = qiskit_to_ionq(
         qc,
         native_backend,
-        passed_args={"shots": 200, "sampler_seed": 23},
+        passed_args={
+            "noise_model": "harmony",
+            "sampler_seed": 23,
+            "shots": 200
+        },
     )
     expected_metadata_header = {
         "memory_slots": 0,
@@ -317,7 +321,7 @@ def test_full_native_circuit(simulator_backend):
         "name": "blame_test",
         "shots": 200,
         "noise": {
-            "model": "ideal",
+            "model": "harmony",
             "seed": None,
         },
         "body": {
