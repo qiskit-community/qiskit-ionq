@@ -64,7 +64,7 @@ def map_output(data, clbits, num_qubits):
     for value, probability in data.items():
         bitstring = bin(int(value))[2:].rjust(num_qubits, "0")[::-1]
 
-        bitvalue = int(''.join([get_bitvalue(bitstring, bit) for bit in clbits])[::-1], 2)
+        outvalue = int(''.join([get_bitvalue(bitstring, bit) for bit in clbits])[::-1], 2)
 
         mapped_output[outvalue] = mapped_output.get(outvalue, 0) + probability
 
