@@ -180,7 +180,8 @@ class IonQBackend(Backend):
             ) from ex
 
         if url is None:
-            raise exceptions.IonQCredentialsError("Credentials `url` may not be None!")
+            raise exceptions.IonQCredentialsError(
+                "Credentials `url` may not be None!")
 
         return ionq_client.IonQClient(token, url, self._provider.custom_headers)
 
@@ -208,6 +209,13 @@ class IonQBackend(Backend):
             if len(circuit) > 1:
                 raise RuntimeError("Multi-experiment jobs are not supported!")
             circuit = circuit[0]
+
+        if not self.has_valid_mapping(circuit):
+            warnings.warn(
+                f"Circuit {circuit.name} is not measuring any qubits",
+                UserWarning,
+                stacklevel=2,
+            )
 
         for kwarg in kwargs:
             if not hasattr(self.options, kwarg):
@@ -244,6 +252,24 @@ class IonQBackend(Backend):
         """get a list of jobs from a specific backend, job id"""
 
         return [ionq_job.IonQJob(self, job_id, self.client) for job_id in job_ids]
+
+    def has_valid_mapping(self, circuit) -> bool:
+        """checks if the circuit has at least one
+        valid qubit -> bit measurement.
+
+        Args:
+            circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
+                A Qiskit QuantumCircuit object.
+
+        Returns:
+            boolean: if the circuit has valid mappings
+        """
+        # Check if a qubit is measured
+        for instruction, _, cargs in circuit.data:
+            if instruction.name == "measure" and len(cargs):
+                return True
+        # If no mappings are found, return False
+        return False
 
     # TODO: Implement backend status checks.
     def status(self):
@@ -356,7 +382,8 @@ class IonQSimulatorBackend(IonQBackend):
                 "description": "IonQ simulator",
                 "basis_gates": GATESET_MAP[gateset],
                 "memory": False,
-                "n_qubits": 32, # Varied based on noise model, but enforced server-side.
+                # Varied based on noise model, but enforced server-side.
+                "n_qubits": 32,
                 "conditional": False,
                 "max_shots": 1,
                 "max_experiments": 1,
