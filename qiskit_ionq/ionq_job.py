@@ -59,23 +59,19 @@ def map_output(data, clbits, num_qubits):
     def get_bitvalue(bitstring, bit):
         if bit is not None and 0 <= bit < len(bitstring):
             return bitstring[bit]
-        return "0"
+        return '0'
 
     for value, probability in data.items():
         bitstring = bin(int(value))[2:].rjust(num_qubits, "0")[::-1]
 
-        bitvalue = int(
-            "".join([get_bitvalue(bitstring, bit) for bit in clbits])[::-1], 2
-        )
+        bitvalue = int(''.join([get_bitvalue(bitstring, bit) for bit in clbits])[::-1], 2)
 
         mapped_output[outvalue] = mapped_output.get(outvalue, 0) + probability
 
     return mapped_output
 
 
-def _build_counts(
-    data, num_qubits, clbits, shots, use_sampler=False, sampler_seed=None
-):
+def _build_counts(data, num_qubits, clbits, shots, use_sampler=False, sampler_seed=None):
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
     .. NOTE:: For simulator jobs, this method builds counts using a randomly
@@ -275,7 +271,7 @@ class IonQJob(JobV1):
         if self._status is jobstatus.JobStatus.DONE:
             agg_type = (
                 aggregation.value
-                if type(aggregation) == AggregationType
+                if isinstance(aggregation, AggregationType)
                 else aggregation
             )
             response = self._client.get_results(self._job_id, agg_type)
@@ -335,9 +331,7 @@ class IonQJob(JobV1):
         if self._status == jobstatus.JobStatus.DONE:
             self._num_qubits = response.get("qubits")
             default_map = list(range(self._num_qubits))
-            self._clbits = (response.get("registers") or {}).get(
-                "meas_mapped", default_map
-            )
+            self._clbits = (response.get("registers") or {}).get("meas_mapped", default_map)
             self._execution_time = response.get("execution_time") / 1000
 
         if self._status == jobstatus.JobStatus.ERROR:
@@ -398,7 +392,9 @@ class IonQJob(JobV1):
             metadata.get("qiskit_header", None)
         )
 
-        shots = int(metadata.get("shots") if metadata.get("shots").isdigit() else 1024)
+        shots = int(
+            metadata.get("shots") if metadata.get("shots").isdigit() else 1024
+        )
         job_result = {
             "data": {},
             "shots": shots,
@@ -407,12 +403,8 @@ class IonQJob(JobV1):
         }
         if self._status == jobstatus.JobStatus.DONE:
             (counts, probabilities) = _build_counts(
-                data,
-                self._num_qubits,
-                self._clbits,
-                shots,
-                use_sampler=is_ideal_simulator,
-                sampler_seed=sampler_seed,
+                data, self._num_qubits, self._clbits, shots,
+                use_sampler=is_ideal_simulator, sampler_seed=sampler_seed
             )
             job_result["data"] = {
                 "counts": counts,
