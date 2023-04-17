@@ -68,8 +68,7 @@ def map_output(data, clbits, num_qubits):
             "".join([get_bitvalue(bitstring, bit) for bit in clbits])[::-1], 2
         )
 
-        acc_prob = mapped_output.get(bitvalue) or 0
-        mapped_output[bitvalue] = acc_prob + probability
+        mapped_output[outvalue] = mapped_output.get(outvalue, 0) + probability
 
     return mapped_output
 
