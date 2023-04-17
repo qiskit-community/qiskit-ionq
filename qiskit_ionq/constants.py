@@ -66,8 +66,8 @@ class JobStatusMap(enum.Enum):
 class AggregationType(enum.Enum):
     """Class for job results aggregation enumerated type."""
 
-    AVERAGE = 'average'
-    PLURALITY = 'plurality'
+    AVERAGE = "average"
+    PLURALITY = "plurality"
 
 
 class ErrorMitigation(enum.Enum):
