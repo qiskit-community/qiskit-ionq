@@ -29,3 +29,4 @@
 from .ionq_provider import IonQProvider
 from .version import __version__
 from .ionq_gates import GPIGate, GPI2Gate, MSGate
+from .constants import AggregationType, ErrorMitigation
