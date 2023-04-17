@@ -35,6 +35,7 @@ from qiskit.providers import jobstatus
 
 from qiskit.qobj.utils import MeasLevel
 from qiskit_ionq import exceptions, ionq_job
+from qiskit_ionq.constants import AggregationType
 
 from .. import conftest
 
@@ -80,11 +81,12 @@ def spy(instance, attr):
         (2, {0: 0.499, 3: 0.499}, [0, 1], {0: 0.499, 3: 0.499}),
         (2, {0: 0.499, 3: 0.499}, [None, 0, 1], {0: 0.499, 6: 0.499}),
         (2, {0: 0.499, 3: 0.499}, [0, 1, None], {0: 0.499, 3: 0.499}),
-        (4, {3: 0.99}, [0, 1, 2, 3],  {3: 0.99}),
+        (4, {3: 0.99}, [0, 1, 2, 3], {3: 0.99}),
         (
             3,
             {0: 0.4999999999999999, 3: 0.4999999999999999},
-            [0, 1, None], {0: 0.4999999999999999, 3: 0.4999999999999999}
+            [0, 1, None],
+            {0: 0.4999999999999999, 3: 0.4999999999999999},
         ),
         (
             2,
@@ -100,7 +102,7 @@ def spy(instance, attr):
                 1: 0.2499999999999999,
                 2: 0.2499999999999999,
                 3: 0.2499999999999999,
-            }
+            },
         ),
         (
             4,
@@ -189,7 +191,9 @@ def test_build_counts__bad_input():
 
 def test_build_counts():
     """Test basic count remapping."""
-    (counts, probabilties) = ionq_job._build_counts({"5": 0.5, "7": 0.5}, 3, [0, 1, 2], 100)
+    (counts, probabilties) = ionq_job._build_counts(
+        {"5": 0.5, "7": 0.5}, 3, [0, 1, 2], 100
+    )
     assert ({"0x5": 50, "0x7": 50}) == counts
     assert ({"0x5": 0.5, "0x7": 0.5}) == probabilties
 
@@ -213,7 +217,7 @@ def test_counts(formatted_result):
 def test_probabilities(formatted_result):
     """Test counts based on a dummy result (see global conftest.py)."""
     probabilities = formatted_result.get_probabilities()
-    assert {'00': 0.5, '10': 0.499999} == probabilities
+    assert {"00": 0.5, "10": 0.499999} == probabilities
 
 
 def test_counts__simulator_probs(simulator_backend, requests_mock):
@@ -233,8 +237,8 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
     counts = formatted_result.get_counts()
     probabilities = formatted_result.get_probabilities()
 
-    assert {'00': 609, '10': 625} == counts
-    assert {'00': 0.5, '10': 0.499999} == probabilities
+    assert {"00": 609, "10": 625} == counts
+    assert {"00": 0.5, "10": 0.499999} == probabilities
 
 
 def test_build_counts__with_int():
@@ -260,8 +264,8 @@ def test_counts_and_probs_from_job(simulator_backend, requests_mock):
 
     counts = job.get_counts()
     probabilities = job.get_probabilities()
-    assert {'00': 609, '10': 625} == counts
-    assert {'00': 0.5, '10': 0.499999} == probabilities
+    assert {"00": 609, "10": 625} == counts
+    assert {"00": 0.5, "10": 0.499999} == probabilities
 
 
 def test_submit__without_circuit(mock_backend, requests_mock):
@@ -399,14 +403,14 @@ expected_result = {
                 "counts": {"0x0": 617, "0x2": 617},
                 "probabilities": {"0x0": 0.5, "0x2": 0.499999},
                 "metadata": {
-                            "clbit_labels": [["c", 0], ["c", 1]],
-                            "creg_sizes": [["c", 2]],
-                            "global_phase": 0,
-                            "memory_slots": 2,
-                            "n_qubits": 2,
-                            "name": "test_id",
-                            "qreg_sizes": [["q", 2]],
-                            "qubit_labels": [["q", 0], ["q", 1]],
+                    "clbit_labels": [["c", 0], ["c", 1]],
+                    "creg_sizes": [["c", 2]],
+                    "global_phase": 0,
+                    "memory_slots": 2,
+                    "n_qubits": 2,
+                    "name": "test_id",
+                    "qreg_sizes": [["q", 2]],
+                    "qubit_labels": [["q", 0], ["q", 1]],
                 },
             },
             "header": {
@@ -456,6 +460,57 @@ def test_result(mock_backend, requests_mock):
     job = ionq_job.IonQJob(mock_backend, job_id)
 
     assert job.result().to_dict() == expected_result
+
+
+def test_result__with_aggregation(mock_backend, requests_mock):
+    """Test basic "happy path" for result fetching.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    # Create the job:
+    job_id = "test_id"
+    client = mock_backend.client
+    job_result = conftest.dummy_job_response(job_id)
+
+    # Mock the job response API call.
+    path = client.make_path("jobs", job_id)
+    requests_mock.get(path, status_code=200, json=job_result)
+
+    results_path = client.make_path("jobs", job_id, "results") + "?aggregation=average"
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+
+    # Create a job ref (this will call .status() to fetch our mock above)
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    assert job.result(aggregation=AggregationType.AVERAGE).to_dict() == expected_result
+
+
+def test_result__bad_aggregation(mock_backend, requests_mock):
+    """Test basic "happy path" for result fetching.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    # Create the job:
+    job_id = "test_id"
+    job_response = conftest.dummy_job_response(job_id)
+    client = mock_backend.client
+
+    # Mock the fetch from `result`, since status should still be "initializing".
+    fetch_path = client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, status_code=200, json=job_response)
+
+    results_path = client.make_path("jobs", job_id, "results")
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+
+    # Create a job ref (this will call .status() to fetch our mock above)
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    with pytest.warns(UserWarning, match="Invalid aggregation type"):
+        job.result(aggregation="blah")
 
 
 def test_result__from_circuit(mock_backend, requests_mock):
