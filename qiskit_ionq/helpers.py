@@ -379,11 +379,11 @@ def qiskit_to_ionq(circuit, backend, passed_args=None):
 
     target = backend.name()[5:]
     ionq_json = {
-        "lang": "json",
         "target": target,
         "shots": passed_args.get("shots"),
         "name": circuit.name,
-        "body": {
+        "input": {
+            "format": "ionq.circuit.v0",
             "gateset": backend.gateset(),
             "qubits": circuit.num_qubits,
             "circuit": ionq_circ,

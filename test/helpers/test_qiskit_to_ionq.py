@@ -175,7 +175,6 @@ def test_full_circuit(simulator_backend):
     expected_output_map = [1, 0]
     expected_metadata = {"shots": "200", "sampler_seed": "42"}
     expected_rest_of_payload = {
-        "lang": "json",
         "target": "simulator",
         "shots": 200,
         "name": "test_name",
@@ -183,7 +182,8 @@ def test_full_circuit(simulator_backend):
             "model": "ideal",
             "seed": None,
         },
-        "body": {
+        "input": {
+            "format": "ionq.circuit.v0",
             "gateset": "qis",
             "qubits": 2,
             "circuit": [
@@ -317,7 +317,6 @@ def test_full_native_circuit(simulator_backend):
     }
     expected_metadata = {"shots": "200", "sampler_seed": "23"}
     expected_rest_of_payload = {
-        "lang": "json",
         "target": "simulator",
         "name": "blame_test",
         "shots": 200,
@@ -325,7 +324,8 @@ def test_full_native_circuit(simulator_backend):
             "model": "harmony",
             "seed": None,
         },
-        "body": {
+        "input": {
+            "format": "ionq.circuit.v0",
             "gateset": "native",
             "qubits": 3,
             "circuit": [
