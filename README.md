@@ -74,7 +74,7 @@ For example, running a Bell State:
 
 ```python
 from qiskit import QuantumCircuit
-from qiskit_ionq.constants import AggregationType
+from qiskit_ionq import AggregationType
 
 # Create a basic Bell State circuit:
 qc = QuantumCircuit(2, 2)
