@@ -34,7 +34,7 @@ from typing import List
 pkg_parent = pathlib.Path(__file__).parent.parent.absolute()
 
 # major, minor, micro
-VERSION_INFO = ".".join([str(x) for x in (0, 3, 10)])
+VERSION_INFO = ".".join(map(str, (0, 4, 0, "dev0")))
 
 
 def _minimal_ext_cmd(cmd: List[str]) -> bytes:
@@ -90,7 +90,9 @@ def get_version_info() -> str:
 
     if not release:
         git_revision = git_version()
-        full_version += ".dev0+" + git_revision[:7]
+        if ".dev" not in full_version:
+            full_version += ".dev0"
+        full_version += "+" + git_revision[:7]
 
     return full_version
 
