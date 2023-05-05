@@ -98,8 +98,7 @@ def test_output_map__with_multiple_registers(
     cr1 = ClassicalRegister(2, "cr1")
 
     qc = QuantumCircuit(qr0, qr1, cr0, cr1, name="test_name")
-    qc.measure([qr0[0], qr0[1], qr1[0], qr1[1]],
-               [cr0[0], cr0[1], cr1[0], cr1[1]])
+    qc.measure([qr0[0], qr0[1], qr1[0], qr1[1]], [cr0[0], cr0[1], cr1[0], cr1[1]])
 
     ionq_json = qiskit_to_ionq(
         qc, simulator_backend, passed_args={"shots": 123, "sampler_seed": 42}
@@ -214,8 +213,7 @@ def test_circuit_transpile(simulator_backend):
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
-    new_backend = simulator_backend.with_name(
-        "ionq_simulator", gateset="native")
+    new_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
     circ = QuantumCircuit(2, 2, name="blame_test")
     circ.cnot(1, 0)
     circ.h(1)
@@ -224,7 +222,7 @@ def test_circuit_transpile(simulator_backend):
 
     with pytest.raises(TranspilerError) as exc_info:
         transpile(circ, backend=new_backend)
-    assert "Unable to map source basis" in exc_info.value.message
+    assert "Unable to translate the operations in the circuit" in exc_info.value.message
 
 
 def test_circuit_incorrect(simulator_backend):
@@ -233,8 +231,7 @@ def test_circuit_incorrect(simulator_backend):
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
-    native_backend = simulator_backend.with_name(
-        "ionq_simulator", gateset="native")
+    native_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
     circ = QuantumCircuit(2, 2, name="blame_test")
     circ.cnot(1, 0)
     circ.h(1)
@@ -290,8 +287,7 @@ def test_full_native_circuit(simulator_backend):
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
-    native_backend = simulator_backend.with_name(
-        "ionq_simulator", gateset="native")
+    native_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
     qc = QuantumCircuit(3, name="blame_test")
     qc.append(GPIGate(0.1), [0])
     qc.append(GPI2Gate(0.2), [1])
@@ -299,11 +295,7 @@ def test_full_native_circuit(simulator_backend):
     ionq_json = qiskit_to_ionq(
         qc,
         native_backend,
-        passed_args={
-            "noise_model": "harmony",
-            "sampler_seed": 23,
-            "shots": 200
-        },
+        passed_args={"noise_model": "harmony", "sampler_seed": 23, "shots": 200},
     )
     expected_metadata_header = {
         "memory_slots": 0,
@@ -331,8 +323,7 @@ def test_full_native_circuit(simulator_backend):
             "circuit": [
                 {"gate": "gpi", "target": 0, "phase": 0.1},
                 {"gate": "gpi2", "target": 1, "phase": 0.2},
-                {"gate": "ms", "targets": [1, 2],
-                    "phases": [0.2, 0.3], "angle": 0.25},
+                {"gate": "ms", "targets": [1, 2], "phases": [0.2, 0.3], "angle": 0.25},
             ],
         },
     }
@@ -354,8 +345,8 @@ def test_full_native_circuit(simulator_backend):
 @pytest.mark.parametrize(
     "error_mitigation,expected",
     [
-        (ErrorMitigation.NO_SYMMETRIZATION, {"symmetrization": False}),
-        (ErrorMitigation.SYMMETRIZATION, {"symmetrization": True}),
+        (ErrorMitigation.NO_DEBIASING, {"debias": False}),
+        (ErrorMitigation.DEBIASING, {"debias": True}),
     ],
 )
 def test__error_mitigation_settings(simulator_backend, error_mitigation, expected):
@@ -368,14 +359,8 @@ def test__error_mitigation_settings(simulator_backend, error_mitigation, expecte
     """
     qc = QuantumCircuit(1, 1)
 
-    args = {
-        "shots": 123,
-        "sampler_seed": 42,
-        "error_mitigation": error_mitigation
-    }
-    ionq_json = qiskit_to_ionq(
-        qc, simulator_backend, passed_args=args
-    )
+    args = {"shots": 123, "sampler_seed": 42, "error_mitigation": error_mitigation}
+    ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
     actual = json.loads(ionq_json)
     actual_error_mitigation = actual.pop("error_mitigation")
 

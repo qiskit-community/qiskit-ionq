@@ -52,7 +52,7 @@ export QISKIT_IONQ_API_TOKEN="token"
 Then invoke instantiate the provider without any arguments:
 
 ```python
-from qiskit_ionq import IonQProvider
+from qiskit_ionq import IonQProvider, ErrorMitigation
 
 provider = IonQProvider()
 ```
@@ -65,6 +65,9 @@ print(provider.backends())
 
 # Get IonQ's simulator backend:
 simulator_backend = provider.get_backend("ionq_simulator")
+
+# Set error mitigation
+simulator_backend.set_options(error_mitigation=ErrorMitigation.DEBIASING)
 ```
 
 ### Submitting a Circuit
@@ -88,7 +91,7 @@ job = simulator_backend.run(qc)
 # Print the results.
 print(job.result().get_counts())
 
-# Get results with a different aggregation method when symmetrization
+# Get results with a different aggregation method when debiasing
 # is applied as an error mitigation strategy
 print(job.result(AggregationType.AVERAGE).get_counts())
 

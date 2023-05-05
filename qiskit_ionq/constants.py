@@ -73,8 +73,8 @@ class AggregationType(enum.Enum):
 class ErrorMitigation(enum.Enum):
     """Class for error mitigation settings enumerated type."""
 
-    SYMMETRIZATION = {"symmetrization": True}
-    NO_SYMMETRIZATION = {"symmetrization": False}
+    DEBIASING = {"debias": True}
+    NO_DEBIASING = {"debias": False}
 
 
 __all__ = ["APIJobStatus", "JobStatusMap"]
