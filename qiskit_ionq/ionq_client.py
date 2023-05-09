@@ -197,14 +197,14 @@ class IonQClient:
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
-    def get_results(self, job_id: str, aggregation=None):
+    def get_results(self, job_id: str, sharpen=None):
         """Retrieve job results from the IonQ API.
 
         The returned JSON dict will only have data if job has completed.
 
         Args:
             job_id (str): The ID of a job to retrieve.
-            aggregation (str): type of results aggregation
+            sharpen (bool): if results are error-mitigated
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
@@ -215,8 +215,8 @@ class IonQClient:
 
         params = {}
 
-        if aggregation:
-            params["aggregation"] = aggregation
+        if sharpen is not None:
+            params["sharpen"] = sharpen
 
         req_path = self.make_path("jobs", job_id, "results")
         res = requests.get(req_path, params, headers=self.api_headers, timeout=30)

@@ -41,7 +41,6 @@ import numpy as np
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
-from .constants import AggregationType
 from .helpers import decompress_metadata_string_to_dict
 
 
@@ -233,7 +232,7 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
-    def result(self, aggregation: AggregationType = None):
+    def result(self, sharpen: bool=None):
         """Retrieve job result data.
 
         .. NOTE::
@@ -255,10 +254,10 @@ class IonQJob(JobV1):
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
         """
-        # TODO: cache results by aggregation type
+        # TODO: cache results by sharpen
 
-        if aggregation is not None and not isinstance(aggregation, AggregationType):
-            warnings.warn("Invalid aggregation type")
+        if sharpen is not None and not isinstance(sharpen, bool):
+            warnings.warn("Invalid sharpen type")
 
         # Wait for the job to complete.
         try:
@@ -269,12 +268,7 @@ class IonQJob(JobV1):
             ) from ex
 
         if self._status is jobstatus.JobStatus.DONE:
-            agg_type = (
-                aggregation.value
-                if isinstance(aggregation, AggregationType)
-                else aggregation
-            )
-            response = self._client.get_results(self._job_id, agg_type)
+            response = self._client.get_results(self._job_id, sharpen)
             self._result = self._format_result(response)
 
         return self._result
