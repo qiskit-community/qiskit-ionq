@@ -182,14 +182,14 @@ def test_run_param(mock_backend, requests_mock):
     # Run a dummy circuit.
     job = mock_backend.run(
         QuantumCircuit(1, 1),
-        _params={
+        extra_request_payload={
             "error_mitigation": {"debias": True},
         },
     )
 
     assert isinstance(job, ionq_job.IonQJob)
     assert job.job_id() == "fake_job"
-    assert job._params == {
+    assert job.extra_request_payload == {
         "error_mitigation": {"debias": True},
     }
 

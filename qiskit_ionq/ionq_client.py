@@ -96,7 +96,7 @@ class IonQClient:
             job.circuit,
             job.backend(),
             job._passed_args,
-            job._params,
+            job.extra_request_payload,
         )
         req_path = self.make_path("jobs")
         res = requests.post(
@@ -209,7 +209,7 @@ class IonQClient:
         self,
         job_id: str,
         sharpen: Optional[bool] = None,
-        _params: Optional[dict] = None,
+        extra_request_payload: Optional[dict] = None,
     ):
         """Retrieve job results from the IonQ API.
 
@@ -219,6 +219,7 @@ class IonQClient:
             job_id (str): The ID of a job to retrieve.
             sharpen (bool): Supported if the job is debiased,
             allows you to filter out physical qubit bias from the results.
+            extra_request_payload (dict): Specify any parameters to include in the request
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
@@ -232,15 +233,14 @@ class IonQClient:
         if sharpen is not None:
             params["sharpen"] = sharpen
 
-        if _params is not None:
-            # _params (dict): Specify any parameters to include in the request
+        if extra_request_payload is not None:
             warn(
                 (
-                    f"The parameter(s): {_params} is not checked by default "
+                    f"The parameter(s): {extra_request_payload} is not checked by default "
                     "but will be submitted in the request."
                 )
             )
-            params.update(_params)
+            params.update(extra_request_payload)
 
         req_path = self.make_path("jobs", job_id, "results")
         res = requests.get(req_path, params, headers=self.api_headers, timeout=30)

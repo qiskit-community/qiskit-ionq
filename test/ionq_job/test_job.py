@@ -486,8 +486,8 @@ def test_result__with_sharpen(mock_backend, requests_mock):
     assert job.result(sharpen=False).to_dict() == expected_result
 
 
-def test_result__with_params(mock_backend, requests_mock):
-    """Test result allows for arbitrary query parameters `_param`
+def test_result_with_extra_payload(mock_backend, requests_mock):
+    """Test result allows for arbitrary query parameters
 
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend.
@@ -508,7 +508,10 @@ def test_result__with_params(mock_backend, requests_mock):
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
 
-    assert job.result(_params={"sharpen": False}).to_dict() == expected_result
+    assert (
+        job.result(extra_request_payload={"sharpen": False}).to_dict()
+        == expected_result
+    )
 
 
 def test_result__bad_sharpen(mock_backend, requests_mock):
