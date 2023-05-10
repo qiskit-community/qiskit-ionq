@@ -173,12 +173,19 @@ class IonQJob(JobV1):
     ):
         super().__init__(backend, job_id)
         self._client = client or backend.client
-        self._params = passed_args.pop("_params")
-        self._passed_args = passed_args or {"shots": 1024, "sampler_seed": None}
         self._result = None
         self._status = None
         self._execution_time = None
         self._metadata = {}
+
+        if passed_args is not None:
+            self._params = (
+                passed_args.pop("_params") if "_params" in passed_args else None
+            )
+            self._passed_args = passed_args
+        else:
+            self._params = None
+            self._passed_args = {"shots": 1024, "sampler_seed": None}
 
         if circuit is not None:
             self.circuit = circuit

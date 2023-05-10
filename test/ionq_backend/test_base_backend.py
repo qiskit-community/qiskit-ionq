@@ -189,7 +189,7 @@ def test_run_param(mock_backend, requests_mock):
 
     assert isinstance(job, ionq_job.IonQJob)
     assert job.job_id() == "fake_job"
-    assert job._passed_args.get("_params") == {
+    assert job._params == {
         "error_mitigation": {"debias": True},
     }
 
