@@ -1,8 +1,7 @@
 retry>=0.9.0
 Sphinx>=4.5.0
-sphinx-rtd-theme>=0.4.0
 sphinx-tabs>=1.1.11
 sphinx-autodoc-typehints
 jupyter-sphinx
-qiskit-sphinx-theme>=1.8.0
+qiskit-sphinx-theme~=1.11.1
 sphinx-panels
