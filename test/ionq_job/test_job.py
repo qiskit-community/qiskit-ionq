@@ -486,6 +486,31 @@ def test_result__with_sharpen(mock_backend, requests_mock):
     assert job.result(sharpen=False).to_dict() == expected_result
 
 
+def test_result__with_params(mock_backend, requests_mock):
+    """Test result allows for arbitrary query parameters `_param`
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    # Create the job:
+    job_id = "test_id"
+    client = mock_backend.client
+    job_result = conftest.dummy_job_response(job_id)
+
+    # Mock the job response API call.
+    path = client.make_path("jobs", job_id)
+    requests_mock.get(path, status_code=200, json=job_result)
+
+    results_path = client.make_path("jobs", job_id, "results") + "?sharpen=false"
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+
+    # Create a job ref (this will call .status() to fetch our mock above)
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    assert job.result(_params={"sharpen": False}).to_dict() == expected_result
+
+
 def test_result__bad_sharpen(mock_backend, requests_mock):
     """Test basic "happy path" for result fetching.
 
