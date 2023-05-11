@@ -189,7 +189,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
             else:
                 rotation = {
                     "phases": [float(t) for t in instruction.params[:2]],
-                    "angle": instruction.params[2]
+                    "angle": instruction.params[2],
                 }
 
         # Default conversion is simple, just gate & target(s).
@@ -231,8 +231,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
                     for i in range(instruction.num_ctrl_qubits)
                 ]
                 targets = [
-                    input_circuit.qubits.index(
-                        qargs[instruction.num_ctrl_qubits])
+                    input_circuit.qubits.index(qargs[instruction.num_ctrl_qubits])
                 ]
             if gate == "swap":
                 # If this is a cswap, we have two targets:
@@ -344,20 +343,20 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend, passed_args=None):
+def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
         circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         backend (:class:`qiskit_ionq.IonQBackend`): The IonQ backend.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
+        extra_query_params (dict): Specify any parameters to include in the request
 
     Returns:
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
-    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(
-        circuit, backend.gateset())
+    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
     qiskit_header = compress_dict_to_metadata_string(
@@ -407,6 +406,8 @@ def qiskit_to_ionq(circuit, backend, passed_args=None):
     error_mitigation = passed_args.get("error_mitigation")
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
+    if extra_query_params is not None:
+        ionq_json.update(extra_query_params)
     return json.dumps(ionq_json)
 
 
@@ -425,9 +426,11 @@ def get_user_agent():
     provider_version_string = f"qiskit-ionq/{version('qiskit_ionq')}"
     qiskit_terra_version_string = f"qiskit-terra/{qiskit_terra_version}"
     python_version_string = f"python/{platform.python_version()}"
-    return f"User-Agent: {provider_version_string} " \
-           f"({qiskit_terra_version_string}) {os_string} " \
-           f"({python_version_string})"
+    return (
+        f"User-Agent: {provider_version_string} "
+        f"({qiskit_terra_version_string}) {os_string} "
+        f"({python_version_string})"
+    )
 
 
 __all__ = [
@@ -435,5 +438,5 @@ __all__ = [
     "qiskit_circ_to_ionq_circ",
     "compress_dict_to_metadata_string",
     "decompress_metadata_string_to_dict",
-    "get_user_agent"
+    "get_user_agent",
 ]

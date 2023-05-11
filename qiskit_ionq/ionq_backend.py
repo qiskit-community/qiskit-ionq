@@ -134,7 +134,12 @@ class IonQBackend(Backend):
 
     @classmethod
     def _default_options(cls):
-        return Options(shots=1024, job_settings=None, error_mitigation=None)
+        return Options(
+            shots=1024,
+            job_settings=None,
+            error_mitigation=None,
+            extra_query_params=None,
+        )
 
     @property
     def client(self):
@@ -180,8 +185,7 @@ class IonQBackend(Backend):
             ) from ex
 
         if url is None:
-            raise exceptions.IonQCredentialsError(
-                "Credentials `url` may not be None!")
+            raise exceptions.IonQCredentialsError("Credentials `url` may not be None!")
 
         return ionq_client.IonQClient(token, url, self._provider.custom_headers)
 
@@ -230,8 +234,14 @@ class IonQBackend(Backend):
         if "job_settings" not in kwargs:
             kwargs["job_settings"] = self.options.job_settings
         elif self.options.job_settings is not None:
-            warnings.warn(("Option job_settings is set on the backend, and on the request. "
-                           "Ignoring the backend specified option."), UserWarning, stacklevel=2)
+            warnings.warn(
+                (
+                    "Option job_settings is set on the backend, and on the request. "
+                    "Ignoring the backend specified option."
+                ),
+                UserWarning,
+                stacklevel=2,
+            )
         passed_args = kwargs
 
         job = ionq_job.IonQJob(
@@ -338,7 +348,12 @@ class IonQSimulatorBackend(IonQBackend):
 
     @classmethod
     def _default_options(cls):
-        return Options(shots=1024, job_settings=None, sampler_seed=None, noise_model='ideal')
+        return Options(
+            shots=1024,
+            job_settings=None,
+            sampler_seed=None,
+            noise_model="ideal",
+        )
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,useless-super-delegation
     def run(self, circuit, **kwargs):

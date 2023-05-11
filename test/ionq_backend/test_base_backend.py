@@ -119,8 +119,7 @@ def test_create_client_exceptions(mock_backend, creds, msg):
     """
     fake_provider = mock.MagicMock()
     fake_provider.credentials = creds
-    provider_patch = mock.patch.object(
-        mock_backend, "_provider", fake_provider)
+    provider_patch = mock.patch.object(mock_backend, "_provider", fake_provider)
     with provider_patch, pytest.raises(exceptions.IonQCredentialsError) as exc_info:
         mock_backend.create_client()
 
@@ -167,6 +166,34 @@ def test_run_single_element_list(mock_backend, requests_mock):
     assert job.job_id() == "fake_job"
 
 
+def test_run_param(mock_backend, requests_mock):
+    """Test that the backend `run` accepts an arbitrary parameter dictionary.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    path = mock_backend.client.make_path("jobs")
+    dummy_response = conftest.dummy_job_response("fake_job")
+
+    # Mock the call to submit:
+    requests_mock.post(path, json=dummy_response, status_code=200)
+
+    # Run a dummy circuit.
+    job = mock_backend.run(
+        QuantumCircuit(1, 1),
+        extra_query_params={
+            "error_mitigation": {"debias": True},
+        },
+    )
+
+    assert isinstance(job, ionq_job.IonQJob)
+    assert job.job_id() == "fake_job"
+    assert job.extra_query_params == {
+        "error_mitigation": {"debias": True},
+    }
+
+
 def test_warn_null_mappings(mock_backend, requests_mock):
     """Test that a circuit without measurements emits
     a warning.
@@ -188,8 +215,9 @@ def test_warn_null_mappings(mock_backend, requests_mock):
     with pytest.warns(UserWarning) as warninfo:
         mock_backend.run(qc)
     assert len(warninfo) == 1
-    assert str(
-        warninfo[-1].message) == "Circuit null_mapping is not measuring any qubits"
+    assert (
+        str(warninfo[-1].message) == "Circuit null_mapping is not measuring any qubits"
+    )
 
 
 def test_run_raises_multiexp_job(mock_backend):

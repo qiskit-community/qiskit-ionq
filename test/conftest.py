@@ -262,7 +262,7 @@ def formatted_result(provider):
     settings = {"lorem": {"ipsum": "dolor"}}
 
     # Create a backend and client to use for accessing the job.
-    backend = provider.get_backend("ionq_qpu.aria.1")
+    backend = provider.get_backend("ionq_qpu.aria-1")
     backend.set_options(job_settings=settings)
     client = backend.create_client()
 
@@ -274,7 +274,7 @@ def formatted_result(provider):
     with _default_requests_mock() as requests_mock:
         # Mock the response with our dummy job response.
         requests_mock.get(path,
-                          json=dummy_job_response(job_id, "qpu.aria.1", "completed", settings))
+                          json=dummy_job_response(job_id, "qpu.aria-1", "completed", settings))
 
         requests_mock.get(results_path,
                           json={"0": 0.5, "2": 0.499999})

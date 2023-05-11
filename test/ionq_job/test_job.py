@@ -35,7 +35,6 @@ from qiskit.providers import jobstatus
 
 from qiskit.qobj.utils import MeasLevel
 from qiskit_ionq import exceptions, ionq_job
-from qiskit_ionq.constants import AggregationType
 
 from .. import conftest
 
@@ -462,7 +461,7 @@ def test_result(mock_backend, requests_mock):
     assert job.result().to_dict() == expected_result
 
 
-def test_result__with_aggregation(mock_backend, requests_mock):
+def test_result__with_sharpen(mock_backend, requests_mock):
     """Test basic "happy path" for result fetching.
 
     Args:
@@ -478,16 +477,44 @@ def test_result__with_aggregation(mock_backend, requests_mock):
     path = client.make_path("jobs", job_id)
     requests_mock.get(path, status_code=200, json=job_result)
 
-    results_path = client.make_path("jobs", job_id, "results") + "?aggregation=average"
+    results_path = client.make_path("jobs", job_id, "results") + "?sharpen=false"
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
 
-    assert job.result(aggregation=AggregationType.AVERAGE).to_dict() == expected_result
+    assert job.result(sharpen=False).to_dict() == expected_result
 
 
-def test_result__bad_aggregation(mock_backend, requests_mock):
+def test_result_with_extra_payload(mock_backend, requests_mock):
+    """Test result allows for arbitrary query parameters
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    # Create the job:
+    job_id = "test_id"
+    client = mock_backend.client
+    job_result = conftest.dummy_job_response(job_id)
+
+    # Mock the job response API call.
+    path = client.make_path("jobs", job_id)
+    requests_mock.get(path, status_code=200, json=job_result)
+
+    results_path = client.make_path("jobs", job_id, "results") + "?sharpen=false"
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+
+    # Create a job ref (this will call .status() to fetch our mock above)
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    assert (
+        job.result(extra_query_params={"sharpen": False}).to_dict()
+        == expected_result
+    )
+
+
+def test_result__bad_sharpen(mock_backend, requests_mock):
     """Test basic "happy path" for result fetching.
 
     Args:
@@ -509,8 +536,8 @@ def test_result__bad_aggregation(mock_backend, requests_mock):
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
 
-    with pytest.warns(UserWarning, match="Invalid aggregation type"):
-        job.result(aggregation="blah")
+    with pytest.warns(UserWarning, match="Invalid sharpen type"):
+        job.result(sharpen="blah")
 
 
 def test_result__from_circuit(mock_backend, requests_mock):

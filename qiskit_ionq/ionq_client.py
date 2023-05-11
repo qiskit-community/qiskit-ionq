@@ -26,6 +26,8 @@
 
 """Basic API Client for IonQ's REST API"""
 
+from typing import Optional
+from warnings import warn
 import requests
 
 from retry import retry
@@ -91,10 +93,18 @@ class IonQClient:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         as_json = qiskit_to_ionq(
-                job.circuit, job.backend(), job._passed_args
+            job.circuit,
+            job.backend(),
+            job._passed_args,
+            job.extra_query_params,
         )
         req_path = self.make_path("jobs")
-        res = requests.post(req_path, data=as_json, headers=self.api_headers, timeout=30)
+        res = requests.post(
+            req_path,
+            data=as_json,
+            headers=self.api_headers,
+            timeout=30,
+        )
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -186,25 +196,30 @@ class IonQClient:
         Returns:
             dict: A dictionary of an IonQ backend's calibration data.
         """
-        req_path = self.make_path("/".join([
-            "characterizations/backends",
-            backend_name[5:],
-            "current"
-        ]))
+        req_path = self.make_path(
+            "/".join(["characterizations/backends", backend_name[5:], "current"])
+        )
         res = requests.get(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
 
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
-    def get_results(self, job_id: str, aggregation=None):
+    def get_results(
+        self,
+        job_id: str,
+        sharpen: Optional[bool] = None,
+        extra_query_params: Optional[dict] = None,
+    ):
         """Retrieve job results from the IonQ API.
 
         The returned JSON dict will only have data if job has completed.
 
         Args:
             job_id (str): The ID of a job to retrieve.
-            aggregation (str): type of results aggregation
+            sharpen (bool): Supported if the job is debiased,
+            allows you to filter out physical qubit bias from the results.
+            extra_query_params (dict): Specify any parameters to include in the request
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
@@ -215,8 +230,17 @@ class IonQClient:
 
         params = {}
 
-        if aggregation:
-            params["aggregation"] = aggregation
+        if sharpen is not None:
+            params["sharpen"] = sharpen
+
+        if extra_query_params is not None:
+            warn(
+                (
+                    f"The parameter(s): {extra_query_params} is not checked by default "
+                    "but will be submitted in the request."
+                )
+            )
+            params.update(extra_query_params)
 
         req_path = self.make_path("jobs", job_id, "results")
         res = requests.get(req_path, params, headers=self.api_headers, timeout=30)

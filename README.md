@@ -52,7 +52,7 @@ export QISKIT_IONQ_API_TOKEN="token"
 Then invoke instantiate the provider without any arguments:
 
 ```python
-from qiskit_ionq import IonQProvider
+from qiskit_ionq import IonQProvider, ErrorMitigation
 
 provider = IonQProvider()
 ```
@@ -74,7 +74,6 @@ For example, running a Bell State:
 
 ```python
 from qiskit import QuantumCircuit
-from qiskit_ionq.constants import AggregationType
 
 # Create a basic Bell State circuit:
 qc = QuantumCircuit(2, 2)
@@ -82,15 +81,15 @@ qc.h(0)
 qc.cx(0, 1)
 qc.measure([0, 1], [0, 1])
 
-# Run the circuit on IonQ's platform:
-job = simulator_backend.run(qc)
+# Run the circuit on IonQ's platform with error mitigation:
+job = simulator_backend.run(qc, error_mitigation=ErrorMitigation.DEBIASING)
 
 # Print the results.
 print(job.result().get_counts())
 
-# Get results with a different aggregation method when symmetrization
+# Get results with a different aggregation method when debiasing
 # is applied as an error mitigation strategy
-print(job.result(AggregationType.AVERAGE).get_counts())
+print(job.result(sharpen=True).get_counts())
 
 # The simulator specifically provides the the ideal probabilities and creates
 # counts by sampling from these probabilities. The raw probabilities are also accessible:
