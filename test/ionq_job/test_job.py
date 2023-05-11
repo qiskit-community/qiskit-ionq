@@ -509,7 +509,7 @@ def test_result_with_extra_payload(mock_backend, requests_mock):
     job = ionq_job.IonQJob(mock_backend, job_id)
 
     assert (
-        job.result(extra_request_payload={"sharpen": False}).to_dict()
+        job.result(extra_query_params={"sharpen": False}).to_dict()
         == expected_result
     )
 

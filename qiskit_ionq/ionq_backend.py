@@ -138,7 +138,7 @@ class IonQBackend(Backend):
             shots=1024,
             job_settings=None,
             error_mitigation=None,
-            extra_request_payload=None,
+            extra_query_params=None,
         )
 
     @property

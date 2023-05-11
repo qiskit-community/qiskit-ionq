@@ -343,14 +343,14 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend, passed_args=None, extra_request_payload=None):
+def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
         circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         backend (:class:`qiskit_ionq.IonQBackend`): The IonQ backend.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
-        extra_request_payload (dict): Specify any parameters to include in the request
+        extra_query_params (dict): Specify any parameters to include in the request
 
     Returns:
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
@@ -406,8 +406,8 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_request_payload=Non
     error_mitigation = passed_args.get("error_mitigation")
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
-    if extra_request_payload is not None:
-        ionq_json.update(extra_request_payload)
+    if extra_query_params is not None:
+        ionq_json.update(extra_query_params)
     return json.dumps(ionq_json)
 
 

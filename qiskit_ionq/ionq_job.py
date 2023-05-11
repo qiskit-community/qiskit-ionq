@@ -179,14 +179,14 @@ class IonQJob(JobV1):
         self._metadata = {}
 
         if passed_args is not None:
-            self.extra_request_payload = (
-                passed_args.pop("extra_request_payload")
-                if "extra_request_payload" in passed_args
+            self.extra_query_params = (
+                passed_args.pop("extra_query_params")
+                if "extra_query_params" in passed_args
                 else None
             )
             self._passed_args = passed_args
         else:
-            self.extra_request_payload = None
+            self.extra_query_params = None
             self._passed_args = {"shots": 1024, "sampler_seed": None}
 
         if circuit is not None:
@@ -253,7 +253,7 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
-    def result(self, sharpen: bool = None, extra_request_payload: dict = None):
+    def result(self, sharpen: bool = None, extra_query_params: dict = None):
         """Retrieve job result data.
 
         .. NOTE::
@@ -292,7 +292,7 @@ class IonQJob(JobV1):
             response = self._client.get_results(
                 job_id=self._job_id,
                 sharpen=sharpen,
-                extra_request_payload=extra_request_payload,
+                extra_query_params=extra_query_params,
             )
             self._result = self._format_result(response)
 
