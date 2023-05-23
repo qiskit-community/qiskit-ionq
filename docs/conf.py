@@ -66,6 +66,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'jupyter_sphinx',
     'sphinx_panels',
+    'qiskit_sphinx_theme',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -82,7 +83,6 @@ exclude_patterns = ['_build', '**.ipynb_checkpoints']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 html_theme = "qiskit_sphinx_theme"
-html_theme_path = ['.', qiskit_sphinx_theme.get_html_theme_path()]
 html_theme_options = {
     'logo_only': False,
     'display_version': True,
@@ -96,11 +96,6 @@ html_theme_options = {
     'titles_only': False,
 }
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
-templates_path = ['_templates']
 autosummary_generate = True
 autosummary_generate_overwrite = False
 
