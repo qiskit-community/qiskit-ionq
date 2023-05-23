@@ -3,5 +3,5 @@ Sphinx>=4.5.0
 sphinx-tabs>=1.1.11
 sphinx-autodoc-typehints
 jupyter-sphinx
-qiskit-sphinx-theme~=1.11.1
+qiskit-sphinx-theme~=1.12.0
 sphinx-panels
