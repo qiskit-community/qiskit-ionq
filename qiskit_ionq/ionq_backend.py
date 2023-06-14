@@ -193,34 +193,13 @@ class IonQBackend(Backend):
     def run(self, circuit, **kwargs):
         """Create and run a job on an IonQ Backend.
 
-        .. NOTE::
-
-            IonQ backends do not support multi-experiment jobs.
-            If ``circuit`` is provided as a list with more than one element
-            then this method will raise out with a RuntimeError.
-
         Args:
             circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
                 A Qiskit QuantumCircuit object.
 
         Returns:
             IonQJob: A reference to the job that was submitted.
-
-        Raises:
-            RuntimeError: If a multi-experiment circuit was provided.
         """
-        if isinstance(circuit, (list, tuple)):
-            if len(circuit) > 1:
-                raise RuntimeError("Multi-experiment jobs are not supported!")
-            circuit = circuit[0]
-
-        if not self.has_valid_mapping(circuit):
-            warnings.warn(
-                f"Circuit {circuit.name} is not measuring any qubits",
-                UserWarning,
-                stacklevel=2,
-            )
-
         for kwarg in kwargs:
             if not hasattr(self.options, kwarg):
                 warnings.warn(
@@ -263,7 +242,7 @@ class IonQBackend(Backend):
 
         return [ionq_job.IonQJob(self, job_id, self.client) for job_id in job_ids]
 
-    def has_valid_mapping(self, circuit) -> bool:
+    def has_valid_mapping(self, circuits) -> bool:
         """checks if the circuit has at least one
         valid qubit -> bit measurement.
 
@@ -274,12 +253,18 @@ class IonQBackend(Backend):
         Returns:
             boolean: if the circuit has valid mappings
         """
-        # Check if a qubit is measured
-        for instruction, _, cargs in circuit.data:
-            if instruction.name == "measure" and len(cargs):
-                return True
+        if type(circuits) != list:
+            circuits = [circuits]
+
+        # Check if a qubit is measured in each circuit
+        is_measured = []
+        for circuit in circuits:
+            for instruction, _, cargs in circuit.data:
+                if instruction.name == "measure" and len(cargs):
+                    is_measured.append(True)
+                    break
         # If no mappings are found, return False
-        return False
+        return is_measured == [True] * len(circuit)
 
     # TODO: Implement backend status checks.
     def status(self):
@@ -419,7 +404,7 @@ class IonQQPUBackend(IonQBackend):
     def gateset(self):
         return self._gateset
 
-    def __init__(self, provider, name="ionq_qpu", gateset="qis"):
+    def __init__(self, provider, name="ionq_qpu.harmony", gateset="qis"):
         self._gateset = gateset
         config = BackendConfiguration.from_dict(
             {

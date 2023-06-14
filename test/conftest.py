@@ -228,7 +228,7 @@ def qpu_backend(provider):
     Returns:
         IonQQPUBackend: An instance of an IonQQPUBackend.
     """
-    return provider.get_backend("ionq_qpu")
+    return provider.get_backend("ionq_qpu.harmony")
 
 
 # pylint: disable=redefined-outer-name
