@@ -356,7 +356,14 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
-    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
+    ionq_circs = []
+    if len(circuit) > 1:
+        for circ in circuit:
+            ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circ, backend.gateset())
+            ionq_circs.append(ionq_circ)
+    else:
+        ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
+    circuit = circuit[0]
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
     qiskit_header = compress_dict_to_metadata_string(
@@ -385,7 +392,7 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
             "format": "ionq.circuit.v0",
             "gateset": backend.gateset(),
             "qubits": circuit.num_qubits,
-            "circuit": ionq_circ,
+            "circuits": ionq_circs,
         },
         "registers": {"meas_mapped": meas_map} if meas_map else {},
         # store a couple of things we'll need later for result formatting
