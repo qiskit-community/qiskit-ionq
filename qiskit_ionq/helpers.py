@@ -376,7 +376,9 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
         }
     )
 
-    target = backend.name()[5:]
+    target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
+    if target == "qpu":
+        target = "qpu.harmony"  # todo default to cheapest available option
     ionq_json = {
         "target": target,
         "shots": passed_args.get("shots"),
