@@ -376,7 +376,9 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
         }
     )
 
-    target = backend.name()[5:]
+    target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
+    if target == "qpu":
+        target = "qpu.harmony"  # todo default to cheapest available option
     ionq_json = {
         "target": target,
         "shots": passed_args.get("shots"),
@@ -395,8 +397,6 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
             "qiskit_header": qiskit_header,
         },
     }
-    if target == "qpu":
-        ionq_json["target"] = "qpu.harmony"
     if target == "simulator":
         ionq_json["noise"] = {
             "model": passed_args.get("noise_model") or backend.options.noise_model,
