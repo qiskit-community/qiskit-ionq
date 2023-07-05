@@ -142,6 +142,14 @@ python setup.py test --addopts="[pytest-args]"
 
 Global pytest fixtures for the test suite can be found in the top-level [test/conftest.py](./test/conftest.py) file.
 
+## SSL certificate issues
+
+If you receive the error `SSLError(SSLCertVerificationError)` or otherwise are unable to connect succesfully, there are a few possible resolutions:
+
+1. Try accessing https://api.ionq.co/v0.3/health in your browser, if this does not load, you need to contact an IT administrator about allowing IonQ API access.
+1. `pip install pip_system_certs` instructs python to use the same certificate roots of trust as your local browser, install this if the first step succeeded but qiskit-ionq continues to have issues.
+1. You can debug further by running `res = requests.get('https://api.ionq.co/v0.3/health', timeout=30)` and inspecting res, you should receive a 200 response with the content `{"status": "pass"}`. If you see a corporate or ISP login page, you will need to contact a local IT administrator to debug further.
+
 ## Documentation
 
 To build the API reference and quickstart docs, run:
