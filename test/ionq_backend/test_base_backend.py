@@ -186,7 +186,7 @@ def test_run_extras(mock_backend, requests_mock):
             "error_mitigation": {"debias": True},
         },
         extra_metadata={
-            "iteration": 10,
+            "iteration": "10",
         },
     )
 
@@ -196,7 +196,7 @@ def test_run_extras(mock_backend, requests_mock):
         "error_mitigation": {"debias": True},
     }
     assert job.extra_metadata == {
-        "iteration": 10,
+        "iteration": "10",
     }
 
 

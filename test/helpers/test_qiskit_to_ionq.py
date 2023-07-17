@@ -296,7 +296,7 @@ def test_full_native_circuit(simulator_backend):
         qc,
         native_backend,
         passed_args={"noise_model": "harmony", "sampler_seed": 23, "shots": 200},
-        extra_metadata={"iteration": 10},
+        extra_metadata={"iteration": "10"},
     )
     expected_metadata_header = {
         "memory_slots": 0,
@@ -308,7 +308,7 @@ def test_full_native_circuit(simulator_backend):
         "qreg_sizes": [["q", 3]],
         "qubit_labels": [["q", 0], ["q", 1], ["q", 2]],
     }
-    expected_metadata = {"shots": "200", "sampler_seed": "23", "iteration": 10}
+    expected_metadata = {"shots": "200", "sampler_seed": "23", "iteration": "10"}
     expected_rest_of_payload = {
         "target": "simulator",
         "name": "blame_test",

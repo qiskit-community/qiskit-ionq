@@ -354,6 +354,8 @@ class IonQSimulatorBackend(IonQBackend):
             job_settings=None,
             sampler_seed=None,
             noise_model="ideal",
+            extra_query_params=None,
+            extra_metadata=None,
         )
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,useless-super-delegation
