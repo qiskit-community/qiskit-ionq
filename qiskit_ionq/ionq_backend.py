@@ -139,6 +139,7 @@ class IonQBackend(Backend):
             job_settings=None,
             error_mitigation=None,
             extra_query_params=None,
+            extra_metadata=None,
         )
 
     @property

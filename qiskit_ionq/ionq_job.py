@@ -184,9 +184,15 @@ class IonQJob(JobV1):
                 if "extra_query_params" in passed_args
                 else None
             )
+            self.extra_metadata = (
+                passed_args.pop("extra_metadata")
+                if "extra_metadata" in passed_args
+                else None
+            )
             self._passed_args = passed_args
         else:
             self.extra_query_params = None
+            self.extra_metadata = None
             self._passed_args = {"shots": 1024, "sampler_seed": None}
 
         if circuit is not None:
