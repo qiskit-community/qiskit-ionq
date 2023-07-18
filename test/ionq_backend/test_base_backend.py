@@ -181,7 +181,7 @@ def test_run_extras(mock_backend, requests_mock):
 
     # Run a dummy circuit.
     job = mock_backend.run(
-        QuantumCircuit(1, 1),
+        QuantumCircuit(1, 1, metadata={"experiment": "abc123"}),
         extra_query_params={
             "error_mitigation": {"debias": True},
         },
@@ -196,6 +196,7 @@ def test_run_extras(mock_backend, requests_mock):
         "error_mitigation": {"debias": True},
     }
     assert job.extra_metadata == {
+        "experiment": "abc123",
         "iteration": "10",
     }
 
