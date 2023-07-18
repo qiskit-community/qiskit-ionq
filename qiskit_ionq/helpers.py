@@ -344,7 +344,9 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
+def qiskit_to_ionq(
+    circuit, backend, passed_args=None, extra_query_params=None, extra_metadata=None
+):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
@@ -352,11 +354,14 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
         backend (:class:`qiskit_ionq.IonQBackend`): The IonQ backend.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
         extra_query_params (dict): Specify any parameters to include in the request
+        extra_metadata (dict): Specify any additional metadata to include.
 
     Returns:
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
+    extra_query_params = extra_query_params or {}
+    extra_metadata = extra_metadata or {}
     ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
@@ -408,14 +413,15 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
             "model": passed_args.get("noise_model") or backend.options.noise_model,
             "seed": backend.options.sampler_seed,
         }
+    ionq_json.update(extra_query_params)
+    # merge circuit and extra metadata
+    ionq_json["metadata"].update(extra_metadata)
     settings = passed_args.get("job_settings") or None
     if settings is not None:
         ionq_json["settings"] = settings
     error_mitigation = passed_args.get("error_mitigation")
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
-    if extra_query_params is not None:
-        ionq_json.update(extra_query_params)
     return json.dumps(ionq_json)
 
 

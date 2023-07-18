@@ -97,6 +97,7 @@ class IonQClient:
             job.backend(),
             job._passed_args,
             job.extra_query_params,
+            job.extra_metadata,
         )
         req_path = self.make_path("jobs")
         res = requests.post(
