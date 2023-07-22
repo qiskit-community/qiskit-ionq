@@ -53,7 +53,11 @@ def resolve_credentials(token: str = None, url: str = None):
     Returns:
         dict[str]: A dict with "token" and "url" keys, for use by a client.
     """
-    env_token = os.environ.get("QISKIT_IONQ_API_TOKEN") or os.environ.get("IONQ_API_TOKEN")
+    env_token = (
+        os.environ.get("QISKIT_IONQ_API_TOKEN")
+        or os.environ.get("IONQ_API_TOKEN")
+        or os.environ.get("IONQ_API_KEY")
+    )
     env_url = os.environ.get("QISKIT_IONQ_API_URL") or os.environ.get("IONQ_API_URL")
     return {
         "token": token or env_token,
