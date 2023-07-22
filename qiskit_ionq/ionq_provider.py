@@ -41,7 +41,7 @@ def resolve_credentials(token: str = None, url: str = None):
     """Resolve credentials for use in IonQ Client API calls.
 
     If the provided ``token`` and ``url`` are both ``None``, then these values
-    are loaded from the ``QISKIT_IONQ_API_TOKEN`` and ``QISKIT_IONQ_API_URL``
+    are loaded from the ``IONQ_API_TOKEN`` and ``IONQ_API_URL``
     environment variables, respectively.
 
     If no url is discovered, then ``https://api.ionq.co/v0.3`` is used.
