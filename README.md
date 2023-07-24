@@ -46,7 +46,7 @@ provider = IonQProvider("token")
 Alternatively, the IonQ Provider can discover your access token from environment variables:
 
 ```bash
-export QISKIT_IONQ_API_TOKEN="token"
+export IONQ_API_TOKEN="token"
 ```
 
 Then invoke instantiate the provider without any arguments:
