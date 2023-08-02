@@ -441,7 +441,7 @@ def get_user_agent():
     qiskit_terra_version_string = f"qiskit-terra/{qiskit_terra_version}"
     python_version_string = f"python/{platform.python_version()}"
     return (
-        f"User-Agent: {provider_version_string} "
+        f"{provider_version_string} "
         f"({qiskit_terra_version_string}) {os_string} "
         f"({python_version_string})"
     )
