@@ -210,13 +210,13 @@ def test_results_meta(formatted_result):
 def test_counts(formatted_result):
     """Test counts based on a dummy result (see global conftest.py)."""
     counts = formatted_result.get_counts()
-    assert {"00": 617, "10": 617} == counts
+    assert {"00": 609, "10": 625} == counts
 
 
 def test_probabilities(formatted_result):
     """Test counts based on a dummy result (see global conftest.py)."""
     probabilities = formatted_result.get_probabilities()
-    assert {"00": 0.5, "10": 0.5} == probabilities
+    assert {"00": 0.5, "10": 0.499999} == probabilities
 
 
 def test_counts__simulator_probs(simulator_backend, requests_mock):
@@ -399,7 +399,7 @@ expected_result = {
     "results": [
         {
             "data": {
-                "counts": {"0x0": 617, "0x2": 617},
+                "counts": {"0x0": 609, "0x2": 625},
                 "probabilities": {"0x0": 0.5, "0x2": 0.499999},
                 "metadata": {
                     "clbit_labels": [["c", 0], ["c", 1]],
@@ -478,7 +478,7 @@ def test_result__with_sharpen(mock_backend, requests_mock):
     requests_mock.get(path, status_code=200, json=job_result)
 
     results_path = client.make_path("jobs", job_id, "results") + "?sharpen=false"
-    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.5})
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
@@ -503,7 +503,7 @@ def test_result_with_extra_payload(mock_backend, requests_mock):
     requests_mock.get(path, status_code=200, json=job_result)
 
     results_path = client.make_path("jobs", job_id, "results") + "?sharpen=false"
-    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.5})
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
@@ -567,7 +567,7 @@ def test_result__from_circuit(mock_backend, requests_mock):
     requests_mock.get(fetch_path, status_code=200, json=job_response)
 
     results_path = client.make_path("jobs", job_id, "results")
-    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.5})
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Validate the result and its format. should be the same as base case.
     res = job.result().to_dict()
