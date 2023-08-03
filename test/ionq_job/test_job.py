@@ -229,15 +229,15 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
     requests_mock.get(path, json=conftest.dummy_job_response(job_id))
 
     results_path = simulator_backend.client.make_path("jobs", job_id, "results")
-    requests_mock.get(results_path, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(results_path, json={"0": 0.5, "2": 0.5})
     job = ionq_job.IonQJob(simulator_backend, job_id)
 
     formatted_result = job.result()
     counts = formatted_result.get_counts()
     probabilities = formatted_result.get_probabilities()
 
-    assert {"00": 609, "10": 625} == counts
-    assert {"00": 0.5, "10": 0.499999} == probabilities
+    assert {"00": 617, "10": 617} == counts
+    assert {"00": 0.5, "10": 0.5} == probabilities
 
 
 def test_build_counts__with_int():
@@ -258,13 +258,13 @@ def test_counts_and_probs_from_job(simulator_backend, requests_mock):
     path = simulator_backend.client.make_path("jobs", job_id)
     requests_mock.get(path, json=conftest.dummy_job_response(job_id))
     results_path = simulator_backend.client.make_path("jobs", job_id, "results")
-    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.5})
     job = ionq_job.IonQJob(simulator_backend, job_id)
 
     counts = job.get_counts()
     probabilities = job.get_probabilities()
-    assert {"00": 609, "10": 625} == counts
-    assert {"00": 0.5, "10": 0.499999} == probabilities
+    assert {"00": 617, "10": 617} == counts
+    assert {"00": 0.5, "10": 0.5} == probabilities
 
 
 def test_submit__without_circuit(mock_backend, requests_mock):
