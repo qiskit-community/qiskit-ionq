@@ -427,7 +427,7 @@ class IonQJob(JobV1):
                 self._num_qubits,
                 self._clbits,
                 shots,
-                use_sampler=is_ideal_simulator,
+                use_sampler=not is_ideal_simulator,
                 sampler_seed=sampler_seed,
             )
             job_result["data"] = {
