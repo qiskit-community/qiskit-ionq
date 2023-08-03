@@ -216,7 +216,7 @@ def test_counts(formatted_result):
 def test_probabilities(formatted_result):
     """Test counts based on a dummy result (see global conftest.py)."""
     probabilities = formatted_result.get_probabilities()
-    assert {"00": 0.5, "10": 0.499999} == probabilities
+    assert {"00": 0.5, "10": 0.5} == probabilities
 
 
 def test_counts__simulator_probs(simulator_backend, requests_mock):
@@ -478,7 +478,7 @@ def test_result__with_sharpen(mock_backend, requests_mock):
     requests_mock.get(path, status_code=200, json=job_result)
 
     results_path = client.make_path("jobs", job_id, "results") + "?sharpen=false"
-    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.5})
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
@@ -503,7 +503,7 @@ def test_result_with_extra_payload(mock_backend, requests_mock):
     requests_mock.get(path, status_code=200, json=job_result)
 
     results_path = client.make_path("jobs", job_id, "results") + "?sharpen=false"
-    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.5})
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
@@ -567,7 +567,7 @@ def test_result__from_circuit(mock_backend, requests_mock):
     requests_mock.get(fetch_path, status_code=200, json=job_response)
 
     results_path = client.make_path("jobs", job_id, "results")
-    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.5})
 
     # Validate the result and its format. should be the same as base case.
     res = job.result().to_dict()
