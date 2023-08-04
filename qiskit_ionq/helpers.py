@@ -33,6 +33,7 @@ import json
 import gzip
 import base64
 import platform
+import warnings
 
 from qiskit import __version__ as qiskit_terra_version
 from qiskit.circuit import controlledgate as q_cgates
@@ -343,7 +344,9 @@ def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid
     return json.loads(decompressed)
 
 
-def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
+def qiskit_to_ionq(
+    circuit, backend, passed_args=None, extra_query_params=None, extra_metadata=None
+):
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
@@ -351,11 +354,15 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
         backend (:class:`qiskit_ionq.IonQBackend`): The IonQ backend.
         passed_args (dict): Dictionary containing additional passed arguments, eg. shots.
         extra_query_params (dict): Specify any parameters to include in the request
+        extra_metadata (dict): Specify any additional metadata to include.
 
     Returns:
         str: A string / JSON-serialized dictionary with IonQ API compatible values.
     """
     passed_args = passed_args or {}
+    extra_query_params = extra_query_params or {}
+    extra_metadata = extra_metadata or {}
+
     ionq_circs = []
     if len(circuit) > 1:
         for circ in circuit:
@@ -383,7 +390,14 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
         }
     )
 
-    target = backend.name()[5:]
+    target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
+    if target == "qpu":
+        target = "qpu.harmony"  # todo default to cheapest available option
+        warnings.warn(
+            "The ionq_qpu backend is deprecated. Defaulting to ionq_qpu.harmony.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     ionq_json = {
         "target": target,
         "shots": passed_args.get("shots"),
@@ -407,14 +421,15 @@ def qiskit_to_ionq(circuit, backend, passed_args=None, extra_query_params=None):
             "model": passed_args.get("noise_model") or backend.options.noise_model,
             "seed": backend.options.sampler_seed,
         }
+    ionq_json.update(extra_query_params)
+    # merge circuit and extra metadata
+    ionq_json["metadata"].update(extra_metadata)
     settings = passed_args.get("job_settings") or None
     if settings is not None:
         ionq_json["settings"] = settings
     error_mitigation = passed_args.get("error_mitigation")
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
-    if extra_query_params is not None:
-        ionq_json.update(extra_query_params)
     return json.dumps(ionq_json)
 
 
@@ -434,7 +449,7 @@ def get_user_agent():
     qiskit_terra_version_string = f"qiskit-terra/{qiskit_terra_version}"
     python_version_string = f"python/{platform.python_version()}"
     return (
-        f"User-Agent: {provider_version_string} "
+        f"{provider_version_string} "
         f"({qiskit_terra_version_string}) {os_string} "
         f"({python_version_string})"
     )

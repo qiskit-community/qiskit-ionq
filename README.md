@@ -46,7 +46,7 @@ provider = IonQProvider("token")
 Alternatively, the IonQ Provider can discover your access token from environment variables:
 
 ```bash
-export QISKIT_IONQ_API_TOKEN="token"
+export IONQ_API_TOKEN="token"
 ```
 
 Then invoke instantiate the provider without any arguments:
@@ -141,6 +141,14 @@ python setup.py test --addopts="[pytest-args]"
 ### Fixtures
 
 Global pytest fixtures for the test suite can be found in the top-level [test/conftest.py](./test/conftest.py) file.
+
+## SSL certificate issues
+
+If you receive the error `SSLError(SSLCertVerificationError)` or otherwise are unable to connect succesfully, there are a few possible resolutions:
+
+1. Try accessing <https://api.ionq.co/v0.3/health> in your browser; if this does not load, you need to contact an IT administrator about allowing IonQ API access.
+2. `pip install pip_system_certs` instructs python to use the same certificate roots of trust as your local browser - install this if the first step succeeded but qiskit-ionq continues to have issues.
+3. You can debug further by running `res = requests.get('https://api.ionq.co/v0.3/health', timeout=30)` and inspecting `res`, you should receive a 200 response with the content `{"status": "pass"}`. If you see a corporate or ISP login page, you will need to contact a local IT administrator to debug further.
 
 ## Documentation
 

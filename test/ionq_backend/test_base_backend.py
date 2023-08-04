@@ -166,7 +166,7 @@ def test_run_single_element_list(mock_backend, requests_mock):
     assert job.job_id() == "fake_job"
 
 
-def test_run_param(mock_backend, requests_mock):
+def test_run_extras(mock_backend, requests_mock):
     """Test that the backend `run` accepts an arbitrary parameter dictionary.
 
     Args:
@@ -181,9 +181,12 @@ def test_run_param(mock_backend, requests_mock):
 
     # Run a dummy circuit.
     job = mock_backend.run(
-        QuantumCircuit(1, 1),
+        QuantumCircuit(1, 1, metadata={"experiment": "abc123"}),
         extra_query_params={
             "error_mitigation": {"debias": True},
+        },
+        extra_metadata={
+            "iteration": "10",
         },
     )
 
@@ -191,6 +194,10 @@ def test_run_param(mock_backend, requests_mock):
     assert job.job_id() == "fake_job"
     assert job.extra_query_params == {
         "error_mitigation": {"debias": True},
+    }
+    assert job.extra_metadata == {
+        "experiment": "abc123",
+        "iteration": "10",
     }
 
 
