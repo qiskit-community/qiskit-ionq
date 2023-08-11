@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # This code is part of Qiskit.
@@ -30,5 +29,4 @@ pwd
 # Push to qiskit.org/ecosystem
 openssl aes-256-cbc -K $encrypted_rclone_key -iv $encrypted_rclone_iv -in tools/rclone.conf.enc -out $RCLONE_CONFIG_PATH -d
 echo "Pushing built docs to qiskti.org/ecosystem"
-rclone sync --progress ./build/html IBMCOS:qiskit-org-web-resources/documentation/partners/ionq
 rclone sync --progress ./build/html IBMCOS:qiskit-org-web-resources/ecosystem/ionq
