@@ -76,6 +76,7 @@ ionq_basis_gates = [
     "ry",
     "ryy",
     "rz",
+    "rzz",
     "s",
     "sdg",
     "swap",
@@ -102,6 +103,7 @@ ionq_api_aliases = {
     q_gates.p.PhaseGate: "z",
     q_gates.RXXGate: "xx",
     q_gates.RYYGate: "yy",
+    q_gates.RZZGate: "zz",
     q_gates.s.SdgGate: "si",
     q_gates.sx.SXGate: "v",
     q_gates.sx.SXdgGate: "vi",
@@ -111,6 +113,7 @@ multi_target_uncontrolled_gates = (
     q_gates.SwapGate,
     q_gates.RXXGate,
     q_gates.RYYGate,
+    q_gates.RZZGate,
 )
 
 # https://ionq.com/docs/getting-started-with-native-gates
