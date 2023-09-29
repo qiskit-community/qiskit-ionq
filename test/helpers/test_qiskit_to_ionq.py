@@ -327,7 +327,7 @@ def test_full_native_circuit(simulator_backend):
                 {"gate": "gpi", "target": 0, "phase": 0.1},
                 {"gate": "gpi2", "target": 1, "phase": 0.2},
                 {"gate": "ms", "targets": [1, 2], "phases": [0.2, 0.3], "angle": 0.25},
-                {"gate": "zz", "phase": 0.4, "targets": [0, 2]},
+                {"gate": "zz", "angle": 0.4, "targets": [0, 2]},
             ],
         },
     }

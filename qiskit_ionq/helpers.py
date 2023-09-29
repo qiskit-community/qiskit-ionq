@@ -44,7 +44,6 @@ from importlib_metadata import version
 from qiskit_ionq.constants import ErrorMitigation
 from . import exceptions
 
-
 # the qiskit gates that the IonQ backend can serialize to our IR
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
 # also not an exact/complete list of the gates IonQ's backend takes
@@ -181,13 +180,15 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
         # Process the instruction and convert.
         rotation = {}
         if len(instruction.params) > 0:
-            if gateset == "qis" or len(instruction.params) == 1:
+            if gateset == "qis" or (len(instruction.params) == 1 and instruction_name != 'zz'):
                 # The float is here to cast Qiskit ParameterExpressions to numbers
                 rotation = {
-                    "rotation"
+                    ("rotation"
                     if gateset == "qis"
-                    else "phase": float(instruction.params[0])
+                    else "phase"): float(instruction.params[0])
                 }
+            elif instruction_name in {"zz"}:
+                rotation = { "angle": instruction.params[0] }
             else:
                 rotation = {
                     "phases": [float(t) for t in instruction.params[:2]],
