@@ -159,13 +159,13 @@ class ZZGate(Gate):
 
     .. math::
 
-        ZZ\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                \begin{pmatrix}
-                                    1-i & 0 & 0 & 0 \\
-                                    0 & 1+i & 0 & 0 \\
-                                    0 & 0 & 1+i & 0 \\
-                                    0 & 0 & 0 & 1-i
-                                \end{pmatrix}
+        ZZ(\theta) =
+            \begin{pmatrix}
+                e^{-i \frac{\theta}{2}} & 0 & 0 & 0 \\
+                0 & e^{i \frac{\theta}{2}} & 0 & 0 \\
+                0 & 0 & e^{i \frac{\theta}{2}} & 0 \\
+                0 & 0 & 0 & e^{-i \frac{\theta}{2}}
+            \end{pmatrix}
     """
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
