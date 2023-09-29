@@ -124,8 +124,6 @@ gate_serializations = [
     ("ryy", [0.5, 0, 1], [{"gate": "yy", "rotation": 0.5, "targets": [0, 1]}]),
     ("rz", [0, 0], [{"gate": "rz", "rotation": 0, "targets": [0]}]),
     ("rz", [0.5, 0], [{"gate": "rz", "rotation": 0.5, "targets": [0]}]),
-    ("rzz", [0, 0, 1], [{"gate": "zz", "rotation": 0, "targets": [0, 1]}]),
-    ("rzz", [0.5, 0, 1], [{"gate": "zz", "rotation": 0.5, "targets": [0, 1]}]),
     ("s", [0], [{"gate": "s", "targets": [0]}]),
     ("sdg", [0], [{"gate": "si", "targets": [0]}]),
     ("swap", [0, 1], [{"gate": "swap", "targets": [0, 1]}]),

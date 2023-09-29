@@ -76,7 +76,6 @@ ionq_basis_gates = [
     "ry",
     "ryy",
     "rz",
-    "rzz",
     "s",
     "sdg",
     "swap",
@@ -103,7 +102,6 @@ ionq_api_aliases = {
     q_gates.p.PhaseGate: "z",
     q_gates.RXXGate: "xx",
     q_gates.RYYGate: "yy",
-    q_gates.RZZGate: "zz",
     q_gates.s.SdgGate: "si",
     q_gates.sx.SXGate: "v",
     q_gates.sx.SXdgGate: "vi",
@@ -113,7 +111,6 @@ multi_target_uncontrolled_gates = (
     q_gates.SwapGate,
     q_gates.RXXGate,
     q_gates.RYYGate,
-    q_gates.RZZGate,
 )
 
 # https://ionq.com/docs/getting-started-with-native-gates
@@ -121,6 +118,7 @@ ionq_native_basis_gates = [
     "gpi",  # TODO All single qubit gates can transpile into GPI/GPI2
     "gpi2",
     "ms",  # Pairwise MS gate
+    "zz",  # ZZ gate
 ]
 
 # Each language corresponds to a different set of basis gates.
@@ -195,7 +193,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
 
         # Default conversion is simple, just gate & target(s).
         targets = [input_circuit.qubits.index(qargs[0])]
-        if instruction_name == "ms":
+        if instruction_name in {"ms", "zz"}:
             targets.append(input_circuit.qubits.index(qargs[1]))
 
         converted = (
