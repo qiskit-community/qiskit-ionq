@@ -60,6 +60,7 @@ class IonQRetriableError(IonQError):
         self._cause = cause
         super().__init__(cause.message)
 
+
 # pylint: disable=no-member
 
 
@@ -81,7 +82,9 @@ _RETRIABLE_STATUS_CODES = {
 
 
 def _is_retriable(method, code):
-    return code in _RETRIABLE_STATUS_CODES or (method == "GET" and code in _RETRIABLE_FOR_GETS)
+    return code in _RETRIABLE_STATUS_CODES or (
+        method == "GET" and code in _RETRIABLE_FOR_GETS
+    )
 
 
 class IonQAPIError(IonQError):
@@ -127,7 +130,7 @@ class IonQAPIError(IonQError):
         try:
             response_json = response.json()
         except jd.JSONDecodeError:
-            response_json = {'invalid_json': response.text}
+            response_json = {"invalid_json": response.text}
         # Defaults, if items cannot be extracted from the response.
         error_type = "internal_error"
         message = "No error details provided."
@@ -190,10 +193,11 @@ class IonQGateError(IonQError, JobError):
         self.gate_name = gate_name
         self.gateset = gateset
         super().__init__(
-            (f"gate '{gate_name}' is not supported on the '{gateset}' IonQ backends. "
-             "Please use the qiskit.transpile method, manually rewrite to remove the gate, "
-             "or change the gateset selection as appropriate."
-             )
+            (
+                f"gate '{gate_name}' is not supported on the '{gateset}' IonQ backends. "
+                "Please use the qiskit.transpile method, manually rewrite to remove the gate, "
+                "or change the gateset selection as appropriate."
+            )
         )
 
     def __repr__(self):

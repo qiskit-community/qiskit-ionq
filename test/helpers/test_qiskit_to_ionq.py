@@ -36,7 +36,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit_ionq.exceptions import IonQGateError
 from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string_to_dict
-from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate
+from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from qiskit_ionq.constants import ErrorMitigation
 
 
@@ -275,6 +275,7 @@ def test_native_circuit_transpile(simulator_backend):
     circ.append(GPIGate(0.1), [0])
     circ.append(GPI2Gate(0.2), [1])
     circ.append(MSGate(0.2, 0.3, 0.25), [1, 2])
+    circ.append(ZZGate(0.4), [0, 2])
 
     with pytest.raises(QiskitError) as exc_info:
         transpile(circ, backend=simulator_backend)
@@ -292,6 +293,7 @@ def test_full_native_circuit(simulator_backend):
     qc.append(GPIGate(0.1), [0])
     qc.append(GPI2Gate(0.2), [1])
     qc.append(MSGate(0.2, 0.3, 0.25), [1, 2])
+    qc.append(ZZGate(0.4), [0, 2])
     ionq_json = qiskit_to_ionq(
         qc,
         native_backend,
@@ -325,6 +327,7 @@ def test_full_native_circuit(simulator_backend):
                 {"gate": "gpi", "target": 0, "phase": 0.1},
                 {"gate": "gpi2", "target": 1, "phase": 0.2},
                 {"gate": "ms", "targets": [1, 2], "phases": [0.2, 0.3], "angle": 0.25},
+                {"gate": "zz", "phase": 0.4, "targets": [0, 2]},
             ],
         },
     }

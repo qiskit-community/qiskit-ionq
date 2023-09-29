@@ -146,3 +146,41 @@ class MSGate(Gate):
             ],
             dtype=dtype,
         )
+
+
+class ZZGate(Gate):
+    r"""Two-qubit ZZ-rotation gate.
+    **Circuit Symbol:**
+    .. parsed-literal::
+        q_0: ───■────
+                │zz(θ)
+        q_1: ───■────
+    **Matrix Representation:**
+
+    .. math::
+
+        ZZ(\theta) =
+            \begin{pmatrix}
+                e^{-i \frac{\theta}{2}} & 0 & 0 & 0 \\
+                0 & e^{i \frac{\theta}{2}} & 0 & 0 \\
+                0 & 0 & e^{i \frac{\theta}{2}} & 0 \\
+                0 & 0 & 0 & e^{-i \frac{\theta}{2}}
+            \end{pmatrix}
+    """
+
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+        """Create new ZZ gate."""
+        super().__init__("zz", 2, [theta], label=label)
+
+    def __array__(self, dtype=None):
+        """Return a numpy.array for the ZZ gate."""
+        itheta2 = 1j * float(self.params[0]) / 2
+        return numpy.array(
+            [
+                [cmath.exp(-itheta2), 0, 0, 0],
+                [0, cmath.exp(itheta2), 0, 0],
+                [0, 0, cmath.exp(itheta2), 0],
+                [0, 0, 0, cmath.exp(-itheta2)],
+            ],
+            dtype=dtype,
+        )

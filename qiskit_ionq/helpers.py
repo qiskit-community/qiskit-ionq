@@ -121,6 +121,7 @@ ionq_native_basis_gates = [
     "gpi",  # TODO All single qubit gates can transpile into GPI/GPI2
     "gpi2",
     "ms",  # Pairwise MS gate
+    "zz",  # ZZ gate
 ]
 
 # Each language corresponds to a different set of basis gates.
@@ -195,7 +196,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
 
         # Default conversion is simple, just gate & target(s).
         targets = [input_circuit.qubits.index(qargs[0])]
-        if instruction_name == "ms":
+        if instruction_name in {"ms", "zz"}:
             targets.append(input_circuit.qubits.index(qargs[1]))
 
         converted = (
