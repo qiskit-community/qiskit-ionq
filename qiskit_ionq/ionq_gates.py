@@ -107,10 +107,10 @@ class MSGate(Gate):
 
        MS(\phi_0, _\phi_1, \theta) q_0, q_1 =
             \begin{pmatrix}
-                cos{\th/2} & 0 & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1)}*sin{\th/2} \\
-                0 & cos{\th/2} & -i*e^{-i*2*\pi(\phi_0-\phi_1)}*sin{\th/2} & 0 \\
-                0 & -i*e^{i*2*\pi(\phi_0-\phi_1)}*sin(\th/2) & cos{\th/2} & 0 \\
-                -i*e^{i*2*\pi(\phi_0+\phi_1)}*sin{\th/2} & 0 & 0 & cos{\th/2}
+                cos{\th*\pi} & 0 & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1)}*sin{\th/2} \\
+                0 & cos{\th*\pi} & -i*e^{-i*2*\pi(\phi_0-\phi_1)}*sin{\th/2} & 0 \\
+                0 & -i*e^{i*2*\pi(\phi_0-\phi_1)}*sin(\th/2) & cos{\th*\pi} & 0 \\
+                -i*e^{i*2*\pi(\phi_0+\phi_1)}*sin{\th/2} & 0 & 0 & cos{\th*\pi}
             \end{pmatrix}
     """
 
@@ -161,10 +161,10 @@ class ZZGate(Gate):
 
         ZZ(\theta) =
             \begin{pmatrix}
-                e^{-i \frac{\theta}{2}} & 0 & 0 & 0 \\
-                0 & e^{i \frac{\theta}{2}} & 0 & 0 \\
-                0 & 0 & e^{i \frac{\theta}{2}} & 0 \\
-                0 & 0 & 0 & e^{-i \frac{\theta}{2}}
+                e^{-i \theta*\pi} & 0 & 0 & 0 \\
+                0 & e^{i \theta*\pi} & 0 & 0 \\
+                0 & 0 & e^{i \theta*\pi} & 0 \\
+                0 & 0 & 0 & e^{-i \theta\*\pi}
             \end{pmatrix}
     """
 
@@ -174,7 +174,7 @@ class ZZGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the ZZ gate."""
-        itheta2 = 1j * float(self.params[0]) / 2
+        itheta2 = 1j * float(self.params[0]) * math.pi
         return numpy.array(
             [
                 [cmath.exp(-itheta2), 0, 0, 0],
