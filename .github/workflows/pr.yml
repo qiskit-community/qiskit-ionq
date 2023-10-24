@@ -50,3 +50,7 @@ jobs:
           python -m pip install -e .
       - name: docs
         run: tox -e docs
+      - uses: actions/upload-artifact@v3
+        with:
+          name: html_docs
+          path: build/html
