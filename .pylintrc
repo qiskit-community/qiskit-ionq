@@ -59,8 +59,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=no-self-use,        # disabled as it is too verbose
-    fixme,              # disabled as TODOs would show up as warnings
+disable=fixme,              # disabled as TODOs would show up as warnings
     protected-access,   # disabled as we don't follow the public vs private
                         # convention strictly
     duplicate-code,     # disabled as it is too verbose

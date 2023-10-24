@@ -29,7 +29,6 @@
 from typing import Optional
 from warnings import warn
 import requests
-from requests.exceptions import RequestException
 
 from retry import retry
 
@@ -83,9 +82,10 @@ class IonQClient:
 
         Args:
             req_path (str): The URL path to make the request to.
-            params (dict, optional): Parameters to include in the request.
+            params (dict, optional): Parameters to include in the request body.
             headers (dict, optional): Headers to include in the request.
             timeout (int, optional): Timeout for the request.
+            query_params (dict, optional): Query parameters to include in the URL.
 
         Raises:
             IonQRetriableError: When a retriable error occurs during the request.
@@ -97,7 +97,7 @@ class IonQClient:
             res = requests.get(
                 req_path, params=params, headers=headers, timeout=timeout
             )
-            res.raise_for_status()  # Raise an HTTPError if the HTTP request returned an unsuccessful status code.
+            res.raise_for_status()
         except requests.exceptions.RequestException as req_exc:
             raise IonQRetriableError(req_exc) from req_exc
 
@@ -255,7 +255,7 @@ class IonQClient:
             params.update(extra_query_params)
 
         req_path = self.make_path("jobs", job_id, "results")
-        res = self._get_with_retry(req_path, headers=self.api_headers)
+        res = self._get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
