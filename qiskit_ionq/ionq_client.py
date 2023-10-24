@@ -78,6 +78,31 @@ class IonQClient:
         """
         return "/".join([self._url] + list(parts))
 
+    def _get_with_retry(self, req_path, params=None, headers=None, timeout=30):
+        """Make a GET request with retry logic and exception handling.
+
+        Args:
+            req_path (str): The URL path to make the request to.
+            params (dict, optional): Parameters to include in the request.
+            headers (dict, optional): Headers to include in the request.
+            timeout (int, optional): Timeout for the request.
+
+        Raises:
+            IonQRetriableError: When a retriable error occurs during the request.
+
+        Returns:
+            Response: A requests.Response object.
+        """
+        try:
+            res = requests.get(
+                req_path, params=params, headers=headers, timeout=timeout
+            )
+            res.raise_for_status()  # Raise an HTTPError if the HTTP request returned an unsuccessful status code.
+        except requests.exceptions.RequestException as req_exc:
+            raise IonQRetriableError(req_exc) from req_exc
+
+        return res
+
     @retry(exceptions=IonQRetriableError, tries=5)
     def submit_job(self, job) -> dict:
         """Submit job to IonQ API
@@ -121,12 +146,13 @@ class IonQClient:
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
 
         Returns:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         req_path = self.make_path("jobs", job_id)
-        res = requests.get(req_path, headers=self.api_headers, timeout=30)
+        res = self._get_with_retry(req_path, headers=self.api_headers)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -175,25 +201,9 @@ class IonQClient:
         Args:
             backend_name (str): The IonQ backend to fetch data for.
 
-        Calibration::
-
-            {
-                "id": <str>,
-                "calibration_time": <int>,
-                "target": <str>,
-                "num_qubits": <int>,
-                "connectivity": [<int>, ...],
-                "fidelity": {
-                    "spam": {
-                        "mean": <int>,
-                        "stderr": <int>
-                    }
-                },
-                "timing": {
-                    "readout": <int>,
-                    "reset": <int>
-                }
-            }
+        Raises:
+            IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
 
         Returns:
             dict: A dictionary of an IonQ backend's calibration data.
@@ -201,9 +211,8 @@ class IonQClient:
         req_path = self.make_path(
             "/".join(["characterizations/backends", backend_name[5:], "current"])
         )
-        res = requests.get(req_path, headers=self.api_headers, timeout=30)
+        res = self._get_with_retry(req_path, headers=self.api_headers)
         exceptions.IonQAPIError.raise_for_status(res)
-
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
@@ -246,12 +255,7 @@ class IonQClient:
             params.update(extra_query_params)
 
         req_path = self.make_path("jobs", job_id, "results")
-
-        try:
-            res = requests.get(req_path, params, headers=self.api_headers, timeout=30)
-        except requests.exceptions.RequestException as req_exc:
-            raise IonQRetriableError(e) from req_exc
-
+        res = self._get_with_retry(req_path, headers=self.api_headers)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
