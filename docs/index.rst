@@ -5,6 +5,11 @@ Qiskit IonQ Provider documentation
 ==================================
 
 .. toctree::
+   :hidden:
+
+   Home <self>
+
+.. toctree::
    :maxdepth: 1
 
    Installation <guides/install>
