@@ -182,7 +182,7 @@ class IonQJob(JobV1):
             self.extra_query_params = passed_args.pop("extra_query_params", {})
             self.extra_metadata = {
                 **passed_args.pop("extra_metadata", {}),
-                **circuit.metadata,
+                **(circuit.metadata or {}),
             }
             self._passed_args = passed_args
         else:
