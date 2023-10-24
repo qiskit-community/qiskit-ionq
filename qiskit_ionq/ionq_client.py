@@ -29,6 +29,7 @@
 from typing import Optional
 from warnings import warn
 import requests
+from requests.exceptions import RequestException
 
 from retry import retry
 
@@ -224,6 +225,7 @@ class IonQClient:
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
 
         Returns:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
@@ -244,7 +246,12 @@ class IonQClient:
             params.update(extra_query_params)
 
         req_path = self.make_path("jobs", job_id, "results")
-        res = requests.get(req_path, params, headers=self.api_headers, timeout=30)
+
+        try:
+            res = requests.get(req_path, params, headers=self.api_headers, timeout=30)
+        except requests.exceptions.RequestException as e:
+            raise IonQRetriableError(e) from e
+
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
