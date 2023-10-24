@@ -249,8 +249,8 @@ class IonQClient:
 
         try:
             res = requests.get(req_path, params, headers=self.api_headers, timeout=30)
-        except requests.exceptions.RequestException as e:
-            raise IonQRetriableError(e) from e
+        except requests.exceptions.RequestException as req_exc:
+            raise IonQRetriableError(e) from req_exc
 
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
