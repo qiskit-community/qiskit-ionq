@@ -82,10 +82,9 @@ class IonQClient:
 
         Args:
             req_path (str): The URL path to make the request to.
-            params (dict, optional): Parameters to include in the request body.
+            params (dict, optional): Parameters to include in the request.
             headers (dict, optional): Headers to include in the request.
             timeout (int, optional): Timeout for the request.
-            query_params (dict, optional): Query parameters to include in the URL.
 
         Raises:
             IonQRetriableError: When a retriable error occurs during the request.
@@ -97,7 +96,6 @@ class IonQClient:
             res = requests.get(
                 req_path, params=params, headers=headers, timeout=timeout
             )
-            res.raise_for_status()
         except requests.exceptions.RequestException as req_exc:
             raise IonQRetriableError(req_exc) from req_exc
 
