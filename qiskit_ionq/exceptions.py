@@ -58,7 +58,7 @@ class IonQRetriableError(IonQError):
 
     def __init__(self, cause):
         self._cause = cause
-        super().__init__(cause.message)
+        super().__init__(getattr(cause, 'message', 'Unknown error'))
 
 
 # pylint: disable=no-member
