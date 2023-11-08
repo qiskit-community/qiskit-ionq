@@ -254,12 +254,12 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
-    def result(self, sharpen: bool = None, extra_query_params: dict = None):
+    def result(self, sharpen: bool = None, extra_query_params: dict = None, **kwargs):
         """Retrieve job result data.
 
         .. NOTE::
-           :attr:`_result` is populated by :meth:`status`, when the job
-           status has reached a "final" state.
+        :attr:`_result` is populated by :meth:`status`, when the job
+        status has reached a "final" state.
 
         This method calls the
         :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
@@ -283,7 +283,7 @@ class IonQJob(JobV1):
 
         # Wait for the job to complete.
         try:
-            self.wait_for_final_state()
+            self.wait_for_final_state(**kwargs)
         except JobTimeoutError as ex:
             raise exceptions.IonQJobTimeoutError(
                 "Timed out waiting for job to complete."
