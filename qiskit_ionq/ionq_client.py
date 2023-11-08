@@ -44,9 +44,10 @@ class IonQClient:
         _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.3"``
         _token(str): An API Access Token to use with the IonQ API.
         _custom_headers(dict): Extra headers to add to the request.
+        _session(requests.Session): An optional session object to reuse connections.
     """
 
-    def __init__(self, token=None, url=None, custom_headers=None):
+    def __init__(self, token=None, url=None, custom_headers=None, session=None):
         self._token = token
         self._custom_headers = custom_headers or {}
         # strip trailing slashes from our base URL.
@@ -54,6 +55,7 @@ class IonQClient:
             url = url[:-1]
         self._url = url
         self._user_agent = get_user_agent()
+        self._session = session or requests
 
     @property
     def api_headers(self):
@@ -93,7 +95,7 @@ class IonQClient:
             Response: A requests.Response object.
         """
         try:
-            res = requests.get(
+            res = self._session.get(
                 req_path, params=params, headers=headers, timeout=timeout
             )
         except requests.exceptions.RequestException as req_exc:
@@ -124,7 +126,7 @@ class IonQClient:
             job.extra_metadata,
         )
         req_path = self.make_path("jobs")
-        res = requests.post(
+        res = self._session.post(
             req_path,
             data=as_json,
             headers=self.api_headers,
@@ -170,7 +172,7 @@ class IonQClient:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         req_path = self.make_path("jobs", job_id, "status", "cancel")
-        res = requests.put(req_path, headers=self.api_headers, timeout=30)
+        res = self._session.put(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -188,7 +190,7 @@ class IonQClient:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         req_path = self.make_path("jobs", job_id)
-        res = requests.delete(req_path, headers=self.api_headers, timeout=30)
+        res = self._session.delete(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
