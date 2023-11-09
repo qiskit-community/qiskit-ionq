@@ -90,22 +90,22 @@ ionq_basis_gates = [
 ]
 
 ionq_api_aliases = {  # todo fix alias bug
-    q_gates.p.CPhaseGate: "cz",
-    q_gates.sx.CSXGate: "cv",
-    q_gates.p.MCPhaseGate: "cz",
-    q_gates.x.CCXGate: "cx",  # just one C for all mcx
-    q_gates.x.C3XGate: "cx",  # just one C for all mcx
-    q_gates.x.C4XGate: "cx",  # just one C for all mcx
-    q_gates.x.MCXGate: "cx",  # just one C for all mcx
-    q_gates.x.MCXGrayCode: "cx",  # just one C for all mcx
-    q_gates.t.TdgGate: "ti",
-    q_gates.p.PhaseGate: "z",
-    q_gates.RXXGate: "xx",
-    q_gates.RYYGate: "yy",
-    q_gates.RZZGate: "zz",
-    q_gates.s.SdgGate: "si",
-    q_gates.sx.SXGate: "v",
-    q_gates.sx.SXdgGate: "vi",
+    "cp": "cz",
+    "csx": "cv",
+    "mcphase": "cz",
+    "ccx": "cx",  # just one C for all mcx
+    "mcx": "cx",  # just one C for all mcx
+    "mcx": "cx",  # just one C for all mcx
+    "mcx": "cx",  # just one C for all mcx
+    "mcx_gray": "cx",  # just one C for all mcx
+    "tdg": "ti",
+    "p": "z",
+    "rxx": "xx",
+    "ryy": "yy",
+    "rzz": "zz",
+    "sdg": "si",
+    "sx": "v",
+    "sxdg": "vi",
 }
 
 multi_target_uncontrolled_gates = (
@@ -212,8 +212,8 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
         )
 
         # re-alias certain names
-        if instruction.__class__ in ionq_api_aliases:
-            new_name = ionq_api_aliases.get(instruction.__class__)
+        if instruction_name in ionq_api_aliases:
+            new_name = ionq_api_aliases.get(instruction_name)
             converted["gate"] = new_name
             instruction_name = new_name
 
