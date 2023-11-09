@@ -89,7 +89,7 @@ ionq_basis_gates = [
     "z",
 ]
 
-ionq_api_aliases = {
+ionq_api_aliases = {  # todo fix alias bug
     q_gates.p.CPhaseGate: "cz",
     q_gates.sx.CSXGate: "cv",
     q_gates.p.MCPhaseGate: "cz",
@@ -180,15 +180,17 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
         # Process the instruction and convert.
         rotation = {}
         if len(instruction.params) > 0:
-            if gateset == "qis" or (len(instruction.params) == 1 and instruction_name != 'zz'):
+            if gateset == "qis" or (
+                len(instruction.params) == 1 and instruction_name != "zz"
+            ):
                 # The float is here to cast Qiskit ParameterExpressions to numbers
                 rotation = {
-                    ("rotation"
-                    if gateset == "qis"
-                    else "phase"): float(instruction.params[0])
+                    ("rotation" if gateset == "qis" else "phase"): float(
+                        instruction.params[0]
+                    )
                 }
             elif instruction_name in {"zz"}:
-                rotation = { "angle": instruction.params[0] }
+                rotation = {"angle": instruction.params[0]}
             else:
                 rotation = {
                     "phases": [float(t) for t in instruction.params[:2]],
