@@ -95,8 +95,6 @@ ionq_api_aliases = {  # todo fix alias bug
     "mcphase": "cz",
     "ccx": "cx",  # just one C for all mcx
     "mcx": "cx",  # just one C for all mcx
-    "mcx": "cx",  # just one C for all mcx
-    "mcx": "cx",  # just one C for all mcx
     "mcx_gray": "cx",  # just one C for all mcx
     "tdg": "ti",
     "p": "z",
