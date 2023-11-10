@@ -13,7 +13,7 @@ The example python notebook (in `/example`) should help you understand basic usa
 
 ## API Access
 
-The IonQ Provider uses IonQ's REST API, and using the provider requires an API access token from IonQ. If you would like to use IonQ as a Qiskit provider, please contact sales@ionq.co to request more information about gaining access to the IonQ API.
+The IonQ Provider uses IonQ's REST API, and using the provider requires an API access token from IonQ. If you would like to use IonQ as a Qiskit provider, please visit <https://cloud.ionq.com/settings/keys> to generate an IonQ API key.
 
 ## Installation
 
