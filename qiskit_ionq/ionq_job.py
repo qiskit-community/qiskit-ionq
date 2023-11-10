@@ -258,8 +258,8 @@ class IonQJob(JobV1):
         """Retrieve job result data.
 
         .. NOTE::
-        :attr:`_result` is populated by :meth:`status`, when the job
-        status has reached a "final" state.
+            :attr:`_result` is populated by :meth:`status`, when the job
+            status has reached a "final" state.
 
         This method calls the
         :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
