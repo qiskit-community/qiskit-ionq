@@ -31,7 +31,6 @@ import pytest
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.compiler import transpile
-from qiskit.exceptions import QiskitError
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit_ionq.exceptions import IonQGateError

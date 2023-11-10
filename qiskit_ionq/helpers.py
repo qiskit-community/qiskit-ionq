@@ -211,7 +211,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
 
         # re-alias certain names
         if instruction_name in ionq_api_aliases:
-            instruction_name = ionq_api_aliases.get(instruction_name)
+            instruction_name = ionq_api_aliases[instruction_name]
             converted["gate"] = instruction_name
 
         # Make sure uncontrolled multi-targets use all qargs.
