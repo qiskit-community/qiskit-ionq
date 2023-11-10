@@ -89,23 +89,21 @@ ionq_basis_gates = [
     "z",
 ]
 
-ionq_api_aliases = {
-    q_gates.p.CPhaseGate: "cz",
-    q_gates.sx.CSXGate: "cv",
-    q_gates.p.MCPhaseGate: "cz",
-    q_gates.x.CCXGate: "cx",  # just one C for all mcx
-    q_gates.x.C3XGate: "cx",  # just one C for all mcx
-    q_gates.x.C4XGate: "cx",  # just one C for all mcx
-    q_gates.x.MCXGate: "cx",  # just one C for all mcx
-    q_gates.x.MCXGrayCode: "cx",  # just one C for all mcx
-    q_gates.t.TdgGate: "ti",
-    q_gates.p.PhaseGate: "z",
-    q_gates.RXXGate: "xx",
-    q_gates.RYYGate: "yy",
-    q_gates.RZZGate: "zz",
-    q_gates.s.SdgGate: "si",
-    q_gates.sx.SXGate: "v",
-    q_gates.sx.SXdgGate: "vi",
+ionq_api_aliases = {  # todo fix alias bug
+    "cp": "cz",
+    "csx": "cv",
+    "mcphase": "cz",
+    "ccx": "cx",  # just one C for all mcx
+    "mcx": "cx",  # just one C for all mcx
+    "mcx_gray": "cx",  # just one C for all mcx
+    "tdg": "ti",
+    "p": "z",
+    "rxx": "xx",
+    "ryy": "yy",
+    "rzz": "zz",
+    "sdg": "si",
+    "sx": "v",
+    "sxdg": "vi",
 }
 
 multi_target_uncontrolled_gates = (
@@ -170,7 +168,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
             continue
 
         # serialized identity gate is a no-op
-        if isinstance(instruction, q_gates.i.IGate):
+        if instruction_name == "id":
             continue
 
         # Raise out for instructions we don't support.
@@ -180,15 +178,17 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
         # Process the instruction and convert.
         rotation = {}
         if len(instruction.params) > 0:
-            if gateset == "qis" or (len(instruction.params) == 1 and instruction_name != 'zz'):
+            if gateset == "qis" or (
+                len(instruction.params) == 1 and instruction_name != "zz"
+            ):
                 # The float is here to cast Qiskit ParameterExpressions to numbers
                 rotation = {
-                    ("rotation"
-                    if gateset == "qis"
-                    else "phase"): float(instruction.params[0])
+                    ("rotation" if gateset == "qis" else "phase"): float(
+                        instruction.params[0]
+                    )
                 }
             elif instruction_name in {"zz"}:
-                rotation = { "angle": instruction.params[0] }
+                rotation = {"angle": instruction.params[0]}
             else:
                 rotation = {
                     "phases": [float(t) for t in instruction.params[:2]],
@@ -210,10 +210,9 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
         )
 
         # re-alias certain names
-        if instruction.__class__ in ionq_api_aliases:
-            new_name = ionq_api_aliases.get(instruction.__class__)
-            converted["gate"] = new_name
-            instruction_name = new_name
+        if instruction_name in ionq_api_aliases:
+            instruction_name = ionq_api_aliases[instruction_name]
+            converted["gate"] = instruction_name
 
         # Make sure uncontrolled multi-targets use all qargs.
         if isinstance(instruction, multi_target_uncontrolled_gates):

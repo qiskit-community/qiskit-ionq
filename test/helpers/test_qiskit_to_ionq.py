@@ -31,7 +31,6 @@ import pytest
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.compiler import transpile
-from qiskit.exceptions import QiskitError
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit_ionq.exceptions import IonQGateError
@@ -277,9 +276,9 @@ def test_native_circuit_transpile(simulator_backend):
     circ.append(MSGate(0.2, 0.3, 0.25), [1, 2])
     circ.append(ZZGate(0.4), [0, 2])
 
-    with pytest.raises(QiskitError) as exc_info:
+    with pytest.raises(TranspilerError) as exc_info:
         transpile(circ, backend=simulator_backend)
-    assert "Cannot unroll the circuit to the given basis" in exc_info.value.message
+    assert "unable to synthesize" in exc_info.value.message
 
 
 def test_full_native_circuit(simulator_backend):
