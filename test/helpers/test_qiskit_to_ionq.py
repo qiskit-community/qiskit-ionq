@@ -279,7 +279,7 @@ def test_native_circuit_transpile(simulator_backend):
 
     with pytest.raises(TranspilerError) as exc_info:
         transpile(circ, backend=simulator_backend)
-    assert "Cannot unroll the circuit to the given basis" in exc_info.value.message
+    assert "unable to synthesize" in exc_info.value.message
 
 
 def test_full_native_circuit(simulator_backend):
