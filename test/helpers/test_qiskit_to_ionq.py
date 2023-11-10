@@ -277,7 +277,7 @@ def test_native_circuit_transpile(simulator_backend):
     circ.append(MSGate(0.2, 0.3, 0.25), [1, 2])
     circ.append(ZZGate(0.4), [0, 2])
 
-    with pytest.raises(Error) as exc_info:
+    with pytest.raises(TranspilerError) as exc_info:
         transpile(circ, backend=simulator_backend)
     assert "Cannot unroll the circuit to the given basis" in exc_info.value.message
 
