@@ -216,7 +216,7 @@ def test_warn_null_mappings(mock_backend, requests_mock):
     requests_mock.post(path, json=dummy_response, status_code=200)
 
     # Create a circuit with no measurement gates
-    qc = QuantumCircuit(1, 1, name="null_mapping")
+    qc = QuantumCircuit(1, 1)
     qc.h(0)
 
     with pytest.warns(UserWarning) as warninfo:
