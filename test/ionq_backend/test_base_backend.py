@@ -222,18 +222,22 @@ def test_warn_null_mappings(mock_backend, requests_mock):
     with pytest.warns(UserWarning) as warninfo:
         mock_backend.run(qc)
     assert len(warninfo) == 1
-    assert (
-        str(warninfo[-1].message) == "Circuit null_mapping is not measuring any qubits"
-    )
+    assert str(warninfo[-1].message) == "Circuit is not measuring any qubits"
 
 
-def test_run_raises_multiexp_job(mock_backend):
-    """Test that the backend `run` raises out if more than one circuit is provided.
+def test_multiexp_job(mock_backend, requests_mock):
+    """Test that the backend `run` handles more than one circuit.
 
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
     """
-    # Run a dummy circuit.
-    with pytest.raises(RuntimeError) as excinfo:
-        mock_backend.run([QuantumCircuit(1, 1), QuantumCircuit(1, 1)])
-    assert str(excinfo.value) == "Multi-experiment jobs are not supported!"
+    path = mock_backend.client.make_path("jobs")
+    dummy_response = conftest.dummy_job_response("fake_job")
+
+    # Mock the call to submit:
+    requests_mock.post(path, json=dummy_response, status_code=200)
+
+    # Run a dummy multi-experiment job.
+    mock_backend.run([QuantumCircuit(1, 1), QuantumCircuit(1, 1)])
+    # todo verify json

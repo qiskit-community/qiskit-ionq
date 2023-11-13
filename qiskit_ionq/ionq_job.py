@@ -176,18 +176,22 @@ class IonQJob(JobV1):
 
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
-            self.extra_metadata = {
-                **passed_args.pop("extra_metadata", {}),
-                **({k: v for d in circuit for k, v in d.metadata.items()} or {}),
-            }
+            self.extra_metadata = passed_args.pop("extra_metadata", {})
             self._passed_args = passed_args
         else:
             self.extra_query_params = {}
             self.extra_metadata = {}
             self._passed_args = {"shots": 1024, "sampler_seed": None}
 
+        # Handle both single and list of circuits
         if circuit is not None:
-            self.circuit = circuit
+            if isinstance(circuit, (list, tuple)):
+                self.circuit = circuit
+                for circ in circuit:
+                    self.extra_metadata.update(circ.metadata or {})
+            else:
+                self.circuit = [circuit]
+                self.extra_metadata.update(circuit.metadata or {})
             self._status = jobstatus.JobStatus.INITIALIZING
         else:  # retrieve existing job
             self.circuit = None

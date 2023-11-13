@@ -203,7 +203,7 @@ class IonQBackend(Backend):
         """
         if not self.has_valid_mapping(circuit):
             warnings.warn(
-                f"Circuit is not measuring any qubits",
+                "Circuit is not measuring any qubits",
                 UserWarning,
                 stacklevel=2,
             )

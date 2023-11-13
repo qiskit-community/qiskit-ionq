@@ -365,13 +365,14 @@ def qiskit_to_ionq(
     extra_metadata = extra_metadata or {}
     ionq_circs = []
     multi_circuit = False
-    if len(circuit) > 1:
+    if isinstance(circuit, (list, tuple)):
         multi_circuit = True
         for circ in circuit:
             ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circ, backend.gateset())
             ionq_circs.append((ionq_circ, meas_map))
     else:
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
+        circuit = [circuit]
     circ = circuit[0]
     creg_sizes, clbit_labels = get_register_sizes_and_labels(circ.cregs)
     qreg_sizes, qubit_labels = get_register_sizes_and_labels(circ.qregs)
@@ -379,7 +380,7 @@ def qiskit_to_ionq(
         {
             "memory_slots": circ.num_clbits,  # int
             "global_phase": circ.global_phase,  # float
-            "n_qubits": max([c.num_qubits for c in circuit]),  # int
+            "n_qubits": circ.num_qubits,  # int
             "name": circ.name,  # str
             # list of [str, int] tuples cardinality memory_slots
             "creg_sizes": creg_sizes,
@@ -407,13 +408,12 @@ def qiskit_to_ionq(
         "input": {
             "format": "ionq.circuit.v0",
             "gateset": backend.gateset(),
-            "qubits": max([c.num_qubits for c in circuit]),
+            "qubits": max(c.num_qubits for c in circuit),
         },
         # store a couple of things we'll need later for result formatting
         "metadata": {
             "shots": str(passed_args.get("shots")),
             "sampler_seed": str(passed_args.get("sampler_seed")),
-            "qiskit_header": qiskit_header,
         },
     }
     if multi_circuit:
@@ -421,8 +421,9 @@ def qiskit_to_ionq(
             {"circuit": c, "registers": {"meas_mapped": m}} for c, m in ionq_circs
         ]
     else:
-        ionq_json["input"]["circuit"] = circ
+        ionq_json["input"]["circuit"] = ionq_circs
         ionq_json["registers"] = {"meas_mapped": meas_map} if meas_map else {}
+        ionq_json["metadata"]["qiskit_header"] = qiskit_header
     if target == "simulator":
         ionq_json["noise"] = {
             "model": passed_args.get("noise_model") or backend.options.noise_model,
