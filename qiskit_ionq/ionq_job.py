@@ -147,10 +147,6 @@ def _build_counts(
 class IonQJob(JobV1):
     """Representation of a Job that will run on an IonQ backend.
 
-    .. IMPORTANT::
-       IonQ backends do not support multi-experiment jobs.  Attempting to
-       submit a multi-experiment job will raise an exception.
-
     It is not recommended to create Job instances directly, but rather use the
     :meth:`run <IonQBackend.run>` and :meth:`retrieve_job <IonQBackend.retrieve_job>`
     methods on sub-class instances of IonQBackend to create and retrieve jobs
@@ -182,7 +178,7 @@ class IonQJob(JobV1):
             self.extra_query_params = passed_args.pop("extra_query_params", {})
             self.extra_metadata = {
                 **passed_args.pop("extra_metadata", {}),
-                **(circuit.metadata or {}),
+                **({k: v for d in circuit for k, v in d.metadata.items()} or {}),
             }
             self._passed_args = passed_args
         else:
