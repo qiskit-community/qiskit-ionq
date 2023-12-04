@@ -351,7 +351,9 @@ class IonQJob(JobV1):
             self._metadata = response.get("metadata") or {}
 
         if self._status == jobstatus.JobStatus.DONE:
-            self._num_qubits = response.get("qubits")
+            print(response)
+            self._children = response.get("children", [])
+            self._num_qubits = response.get("qubits", 0)
             default_map = list(range(self._num_qubits))
             self._clbits = (response.get("registers") or {}).get(
                 "meas_mapped", default_map
@@ -453,6 +455,9 @@ class IonQJob(JobV1):
                 "time_taken": self._execution_time,
             }
         )
+
+    def _get_children(self):
+        return self._job_id
 
 
 __all__ = ["IonQJob"]

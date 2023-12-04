@@ -378,12 +378,14 @@ class IonQSimulatorBackend(IonQBackend):
     def gateset(self):
         return self._gateset
 
-    def __init__(self, provider, name="ionq_simulator", gateset="qis"):
+    def __init__(self, provider, name="simulator", gateset="qis"):
         """Base class for interfacing with an IonQ backend"""
         self._gateset = gateset
         config = BackendConfiguration.from_dict(
             {
-                "backend_name": name,
+                "backend_name": "ionq_" + name
+                if not name.startswith("ionq_")
+                else name,
                 "backend_version": "0.0.1",
                 "simulator": True,
                 "local": False,
