@@ -423,7 +423,7 @@ def qiskit_to_ionq(
     error_mitigation = passed_args.get("error_mitigation")
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
-    return json.dumps(ionq_json)
+    return json.dumps(ionq_json, cls=SafeEncoder)
 
 
 def get_user_agent():
@@ -446,6 +446,20 @@ def get_user_agent():
         f"({qiskit_terra_version_string}) {os_string} "
         f"({python_version_string})"
     )
+
+
+class SafeEncoder(json.JSONEncoder):
+    """
+    Custom JSON encoder that handles non-JSON-safe objects by converting them to strings.
+    """
+
+    def default(self, o):
+        try:
+            return super().default(o)
+        except TypeError:
+            return (
+                str(o) if "__str__" in vars(type(o)) else repr(o)
+            )  # convert non-JSON-safe objects to string
 
 
 __all__ = [
