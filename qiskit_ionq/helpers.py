@@ -463,8 +463,10 @@ class SafeEncoder(json.JSONEncoder):
         for func in funcs:
             try:
                 return func()
-            except Exception as e:
-                print(f"Failed to convert object: {e}")
+            except Exception as exception:
+                warnings.warn(
+                    f"Unable to encode {o} using {func.__name__}: {exception}"
+                )
 
         return "unknown"
 
