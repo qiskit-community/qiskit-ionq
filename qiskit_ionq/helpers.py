@@ -454,12 +454,19 @@ class SafeEncoder(json.JSONEncoder):
     """
 
     def default(self, o):
-        try:
-            return super().default(o)
-        except TypeError:
-            return (
-                str(o) if "__str__" in vars(type(o)) else repr(o)
-            )  # convert non-JSON-safe objects to string
+        funcs = [
+            lambda: super().default(o),
+            lambda: str(o),
+            lambda: repr(o),
+        ]
+
+        for func in funcs:
+            try:
+                return func()
+            except Exception as e:
+                print(f"Failed to convert object: {e}")
+
+        return "unknown"
 
 
 __all__ = [
