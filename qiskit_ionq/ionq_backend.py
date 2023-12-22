@@ -401,7 +401,7 @@ class IonQSimulatorBackend(IonQBackend):
                 "basis_gates": GATESET_MAP[gateset],
                 "memory": False,
                 # Varied based on noise model, but enforced server-side.
-                "n_qubits": 32,
+                "n_qubits": 35,
                 "conditional": False,
                 "max_shots": 1,
                 "max_experiments": 1,
@@ -437,7 +437,7 @@ class IonQQPUBackend(IonQBackend):
                 # This is a generic backend for all IonQ hardware, the server will do more specific
                 # qubit count checks. In the future, dynamic backend configuration from the server
                 # will be used in place of these hard-coded caps.
-                "n_qubits": 32,
+                "n_qubits": 35,
                 "conditional": False,
                 "max_shots": 10000,
                 "max_experiments": 1,
