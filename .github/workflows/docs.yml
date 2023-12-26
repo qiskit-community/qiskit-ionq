@@ -25,8 +25,8 @@ jobs:
     - name: Build docs
       run: tox -edocs
     - name: Bypass Jekyll Processing # Necessary for setting the correct css path
-      run: touch docs/build/html/.nojekyll
+      run: touch build/html/.nojekyll
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@v4
       with:
-        folder: docs/build/html/
+        folder: build/html/
