@@ -99,6 +99,12 @@ class IonQProvider:
             QiskitBackendNotFoundError: if no backend could be found or
                 more than one backend matches the filtering criteria.
         """
+        if not name.startswith("ionq_"):
+            # enable using short names for ionq backends
+            if name == "simulator":
+                name = "ionq_simulator"
+            else:
+                name = "ionq_qpu." + name
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
             raise QiskitBackendNotFoundError("More than one backend matches criteria.")
