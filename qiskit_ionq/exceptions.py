@@ -229,32 +229,6 @@ class IonQJobTimeoutError(IonQError, JobTimeoutError):
     """Errors generated from job timeouts"""
 
 
-class IonQMetadataStringError(IonQError, JobError):
-    """Errors generated from metadata strings being too long
-
-    Attributes:
-        string_length: The length of the metadata string that's too long.
-    """
-
-    def __init__(self, string_length):
-        self.string_length = string_length
-        super().__init__(
-            f"attempting to serialize circuit metadata, got length '{string_length}'. "
-            "Must be under 400."
-        )
-        warnings.warn(
-            """
-            This error is a limitation of the IonQ API, not something you did wrong.
-            To submit this circuit we recommend trying the following: shorten the circuit name,
-            Use fewer qubit or cbit registers (i.e. combine them), or give them shorter names.
-            Please file a ticket at support.ionq.co if you repeatedly see this error.
-            """
-        )
-
-    def __str__(self):
-        return f"{self.__class__.__name__}(string_length={self.string_length!r})"
-
-
 __all__ = [
     "IonQError",
     "IonQCredentialsError",
@@ -265,5 +239,4 @@ __all__ = [
     "IonQGateError",
     "IonQMidCircuitMeasurementError",
     "IonQJobTimeoutError",
-    "IonQMetadataStringError",
 ]
