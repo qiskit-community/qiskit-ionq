@@ -311,7 +311,6 @@ def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-
     compressed = gzip.compress(serialized.encode("utf-8"))
     encoded = base64.b64encode(compressed)
     encoded_string = encoded.decode()
-    encoded_string_length = len(encoded_string)
     return encoded_string
 
 
