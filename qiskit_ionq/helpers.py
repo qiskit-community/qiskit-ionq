@@ -294,11 +294,6 @@ def get_register_sizes_and_labels(registers):
     return sizes, labels
 
 
-# slightly goofy workaround to account for the fact that IonQ's "arbitrary" metadata field
-# only takes string KV pairs with value max length 400
-# so we try and pack it down into a more-compressed string format
-# and raise if it's still too long
-# TODO: make this behavior a little nicer (dict metadata) on IonQ side; fix here when we do
 def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-name
     """
     Convert a dict to a compact string format (dumped, gzipped, base64 encoded)
@@ -311,17 +306,11 @@ def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-
     Returns:
         str: encoded string
 
-    Raises:
-        IonQMetadataStringError: If the base64 encoded `json.dumps`'d dict is
-            greater than 400 characters.
     """
     serialized = json.dumps(metadata_dict)
     compressed = gzip.compress(serialized.encode("utf-8"))
     encoded = base64.b64encode(compressed)
     encoded_string = encoded.decode()
-    encoded_string_length = len(encoded_string)
-    if encoded_string_length > 400:  # 400 char is an IonQ API limitation
-        raise exceptions.IonQMetadataStringError(encoded_string_length)
     return encoded_string
 
 
