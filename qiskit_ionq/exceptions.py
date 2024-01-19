@@ -25,8 +25,6 @@
 # limitations under the License.
 
 """Exceptions for the IonQ Provider."""
-import warnings
-
 import json.decoder as jd
 
 import requests
