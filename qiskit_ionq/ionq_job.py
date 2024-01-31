@@ -189,12 +189,10 @@ class IonQJob(JobV1):
         # Handle both single and list of circuits
         if circuit is not None:
             if isinstance(circuit, (list, tuple)):
-                self.is_multicircuit = True
                 self.circuit = circuit
                 for circ in circuit:
                     self.extra_metadata.update(circ.metadata or {})
             else:
-                self.is_multicircuit = False
                 self.circuit = circuit
                 self.extra_metadata.update(circuit.metadata or {})
             self._status = jobstatus.JobStatus.INITIALIZING
@@ -434,7 +432,7 @@ class IonQJob(JobV1):
             "success": success,
         }
         if self._status == jobstatus.JobStatus.DONE:
-            if self.is_multicircuit and self._num_circuits > 1:
+            if self._num_circuits > 1:
                 # create a list of results from data.values()
                 data_values = list(data.values())
                 job_result["data"] = {
