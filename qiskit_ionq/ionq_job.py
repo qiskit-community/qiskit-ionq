@@ -104,12 +104,15 @@ def _build_counts(
         IonQJobError: In the event that ``result`` has missing or invalid job
             properties.
     """
+    print(f"{data=}")
+
     # Short circuit when we don't have all the information we need.
     if not data:
         raise exceptions.IonQJobError("Cannot remap counts without data!")
 
     # Grab the mapped output from response.
     output_probs = map_output(data, clbits, num_qubits)
+    print(f"{output_probs=}")
 
     sampled = {}
     if use_sampler:
@@ -351,7 +354,8 @@ class IonQJob(JobV1):
             self._metadata = response.get("metadata") or {}
 
         if self._status == jobstatus.JobStatus.DONE:
-            print(response)
+            print(f"{response=}")
+            self._num_circuits = response.get("circuits", 1)
             self._children = response.get("children", [])
             self._num_qubits = response.get("qubits", 0)
             default_map = list(range(self._num_qubits))
@@ -419,6 +423,10 @@ class IonQJob(JobV1):
         )
 
         shots = int(metadata.get("shots") if metadata.get("shots").isdigit() else 1024)
+
+        print(f"{data=}")
+        print(f"{self._num_circuits=}")
+
         job_result = {
             "data": {},
             "shots": shots,
@@ -426,21 +434,41 @@ class IonQJob(JobV1):
             "success": success,
         }
         if self._status == jobstatus.JobStatus.DONE:
-            (counts, probabilities) = _build_counts(
-                data,
-                self._num_qubits,
-                self._clbits,
-                shots,
-                use_sampler=is_ideal_simulator,
-                sampler_seed=sampler_seed,
-            )
-            job_result["data"] = {
-                "counts": counts,
-                "probabilities": probabilities,
-                # Qiskit/experiments relies on this being present in this location in the
-                # ExperimentData class.
-                "metadata": qiskit_header or {},
-            }
+            if self.is_multicircuit and self._num_circuits > 1:
+                # create a list of results from data.values()
+                data_values = list(data.values())
+                job_result["data"] = {
+                    "counts": [None] * self._num_circuits,
+                    "probabilities": [None] * self._num_circuits,
+                    "metadata": qiskit_header or {},
+                }
+                for idx in range(self._num_circuits):
+                    (counts, probabilities) = _build_counts(
+                        data_values[idx],
+                        self._num_qubits,
+                        self._clbits,
+                        shots,
+                        use_sampler=is_ideal_simulator,
+                        sampler_seed=sampler_seed,
+                    )
+                    job_result["data"]["counts"][idx] = counts
+                    job_result["data"]["probabilities"][idx] = probabilities
+            else:
+                (counts, probabilities) = _build_counts(
+                    data,
+                    self._num_qubits,
+                    self._clbits,
+                    shots,
+                    use_sampler=is_ideal_simulator,
+                    sampler_seed=sampler_seed,
+                )
+                job_result["data"] = {
+                    "counts": counts,
+                    "probabilities": probabilities,
+                    # Qiskit/experiments relies on this being present in this location in the
+                    # ExperimentData class.
+                    "metadata": qiskit_header or {},
+                }
 
         # Create a qiskit result to express the IonQ job result data.
         backend = self.backend()
@@ -455,9 +483,6 @@ class IonQJob(JobV1):
                 "time_taken": self._execution_time,
             }
         )
-
-    def _get_children(self):
-        return self._job_id
 
 
 __all__ = ["IonQJob"]

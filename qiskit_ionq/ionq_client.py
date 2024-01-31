@@ -135,6 +135,7 @@ class IonQClient:
             timeout=30,
         )
         exceptions.IonQAPIError.raise_for_status(res)
+        print(f"{res.json()=}")
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
