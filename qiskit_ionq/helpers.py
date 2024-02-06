@@ -87,6 +87,7 @@ ionq_basis_gates = [
     "x",
     "y",
     "z",
+    "PauliEvolution",
 ]
 
 ionq_api_aliases = {  # todo fix alias bug
@@ -98,6 +99,7 @@ ionq_api_aliases = {  # todo fix alias bug
     "mcx_gray": "cx",  # just one C for all mcx
     "tdg": "ti",
     "p": "z",
+    "PauliEvolution": "pauli",
     "rxx": "xx",
     "ryy": "yy",
     "rzz": "zz",
@@ -156,6 +158,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
     for instruction, qargs, cargs in input_circuit.data:
         # Don't process compiler directives.
         instruction_name = instruction.name
+        print(f"{instruction_name=}")
         if instruction_name in compiler_directives:
             continue
 
@@ -248,6 +251,23 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
                     "gate": gate,
                     "controls": controls,
                     "targets": targets,
+                }
+            )
+
+        if instruction_name == "pauli":
+            terms = [term[0] for term in instruction.operator.to_list()]
+            coefficients = [term[1] for term in instruction.operator.to_list()]
+            converted.update(
+                {
+                    "gate": "PAULI",
+                    "targets": [
+                        input_circuit.qubits.index(qargs[i])
+                        for i in range(len(input_circuit.qubits))
+                    ],
+                    "terms": terms,
+                    "coefficients": coefficients,
+                    "time": instruction.time,
+                    "unitary": instruction.label.startswith("exp(-i"),
                 }
             )
 
@@ -412,6 +432,7 @@ def qiskit_to_ionq(
     error_mitigation = passed_args.get("error_mitigation")
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
+    print(json.dumps(ionq_json, indent=2, cls=SafeEncoder))  # todo: delete this line
     return json.dumps(ionq_json, cls=SafeEncoder)
 
 
@@ -452,7 +473,7 @@ class SafeEncoder(json.JSONEncoder):
         for func in funcs:
             try:
                 return func()
-            except Exception as exception:
+            except Exception as exception:  # pylint: disable=broad-except
                 warnings.warn(
                     f"Unable to encode {o} using {func.__name__}: {exception}"
                 )
