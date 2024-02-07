@@ -33,6 +33,8 @@ from qiskit.circuit import (
     ClassicalRegister,
     instruction,
 )
+from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.quantum_info import SparsePauliOp
 
 from qiskit_ionq import exceptions
 from qiskit_ionq.helpers import qiskit_circ_to_ionq_circ
@@ -218,6 +220,32 @@ def test_circuit_with_entangling_ops():
     qc.cnot(1, 0)
     expected = [{"gate": "x", "targets": [0], "controls": [1]}]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
+    assert built == expected
+
+
+def test_pauliexp_circuit():
+    """Test structure of circuits with a Pauli evolution gate."""
+    # build the evolution gate
+    operator = SparsePauliOp(["XX", "YY", "ZZ"], coeffs=[0.1, 0.2, 0.3])
+    evo = PauliEvolutionGate(operator, time=0.4)
+    # append it to a circuit
+    circuit = QuantumCircuit(3)
+    circuit.append(evo, [1, 2])
+    expected = [
+        {
+            "gate": "pauliexp",
+            "targets": [1, 2],
+            "terms": ["XX", "YY", "ZZ"],
+            "coefficients": [
+                {"r": 0.1, "i": 0.0},
+                {"r": 0.2, "i": 0.0},
+                {"r": 0.3, "i": 0.0},
+            ],
+            "unitary": True,
+            "rotation": 0.4,
+        }
+    ]
+    built, _, _ = qiskit_circ_to_ionq_circ(circuit)
     assert built == expected
 
 

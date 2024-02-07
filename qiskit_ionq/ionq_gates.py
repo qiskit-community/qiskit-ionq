@@ -27,7 +27,6 @@
 """Native gateset for IonQ hardware."""
 
 from typing import Optional
-import cmath
 import math
 import numpy
 from qiskit.circuit.gate import Gate
@@ -47,8 +46,8 @@ class GPIGate(Gate):
 
        GPI(\phi) =
             \begin{pmatrix}
-                0 & e^{-i*2*\pi*\phi} \\
-                e^{i*2*\pi*\phi} & 0
+                0 & e^{-i*\phi} \\
+                e^{i*\phi} & 0
             \end{pmatrix}
     """
 
@@ -58,9 +57,9 @@ class GPIGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI gate."""
-        top = cmath.exp(-self.params[0] * 2 * math.pi * 1j)
-        bot = cmath.exp(self.params[0] * 2 * math.pi * 1j)
-        return numpy.array([[0, top], [bot, 0]], dtype=dtype)
+        top = numpy.exp(-1j * self.params[0])
+        bottom = numpy.exp(1j * self.params[0])
+        return numpy.array([[0, top], [bottom, 0]], dtype=dtype)
 
 
 class GPI2Gate(Gate):
@@ -75,9 +74,10 @@ class GPI2Gate(Gate):
     .. math::
 
         GPI2(\phi) =
+            \frac{1}{\sqrt{2}}
             \begin{pmatrix}
-                1 & -i*e^{-i*2*\pi*\phi} \\
-                -i*e^{i*2*\pi*\phi} & 1
+                1 & -i*e^{-i*\phi} \\
+                -i*e^{i*\phi} & 1
             \end{pmatrix}
     """
 
@@ -87,9 +87,9 @@ class GPI2Gate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI2 gate."""
-        top = -1j * cmath.exp(self.params[0] * 2 * math.pi * -1j)
-        bot = -1j * cmath.exp(self.params[0] * 2 * math.pi * 1j)
-        return numpy.array([[1, top], [bot, 1]], dtype=dtype) / math.sqrt(2)
+        top = -1j * numpy.exp(-1j * self.params[0])
+        bottom = -1j * numpy.exp(1j * self.params[0])
+        return 1 / numpy.sqrt(2) * numpy.array([[1, top], [bottom, 1]], dtype=dtype)
 
 
 class MSGate(Gate):
@@ -139,10 +139,10 @@ class MSGate(Gate):
 
         return numpy.array(
             [
-                [diag, 0, 0, sin * -1j * cmath.exp(-1j * 2 * math.pi * (phi0 + phi1))],
-                [0, diag, sin * -1j * cmath.exp(-1j * 2 * math.pi * (phi0 - phi1)), 0],
-                [0, sin * -1j * cmath.exp(1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
-                [sin * -1j * cmath.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
+                [diag, 0, 0, sin * -1j * numpy.exp(-1j * 2 * math.pi * (phi0 + phi1))],
+                [0, diag, sin * -1j * numpy.exp(-1j * 2 * math.pi * (phi0 - phi1)), 0],
+                [0, sin * -1j * numpy.exp(1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
+                [sin * -1j * numpy.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
             ],
             dtype=dtype,
         )
@@ -177,10 +177,10 @@ class ZZGate(Gate):
         itheta2 = 1j * float(self.params[0]) * math.pi
         return numpy.array(
             [
-                [cmath.exp(-itheta2), 0, 0, 0],
-                [0, cmath.exp(itheta2), 0, 0],
-                [0, 0, cmath.exp(itheta2), 0],
-                [0, 0, 0, cmath.exp(-itheta2)],
+                [numpy.exp(-itheta2), 0, 0, 0],
+                [0, numpy.exp(itheta2), 0, 0],
+                [0, 0, numpy.exp(itheta2), 0],
+                [0, 0, 0, numpy.exp(-itheta2)],
             ],
             dtype=dtype,
         )
