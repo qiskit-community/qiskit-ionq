@@ -261,7 +261,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
             ]
             terms = [term[0] for term in instruction.operator.to_list()]
             coefficients = [
-                {"real": coeff.real, "imaginary": coeff.imag}
+                {"r": coeff.real, "i": coeff.imag}
                 for coeff in instruction.operator.coeffs
             ]
             converted.update(
