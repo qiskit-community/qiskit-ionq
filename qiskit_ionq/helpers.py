@@ -255,18 +255,21 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
             )
 
         if instruction_name == "pauliexp":
+            targets = [
+                input_circuit.qubits.index(qargs[i])
+                for i in range(instruction.num_qubits)
+            ]
             terms = [term[0] for term in instruction.operator.to_list()]
-            coefficients = [term[1] for term in instruction.operator.to_list()]
+            coefficients = [
+                {"real": coeff.real, "imaginary": coeff.imag}
+                for coeff in instruction.operator.coeffs
+            ]
             converted.update(
                 {
                     "gate": instruction_name,
-                    "targets": [
-                        input_circuit.qubits.index(qargs[i])
-                        for i in range(len(input_circuit.qubits))
-                    ],
+                    "targets": targets,
                     "terms": terms,
                     "coefficients": coefficients,
-                    "time": instruction.time,
                     "unitary": instruction.label.startswith("exp(-i"),
                 }
             )
