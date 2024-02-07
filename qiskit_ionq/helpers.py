@@ -158,7 +158,6 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
     for instruction, qargs, cargs in input_circuit.data:
         # Don't process compiler directives.
         instruction_name = instruction.name
-        print(f"{instruction_name=}")
         if instruction_name in compiler_directives:
             continue
 
@@ -435,7 +434,6 @@ def qiskit_to_ionq(
     error_mitigation = passed_args.get("error_mitigation")
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
-    print(json.dumps(ionq_json, indent=2, cls=SafeEncoder))  # todo: delete this line
     return json.dumps(ionq_json, cls=SafeEncoder)
 
 
