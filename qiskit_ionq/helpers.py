@@ -118,6 +118,7 @@ ionq_native_basis_gates = [
     "gpi",  # TODO All single qubit gates can transpile into GPI/GPI2
     "gpi2",
     "ms",  # Pairwise MS gate
+    "gz",  # VirtualZ gate (RZ)
     "zz",  # ZZ gate
 ]
 
