@@ -30,3 +30,4 @@ from .ionq_provider import IonQProvider
 from .version import __version__
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from .constants import ErrorMitigation
+from . import ionq_equivalence_library
