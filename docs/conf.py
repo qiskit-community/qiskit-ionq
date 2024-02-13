@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -96,6 +95,6 @@ autoclass_content = 'both'
 #
 # Sphinx doc mappings
 intersphinx_mapping = {
-    "qiskit-terra": ("https://qiskit.org/documentation/", None),
+    "qiskit-terra": ("https://docs.quantum.ibm.com/api/qiskit/", None),
     "requests": ("https://requests.readthedocs.io/en/master/", None),
 }
