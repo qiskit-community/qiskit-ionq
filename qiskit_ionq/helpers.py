@@ -48,6 +48,8 @@ from . import exceptions
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
 # also not an exact/complete list of the gates IonQ's backend takes
 #   by name — please refer to IonQ docs for that.
+#
+# Some of these gates may be deprecated or removed in qiskit 1.0
 ionq_basis_gates = [
     "ccx",
     "ch",

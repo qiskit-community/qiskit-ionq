@@ -49,7 +49,7 @@ unsupported_instructions = [
 gate_serializations = [
     ("ccx", [0, 1, 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
     ("ch", [0, 1], [{"gate": "h", "targets": [1], "controls": [0]}]),
-    ("cnot", [0, 1], [{"gate": "x", "targets": [1], "controls": [0]}]),
+    ("cx", [0, 1], [{"gate": "x", "targets": [1], "controls": [0]}]),
     (
         "cp",
         [0.5, 0, 1],
@@ -90,14 +90,12 @@ gate_serializations = [
     ("cy", [0, 1], [{"gate": "y", "targets": [1], "controls": [0]}]),
     ("cz", [0, 1], [{"gate": "z", "targets": [1], "controls": [0]}]),
     ("h", [0], [{"gate": "h", "targets": [0]}]),
-    ("i", [0], []),
     ("id", [0], []),
     (
         "mcp",
         [0.5, [0, 1], 2],
         [{"gate": "z", "rotation": 0.5, "targets": [2], "controls": [0, 1]}],
     ),
-    ("mct", [[0, 1], 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
     ("mcx", [[0, 1], 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
     # make sure that multi-control can take any number of controls
     ("mcx", [[0, 1, 2], 3], [{"gate": "x", "targets": [3], "controls": [0, 1, 2]}]),
@@ -131,7 +129,6 @@ gate_serializations = [
     ("sxdg", [0], [{"gate": "vi", "targets": [0]}]),
     ("t", [0], [{"gate": "t", "targets": [0]}]),
     ("tdg", [0], [{"gate": "ti", "targets": [0]}]),
-    ("toffoli", [0, 1, 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
     ("x", [0], [{"gate": "x", "targets": [0]}]),
     ("y", [0], [{"gate": "y", "targets": [0]}]),
     ("z", [0], [{"gate": "z", "targets": [0]}]),
@@ -215,7 +212,7 @@ def test_simple_circuit():
 def test_circuit_with_entangling_ops():
     """Test structure of circuits with entangling ops."""
     qc = QuantumCircuit(2, 2)
-    qc.cnot(1, 0)
+    qc.cx(1, 0)
     expected = [{"gate": "x", "targets": [0], "controls": [1]}]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected
@@ -224,7 +221,7 @@ def test_circuit_with_entangling_ops():
 def test_multi_control():
     """Test structure of circuits with multiple controls"""
     qc = QuantumCircuit(3, 3)
-    qc.toffoli(0, 1, 2)
+    qc.ccx(0, 1, 2)
     expected = [{"gate": "x", "targets": [2], "controls": [0, 1]}]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected
@@ -284,7 +281,7 @@ def test_circuit_with_multiple_registers():
     qc.h(qr0[1])
     qc.y(qr1[0])
     qc.z(qr1[1])
-    qc.cnot(qr0[0], qr1[0])
+    qc.cx(qr0[0], qr1[0])
     qc.measure([qr0[0], qr0[1], qr1[0], qr1[1]], [cr0[0], cr0[1], cr1[0], cr1[1]])
 
     expected = [

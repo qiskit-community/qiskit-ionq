@@ -153,7 +153,7 @@ def test_full_circuit(simulator_backend):
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
     qc = QuantumCircuit(2, 2, name="test_name")
-    qc.cnot(1, 0)
+    qc.cx(1, 0)
     qc.h(1)
     qc.measure(1, 0)
     qc.measure(0, 1)
@@ -214,7 +214,7 @@ def test_circuit_transpile(simulator_backend):
     """
     new_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
     circ = QuantumCircuit(2, 2, name="blame_test")
-    circ.cnot(1, 0)
+    circ.cx(1, 0)
     circ.h(1)
     circ.measure(1, 0)
     circ.measure(0, 1)
@@ -232,7 +232,7 @@ def test_circuit_incorrect(simulator_backend):
     """
     native_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
     circ = QuantumCircuit(2, 2, name="blame_test")
-    circ.cnot(1, 0)
+    circ.cx(1, 0)
     circ.h(1)
     circ.measure(1, 0)
     circ.measure(0, 1)
