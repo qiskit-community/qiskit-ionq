@@ -95,7 +95,7 @@ class VirtualZGate(Gate):
     **Circuit symbol:**
     .. parsed-literal::
              ┌───────┐
-        q_0: ┤ Gz(ϴ) ├
+        q_0: ┤ GZ(ϴ) ├
              └───────┘
     **Matrix Representation:**
     .. math::
