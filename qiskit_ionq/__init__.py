@@ -32,7 +32,7 @@ import warnings
 try:
     from qiskit.version import get_version_info  # pylint: disable=unused-import
 except ImportError:
-    warnings.warn(
+    raise ImportError(
         "Qiskit is not installed. Please install the latest version of Qiskit."
     )
 
