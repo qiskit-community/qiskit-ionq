@@ -89,6 +89,7 @@ ionq_basis_gates = [
     "x",
     "y",
     "z",
+    "PauliEvolution",
 ]
 
 ionq_api_aliases = {  # todo fix alias bug
@@ -100,6 +101,7 @@ ionq_api_aliases = {  # todo fix alias bug
     "mcx_gray": "cx",  # just one C for all mcx
     "tdg": "ti",
     "p": "z",
+    "PauliEvolution": "pauliexp",
     "rxx": "xx",
     "ryy": "yy",
     "rzz": "zz",
@@ -250,6 +252,26 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
                     "gate": gate,
                     "controls": controls,
                     "targets": targets,
+                }
+            )
+
+        if instruction_name == "pauliexp":
+            targets = [
+                input_circuit.qubits.index(qargs[i])
+                for i in range(instruction.num_qubits)
+            ]
+            terms = [term[0] for term in instruction.operator.to_list()]
+            coefficients = [
+                {"r": coeff.real, "i": coeff.imag}
+                for coeff in instruction.operator.coeffs
+            ]
+            converted.update(
+                {
+                    "gate": instruction_name,
+                    "targets": targets,
+                    "terms": terms,
+                    "coefficients": coefficients,
+                    "unitary": instruction.label.startswith("exp(-i"),
                 }
             )
 
@@ -454,7 +476,7 @@ class SafeEncoder(json.JSONEncoder):
         for func in funcs:
             try:
                 return func()
-            except Exception as exception:
+            except Exception as exception:  # pylint: disable=broad-except
                 warnings.warn(
                     f"Unable to encode {o} using {func.__name__}: {exception}"
                 )
