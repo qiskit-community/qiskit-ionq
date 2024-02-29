@@ -31,10 +31,10 @@ import warnings
 # warn if qiskit is not installed
 try:
     from qiskit.version import get_version_info  # pylint: disable=unused-import
-except ImportError:
+except ImportError as exc:
     raise ImportError(
         "Qiskit is not installed. Please install the latest version of Qiskit."
-    )
+    ) from exc
 
 from .ionq_provider import IonQProvider
 from .version import __version__
