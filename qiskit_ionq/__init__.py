@@ -27,10 +27,6 @@
 """Provider for IonQ backends"""
 
 import warnings
-from .ionq_provider import IonQProvider
-from .version import __version__
-from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
-from .constants import ErrorMitigation
 
 # warn if qiskit is not installed
 try:
@@ -39,3 +35,8 @@ except ImportError:
     warnings.warn(
         "Qiskit is not installed. Please install the latest version of Qiskit."
     )
+
+from .ionq_provider import IonQProvider
+from .version import __version__
+from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
+from .constants import ErrorMitigation
