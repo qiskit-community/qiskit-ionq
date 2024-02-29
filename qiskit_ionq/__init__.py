@@ -34,7 +34,7 @@ from .constants import ErrorMitigation
 
 # warn if qiskit is not installed
 try:
-    import qiskit  # pylint: disable=unused-import
+    from qiskit.version import get_version_info  # pylint: disable=unused-import
 except ImportError:
     warnings.warn(
         "Qiskit is not installed. Please install the latest version of Qiskit."
