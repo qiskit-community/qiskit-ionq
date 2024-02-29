@@ -321,7 +321,7 @@ class IonQJob(JobV1):
 
         # Otherwise, look up a status enum from the response.
         response = self._client.retrieve_job(self._job_id)
-        api_response_status = response["status"]
+        api_response_status = response.get("status")
         try:
             status_enum = constants.APIJobStatus(api_response_status)
         except ValueError as ex:
@@ -346,7 +346,7 @@ class IonQJob(JobV1):
             ) from ex
 
         if self._status in jobstatus.JOB_FINAL_STATES:
-            self._metadata = response.get("metadata") or {}
+            self._save_metadata(response)
 
         if self._status == jobstatus.JobStatus.DONE:
             self._num_qubits = response.get("qubits")
@@ -404,7 +404,7 @@ class IonQJob(JobV1):
 
         # Format the inner result payload.
         success = self._status == jobstatus.JobStatus.DONE
-        metadata = self._metadata
+        metadata = self._metadata.get("metadata", {})
         sampler_seed = (
             int(metadata.get("sampler_seed", ""))
             if metadata.get("sampler_seed", "").isdigit()
@@ -451,6 +451,14 @@ class IonQJob(JobV1):
                 "time_taken": self._execution_time,
             }
         )
+
+    def _save_metadata(self, response):
+        """Save metadata from the response to the job instance.
+
+        Args:
+            response (dict): A JSON body response from a REST API call.
+        """
+        self._metadata.update(response)
 
 
 __all__ = ["IonQJob"]
