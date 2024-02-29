@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="API Client" href="client.html" /><link rel="prev" title="IonQ Provider" href="provider.html" />
 
     <!-- Generated with Sphinx 7.2.6 and Furo 2023.08.19 -->
-        <title>IonQ Backends - Qiskit IonQ Provider 0.0.1</title>
+        <title>IonQ Backends - Qiskit IonQ Provider 0.5.0.dev2</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.0.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.0.dev2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.0.1</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.0.dev2</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -290,6 +290,18 @@ backend.</p>
 <dd class="field-even"><p>Calibration</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.cancel_job">
+<span class="sig-name descname"><span class="pre">cancel_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.cancel_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.cancel_job" title="Link to this definition">#</a></dt>
+<dd><p>cancels a job from a specific backend, by job id.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.cancel_jobs">
+<span class="sig-name descname"><span class="pre">cancel_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.cancel_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.cancel_jobs" title="Link to this definition">#</a></dt>
+<dd><p>cancels a list of jobs from a specific backend, job id</p>
 </dd></dl>
 
 <dl class="py property">
@@ -551,6 +563,18 @@ backend.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_job">
+<span class="sig-name descname"><span class="pre">cancel_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_job" title="Link to this definition">#</a></dt>
+<dd><p>cancels a job from a specific backend, by job id.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_jobs">
+<span class="sig-name descname"><span class="pre">cancel_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_jobs" title="Link to this definition">#</a></dt>
+<dd><p>cancels a list of jobs from a specific backend, job id</p>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.client">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">client</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.client" title="Link to this definition">#</a></dt>
@@ -781,6 +805,18 @@ probabilites, rather than a multiple of shots.</p>
 <dd class="field-even"><p>NoneType</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_job">
+<span class="sig-name descname"><span class="pre">cancel_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_job" title="Link to this definition">#</a></dt>
+<dd><p>cancels a job from a specific backend, by job id.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_jobs">
+<span class="sig-name descname"><span class="pre">cancel_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_jobs" title="Link to this definition">#</a></dt>
+<dd><p>cancels a list of jobs from a specific backend, job id</p>
 </dd></dl>
 
 <dl class="py property">
@@ -1034,6 +1070,8 @@ pass in the kwarg with the new value for the options.</p>
 <li><a class="reference internal" href="#">IonQ Backends</a><ul>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend"><code class="docutils literal notranslate"><span class="pre">IonQBackend</span></code></a><ul>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.calibration"><code class="docutils literal notranslate"><span class="pre">IonQBackend.calibration()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.cancel_job"><code class="docutils literal notranslate"><span class="pre">IonQBackend.cancel_job()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.cancel_jobs"><code class="docutils literal notranslate"><span class="pre">IonQBackend.cancel_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.client"><code class="docutils literal notranslate"><span class="pre">IonQBackend.client</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.configuration"><code class="docutils literal notranslate"><span class="pre">IonQBackend.configuration()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.create_client"><code class="docutils literal notranslate"><span class="pre">IonQBackend.create_client()</span></code></a></li>
@@ -1053,6 +1091,8 @@ pass in the kwarg with the new value for the options.</p>
 </li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend</span></code></a><ul>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.calibration"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.calibration()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_job"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.cancel_job()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_jobs"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.cancel_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.client"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.client</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.configuration"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.configuration()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.create_client"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.create_client()</span></code></a></li>
@@ -1072,6 +1112,8 @@ pass in the kwarg with the new value for the options.</p>
 </li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend</span></code></a><ul>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.calibration"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.calibration()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_job"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.cancel_job()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_jobs"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.cancel_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.client"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.client</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.configuration"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.configuration()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.create_client"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.create_client()</span></code></a></li>
@@ -1102,7 +1144,7 @@ pass in the kwarg with the new value for the options.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../_static/documentation_options.js?v=2d9c0e3e"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
