@@ -38,5 +38,5 @@ except ImportError as exc:
 
 from .ionq_provider import IonQProvider
 from .version import __version__
-from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
+from .ionq_gates import GPIGate, GPI2Gate, MSGate, VirtualZGate, ZZGate
 from .constants import ErrorMitigation
