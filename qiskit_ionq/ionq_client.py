@@ -99,7 +99,6 @@ class IonQClient:
                 headers=headers,
                 timeout=timeout,
             )
-            print(f"{req_path=}, {res.text=}")
         except requests.exceptions.RequestException as req_exc:
             raise IonQRetriableError(req_exc) from req_exc
 
@@ -135,7 +134,6 @@ class IonQClient:
             timeout=30,
         )
         exceptions.IonQAPIError.raise_for_status(res)
-        print(f"{res.json()=}")
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)

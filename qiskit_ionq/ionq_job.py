@@ -104,15 +104,12 @@ def _build_counts(
         IonQJobError: In the event that ``result`` has missing or invalid job
             properties.
     """
-    print(f"{data=}")
-
     # Short circuit when we don't have all the information we need.
     if not data:
         raise exceptions.IonQJobError("Cannot remap counts without data!")
 
     # Grab the mapped output from response.
     output_probs = map_output(data, clbits, num_qubits)
-    print(f"{output_probs=}")
 
     sampled = {}
     if use_sampler:
@@ -352,7 +349,6 @@ class IonQJob(JobV1):
             self._metadata = response.get("metadata") or {}
 
         if self._status == jobstatus.JobStatus.DONE:
-            print(f"{response=}")
             self._num_circuits = response.get("circuits", 1)
             self._children = response.get("children", [])
             self._num_qubits = response.get("qubits", 0)
@@ -419,12 +415,7 @@ class IonQJob(JobV1):
         qiskit_header = decompress_metadata_string_to_dict(
             metadata.get("qiskit_header", None)
         )
-
         shots = int(metadata.get("shots") if metadata.get("shots").isdigit() else 1024)
-
-        print(f"{data=}")
-        print(f"{self._num_circuits=}")
-
         job_result = [
             {
                 "data": {},
