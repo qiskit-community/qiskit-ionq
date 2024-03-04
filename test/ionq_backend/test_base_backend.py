@@ -239,5 +239,36 @@ def test_multiexp_job(mock_backend, requests_mock):
     requests_mock.post(path, json=dummy_response, status_code=200)
 
     # Run a dummy multi-experiment job.
-    mock_backend.run([QuantumCircuit(1, 1), QuantumCircuit(1, 1)])
-    # todo verify json
+    qc1 = QuantumCircuit(1, 1)
+    qc1.h(0)
+    qc2 = QuantumCircuit(1, 1)
+    qc2.x(0)
+    job = mock_backend.run([qc1, qc2])
+
+    # Verify json payload
+    assert len(job.circuit) == 2
+    assert len(requests_mock.request_history) == 1
+    request = requests_mock.request_history[0]
+    assert request.method == "POST"
+    assert request.url == path
+    assert request.json() == {
+        "target": "mock_backend",
+        "shots": 1024,
+        "name": f"{job.circuit[0].name}, {job.circuit[1].name}",
+        "input": {
+            "format": "ionq.circuit.v0",
+            "gateset": "qis",
+            "qubits": 1,
+            "circuits": [
+                {
+                    "circuit": [{"gate": "h", "targets": [0]}],
+                    "registers": {"meas_mapped": [None]},
+                },
+                {
+                    "circuit": [{"gate": "x", "targets": [0]}],
+                    "registers": {"meas_mapped": [None]},
+                },
+            ],
+        },
+        "metadata": {"shots": "1024", "sampler_seed": "None"},
+    }
