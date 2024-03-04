@@ -130,7 +130,7 @@ def _build_counts(
             {key: np.count_nonzero(rand_values == key) for key in output_probs}
         )
 
-    # Build counts.
+    # Build counts
     counts = {}
     for key, val in output_probs.items():
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
@@ -425,21 +425,34 @@ class IonQJob(JobV1):
         print(f"{data=}")
         print(f"{self._num_circuits=}")
 
-        job_result = {
-            "data": {},
-            "shots": shots,
-            "header": qiskit_header or {},
-            "success": success,
-        }
+        job_result = [
+            {
+                "data": {},
+                "shots": shots,
+                "header": qiskit_header or {},
+                "success": success,
+            }
+            for _ in range(self._num_circuits or 1)
+        ]
         if self._status == jobstatus.JobStatus.DONE:
-            if self._num_circuits > 1:
-                # create a list of results from data.values()
-                data_values = list(data.values())
-                job_result["data"] = {
-                    "counts": [None] * self._num_circuits,
-                    "probabilities": [None] * self._num_circuits,
+            if self._num_circuits == 1:
+                (counts, probabilities) = _build_counts(
+                    data,
+                    self._num_qubits,
+                    self._clbits,
+                    shots,
+                    use_sampler=is_ideal_simulator,
+                    sampler_seed=sampler_seed,
+                )
+                job_result[0]["data"] = {
+                    "counts": counts,
+                    "probabilities": probabilities,
+                    # Qiskit/experiments relies on this being present in this location in the
+                    # ExperimentData class.
                     "metadata": qiskit_header or {},
                 }
+            else:
+                data_values = list(data.values())
                 for idx in range(self._num_circuits):
                     (counts, probabilities) = _build_counts(
                         data_values[idx],
@@ -449,30 +462,19 @@ class IonQJob(JobV1):
                         use_sampler=is_ideal_simulator,
                         sampler_seed=sampler_seed,
                     )
-                    job_result["data"]["counts"][idx] = counts
-                    job_result["data"]["probabilities"][idx] = probabilities
-            else:
-                (counts, probabilities) = _build_counts(
-                    data,
-                    self._num_qubits,
-                    self._clbits,
-                    shots,
-                    use_sampler=is_ideal_simulator,
-                    sampler_seed=sampler_seed,
-                )
-                job_result["data"] = {
-                    "counts": counts,
-                    "probabilities": probabilities,
-                    # Qiskit/experiments relies on this being present in this location in the
-                    # ExperimentData class.
-                    "metadata": qiskit_header or {},
-                }
+                    job_result[idx]["data"] = {
+                        "counts": counts,
+                        "probabilities": probabilities,
+                        # Qiskit/experiments relies on this being present in this location in the
+                        # ExperimentData class.
+                        "metadata": qiskit_header or {},
+                    }
 
         # Create a qiskit result to express the IonQ job result data.
         backend = self.backend()
         return Result.from_dict(
             {
-                "results": [job_result],
+                "results": job_result,
                 "job_id": self.job_id(),
                 "backend_name": backend_name,
                 "backend_version": backend_version,
