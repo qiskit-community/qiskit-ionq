@@ -435,40 +435,27 @@ class IonQJob(JobV1):
             for _ in range(self._num_circuits or 1)
         ]
         if self._status == jobstatus.JobStatus.DONE:
-            if self._num_circuits == 1:
+            # to handle ionq returning different data structures for single and multiple circuits
+            if self._num_circuits > 1:
+                data = list(data.values())
+            else:
+                data = [data]
+            for idx in range(self._num_circuits):
                 (counts, probabilities) = _build_counts(
-                    data,
+                    data[idx],
                     self._num_qubits,
                     self._clbits,
                     shots,
                     use_sampler=is_ideal_simulator,
                     sampler_seed=sampler_seed,
                 )
-                job_result[0]["data"] = {
+                job_result[idx]["data"] = {
                     "counts": counts,
                     "probabilities": probabilities,
                     # Qiskit/experiments relies on this being present in this location in the
                     # ExperimentData class.
                     "metadata": qiskit_header or {},
                 }
-            else:
-                data_values = list(data.values())
-                for idx in range(self._num_circuits):
-                    (counts, probabilities) = _build_counts(
-                        data_values[idx],
-                        self._num_qubits,
-                        self._clbits,
-                        shots,
-                        use_sampler=is_ideal_simulator,
-                        sampler_seed=sampler_seed,
-                    )
-                    job_result[idx]["data"] = {
-                        "counts": counts,
-                        "probabilities": probabilities,
-                        # Qiskit/experiments relies on this being present in this location in the
-                        # ExperimentData class.
-                        "metadata": qiskit_header or {},
-                    }
 
         # Create a qiskit result to express the IonQ job result data.
         backend = self.backend()
