@@ -105,12 +105,12 @@ class MSGate(Gate):
 
     .. math::
 
-       MS(\phi_0, _\phi_1, \theta) q_0, q_1 =
+       MS(\phi_0, \phi_1, \theta) =
             \begin{pmatrix}
-                cos{\theta*\pi} & 0 & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1)}*sin{\theta*\pi} \\
-                0 & cos{\theta*\pi} & -i*e^{i*2*\pi(\phi_0-\phi_1)}*sin{\theta*\pi} & 0 \\
-                0 & -i*e^{-i*2*\pi(\phi_0-\phi_1)}*sin(\theta*\pi) & cos{\theta*\pi} & 0 \\
-                -i*e^{i*2*\pi(\phi_0+\phi_1)}*sin{\theta*\pi} & 0 & 0 & cos{\theta*\pi}
+                cos(\theta*\pi) & 0 & 0 & -i*e^{-i*2*\pi(\phi_0+\phi_1)}*sin(\theta*\pi) \\
+                0 & cos(\theta*\pi) & -i*e^{i*2*\pi(\phi_0-\phi_1)}*sin(\theta*\pi) & 0 \\
+                0 & -i*e^{-i*2*\pi(\phi_0-\phi_1)}*sin(\theta*\pi) & cos(\theta*\pi) & 0 \\
+                -i*e^{i*2*\pi(\phi_0+\phi_1)}*sin(\theta*\pi) & 0 & 0 & cos(\theta*\pi)
             \end{pmatrix}
     """
 
