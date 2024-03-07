@@ -201,7 +201,12 @@ class IonQBackend(Backend):
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
-        if not self.has_valid_mapping(circuit):
+        if not all(
+            (
+                self.has_valid_mapping(circ)
+                for circ in (circuit if isinstance(circuit, list) else [circuit])
+            )
+        ):
             warnings.warn(
                 "Circuit is not measuring any qubits",
                 UserWarning,
@@ -262,16 +267,12 @@ class IonQBackend(Backend):
         Returns:
             boolean: if the circuit has valid mappings
         """
-        if not isinstance(circuit, (list, tuple)):
-            circuit = [circuit]
-        # Check if a qubit is measured in each circuit
-        is_measured = []
-        for circ in circuit:
-            for instruction, _, cargs in circ.data:
-                if instruction.name == "measure" and len(cargs):
-                    is_measured.append(True)
-                    break  # If no mappings are found, return False
-        return is_measured == [True] * len(circuit)
+        # Check if a qubit is measured
+        for instruction, _, cargs in circuit.data:
+            if instruction.name == "measure" and len(cargs):
+                return True
+        # If no mappings are found, return False
+        return False
 
     # TODO: Implement backend status checks.
     def status(self):
@@ -383,9 +384,9 @@ class IonQSimulatorBackend(IonQBackend):
         self._gateset = gateset
         config = BackendConfiguration.from_dict(
             {
-                "backend_name": "ionq_" + name
-                if not name.startswith("ionq_")
-                else name,
+                "backend_name": (
+                    "ionq_" + name if not name.startswith("ionq_") else name
+                ),
                 "backend_version": "0.0.1",
                 "simulator": True,
                 "local": False,

@@ -445,6 +445,8 @@ class IonQJob(JobV1):
                     "probabilities": probabilities,
                     # Qiskit/experiments relies on this being present in this location in the
                     # ExperimentData class.
+                    # combine the qiskit_header and metadata dictionaries
+                    # "metadata": {**(qiskit_header or {}), **(metadata or {})},
                     "metadata": qiskit_header or {},
                 }
 

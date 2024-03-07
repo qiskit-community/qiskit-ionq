@@ -373,23 +373,36 @@ def qiskit_to_ionq(
     else:
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
         circuit = [circuit]
-    circ = circuit[0]
-    creg_sizes, clbit_labels = get_register_sizes_and_labels(circ.cregs)
-    qreg_sizes, qubit_labels = get_register_sizes_and_labels(circ.qregs)
+
+    circuit_info = {
+        "memory_slots": [],
+        "global_phase": [],
+        "n_qubits": [],
+        "name": [],
+        "creg_sizes": [],
+        "clbit_labels": [],
+        "qreg_sizes": [],
+        "qubit_labels": [],
+    }
+
+    for circ in circuit:
+        circuit_info["memory_slots"].append(circ.num_clbits)
+        circuit_info["global_phase"].append(circ.global_phase)
+        circuit_info["n_qubits"].append(circ.num_qubits)
+        circuit_info["name"].append(circ.name)
+
+        creg_sizes, clbit_labels = get_register_sizes_and_labels(circ.cregs)
+        circuit_info["creg_sizes"].append(creg_sizes)
+        circuit_info["clbit_labels"].append(clbit_labels)
+
+        qreg_sizes, qubit_labels = get_register_sizes_and_labels(circ.qregs)
+        circuit_info["qreg_sizes"].append(qreg_sizes)
+        circuit_info["qubit_labels"].append(qubit_labels)
+
     qiskit_header = compress_dict_to_metadata_string(
         {
-            "memory_slots": circ.num_clbits,  # int
-            "global_phase": circ.global_phase,  # float
-            "n_qubits": circ.num_qubits,  # int
-            "name": circ.name,  # str
-            # list of [str, int] tuples cardinality memory_slots
-            "creg_sizes": creg_sizes,
-            # list of [str, int] tuples cardinality memory_slots
-            "clbit_labels": clbit_labels,
-            # list of [str, int] tuples cardinality num_qubits
-            "qreg_sizes": qreg_sizes,
-            # list of [str, int] tuples cardinality num_qubits
-            "qubit_labels": qubit_labels,
+            key: (value if multi_circuit else value[0])
+            for key, value in circuit_info.items()
         }
     )
 
