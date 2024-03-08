@@ -354,23 +354,46 @@ def qiskit_to_ionq(
     passed_args = passed_args or {}
     extra_query_params = extra_query_params or {}
     extra_metadata = extra_metadata or {}
-    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
-    creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
-    qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
+    ionq_circs = []
+    multi_circuit = False
+    if isinstance(circuit, (list, tuple)):
+        multi_circuit = True
+        for circ in circuit:
+            ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circ, backend.gateset())
+            ionq_circs.append((ionq_circ, meas_map))
+    else:
+        ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
+        circuit = [circuit]
+
+    circuit_info = {
+        "memory_slots": [],
+        "global_phase": [],
+        "n_qubits": [],
+        "name": [],
+        "creg_sizes": [],
+        "clbit_labels": [],
+        "qreg_sizes": [],
+        "qubit_labels": [],
+    }
+
+    for circ in circuit:
+        circuit_info["memory_slots"].append(circ.num_clbits)
+        circuit_info["global_phase"].append(circ.global_phase)
+        circuit_info["n_qubits"].append(circ.num_qubits)
+        circuit_info["name"].append(circ.name)
+
+        creg_sizes, clbit_labels = get_register_sizes_and_labels(circ.cregs)
+        circuit_info["creg_sizes"].append(creg_sizes)
+        circuit_info["clbit_labels"].append(clbit_labels)
+
+        qreg_sizes, qubit_labels = get_register_sizes_and_labels(circ.qregs)
+        circuit_info["qreg_sizes"].append(qreg_sizes)
+        circuit_info["qubit_labels"].append(qubit_labels)
+
     qiskit_header = compress_dict_to_metadata_string(
         {
-            "memory_slots": circuit.num_clbits,  # int
-            "global_phase": circuit.global_phase,  # float
-            "n_qubits": circuit.num_qubits,  # int
-            "name": circuit.name,  # str
-            # list of [str, int] tuples cardinality memory_slots
-            "creg_sizes": creg_sizes,
-            # list of [str, int] tuples cardinality memory_slots
-            "clbit_labels": clbit_labels,
-            # list of [str, int] tuples cardinality num_qubits
-            "qreg_sizes": qreg_sizes,
-            # list of [str, int] tuples cardinality num_qubits
-            "qubit_labels": qubit_labels,
+            key: (value if multi_circuit else value[0])
+            for key, value in circuit_info.items()
         }
     )
 
@@ -385,21 +408,26 @@ def qiskit_to_ionq(
     ionq_json = {
         "target": target,
         "shots": passed_args.get("shots"),
-        "name": circuit.name,
+        "name": ", ".join([c.name for c in circuit]),
         "input": {
             "format": "ionq.circuit.v0",
             "gateset": backend.gateset(),
-            "qubits": circuit.num_qubits,
-            "circuit": ionq_circ,
+            "qubits": max(c.num_qubits for c in circuit),
         },
-        "registers": {"meas_mapped": meas_map} if meas_map else {},
         # store a couple of things we'll need later for result formatting
         "metadata": {
             "shots": str(passed_args.get("shots")),
             "sampler_seed": str(passed_args.get("sampler_seed")),
-            "qiskit_header": qiskit_header,
         },
     }
+    if multi_circuit:
+        ionq_json["input"]["circuits"] = [
+            {"circuit": c, "registers": {"meas_mapped": m}} for c, m in ionq_circs
+        ]
+    else:
+        ionq_json["input"]["circuit"] = ionq_circs
+        ionq_json["registers"] = {"meas_mapped": meas_map} if meas_map else {}
+        ionq_json["metadata"]["qiskit_header"] = qiskit_header
     if target == "simulator":
         ionq_json["noise"] = {
             "model": passed_args.get("noise_model") or backend.options.noise_model,

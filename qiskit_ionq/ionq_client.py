@@ -94,7 +94,10 @@ class IonQClient:
         """
         try:
             res = requests.get(
-                req_path, params=params, headers=headers, timeout=timeout
+                req_path,
+                params=params,
+                headers=headers,
+                timeout=timeout,
             )
         except requests.exceptions.RequestException as req_exc:
             raise IonQRetriableError(req_exc) from req_exc

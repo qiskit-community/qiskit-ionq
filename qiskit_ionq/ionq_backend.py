@@ -194,30 +194,21 @@ class IonQBackend(Backend):
     def run(self, circuit, **kwargs):
         """Create and run a job on an IonQ Backend.
 
-        .. NOTE::
-
-            IonQ backends do not support multi-experiment jobs.
-            If ``circuit`` is provided as a list with more than one element
-            then this method will raise out with a RuntimeError.
-
         Args:
             circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
                 A Qiskit QuantumCircuit object.
 
         Returns:
             IonQJob: A reference to the job that was submitted.
-
-        Raises:
-            RuntimeError: If a multi-experiment circuit was provided.
         """
-        if isinstance(circuit, (list, tuple)):
-            if len(circuit) > 1:
-                raise RuntimeError("Multi-experiment jobs are not supported!")
-            circuit = circuit[0]
-
-        if not self.has_valid_mapping(circuit):
+        if not all(
+            (
+                self.has_valid_mapping(circ)
+                for circ in (circuit if isinstance(circuit, list) else [circuit])
+            )
+        ):
             warnings.warn(
-                f"Circuit {circuit.name} is not measuring any qubits",
+                "Circuit is not measuring any qubits",
                 UserWarning,
                 stacklevel=2,
             )
@@ -229,6 +220,7 @@ class IonQBackend(Backend):
                     UserWarning,
                     stacklevel=2,
                 )
+
         if "shots" not in kwargs:
             kwargs["shots"] = self.options.shots
         # TODO: Should we merge the two maps, or warn if both are set?
@@ -394,12 +386,14 @@ class IonQSimulatorBackend(IonQBackend):
     def gateset(self):
         return self._gateset
 
-    def __init__(self, provider, name="ionq_simulator", gateset="qis"):
+    def __init__(self, provider, name="simulator", gateset="qis"):
         """Base class for interfacing with an IonQ backend"""
         self._gateset = gateset
         config = BackendConfiguration.from_dict(
             {
-                "backend_name": name,
+                "backend_name": (
+                    "ionq_" + name if not name.startswith("ionq_") else name
+                ),
                 "backend_version": "0.0.1",
                 "simulator": True,
                 "local": False,
