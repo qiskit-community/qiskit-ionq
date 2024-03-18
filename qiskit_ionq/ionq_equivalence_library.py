@@ -17,17 +17,16 @@ SessionEquivalenceLibrary.add_equivalence(HGate(), h_gate)
 q = QuantumRegister(1, "q")
 lambda_param = Parameter("lambda_param")
 phase_gate = QuantumCircuit(q)
-phase_gate.append(GPI2Gate(0.5), [0])
-phase_gate.append(GPIGate(-lambda_param/(4*np.pi)), [0])
 phase_gate.append(GPI2Gate(0.5 - lambda_param/(2*np.pi)), [0])
+phase_gate.append(GPIGate(-lambda_param/(4*np.pi)), [0])
+phase_gate.append(GPI2Gate(0.5), [0])
 SessionEquivalenceLibrary.add_equivalence(PhaseGate(lambda_param), phase_gate)
 
 q = QuantumRegister(1, "q")
 theta_param = Parameter("theta_param")
 rx_gate = QuantumCircuit(q)
 rx_gate.append(GPI2Gate(0.25), [0])
-# MINUS, IS THIS RIGHT?
-rx_gate.append(GPIGate(-theta_param/(4*np.pi) + 1/4), [0])
+rx_gate.append(GPIGate(theta_param/(4*np.pi) - 1/4), [0])
 rx_gate.append(GPI2Gate(0.25), [0])
 SessionEquivalenceLibrary.add_equivalence(RXGate(theta_param), rx_gate)
 
@@ -42,8 +41,8 @@ SessionEquivalenceLibrary.add_equivalence(RYGate(theta_param), ry_gate)
 q = QuantumRegister(1, "q")
 theta_param = Parameter("theta_param")
 rz_gate = QuantumCircuit(q)
-rz_gate.append(GPIGate(theta_param/(4*np.pi)), [0])
 rz_gate.append(GPIGate(0), [0])
+rz_gate.append(GPIGate(theta_param/(4*np.pi)), [0])
 SessionEquivalenceLibrary.add_equivalence(RZGate(theta_param), rz_gate)
 
 q = QuantumRegister(1, "q")
@@ -88,56 +87,47 @@ t_dag_gate.append(GPIGate(0.43750000000000006), [0])
 t_dag_gate.append(GPI2Gate(0.5), [0])
 SessionEquivalenceLibrary.add_equivalence(TdgGate(), t_dag_gate)
 
-# q = QuantumRegister(1, "q")
-# theta_param = Parameter("theta_param")
-# phi_param = Parameter("phi_param")
-# lambda_param = Parameter("lambda_param")
-# u_gate = QuantumCircuit(q)
-# u_gate.append(GPI2Gate(0.5 + phi_param/2), [0])
-# u_gate.append(GPIGate(theta_param/4 + phi_param/4 - lambda_param/4), [0])
-# u_gate.append(GPI2Gate(0.5 - lambda_param/2), [0])
-# SessionEquivalenceLibrary.add_equivalence(UGate(theta_param, phi_param, lambda_param), u_gate)
-
-# q = QuantumRegister(1, "q")
-# theta_param = Parameter("theta_param")
-# phi_param = Parameter("phi_param")
-# lambda_param = Parameter("lambda_param")
-# u3_gate = QuantumCircuit(q)
-# u3_gate.append(GPI2Gate(0.5 + phi_param/2), [0])
-# u3_gate.append(GPIGate(theta_param/4 + phi_param/4 - lambda_param/4), [0])
-# u3_gate.append(GPI2Gate(0.5 - lambda_param/2), [0])
-# SessionEquivalenceLibrary.add_equivalence(U3Gate(theta_param, phi_param, lambda_param), u3_gate)
-
 q = QuantumRegister(1, "q")
 lambda_param = Parameter("lambda_param")
 u1_gate = QuantumCircuit(q)
-u1_gate.append(GPI2Gate(0.5), [0])
-u1_gate.append(GPIGate(-lambda_param/4), [0])
 u1_gate.append(GPI2Gate(0.5 - lambda_param/2), [0])
+u1_gate.append(GPIGate(-lambda_param/4), [0])
+u1_gate.append(GPI2Gate(0.5), [0])
 SessionEquivalenceLibrary.add_equivalence(U1Gate(lambda_param), u1_gate)
 
-# q = QuantumRegister(1, "q")
-# phi_param = Parameter("phi_param")
-# lambda_param = Parameter("lambda_param")
-# u2_gate = QuantumCircuit(q)
-# u2_gate.append(GPI2Gate(0.5 + phi_param/2), [0])
-# u2_gate.append(GPIGate(phi_param/4 - lambda_param/4), [0])
-# u2_gate.append(GPI2Gate(0.5 - lambda_param/2), [0])
-# SessionEquivalenceLibrary.add_equivalence(U2Gate(phi_param, lambda_param), u2_gate)
+q = QuantumRegister(1, "q")
+phi_param = Parameter("phi_param")
+lambda_param = Parameter("lambda_param")
+u2_gate = QuantumCircuit(q)
+u2_gate.append(GPI2Gate(0.5 - lambda_param/(2*np.pi)), [0])
+u2_gate.append(GPIGate(1/8 + phi_param/(4*np.pi) - lambda_param/(4*np.pi)), [0])
+u2_gate.append(GPI2Gate(0.5 + phi_param/(2*np.pi)), [0])
+SessionEquivalenceLibrary.add_equivalence(U2Gate(phi_param, lambda_param), u2_gate)
+
+q = QuantumRegister(1, "q")
+theta_param = Parameter("theta_param")
+phi_param = Parameter("phi_param")
+lambda_param = Parameter("lambda_param")
+u_gate = QuantumCircuit(q)
+u_gate.append(GPI2Gate(0.5 - lambda_param/(2*np.pi)), [0])
+u_gate.append(GPIGate(theta_param/(4*np.pi) + phi_param/(4*np.pi) - lambda_param/(4*np.pi)), [0])
+u_gate.append(GPI2Gate(0.5 + phi_param/(2*np.pi)), [0])
+SessionEquivalenceLibrary.add_equivalence(UGate(theta_param, phi_param, lambda_param), u_gate)
+
+q = QuantumRegister(1, "q")
+theta_param = Parameter("theta_param")
+phi_param = Parameter("phi_param")
+lambda_param = Parameter("lambda_param")
+u3_gate = QuantumCircuit(q)
+u3_gate.append(GPI2Gate(0.5 - lambda_param/(2*np.pi)), [0])
+u3_gate.append(GPIGate(theta_param/(4*np.pi) + phi_param/(4*np.pi) - lambda_param/(4*np.pi)), [0])
+u3_gate.append(GPI2Gate(0.5 + phi_param/(2*np.pi)), [0])
+SessionEquivalenceLibrary.add_equivalence(U3Gate(theta_param, phi_param, lambda_param), u3_gate)
 
 q = QuantumRegister(1, "q") 
 x_gate = QuantumCircuit(q)
 x_gate.append(GPIGate(0), [0])
 SessionEquivalenceLibrary.add_equivalence(XGate(), x_gate)
-
-# q = QuantumRegister(2, "q")
-# cx_gate = QuantumCircuit(q)
-# cx_gate.append(GPI2Gate(1/4), [0])
-# cx_gate.append(MSGate(0, 0), [0, 1])
-# cx_gate.append(GPI2Gate(1/2), [0])
-# cx_gate.append(GPI2Gate(1/2), [1])
-# cx_gate.append(GPI2Gate(-1/4), [0])
-# SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_gate)
 
 q = QuantumRegister(1, "q") 
 y_gate = QuantumCircuit(q)
@@ -157,27 +147,35 @@ i_gate.append(GPIGate(0), [0])
 i_gate.append(GPI2Gate(0.5), [0])
 SessionEquivalenceLibrary.add_equivalence(IGate(), i_gate)
 
+# q = QuantumRegister(2, "q")
+# cx_gate = QuantumCircuit(q)
+# cx_gate.append(GPI2Gate(1/4), [0])
+# cx_gate.append(MSGate(0, 0), [0, 1])
+# cx_gate.append(GPI2Gate(1/2), [0])
+# cx_gate.append(GPI2Gate(1/2), [1])
+# cx_gate.append(GPI2Gate(-1/4), [0])
+# SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_gate)
+
 # Below are the rules needed for Aer simulator to simulate circuits containing IonQ native gates
 
-#TODO: verify!!!
 q = QuantumRegister(1, "q")
 phi_param = Parameter("phi_param")
 gpi_gate = QuantumCircuit(q)
+gpi_gate.append(XGate(), [0])
 gpi_gate.append(RZGate(4 * phi_param * np.pi), [0])
-gpi_gate.append(RXGate(np.pi), [0])
 SessionEquivalenceLibrary.add_equivalence(GPIGate(phi_param), gpi_gate)
 
 q = QuantumRegister(1, "q")
 phi_param = Parameter("phi_param")
 gpi2_gate = QuantumCircuit(q)
-gpi2_gate.append(RZGate(2 * phi_param * np.pi), [0])
-gpi2_gate.append(RXGate(np.pi/2), [0])
 gpi2_gate.append(RZGate(-2 * phi_param * np.pi), [0])
+gpi2_gate.append(RXGate(np.pi/2), [0])
+gpi2_gate.append(RZGate(2 * phi_param * np.pi), [0])
 SessionEquivalenceLibrary.add_equivalence(GPI2Gate(phi_param), gpi2_gate)
 
 # CHGate,,
 # CPhaseGate,
-# RGate,
+# RGate,??
 # RCCXGate,
 # CRXGate,
 # RXXGate,
@@ -194,7 +192,6 @@ SessionEquivalenceLibrary.add_equivalence(GPI2Gate(phi_param), gpi2_gate)
 # DCXGate,
 # CUGate,
 # CU1Gate,
-# U3Gate,
 # CU3Gate,
 # CCXGate,
 # CYGate,
