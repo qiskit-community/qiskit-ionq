@@ -33,6 +33,63 @@ from qiskit_ionq import ionq_provider
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate
 from qiskit.circuit.library import HGate, CXGate, RXGate, RYGate, RZGate,  SGate, SdgGate, SXGate, SXdgGate, TGate, TdgGate, UGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate, IGate, PhaseGate, GlobalPhaseGate
 
+
+@pytest.mark.parametrize(
+    "ideal_results, gates",
+    [
+        ([0.707 + 0j, 0.707 + 0j], [("HGate", None)]),
+        ([0 + 0j, 1 + 0j], [("XGate", None)]),
+        ([0.707 + 0j, 0.707 + 0j], [("HGate", None), ("XGate", None)]),
+        ([0 + 0j, 0 + 1j], [("YGate", None)]),
+        ([0 - 0.707j, 0 + 0.707j], [("HGate", None), ("YGate", None)]),
+        ([0 + 1j, 0 + 0j], [("ZGate", None)]),
+        ([0 + 0.707j, 0 - 0.707j], [("HGate", None), ("ZGate", None)]),
+        ([1 + 0j, 0 + 0j], [("IGate", None)]),
+        ([0.707 + 0j, 0.707 + 0j], [("HGate", None), ("IGate", None)]),
+        ([0 + 0.877j, 0.479 + 0j], [("RXGate", 1)]),
+        ([0 + 0.877j, 0 + 0.479j], [("RYGate", 1)]),
+        ([0.877 - 0.479j, 0 + 0j], [("RZGate", 1)]),
+        ([0.707 - 0.707j, 0 + 0j], [("SGate", None)]),
+        ([0.5 - 0.5j, 0.5 + 0.5j], [("HGate", None), ("SGate", None)]),
+        ([0.707 + 0.707j, 0 + 0j], [("SdgGate", None)]),
+        ([0.5 + 0.5j, 0.5 - 0.5j], [("HGate", None), ("SdgGate", None)]),
+        ([0.9238 - 0.3826j, 0 + 0j], [("TGate", None)]),
+        ([0.653 - 0.270j, 0.653 + 0.270j], [("HGate", None), ("TGate", None)]),
+        ([0.9238 + 0.3826j, 0 + 0j], [("TdgGate", None)]),
+        ([0.653 + 0.270j, 0.653 - 0.270j], [("HGate", None), ("TdgGate", None)]),
+        ([0.707 + 0.j, 0 - 0.707j], [("SXGate", None)]),
+        ([0.5 - 0.5j, 0.5 - 0.5j], [("HGate", None), ("SXGate", None)]),
+        ([0.707 + 0.j, 0 + 0.707j], [("SXdgGate", None)]),
+        ([0.5 + 0.5j, 0.5 + 0.5j], [("HGate", None), ("SXdgGate", None)]),
+    ]
+)
+def test_statevector(ideal_results, gates):
+    # create a quantum circuit
+    qr = QuantumRegister(1)
+    circuit = QuantumCircuit(qr)
+    for gate_name, param in gates:
+        gate = eval(gate_name)
+        if param is not None:
+            if isinstance(param, collections.abc.Sequence):
+                circuit.append(gate(*param), [0])
+            else:
+                circuit.append(gate(param), [0])
+        else:
+            circuit.append(gate(), [0])
+
+    # transpile circuit to native gates
+    provider = ionq_provider.IonQProvider()
+    backend = provider.get_backend("ionq_simulator", gateset="native")
+    transpiled_circuit = transpile(circuit, backend)
+
+    # simulate the circuit
+    simulator = BasicAer.get_backend('statevector_simulator')
+    result = execute(transpiled_circuit, simulator).result()
+    statevector = result.get_statevector()
+    print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", statevector)
+    np.testing.assert_allclose(statevector, ideal_results, atol=1e-3)
+
+
 @pytest.mark.parametrize(
     "ideal_results, gates",
     [
@@ -163,20 +220,14 @@ from qiskit.circuit.library import HGate, CXGate, RXGate, RYGate, RZGate,  SGate
         ([0.571019, 0.428981], [("HGate", None), ("U2Gate", [0.2, 0.1]), ("HGate", None), ("PhaseGate", 1.5), ("HGate", None), ("U3Gate", [0.2, 0.4, 0.6])]),
         ([0.019810, 0.980190], [("HGate", None), ("U2Gate", [0.2, 0.1]), ("TGate", None), ("U1Gate", 1.5), ("TdgGate", None), ("U3Gate", [0.2, 0.4, 0.6])]),
         ([0.291751, 0.708249], [("HGate", None), ("U2Gate", [1.2, 1.1]), ("TGate", None), ("U1Gate", 0.65), ("TdgGate", None), ("U3Gate", [1.2, 1.4, 1.6])]),
-
-        #([10.291751, 0.708249], [("U3Gate", [1.1, 1.3, 1.5]), ("SXGate", None)]),
-
-        # ([0.564195, 0.435805], [("HGate", None), ("U2Gate", [1.2, 1.1]), ("TGate", None), ("U1Gate", 0.65), ("SXdgGate", None), ("U3Gate", [1.2, 1.4, 1.6])]),
-        # ([0.488667, 0.511333], [("HGate", None), ("U2Gate", [1.2, 1.1]), ("SXGate", None), ("U1Gate", 0.65), ("SXdgGate", None), ("U3Gate", [1.2, 1.4, 1.6])]),
-
-        #([0.488667, 0.511333], [("HGate", None), ("U2Gate", [1.2, 1.1]), ("SXdgGate", None), ("U1Gate", 0.65), ("SXGate", None), ("U3Gate", [1.2, 1.4, 1.6])]),
-        
-        #TODO: test T  and Tdag
-
-
-
-        # ([0.5, 0.5], cirq.Circuit(cirq.SingleQubitCliffordGate.X_sqrt(qubit1[0]), cirq.SingleQubitCliffordGate.X_sqrt(qubit1[0]), cirq.SingleQubitCliffordGate.X_sqrt(qubit1[0]))),
-        # ([0.5, 0.5], cirq.Circuit(cirq.SingleQubitCliffordGate.Y_sqrt(qubit1[0]), cirq.SingleQubitCliffordGate.Y_sqrt(qubit1[0]), cirq.SingleQubitCliffordGate.Y_sqrt(qubit1[0]))),
+        ([0.424045, 0.575955], [("HGate", None), ("U2Gate", [1.2, 1.1]), ("TGate", None), ("U1Gate", 0.65), ("SXdgGate", None), ("U3Gate", [1.2, 1.4, 1.6])]),
+        ([0.778976, 0.221024], [("HGate", None), ("U2Gate", [1.2, 1.1]), ("TdgGate", None), ("U1Gate", 0.65), ("SXGate", None), ("U3Gate", [1.2, 1.4, 1.6])]),
+        ([0.158230, 0.841770], [("HGate", None), ("U2Gate", [1.2, 1.1]), ("SGate", None), ("U3Gate", [0.5, 0.6, 0.7]), ("SdgGate", None), ("U3Gate", [1.2, 1.4, 1.6])]),
+        ([0.158230, 0.841770], [("HGate", None), ("U2Gate", [1.2, 1.1]), ("IGate", None), ("SGate", None), ("U3Gate", [0.5, 0.6, 0.7]), ("SdgGate", None), ("U3Gate", [1.2, 1.4, 1.6])]),
+        ([0.757411, 0.242589], [("HGate", None), ("RXGate", 0.7), ("IGate", None), ("SGate", None), ("RZGate", 1.22), ("SdgGate", None), ("U3Gate", [1.2, 1.4, 1.6]),  ("RYGate", 1.4),]),
+        ([1, 0], [("IGate", None)]),
+        ([0.883156, 0.116844], [("U3Gate", [1.2, 1.6, 1.8]), ("TGate", None), ("RYGate", 1)]),
+        ([0.180237, 0.819763], [("U3Gate", [1.2, 1.6, 1.8]), ("TGate", None), ("HGate", None), ("SXGate", None)]),
     ],
 )
 def test_transpiling_one_qubit_circuits_to_native_gates(ideal_results, gates):
@@ -202,7 +253,5 @@ def test_transpiling_one_qubit_circuits_to_native_gates(ideal_results, gates):
     simulator = BasicAer.get_backend('statevector_simulator')
     result = execute(transpiled_circuit, simulator).result()
     statevector = result.get_statevector()
-    #print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", statevector)
     probabilities = np.abs(statevector)**2
     np.testing.assert_allclose(probabilities, ideal_results, atol=1e-3)
-
