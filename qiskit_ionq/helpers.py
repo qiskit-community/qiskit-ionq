@@ -320,7 +320,7 @@ def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-
     encoded = base64.b64encode(compressed)
     encoded_string = encoded.decode()
     encoded_string_length = len(encoded_string)
-    if encoded_string_length > 400:  # 400 char is an IonQ API limitation
+    if encoded_string_length >= 40000:  # 40000 char is an IonQ API limitation
         raise exceptions.IonQMetadataStringError(encoded_string_length)
     return encoded_string
 
