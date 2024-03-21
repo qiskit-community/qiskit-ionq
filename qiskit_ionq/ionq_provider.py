@@ -37,8 +37,11 @@ from . import ionq_backend
 
 logger = logging.getLogger(__name__)
 load_dotenv(
-    override=True
-)  # Set override=True to allow for .env file to override env vars
+    dotenv_path=os.path.join(
+        os.getcwd(), ".env"
+    ),  # Load .env file from current directory
+    override=True,  # Set override=True to allow for .env file to override env vars
+)
 
 
 def resolve_credentials(token: str = None, url: str = None):
