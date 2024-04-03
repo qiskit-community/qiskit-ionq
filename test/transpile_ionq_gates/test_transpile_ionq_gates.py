@@ -30,67 +30,7 @@ import collections.abc
 
 from qiskit import BasicAer, QuantumCircuit,  QuantumRegister, ClassicalRegister, transpile, execute
 from qiskit_ionq import ionq_provider
-from qiskit.circuit.library import HGate, CXGate, RXGate, RYGate, RZGate,  SGate, SdgGate, SXGate, SXdgGate, TGate, TdgGate, UGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate, IGate, PhaseGate
-
-
-@pytest.mark.parametrize(
-    "ideal_results, gates",
-    [
-        # ([0.707 + 0j, 0.707 + 0j], [("HGate", None)]),
-        # ([0 + 0j, 1 + 0j], [("XGate", None)]),
-        # ([0.707 + 0j, 0.707 + 0j], [("HGate", None), ("XGate", None)]),
-        # ([0 + 0j, 0 + 1j], [("YGate", None)]),
-        # ([0 - 0.707j, 0 + 0.707j], [("HGate", None), ("YGate", None)]),
-        # ([0 + 1j, 0 + 0j], [("ZGate", None)]),
-        # ([0 + 0.707j, 0 - 0.707j], [("HGate", None), ("ZGate", None)]),
-        # ([1 + 0j, 0 + 0j], [("IGate", None)]),
-        # ([0.707 + 0j, 0.707 + 0j], [("HGate", None), ("IGate", None)]),
-        # ([0 + 0.877j, 0.479 + 0j], [("RXGate", 1)]),
-        # ([0 + 0.877j, 0 + 0.479j], [("RYGate", 1)]),
-        # ([0.877 - 0.479j, 0 + 0j], [("RZGate", 1)]),
-        # ([0.707 - 0.707j, 0 + 0j], [("SGate", None)]),
-        # ([0.5 - 0.5j, 0.5 + 0.5j], [("HGate", None), ("SGate", None)]),
-        # ([0.707 + 0.707j, 0 + 0j], [("SdgGate", None)]),
-        # ([0.5 + 0.5j, 0.5 - 0.5j], [("HGate", None), ("SdgGate", None)]),
-        # ([0.9238 - 0.3826j, 0 + 0j], [("TGate", None)]),
-        # ([0.653 - 0.270j, 0.653 + 0.270j], [("HGate", None), ("TGate", None)]),
-        # ([0.9238 + 0.3826j, 0 + 0j], [("TdgGate", None)]),
-        # ([0.653 + 0.270j, 0.653 - 0.270j], [("HGate", None), ("TdgGate", None)]),
-        # ([0.707 + 0j, 0 - 0.707j], [("SXGate", None)]),
-        # ([0.5 - 0.5j, 0.5 - 0.5j], [("HGate", None), ("SXGate", None)]),
-        # ([0.707 + 0j, 0 + 0.707j], [("SXdgGate", None)]),
-        # ([0.5 + 0.5j, 0.5 + 0.5j], [("HGate", None), ("SXdgGate", None)]),
-        #([0.707 + 0j, -0.294 + 0.6429j], [("HGate", None), ("U1Gate", 2)]),
-        #([0.707 + 0j, -0.294 + 0.6429j], [("HGate", None), ("PhaseGate", 2)]),
-        # add U3, remove rest
-    ]
-)
-def test_statevector_after_transpile(ideal_results, gates):
-    # create a quantum circuit
-    qr = QuantumRegister(1)
-    circuit = QuantumCircuit(qr)
-    for gate_name, param in gates:
-        gate = eval(gate_name)
-        if param is not None:
-            if isinstance(param, collections.abc.Sequence):
-                circuit.append(gate(*param), [0])
-            else:
-                circuit.append(gate(param), [0])
-        else:
-            circuit.append(gate(), [0])
-
-    # transpile circuit to native gates
-    provider = ionq_provider.IonQProvider()
-    backend = provider.get_backend("ionq_simulator", gateset="native")
-    transpiled_circuit = transpile(circuit, backend)
-
-    # simulate the circuit
-    simulator = BasicAer.get_backend('statevector_simulator')
-    result = execute(transpiled_circuit, simulator).result()
-    statevector = result.get_statevector()
-    print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", statevector)
-    np.testing.assert_allclose(statevector, ideal_results, atol=1e-3)
-
+from qiskit.circuit.library import HGate, CXGate, RXGate, RYGate, RZGate,  SGate, SdgGate, SXGate, SXdgGate, TGate, TdgGate, UGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate, IGate, PhaseGate, CXGate, CZGate, SwapGate
 
 @pytest.mark.parametrize(
     "ideal_results, gates",
@@ -249,12 +189,80 @@ def test_transpiling_one_qubit_circuits_to_native_gates(ideal_results, gates):
     # transpile circuit to native gates
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
-    transpiled_circuit = transpile(circuit, backend)
-    ## TODO: Remove:
-    #print(transpiled_circuit)
+    transpiled_circuit = transpile(circuit, backend, optimization_level=3)
+    print(transpiled_circuit)
+
 
     # simulate the circuit
     simulator = BasicAer.get_backend('statevector_simulator')
+    result = execute(transpiled_circuit, simulator).result()
+    statevector = result.get_statevector()
+    probabilities = np.abs(statevector)**2
+    np.testing.assert_allclose(probabilities, ideal_results, atol=1e-3)
+
+@pytest.mark.parametrize(
+    "ideal_results, gates",
+    [
+        ([1, 0, 0, 0], [("SwapGate", None, [0, 1])]),
+        ([0, 1, 0, 0], [("YGate", None, [0]), ("SwapGate", None, [0, 1])]),
+        ([0, 1, 0, 0], [("XGate", None, [0]), ("SwapGate", None, [0, 1])]),
+        ([1, 0, 0, 0], [("ZGate", None, [0]), ("SwapGate", None, [0, 1])]),
+        ([0.5, 0.5, 0, 0], [("HGate", None, [0]), ("SwapGate", None, [0, 1])]),
+        ([0.5, 0.5, 0, 0], [("SXGate", None, [0]), ("SwapGate", None, [0, 1])]),
+        ([0, 0, 0, 1], [("XGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [0, 1])]),
+        ([0, 0, 0, 1], [("XGate", None, [0]), ("XGate", None, [1])]),
+        ([0, 0, 0, 1], [("YGate", None, [0]), ("YGate", None, [1])]),
+        ([1, 0, 0, 0], [("ZGate", None, [0]), ("ZGate", None, [1])]),
+        ([0, 0, 0, 1], [("XGate", None, [0]), ("CXGate", None, [0, 1])]),
+        ([0, 0, 0, 1], [("YGate", None, [0]), ("CXGate", None, [0, 1])]),
+        ([1, 0, 0, 0], [("ZGate", None, [0]), ("CXGate", None, [0, 1])]),
+        ([0.5, 0, 0,  0.5], [("HGate", None, [0]), ("CXGate", None, [0, 1])]),
+        ([0.25, 0.25, 0.25, 0.25], [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("HGate", None, [0])]),
+        ([0, 0.5, 0.5, 0], [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("XGate", None, [0])]),
+        ([0, 0.5, 0.5, 0], [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("YGate", None, [0])]),
+        ([0.5, 0, 0, 0.5], [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("ZGate", None, [0])]),
+        ([0, 0.5, 0.5, 0], [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("SXGate", None, [0]), ("SXGate", None, [1])]),
+        ([0, 0.5, 0.5, 0], [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("XGate", None, [1])]),
+        ([0.25, 0.25, 0.25, 0.25], [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("SXGate", None, [1])]),
+        ([0, 1, 0, 0], [("XGate", None, [0]), ("CZGate", None, [0, 1])]),
+        ([1, 0, 0, 0], [("XGate", None, [0]), ("CZGate", None, [0, 1]), ("XGate", None, [0]),]),
+        ([0.5, 0.5, 0, 0], [("HGate", None, [0]), ("CZGate", None, [0, 1])]),
+        ([0.5, 0.5, 0, 0], [("SXGate", None, [0]), ("CZGate", None, [0, 1])]),
+        ([0, 1, 0, 0], [("SXGate", None, [0]), ("CZGate", None, [0, 1]), ("SXGate", None, [0])]),
+        ([1, 0, 0, 0], [("HGate", None, [0]), ("CZGate", None, [0, 1]), ("HGate", None, [0])]),
+        ([0, 0.5, 0, 0.5], [("XGate", None, [0]), ("CZGate", None, [0, 1]), ("HGate", None, [1])]),
+        ([0.5, 0.5, 0, 0], [("HGate", None, [0]), ("SwapGate", None, [0, 1]), ("CZGate", None, [0, 1]), ("HGate", None, [0]), ("HGate", None, [1])]),
+        ([0, 0, 0.5, 0.5], [("HGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [1, 0]), ("XGate", None, [1])]),
+        ([0, 0, 0.5, 0.5], [("HGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [1, 0]), ("YGate", None, [1])]),
+        ([0.25, 0.25, 0.25, 0.25], [("HGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [1, 0]), ("SXGate", None, [1])]),
+        ([1, 0, 0, 0], [("HGate", None, [0]), ("SwapGate", None, [0, 1]), ("CXGate", None, [0, 1]), ("HGate", None, [1])]),
+        ([0.5, 0, 0.5, 0], [("HGate", None, [0]), ("SwapGate", None, [0, 1]), ("CXGate", None, [0, 1]), ("SXGate", None, [1])]),
+        ([0.5, 0.5, 0, 0], [("HGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [1, 0])]),
+        #([0.5, 0, 0.5, 0], [("HGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [1, 0]), ("SwapGate", None, [0, 1])]),
+    ],
+)
+def test_transpiling_two_qubit_circuits_to_native_gates(ideal_results, gates):
+    # create a quantum circuit
+    qr = QuantumRegister(2)
+    circuit = QuantumCircuit(qr)
+    for gate_name, param, qubits in gates:
+        gate = eval(gate_name)
+        if param is not None:
+            if isinstance(param, collections.abc.Sequence):
+                circuit.append(gate(*param), qubits)
+            else:
+                circuit.append(gate(param), qubits)
+        else:
+            circuit.append(gate(), qubits)
+    
+    # transpile circuit to native gates
+    provider = ionq_provider.IonQProvider()
+    backend = provider.get_backend("ionq_simulator", gateset="native")
+    transpiled_circuit = transpile(circuit, backend, optimization_level=3)
+
+    # simulate the circuit
+    simulator = BasicAer.get_backend('statevector_simulator')
+    print(transpiled_circuit)
     result = execute(transpiled_circuit, simulator).result()
     statevector = result.get_statevector()
     probabilities = np.abs(statevector)**2
