@@ -190,8 +190,6 @@ def test_transpiling_one_qubit_circuits_to_native_gates(ideal_results, gates):
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
     transpiled_circuit = transpile(circuit, backend, optimization_level=3)
-    print(transpiled_circuit)
-
 
     # simulate the circuit
     simulator = BasicAer.get_backend('statevector_simulator')
@@ -203,12 +201,18 @@ def test_transpiling_one_qubit_circuits_to_native_gates(ideal_results, gates):
 @pytest.mark.parametrize(
     "ideal_results, gates",
     [
+        ([0, 1, 0, 0], [("XGate", None, [0])]),
+        ([0, 0, 1, 0], [("XGate", None, [1])]),
+        ([0.5, 0.5, 0, 0], [("HGate", None, [0])]),
+        ([0, 0, 1, 0], [("XGate", None, [0]), ("CXGate", None, [0, 1]), ("CXGate", None, [1, 0]), ("CXGate", None, [0, 1])]),
+        ([0, 0, 1, 0], [("XGate", None, [0]), ("CXGate", None, [1, 0]), ("CXGate", None, [0, 1]), ("CXGate", None, [1, 0])]),
+        ([0, 0, 1, 0], [("XGate", None, [0]), ("SwapGate", None, [0, 1])]),
+        ([0.5, 0, 0.5, 0], [("HGate", None, [0]), ("SwapGate", None, [0, 1])]),
         ([1, 0, 0, 0], [("SwapGate", None, [0, 1])]),
-        ([0, 1, 0, 0], [("YGate", None, [0]), ("SwapGate", None, [0, 1])]),
-        ([0, 1, 0, 0], [("XGate", None, [0]), ("SwapGate", None, [0, 1])]),
+        ([0, 0, 1, 0], [("YGate", None, [0]), ("SwapGate", None, [0, 1])]),
+        ([0, 0, 1, 0], [("XGate", None, [0]), ("SwapGate", None, [0, 1])]),
         ([1, 0, 0, 0], [("ZGate", None, [0]), ("SwapGate", None, [0, 1])]),
-        ([0.5, 0.5, 0, 0], [("HGate", None, [0]), ("SwapGate", None, [0, 1])]),
-        ([0.5, 0.5, 0, 0], [("SXGate", None, [0]), ("SwapGate", None, [0, 1])]),
+        ([0.5, 0, 0.5, 0], [("SXGate", None, [0]), ("SwapGate", None, [0, 1])]),
         ([0, 0, 0, 1], [("XGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [0, 1])]),
         ([0, 0, 0, 1], [("XGate", None, [0]), ("XGate", None, [1])]),
         ([0, 0, 0, 1], [("YGate", None, [0]), ("YGate", None, [1])]),
@@ -238,7 +242,7 @@ def test_transpiling_one_qubit_circuits_to_native_gates(ideal_results, gates):
         ([1, 0, 0, 0], [("HGate", None, [0]), ("SwapGate", None, [0, 1]), ("CXGate", None, [0, 1]), ("HGate", None, [1])]),
         ([0.5, 0, 0.5, 0], [("HGate", None, [0]), ("SwapGate", None, [0, 1]), ("CXGate", None, [0, 1]), ("SXGate", None, [1])]),
         ([0.5, 0.5, 0, 0], [("HGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [1, 0])]),
-        #([0.5, 0, 0.5, 0], [("HGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [1, 0]), ("SwapGate", None, [0, 1])]),
+        ([0.5, 0, 0.5, 0], [("HGate", None, [1]), ("SwapGate", None, [0, 1]), ("CXGate", None, [1, 0]), ("SwapGate", None, [0, 1])]),
     ],
 )
 def test_transpiling_two_qubit_circuits_to_native_gates(ideal_results, gates):
@@ -258,11 +262,10 @@ def test_transpiling_two_qubit_circuits_to_native_gates(ideal_results, gates):
     # transpile circuit to native gates
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
-    transpiled_circuit = transpile(circuit, backend, optimization_level=3)
+    transpiled_circuit = transpile(circuit, backend, optimization_level=2)
 
     # simulate the circuit
     simulator = BasicAer.get_backend('statevector_simulator')
-    print(transpiled_circuit)
     result = execute(transpiled_circuit, simulator).result()
     statevector = result.get_statevector()
     probabilities = np.abs(statevector)**2
