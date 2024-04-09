@@ -1,7 +1,7 @@
 import numpy as np
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Parameter
-from qiskit.circuit.library import CXGate, RXGate, RYGate, RZGate, UGate, XGate, GMS
+from qiskit.circuit.library import CXGate, RXGate, RZGate, UGate, XGate, CU3Gate
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate
 
 q = QuantumRegister(1, "q")
@@ -45,16 +45,15 @@ q = QuantumRegister(2, "q")
 phi0_param = Parameter("phi0_param")
 phi1_param = Parameter("phi1_param")
 theta_param = Parameter("theta_param")
+alpha_param = phi0_param + phi1_param
+beta_param = phi0_param - phi1_param
 ms_gate = QuantumCircuit(q)
-ms_gate.h(0)
-ms_gate.h(1)
-ms_gate.append(CXGate(), [0, 1])
-ms_gate.append(RZGate(2 * theta_param * np.pi), [1])
-ms_gate.append(CXGate(), [0, 1])
-ms_gate.h(0)
-ms_gate.h(1)
-ms_gate.append(RZGate(0 * phi0_param), [0])
-ms_gate.append(RZGate(0 * phi1_param), [0])
+ms_gate.append(CXGate(), [1, 0])
+ms_gate.x(0)
+ms_gate.append(CU3Gate(2 * theta_param * np.pi, 2 * alpha_param * np.pi - np.pi/2, np.pi/2 - 2 * alpha_param * np.pi), [0, 1])
+ms_gate.x(0)
+ms_gate.append(CU3Gate(2 * theta_param * np.pi, - 2 * beta_param * np.pi - np.pi/2, np.pi/2 + 2 * beta_param * np.pi), [0, 1])
+ms_gate.append(CXGate(), [1, 0])
 SessionEquivalenceLibrary.add_equivalence(MSGate(phi0_param, phi1_param, theta_param), ms_gate)
 
 
