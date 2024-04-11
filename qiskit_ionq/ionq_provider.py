@@ -87,7 +87,7 @@ class IonQProvider:
             ]
         )
 
-    def get_backend(self, name=None, gateset="qis", **kwargs):
+    def get_backend(self, name: str = None, gateset="qis", **kwargs):
         """Return a single backend matching the specified filtering.
         Args:
             name (str): name of the backend.

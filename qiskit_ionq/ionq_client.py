@@ -75,7 +75,7 @@ class IonQClient:
         Returns:
             str: A URL to use for an API call.
         """
-        return "/".join([self._url] + list(parts))
+        return f"{self._url}/{'/'.join(parts)}"
 
     def _get_with_retry(self, req_path, params=None, headers=None, timeout=30):
         """Make a GET request with retry logic and exception handling.
@@ -176,6 +176,17 @@ class IonQClient:
         res = requests.put(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
+
+    def cancel_jobs(self, job_ids: list):
+        """Cancel multiple jobs at once.
+
+        Args:
+            job_ids (list): A list of job IDs to cancel.
+
+        Returns:
+            list: A list of :meth:`cancel_job <cancel_job>` responses.
+        """
+        return [self.cancel_job(job_id) for job_id in job_ids]
 
     @retry(exceptions=IonQRetriableError, tries=3)
     def delete_job(self, job_id: str):

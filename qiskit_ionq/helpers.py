@@ -48,6 +48,8 @@ from . import exceptions
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
 # also not an exact/complete list of the gates IonQ's backend takes
 #   by name — please refer to IonQ docs for that.
+#
+# Some of these gates may be deprecated or removed in qiskit 1.0
 ionq_basis_gates = [
     "ccx",
     "ch",
@@ -294,11 +296,6 @@ def get_register_sizes_and_labels(registers):
     return sizes, labels
 
 
-# slightly goofy workaround to account for the fact that IonQ's "arbitrary" metadata field
-# only takes string KV pairs with value max length 400
-# so we try and pack it down into a more-compressed string format
-# and raise if it's still too long
-# TODO: make this behavior a little nicer (dict metadata) on IonQ side; fix here when we do
 def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-name
     """
     Convert a dict to a compact string format (dumped, gzipped, base64 encoded)
@@ -311,9 +308,6 @@ def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-
     Returns:
         str: encoded string
 
-    Raises:
-        IonQMetadataStringError: If the base64 encoded `json.dumps`'d dict is
-            greater than 400 characters.
     """
     serialized = json.dumps(metadata_dict)
     compressed = gzip.compress(serialized.encode("utf-8"))

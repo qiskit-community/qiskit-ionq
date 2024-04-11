@@ -253,8 +253,15 @@ class IonQBackend(Backend):
 
     def retrieve_jobs(self, job_ids):
         """get a list of jobs from a specific backend, job id"""
-
         return [ionq_job.IonQJob(self, job_id, self.client) for job_id in job_ids]
+
+    def cancel_job(self, job_id):
+        """cancels a job from a specific backend, by job id."""
+        return self.client.cancel_job(job_id)
+
+    def cancel_jobs(self, job_ids):
+        """cancels a list of jobs from a specific backend, job id"""
+        return [self.client.cancel_job(job_id) for job_id in job_ids]
 
     def has_valid_mapping(self, circuit) -> bool:
         """checks if the circuit has at least one
