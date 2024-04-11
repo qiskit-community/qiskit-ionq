@@ -27,8 +27,7 @@
 """Provider for interacting with IonQ backends"""
 
 import logging
-import os
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
@@ -36,12 +35,6 @@ from qiskit.providers.providerutils import filter_backends
 from . import ionq_backend
 
 logger = logging.getLogger(__name__)
-load_dotenv(
-    dotenv_path=os.path.join(
-        os.getcwd(), ".env"
-    ),  # Load .env file from current directory
-    override=True,  # Set override=True to allow for .env file to override env vars
-)
 
 
 def resolve_credentials(token: str = None, url: str = None):
@@ -61,11 +54,13 @@ def resolve_credentials(token: str = None, url: str = None):
         dict[str]: A dict with "token" and "url" keys, for use by a client.
     """
     env_token = (
-        os.getenv("IONQ_API_KEY")
-        or os.environ.get("QISKIT_IONQ_API_TOKEN")
-        or os.environ.get("IONQ_API_TOKEN")
+        dotenv_values.get("IONQ_API_KEY")
+        or dotenv_values.get("QISKIT_IONQ_API_TOKEN")
+        or dotenv_values.get("IONQ_API_TOKEN")
     )
-    env_url = os.environ.get("QISKIT_IONQ_API_URL") or os.environ.get("IONQ_API_URL")
+    env_url = dotenv_values.get("QISKIT_IONQ_API_URL") or dotenv_values.get(
+        "IONQ_API_URL"
+    )
     return {
         "token": token or env_token,
         "url": url or env_url or "https://api.ionq.co/v0.3",
