@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Exceptions" href="exceptions.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2023.08.19 -->
-        <title>Helpers - Qiskit IonQ Provider 0.5.0</title>
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
+        <title>Helpers - Qiskit IonQ Provider 0.5.1.dev0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.0</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.1.dev0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.0</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.1.dev0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -236,14 +236,14 @@
 <p id="module-qiskit_ionq.helpers">Helper methods for mapping Qiskit classes
 to IonQ REST API compatible values.</p>
 <dl class="py function">
-<dt class="sig sig-object py" id="qiskit_ionq.helpers.compress_dict_to_metadata_string">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">compress_dict_to_metadata_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#compress_dict_to_metadata_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.compress_dict_to_metadata_string" title="Link to this definition">#</a></dt>
-<dd><p>Convert a dict to a compact string format (dumped, gzipped, base64 encoded)
+<dt class="sig sig-object py" id="qiskit_ionq.helpers.compress_to_metadata_string">
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">compress_to_metadata_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#compress_to_metadata_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.compress_to_metadata_string" title="Link to this definition">#</a></dt>
+<dd><p>Convert a metadata object to a compact string format (dumped, gzipped, base64 encoded)
 for storing in IonQ API metadata</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>metadata_dict</strong> (<em>dict</em>) – a dict with metadata relevant to building the results
-object on a returned job.</p>
+<dd class="field-odd"><p><strong>metadata</strong> (<em>dict</em><em> or </em><em>list</em>) – a dict or list of dicts with metadata relevant
+to building the results object on a returned job.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>encoded string</p>
@@ -255,20 +255,20 @@ object on a returned job.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="qiskit_ionq.helpers.decompress_metadata_string_to_dict">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">decompress_metadata_string_to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#decompress_metadata_string_to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.decompress_metadata_string_to_dict" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="qiskit_ionq.helpers.decompress_metadata_string">
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">decompress_metadata_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#decompress_metadata_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.decompress_metadata_string" title="Link to this definition">#</a></dt>
 <dd><p>Convert compact string format (dumped, gzipped, base64 encoded) from
-IonQ API metadata back into a dict relevant to building the results object
-on a returned job.</p>
+IonQ API metadata back into a dict or list of dicts relevant to building
+the results object on a returned job.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>input_string</strong> (<em>str</em>) – compressed string format of metadata dict</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>decompressed metadata dict</p>
+<dd class="field-even"><p>decompressed metadata dict or list of dicts</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
+<dd class="field-odd"><p>dict or list</p>
 </dd>
 </dl>
 </dd></dl>
@@ -397,8 +397,8 @@ dict: The measurement map from qubit number to classical bit number.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Helpers</a><ul>
-<li><a class="reference internal" href="#qiskit_ionq.helpers.compress_dict_to_metadata_string"><code class="docutils literal notranslate"><span class="pre">compress_dict_to_metadata_string()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.helpers.decompress_metadata_string_to_dict"><code class="docutils literal notranslate"><span class="pre">decompress_metadata_string_to_dict()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.helpers.compress_to_metadata_string"><code class="docutils literal notranslate"><span class="pre">compress_to_metadata_string()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.helpers.decompress_metadata_string"><code class="docutils literal notranslate"><span class="pre">decompress_metadata_string()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.helpers.get_user_agent"><code class="docutils literal notranslate"><span class="pre">get_user_agent()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.helpers.qiskit_circ_to_ionq_circ"><code class="docutils literal notranslate"><span class="pre">qiskit_circ_to_ionq_circ()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.helpers.qiskit_to_ionq"><code class="docutils literal notranslate"><span class="pre">qiskit_to_ionq()</span></code></a></li>
@@ -415,7 +415,7 @@ dict: The measurement map from qubit number to classical bit number.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="../_static/documentation_options.js?v=215e94d7"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

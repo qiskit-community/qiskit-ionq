@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2023.08.19 -->
-        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 0.5.0</title>
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
+        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 0.5.1.dev0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.0</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.1.dev0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.0</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.1.dev0</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -274,7 +274,7 @@
 <span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">JobV1</span><span class="p">,</span> <span class="n">jobstatus</span>
 <span class="kn">from</span> <span class="nn">qiskit.providers.exceptions</span> <span class="kn">import</span> <span class="n">JobTimeoutError</span>
 <span class="kn">from</span> <span class="nn">.ionq_result</span> <span class="kn">import</span> <span class="n">IonQResult</span> <span class="k">as</span> <span class="n">Result</span>
-<span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">decompress_metadata_string_to_dict</span>
+<span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">decompress_metadata_string</span>
 
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">constants</span><span class="p">,</span> <span class="n">exceptions</span>
@@ -360,7 +360,7 @@
             <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">rand_values</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">output_probs</span><span class="p">}</span>
         <span class="p">)</span>
 
-    <span class="c1"># Build counts.</span>
+    <span class="c1"># Build counts</span>
     <span class="n">counts</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">output_probs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">bits</span> <span class="o">=</span> <span class="nb">bin</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">key</span><span class="p">))[</span><span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
@@ -381,10 +381,6 @@
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob">[docs]</a>
 <span class="k">class</span> <span class="nc">IonQJob</span><span class="p">(</span><span class="n">JobV1</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Representation of a Job that will run on an IonQ backend.</span>
-
-<span class="sd">    .. IMPORTANT::</span>
-<span class="sd">       IonQ backends do not support multi-experiment jobs.  Attempting to</span>
-<span class="sd">       submit a multi-experiment job will raise an exception.</span>
 
 <span class="sd">    It is not recommended to create Job instances directly, but rather use the</span>
 <span class="sd">    :meth:`run &lt;IonQBackend.run&gt;` and :meth:`retrieve_job &lt;IonQBackend.retrieve_job&gt;`</span>
@@ -415,16 +411,14 @@
 
         <span class="k">if</span> <span class="n">passed_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">extra_query_params</span> <span class="o">=</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;extra_query_params&quot;</span><span class="p">,</span> <span class="p">{})</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">extra_metadata</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="o">**</span><span class="n">passed_args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;extra_metadata&quot;</span><span class="p">,</span> <span class="p">{}),</span>
-                <span class="o">**</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{}),</span>
-            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extra_metadata</span> <span class="o">=</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;extra_metadata&quot;</span><span class="p">,</span> <span class="p">{})</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_passed_args</span> <span class="o">=</span> <span class="n">passed_args</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">extra_query_params</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">extra_metadata</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_passed_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;shots&quot;</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span> <span class="s2">&quot;sampler_seed&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
 
+        <span class="c1"># Handle both single and list of circuits</span>
         <span class="k">if</span> <span class="n">circuit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">circuit</span> <span class="o">=</span> <span class="n">circuit</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">=</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">INITIALIZING</span>
@@ -601,11 +595,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_save_metadata</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">==</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">DONE</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qubits&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_num_circuits</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;circuits&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_children</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;children&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qubits&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="n">default_map</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_clbits</span> <span class="o">=</span> <span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;registers&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                <span class="s2">&quot;meas_mapped&quot;</span><span class="p">,</span> <span class="n">default_map</span>
-            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_clbits</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;registers&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;meas_mapped&quot;</span><span class="p">,</span> <span class="n">default_map</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_execution_time</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;execution_time&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">==</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">ERROR</span><span class="p">:</span>
@@ -663,39 +657,58 @@
             <span class="k">if</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sampler_seed&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>
             <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
-        <span class="n">qiskit_header</span> <span class="o">=</span> <span class="n">decompress_metadata_string_to_dict</span><span class="p">(</span>
-            <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qiskit_header&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">qiskit_header</span> <span class="o">=</span> <span class="n">decompress_metadata_string</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qiskit_header&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qiskit_header</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">qiskit_header</span> <span class="o">=</span> <span class="p">[</span><span class="n">qiskit_header</span><span class="p">]</span>
+        <span class="n">shots</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shots&quot;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shots&quot;</span><span class="p">,</span> <span class="s2">&quot;1024&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>
+            <span class="k">else</span> <span class="mi">1024</span>
         <span class="p">)</span>
-
-        <span class="n">shots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shots&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shots&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">else</span> <span class="mi">1024</span><span class="p">)</span>
-        <span class="n">job_result</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{},</span>
-            <span class="s2">&quot;shots&quot;</span><span class="p">:</span> <span class="n">shots</span><span class="p">,</span>
-            <span class="s2">&quot;header&quot;</span><span class="p">:</span> <span class="n">qiskit_header</span> <span class="ow">or</span> <span class="p">{},</span>
-            <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="n">success</span><span class="p">,</span>
-        <span class="p">}</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">==</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">DONE</span><span class="p">:</span>
-            <span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">probabilities</span><span class="p">)</span> <span class="o">=</span> <span class="n">_build_counts</span><span class="p">(</span>
-                <span class="n">data</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_clbits</span><span class="p">,</span>
-                <span class="n">shots</span><span class="p">,</span>
-                <span class="n">use_sampler</span><span class="o">=</span><span class="n">is_ideal_simulator</span><span class="p">,</span>
-                <span class="n">sampler_seed</span><span class="o">=</span><span class="n">sampler_seed</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">job_result</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="n">counts</span><span class="p">,</span>
-                <span class="s2">&quot;probabilities&quot;</span><span class="p">:</span> <span class="n">probabilities</span><span class="p">,</span>
-                <span class="c1"># Qiskit/experiments relies on this being present in this location in the</span>
-                <span class="c1"># ExperimentData class.</span>
-                <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="n">qiskit_header</span> <span class="ow">or</span> <span class="p">{},</span>
+        <span class="n">job_result</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{},</span>
+                <span class="s2">&quot;shots&quot;</span><span class="p">:</span> <span class="n">shots</span><span class="p">,</span>
+                <span class="s2">&quot;header&quot;</span><span class="p">:</span> <span class="n">qiskit_header</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">or</span> <span class="p">{},</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="n">success</span><span class="p">,</span>
             <span class="p">}</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_circuits</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">==</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">DONE</span><span class="p">:</span>
+            <span class="c1"># to handle ionq returning different data structures for single and multiple circuits</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_circuits</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_circuits</span><span class="p">):</span>
+                <span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">probabilities</span><span class="p">)</span> <span class="o">=</span> <span class="n">_build_counts</span><span class="p">(</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">qiskit_header</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;n_qubits&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span><span class="p">),</span>
+                    <span class="nb">range</span><span class="p">(</span>
+                        <span class="nb">sum</span><span class="p">(</span>
+                            <span class="n">creg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="k">for</span> <span class="n">creg</span> <span class="ow">in</span> <span class="n">qiskit_header</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                                <span class="s2">&quot;creg_sizes&quot;</span><span class="p">,</span> <span class="p">[[</span><span class="s2">&quot;meas&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clbits</span><span class="p">)]]</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="n">shots</span><span class="p">,</span>
+                    <span class="n">use_sampler</span><span class="o">=</span><span class="n">is_ideal_simulator</span><span class="p">,</span>
+                    <span class="n">sampler_seed</span><span class="o">=</span><span class="n">sampler_seed</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">job_result</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="n">counts</span><span class="p">,</span>
+                    <span class="s2">&quot;probabilities&quot;</span><span class="p">:</span> <span class="n">probabilities</span><span class="p">,</span>
+                    <span class="c1"># Qiskit/experiments relies on this being present in this location in the</span>
+                    <span class="c1"># ExperimentData class.</span>
+                    <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="n">qiskit_header</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">or</span> <span class="p">{},</span>
+                <span class="p">}</span>
 
         <span class="c1"># Create a qiskit result to express the IonQ job result data.</span>
         <span class="n">backend</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">Result</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
             <span class="p">{</span>
-                <span class="s2">&quot;results&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">job_result</span><span class="p">],</span>
+                <span class="s2">&quot;results&quot;</span><span class="p">:</span> <span class="n">job_result</span><span class="p">,</span>
                 <span class="s2">&quot;job_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">(),</span>
                 <span class="s2">&quot;backend_name&quot;</span><span class="p">:</span> <span class="n">backend_name</span><span class="p">,</span>
                 <span class="s2">&quot;backend_version&quot;</span><span class="p">:</span> <span class="n">backend_version</span><span class="p">,</span>
@@ -749,7 +762,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="../../_static/documentation_options.js?v=215e94d7"></script>
     <script src="../../_static/doctools.js?v=888ff710"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>
