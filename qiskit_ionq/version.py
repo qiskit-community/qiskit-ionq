@@ -33,7 +33,7 @@ from typing import List
 
 pkg_parent = pathlib.Path(__file__).parent.parent.absolute()
 
-# major, minor, micro
+# major, minor, patch
 VERSION_INFO = ".".join(map(str, (0, 5, 1, "dev0")))
 
 
