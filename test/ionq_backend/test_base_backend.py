@@ -252,6 +252,7 @@ def test_multiexp_job(mock_backend, requests_mock):
     assert request.method == "POST"
     assert request.url == path
     request_json = request.json()
+    assert "qiskit_header" in request_json["metadata"]
     # delete the qiskit_header field
     del request_json["metadata"]["qiskit_header"]
     assert request_json == {
