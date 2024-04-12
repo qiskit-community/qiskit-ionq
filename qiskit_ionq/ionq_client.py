@@ -26,11 +26,11 @@
 
 """Basic API Client for IonQ's REST API"""
 
+import json
 from collections import OrderedDict
 from typing import Optional
 from warnings import warn
 import requests
-import json
 
 from retry import retry
 
