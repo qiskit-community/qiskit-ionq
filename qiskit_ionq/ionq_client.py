@@ -26,9 +26,11 @@
 
 """Basic API Client for IonQ's REST API"""
 
+from collections import OrderedDict
 from typing import Optional
 from warnings import warn
 import requests
+import json
 
 from retry import retry
 
@@ -269,7 +271,8 @@ class IonQClient:
         req_path = self.make_path("jobs", job_id, "results")
         res = self._get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
-        return res.json()
+        # Use json.loads with object_pairs_hook to maintain order of JSON keys
+        return json.loads(res.text, object_pairs_hook=OrderedDict)
 
 
 __all__ = ["IonQClient"]
