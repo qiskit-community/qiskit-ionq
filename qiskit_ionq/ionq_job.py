@@ -419,7 +419,7 @@ class IonQJob(JobV1):
                 "header": qiskit_header[i] or {},
                 "success": success,
             }
-            for i in range(self._num_circuits or 1)
+            for i in range(self._num_circuits)
         ]
         if self._status == jobstatus.JobStatus.DONE:
             # to handle ionq returning different data structures for single and multiple circuits
@@ -427,14 +427,14 @@ class IonQJob(JobV1):
                 data = list(data.values())
             else:
                 data = [data]
-            for idx in range(self._num_circuits):
+            for i in range(self._num_circuits):
                 (counts, probabilities) = _build_counts(
-                    data[idx],
-                    qiskit_header[idx].get("n_qubits", self._num_qubits),
+                    data[i],
+                    qiskit_header[i].get("n_qubits", self._num_qubits),
                     range(
                         sum(
                             creg[1]
-                            for creg in qiskit_header[idx].get(
+                            for creg in qiskit_header[i].get(
                                 "creg_sizes", [["meas", len(self._clbits)]]
                             )
                         )
@@ -443,14 +443,12 @@ class IonQJob(JobV1):
                     use_sampler=is_ideal_simulator,
                     sampler_seed=sampler_seed,
                 )
-                job_result[idx]["data"] = {
+                job_result[i]["data"] = {
                     "counts": counts,
                     "probabilities": probabilities,
                     # Qiskit/experiments relies on this being present in this location in the
                     # ExperimentData class.
-                    # combine the qiskit_header and metadata dictionaries
-                    # "metadata": {**(qiskit_header or {}), **(metadata or {})},
-                    "metadata": qiskit_header[idx] or {},
+                    "metadata": qiskit_header[i] or {},
                 }
 
         # Create a qiskit result to express the IonQ job result data.
