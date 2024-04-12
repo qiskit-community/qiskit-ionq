@@ -251,7 +251,10 @@ def test_multiexp_job(mock_backend, requests_mock):
     request = requests_mock.request_history[0]
     assert request.method == "POST"
     assert request.url == path
-    assert request.json() == {
+    request_json = request.json()
+    # delete the qiskit_header field
+    del request_json["metadata"]["qiskit_header"]
+    assert request_json == {
         "target": "mock_backend",
         "shots": 1024,
         "name": f"{job.circuit[0].name}, {job.circuit[1].name}",
@@ -270,5 +273,8 @@ def test_multiexp_job(mock_backend, requests_mock):
                 },
             ],
         },
-        "metadata": {"shots": "1024", "sampler_seed": "None"},
+        "metadata": {
+            "shots": "1024",
+            "sampler_seed": "None",
+        },
     }

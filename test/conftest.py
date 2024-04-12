@@ -31,7 +31,7 @@ from qiskit.providers import models as q_models
 from requests_mock import adapter as rm_adapter
 
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
-from qiskit_ionq.helpers import compress_to_metadata
+from qiskit_ionq.helpers import compress_to_metadata_string
 
 
 class MockBackend(ionq_backend.IonQBackend):
@@ -40,7 +40,9 @@ class MockBackend(ionq_backend.IonQBackend):
     def gateset(self):
         return "qis"
 
-    def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
+    def __init__(
+        self, provider, name="ionq_mock_backend"
+    ):  # pylint: disable=redefined-outer-name
         config = q_models.BackendConfiguration.from_dict(
             {
                 "backend_name": name,
@@ -71,7 +73,9 @@ class MockBackend(ionq_backend.IonQBackend):
         return MockBackend(self._provider, name, **kwargs)
 
 
-def dummy_job_response(job_id, target="mock_backend", status="completed", job_settings=None):
+def dummy_job_response(
+    job_id, target="mock_backend", status="completed", job_settings=None
+):
     """A dummy response payload for `job_id`.
 
     Args:
@@ -83,7 +87,7 @@ def dummy_job_response(job_id, target="mock_backend", status="completed", job_se
     Returns:
         dict: A json response dict.
     """
-    qiskit_header = compress_to_metadata(
+    qiskit_header = compress_to_metadata_string(
         {
             "qubit_labels": [["q", 0], ["q", 1]],
             "n_qubits": 2,
@@ -130,7 +134,7 @@ def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-t
         dict: A json response dict.
 
     """
-    qiskit_header = compress_to_metadata(
+    qiskit_header = compress_to_metadata_string(
         {
             "qubit_labels": [["q", 0], ["q", 1]],
             "n_qubits": 2,
@@ -273,11 +277,11 @@ def formatted_result(provider):
     # mock a job response
     with _default_requests_mock() as requests_mock:
         # Mock the response with our dummy job response.
-        requests_mock.get(path,
-                          json=dummy_job_response(job_id, "qpu.aria-1", "completed", settings))
+        requests_mock.get(
+            path, json=dummy_job_response(job_id, "qpu.aria-1", "completed", settings)
+        )
 
-        requests_mock.get(results_path,
-                          json={"0": 0.5, "2": 0.499999})
+        requests_mock.get(results_path, json={"0": 0.5, "2": 0.499999})
 
         # Create the job (this calls self.status(), which will fetch the job).
         job = ionq_job.IonQJob(backend, job_id, client)

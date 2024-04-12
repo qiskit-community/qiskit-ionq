@@ -125,16 +125,18 @@ def test_metadata_header__with_multiple_registers(
         qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
 
-    expected_metadata_header = {
-        "memory_slots": 4,
-        "global_phase": 0,
-        "n_qubits": 4,
-        "name": "test_name",
-        "creg_sizes": [["cr0", 2], ["cr1", 2]],
-        "clbit_labels": [["cr0", 0], ["cr0", 1], ["cr1", 0], ["cr1", 1]],
-        "qreg_sizes": [["qr0", 2], ["qr1", 2]],
-        "qubit_labels": [["qr0", 0], ["qr0", 1], ["qr1", 0], ["qr1", 1]],
-    }
+    expected_metadata_header = [
+        {
+            "memory_slots": 4,
+            "global_phase": 0,
+            "n_qubits": 4,
+            "name": "test_name",
+            "creg_sizes": [["cr0", 2], ["cr1", 2]],
+            "clbit_labels": [["cr0", 0], ["cr0", 1], ["cr1", 0], ["cr1", 1]],
+            "qreg_sizes": [["qr0", 2], ["qr1", 2]],
+            "qubit_labels": [["qr0", 0], ["qr0", 1], ["qr1", 0], ["qr1", 1]],
+        }
+    ]
 
     actual = json.loads(ionq_json)
     actual_metadata = actual.pop("metadata") or {}
@@ -160,16 +162,18 @@ def test_full_circuit(simulator_backend):
     ionq_json = qiskit_to_ionq(
         qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
-    expected_metadata_header = {
-        "memory_slots": 2,
-        "global_phase": 0,
-        "n_qubits": 2,
-        "name": "test_name",
-        "creg_sizes": [["c", 2]],
-        "clbit_labels": [["c", 0], ["c", 1]],
-        "qreg_sizes": [["q", 2]],
-        "qubit_labels": [["q", 0], ["q", 1]],
-    }
+    expected_metadata_header = [
+        {
+            "memory_slots": 2,
+            "global_phase": 0,
+            "n_qubits": 2,
+            "name": "test_name",
+            "creg_sizes": [["c", 2]],
+            "clbit_labels": [["c", 0], ["c", 1]],
+            "qreg_sizes": [["q", 2]],
+            "qubit_labels": [["q", 0], ["q", 1]],
+        }
+    ]
     expected_output_map = [1, 0]
     expected_metadata = {"shots": "200", "sampler_seed": "42"}
     expected_rest_of_payload = {
@@ -299,16 +303,18 @@ def test_full_native_circuit(simulator_backend):
         passed_args={"noise_model": "harmony", "sampler_seed": 23, "shots": 200},
         extra_metadata={"iteration": "10"},
     )
-    expected_metadata_header = {
-        "memory_slots": 0,
-        "global_phase": 0,
-        "n_qubits": 3,
-        "name": "blame_test",
-        "creg_sizes": [],
-        "clbit_labels": [],
-        "qreg_sizes": [["q", 3]],
-        "qubit_labels": [["q", 0], ["q", 1], ["q", 2]],
-    }
+    expected_metadata_header = [
+        {
+            "memory_slots": 0,
+            "global_phase": 0,
+            "n_qubits": 3,
+            "name": "blame_test",
+            "creg_sizes": [],
+            "clbit_labels": [],
+            "qreg_sizes": [["q", 3]],
+            "qubit_labels": [["q", 0], ["q", 1], ["q", 2]],
+        }
+    ]
     expected_metadata = {"shots": "200", "sampler_seed": "23", "iteration": "10"}
     expected_rest_of_payload = {
         "target": "simulator",
