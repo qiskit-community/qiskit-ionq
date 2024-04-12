@@ -227,15 +227,6 @@ class IonQJobTimeoutError(IonQError, JobTimeoutError):
     """Errors generated from job timeouts"""
 
 
-class IonQMetadataStringError(IonQError):
-    """Errors generated when the metadata string exceeds the IonQ API limit."""
-
-    def __init__(self, length):
-        super().__init__(
-            f"Encoded metadata string length ({length}) exceeds the limit."
-        )
-
-
 __all__ = [
     "IonQError",
     "IonQCredentialsError",
@@ -246,5 +237,4 @@ __all__ = [
     "IonQGateError",
     "IonQMidCircuitMeasurementError",
     "IonQJobTimeoutError",
-    "IonQMetadataStringError",
 ]

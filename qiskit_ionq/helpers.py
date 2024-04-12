@@ -312,11 +312,7 @@ def compress_to_metadata_string(metadata):  # pylint: disable=invalid-name
     serialized = json.dumps(metadata)
     compressed = gzip.compress(serialized.encode("utf-8"))
     encoded = base64.b64encode(compressed)
-    encoded_string = encoded.decode()
-    encoded_string_length = len(encoded_string)
-    if encoded_string_length >= 40000:  # 40000 char is an IonQ API limitation
-        raise exceptions.IonQMetadataStringError(encoded_string_length)
-    return encoded_string
+    return encoded.decode()
 
 
 def decompress_metadata_string(input_string):  # pylint: disable=invalid-name
