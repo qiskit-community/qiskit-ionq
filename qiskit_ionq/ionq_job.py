@@ -41,7 +41,7 @@ import numpy as np
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
-from .helpers import decompress_metadata_string_to_dict
+from .helpers import decompress_metadata_string
 
 
 from . import constants, exceptions
@@ -127,7 +127,7 @@ def _build_counts(
             {key: np.count_nonzero(rand_values == key) for key in output_probs}
         )
 
-    # Build counts.
+    # Build counts
     counts = {}
     for key, val in output_probs.items():
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
@@ -146,10 +146,6 @@ def _build_counts(
 
 class IonQJob(JobV1):
     """Representation of a Job that will run on an IonQ backend.
-
-    .. IMPORTANT::
-       IonQ backends do not support multi-experiment jobs.  Attempting to
-       submit a multi-experiment job will raise an exception.
 
     It is not recommended to create Job instances directly, but rather use the
     :meth:`run <IonQBackend.run>` and :meth:`retrieve_job <IonQBackend.retrieve_job>`
@@ -180,16 +176,14 @@ class IonQJob(JobV1):
 
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
-            self.extra_metadata = {
-                **passed_args.pop("extra_metadata", {}),
-                **(circuit.metadata or {}),
-            }
+            self.extra_metadata = passed_args.pop("extra_metadata", {})
             self._passed_args = passed_args
         else:
             self.extra_query_params = {}
             self.extra_metadata = {}
             self._passed_args = {"shots": 1024, "sampler_seed": None}
 
+        # Handle both single and list of circuits
         if circuit is not None:
             self.circuit = circuit
             self._status = jobstatus.JobStatus.INITIALIZING
@@ -349,11 +343,11 @@ class IonQJob(JobV1):
             self._save_metadata(response)
 
         if self._status == jobstatus.JobStatus.DONE:
-            self._num_qubits = response.get("qubits")
+            self._num_circuits = response.get("circuits", 1)
+            self._children = response.get("children", [])
+            self._num_qubits = response.get("qubits", 0)
             default_map = list(range(self._num_qubits))
-            self._clbits = (response.get("registers") or {}).get(
-                "meas_mapped", default_map
-            )
+            self._clbits = response.get("registers", {}).get("meas_mapped", default_map)
             self._execution_time = response.get("execution_time") / 1000
 
         if self._status == jobstatus.JobStatus.ERROR:
@@ -410,39 +404,58 @@ class IonQJob(JobV1):
             if metadata.get("sampler_seed", "").isdigit()
             else None
         )
-        qiskit_header = decompress_metadata_string_to_dict(
-            metadata.get("qiskit_header", None)
+        qiskit_header = decompress_metadata_string(metadata.get("qiskit_header", None))
+        if not isinstance(qiskit_header, list):
+            qiskit_header = [qiskit_header]
+        shots = (
+            int(metadata.get("shots", 1024))
+            if str(metadata.get("shots", "1024")).isdigit()
+            else 1024
         )
-
-        shots = int(metadata.get("shots") if metadata.get("shots").isdigit() else 1024)
-        job_result = {
-            "data": {},
-            "shots": shots,
-            "header": qiskit_header or {},
-            "success": success,
-        }
-        if self._status == jobstatus.JobStatus.DONE:
-            (counts, probabilities) = _build_counts(
-                data,
-                self._num_qubits,
-                self._clbits,
-                shots,
-                use_sampler=is_ideal_simulator,
-                sampler_seed=sampler_seed,
-            )
-            job_result["data"] = {
-                "counts": counts,
-                "probabilities": probabilities,
-                # Qiskit/experiments relies on this being present in this location in the
-                # ExperimentData class.
-                "metadata": qiskit_header or {},
+        job_result = [
+            {
+                "data": {},
+                "shots": shots,
+                "header": qiskit_header[i] or {},
+                "success": success,
             }
+            for i in range(self._num_circuits)
+        ]
+        if self._status == jobstatus.JobStatus.DONE:
+            # to handle ionq returning different data structures for single and multiple circuits
+            if self._num_circuits > 1:
+                data = list(data.values())
+            else:
+                data = [data]
+            for i in range(self._num_circuits):
+                (counts, probabilities) = _build_counts(
+                    data[i],
+                    qiskit_header[i].get("n_qubits", self._num_qubits),
+                    range(
+                        sum(
+                            creg[1]
+                            for creg in qiskit_header[i].get(
+                                "creg_sizes", [["meas", len(self._clbits)]]
+                            )
+                        )
+                    ),
+                    shots,
+                    use_sampler=is_ideal_simulator,
+                    sampler_seed=sampler_seed,
+                )
+                job_result[i]["data"] = {
+                    "counts": counts,
+                    "probabilities": probabilities,
+                    # Qiskit/experiments relies on this being present in this location in the
+                    # ExperimentData class.
+                    "metadata": qiskit_header[i] or {},
+                }
 
         # Create a qiskit result to express the IonQ job result data.
         backend = self.backend()
         return Result.from_dict(
             {
-                "results": [job_result],
+                "results": job_result,
                 "job_id": self.job_id(),
                 "backend_name": backend_name,
                 "backend_version": backend_version,
