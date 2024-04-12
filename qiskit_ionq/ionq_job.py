@@ -349,7 +349,6 @@ class IonQJob(JobV1):
             self._save_metadata(response)
 
         if self._status == jobstatus.JobStatus.DONE:
-            print(f"{response=}")
             self._num_circuits = response.get("circuits", 1)
             self._children = response.get("children", [])
             self._num_qubits = response.get("qubits", 0)
@@ -414,8 +413,11 @@ class IonQJob(JobV1):
         qiskit_header = decompress_metadata_string(metadata.get("qiskit_header", None))
         if not isinstance(qiskit_header, list):
             qiskit_header = [qiskit_header]
-        print(f"{qiskit_header=}")
-        shots = int(metadata.get("shots") if metadata.get("shots").isdigit() else 1024)
+        shots = (
+            int(metadata.get("shots", 1024))
+            if str(metadata.get("shots", "1024")).isdigit()
+            else 1024
+        )
         job_result = [
             {
                 "data": {},
