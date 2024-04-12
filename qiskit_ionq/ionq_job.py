@@ -441,7 +441,7 @@ class IonQJob(JobV1):
                         sum(
                             creg[1]
                             for creg in qiskit_header[idx].get(
-                                "creg_sizes", [["meas", self._clbits]]
+                                "creg_sizes", [["meas", len(self._clbits)]]
                             )
                         )
                     ),
