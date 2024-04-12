@@ -298,7 +298,7 @@ def get_register_sizes_and_labels(registers):
 
 def compress_to_metadata_string(metadata):  # pylint: disable=invalid-name
     """
-    Convert a list of dicts to a compact string format (dumped, gzipped, base64 encoded)
+    Convert a metadata object to a compact string format (dumped, gzipped, base64 encoded)
     for storing in IonQ API metadata
 
     Parameters:
@@ -318,14 +318,14 @@ def compress_to_metadata_string(metadata):  # pylint: disable=invalid-name
 def decompress_metadata_string(input_string):  # pylint: disable=invalid-name
     """
     Convert compact string format (dumped, gzipped, base64 encoded) from
-    IonQ API metadata back into a dict relevant to building the results object
-    on a returned job.
+    IonQ API metadata back into a dict or list of dicts relevant to building
+    the results object on a returned job.
 
     Parameters:
         input_string (str): compressed string format of metadata dict
 
     Returns:
-        dict: decompressed metadata dict
+        dict or list: decompressed metadata dict or list of dicts
     """
     if input_string is None:
         return None
@@ -378,6 +378,8 @@ def qiskit_to_ionq(
             "qreg_sizes": get_register_sizes_and_labels(circ.qregs)[0],
             # list of [str, int] tuples cardinality num_qubits
             "qubit_labels": get_register_sizes_and_labels(circ.qregs)[1],
+            # custom metadata from the circuits
+            **({"metadata": circ.metadata} if circ.metadata else {}),
         }
         for circ in circuit
     ]

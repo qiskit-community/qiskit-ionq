@@ -185,13 +185,7 @@ class IonQJob(JobV1):
 
         # Handle both single and list of circuits
         if circuit is not None:
-            if isinstance(circuit, (list, tuple)):
-                self.circuit = circuit
-                for circ in circuit:
-                    self.extra_metadata.update(circ.metadata or {})
-            else:
-                self.circuit = circuit
-                self.extra_metadata.update(circuit.metadata or {})
+            self.circuit = circuit
             self._status = jobstatus.JobStatus.INITIALIZING
         else:  # retrieve existing job
             self.circuit = None

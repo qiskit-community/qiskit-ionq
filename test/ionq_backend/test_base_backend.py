@@ -196,9 +196,9 @@ def test_run_extras(mock_backend, requests_mock):
         "error_mitigation": {"debias": True},
     }
     assert job.extra_metadata == {
-        "experiment": "abc123",
         "iteration": "10",
     }
+    assert job.circuit.metadata == {"experiment": "abc123"}
 
 
 def test_warn_null_mappings(mock_backend, requests_mock):
