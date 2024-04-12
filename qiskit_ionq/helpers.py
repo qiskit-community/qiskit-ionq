@@ -368,24 +368,26 @@ def qiskit_to_ionq(
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
         circuit = [circuit]
 
+    metadata_list = [
+        {
+            "memory_slots": circ.num_clbits,  # int
+            "global_phase": circ.global_phase,  # float
+            "n_qubits": circ.num_qubits,  # int
+            "name": circ.name,  # str
+            # list of [str, int] tuples cardinality memory_slots
+            "creg_sizes": get_register_sizes_and_labels(circ.cregs)[0],
+            # list of [str, int] tuples cardinality memory_slots
+            "clbit_labels": get_register_sizes_and_labels(circ.cregs)[1],
+            # list of [str, int] tuples cardinality num_qubits
+            "qreg_sizes": get_register_sizes_and_labels(circ.qregs)[0],
+            # list of [str, int] tuples cardinality num_qubits
+            "qubit_labels": get_register_sizes_and_labels(circ.qregs)[1],
+        }
+        for circ in circuit
+    ]
+
     qiskit_header = compress_to_metadata_string(
-        [
-            {
-                "memory_slots": circ.num_clbits,  # int
-                "global_phase": circ.global_phase,  # float
-                "n_qubits": circ.num_qubits,  # int
-                "name": circ.name,  # str
-                # list of [str, int] tuples cardinality memory_slots
-                "creg_sizes": get_register_sizes_and_labels(circ.cregs)[0],
-                # list of [str, int] tuples cardinality memory_slots
-                "clbit_labels": get_register_sizes_and_labels(circ.cregs)[1],
-                # list of [str, int] tuples cardinality num_qubits
-                "qreg_sizes": get_register_sizes_and_labels(circ.qregs)[0],
-                # list of [str, int] tuples cardinality num_qubits
-                "qubit_labels": get_register_sizes_and_labels(circ.qregs)[1],
-            }
-            for circ in circuit
-        ]
+        metadata_list if multi_circuit else metadata_list[0]
     )
 
     target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
