@@ -296,9 +296,9 @@ def get_register_sizes_and_labels(registers):
     return sizes, labels
 
 
-def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-name
+def compress_to_metadata(metadata):  # pylint: disable=invalid-name
     """
-    Convert a dict to a compact string format (dumped, gzipped, base64 encoded)
+    Convert a list of dicts to a compact string format (dumped, gzipped, base64 encoded)
     for storing in IonQ API metadata
 
     Parameters:
@@ -309,7 +309,7 @@ def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-
         str: encoded string
 
     """
-    serialized = json.dumps(metadata_dict)
+    serialized = json.dumps(metadata)
     compressed = gzip.compress(serialized.encode("utf-8"))
     encoded = base64.b64encode(compressed)
     encoded_string = encoded.decode()
@@ -319,7 +319,7 @@ def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-
     return encoded_string
 
 
-def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid-name
+def decompress_metadata_string(input_string):  # pylint: disable=invalid-name
     """
     Convert compact string format (dumped, gzipped, base64 encoded) from
     IonQ API metadata back into a dict relevant to building the results object
@@ -368,36 +368,24 @@ def qiskit_to_ionq(
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
         circuit = [circuit]
 
-    circuit_info = {
-        "memory_slots": [],
-        "global_phase": [],
-        "n_qubits": [],
-        "name": [],
-        "creg_sizes": [],
-        "clbit_labels": [],
-        "qreg_sizes": [],
-        "qubit_labels": [],
-    }
-
-    for circ in circuit:
-        circuit_info["memory_slots"].append(circ.num_clbits)
-        circuit_info["global_phase"].append(circ.global_phase)
-        circuit_info["n_qubits"].append(circ.num_qubits)
-        circuit_info["name"].append(circ.name)
-
-        creg_sizes, clbit_labels = get_register_sizes_and_labels(circ.cregs)
-        circuit_info["creg_sizes"].append(creg_sizes)
-        circuit_info["clbit_labels"].append(clbit_labels)
-
-        qreg_sizes, qubit_labels = get_register_sizes_and_labels(circ.qregs)
-        circuit_info["qreg_sizes"].append(qreg_sizes)
-        circuit_info["qubit_labels"].append(qubit_labels)
-
-    qiskit_header = compress_dict_to_metadata_string(
-        {
-            key: (value if multi_circuit else value[0])
-            for key, value in circuit_info.items()
-        }
+    qiskit_header = compress_to_metadata(
+        [
+            {
+                "memory_slots": circ.num_clbits,  # int
+                "global_phase": circ.global_phase,  # float
+                "n_qubits": circ.num_qubits,  # int
+                "name": circ.name,  # str
+                # list of [str, int] tuples cardinality memory_slots
+                "creg_sizes": get_register_sizes_and_labels(circ.cregs)[0],
+                # list of [str, int] tuples cardinality memory_slots
+                "clbit_labels": get_register_sizes_and_labels(circ.cregs)[1],
+                # list of [str, int] tuples cardinality num_qubits
+                "qreg_sizes": get_register_sizes_and_labels(circ.qregs)[0],
+                # list of [str, int] tuples cardinality num_qubits
+                "qubit_labels": get_register_sizes_and_labels(circ.qregs)[1],
+            }
+            for circ in circuit
+        ]
     )
 
     target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
@@ -421,6 +409,7 @@ def qiskit_to_ionq(
         "metadata": {
             "shots": str(passed_args.get("shots")),
             "sampler_seed": str(passed_args.get("sampler_seed")),
+            "qiskit_header": qiskit_header,
         },
     }
     if multi_circuit:
@@ -430,7 +419,6 @@ def qiskit_to_ionq(
     else:
         ionq_json["input"]["circuit"] = ionq_circs
         ionq_json["registers"] = {"meas_mapped": meas_map} if meas_map else {}
-        ionq_json["metadata"]["qiskit_header"] = qiskit_header
     if target == "simulator":
         ionq_json["noise"] = {
             "model": passed_args.get("noise_model") or backend.options.noise_model,
@@ -496,7 +484,7 @@ class SafeEncoder(json.JSONEncoder):
 __all__ = [
     "qiskit_to_ionq",
     "qiskit_circ_to_ionq_circ",
-    "compress_dict_to_metadata_string",
-    "decompress_metadata_string_to_dict",
+    "compress_to_metadata_string",
+    "decompress_metadata_string",
     "get_user_agent",
 ]

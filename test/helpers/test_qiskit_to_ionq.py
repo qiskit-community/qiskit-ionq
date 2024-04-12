@@ -34,7 +34,7 @@ from qiskit.compiler import transpile
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit_ionq.exceptions import IonQGateError
-from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string_to_dict
+from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from qiskit_ionq.constants import ErrorMitigation
 
@@ -138,7 +138,7 @@ def test_metadata_header__with_multiple_registers(
 
     actual = json.loads(ionq_json)
     actual_metadata = actual.pop("metadata") or {}
-    actual_metadata_header = decompress_metadata_string_to_dict(
+    actual_metadata_header = decompress_metadata_string(
         actual_metadata.pop("qiskit_header") or None
     )
 
@@ -193,7 +193,7 @@ def test_full_circuit(simulator_backend):
 
     actual = json.loads(ionq_json)
     actual_metadata = actual.pop("metadata") or {}
-    actual_metadata_header = decompress_metadata_string_to_dict(
+    actual_metadata_header = decompress_metadata_string(
         actual_metadata.pop("qiskit_header") or None
     )
     actual_maps = actual.pop("registers") or {}
@@ -333,7 +333,7 @@ def test_full_native_circuit(simulator_backend):
 
     actual = json.loads(ionq_json)
     actual_metadata = actual.pop("metadata") or {}
-    actual_metadata_header = decompress_metadata_string_to_dict(
+    actual_metadata_header = decompress_metadata_string(
         actual_metadata.pop("qiskit_header") or None
     )
     registers = actual.pop("registers") or {}

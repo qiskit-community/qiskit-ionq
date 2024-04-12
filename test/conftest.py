@@ -31,7 +31,7 @@ from qiskit.providers import models as q_models
 from requests_mock import adapter as rm_adapter
 
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
-from qiskit_ionq.helpers import compress_dict_to_metadata_string
+from qiskit_ionq.helpers import compress_to_metadata
 
 
 class MockBackend(ionq_backend.IonQBackend):
@@ -83,7 +83,7 @@ def dummy_job_response(job_id, target="mock_backend", status="completed", job_se
     Returns:
         dict: A json response dict.
     """
-    qiskit_header = compress_dict_to_metadata_string(
+    qiskit_header = compress_to_metadata(
         {
             "qubit_labels": [["q", 0], ["q", 1]],
             "n_qubits": 2,
@@ -130,7 +130,7 @@ def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-t
         dict: A json response dict.
 
     """
-    qiskit_header = compress_dict_to_metadata_string(
+    qiskit_header = compress_to_metadata(
         {
             "qubit_labels": [["q", 0], ["q", 1]],
             "n_qubits": 2,
