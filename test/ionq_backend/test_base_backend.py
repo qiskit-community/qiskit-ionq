@@ -196,9 +196,9 @@ def test_run_extras(mock_backend, requests_mock):
         "error_mitigation": {"debias": True},
     }
     assert job.extra_metadata == {
-        "experiment": "abc123",
         "iteration": "10",
     }
+    assert job.circuit.metadata == {"experiment": "abc123"}
 
 
 def test_warn_null_mappings(mock_backend, requests_mock):
@@ -216,24 +216,66 @@ def test_warn_null_mappings(mock_backend, requests_mock):
     requests_mock.post(path, json=dummy_response, status_code=200)
 
     # Create a circuit with no measurement gates
-    qc = QuantumCircuit(1, 1, name="null_mapping")
+    qc = QuantumCircuit(1, 1)
     qc.h(0)
 
     with pytest.warns(UserWarning) as warninfo:
         mock_backend.run(qc)
     assert len(warninfo) == 1
-    assert (
-        str(warninfo[-1].message) == "Circuit null_mapping is not measuring any qubits"
-    )
+    assert str(warninfo[-1].message) == "Circuit is not measuring any qubits"
 
 
-def test_run_raises_multiexp_job(mock_backend):
-    """Test that the backend `run` raises out if more than one circuit is provided.
+def test_multiexp_job(mock_backend, requests_mock):
+    """Test that the backend `run` handles more than one circuit.
 
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
     """
-    # Run a dummy circuit.
-    with pytest.raises(RuntimeError) as excinfo:
-        mock_backend.run([QuantumCircuit(1, 1), QuantumCircuit(1, 1)])
-    assert str(excinfo.value) == "Multi-experiment jobs are not supported!"
+    path = mock_backend.client.make_path("jobs")
+    dummy_response = conftest.dummy_job_response("fake_job")
+
+    # Mock the call to submit:
+    requests_mock.post(path, json=dummy_response, status_code=200)
+
+    # Run a dummy multi-experiment job.
+    qc1 = QuantumCircuit(1, 1)
+    qc1.h(0)
+    qc2 = QuantumCircuit(1, 1)
+    qc2.x(0)
+    job = mock_backend.run([qc1, qc2])
+
+    # Verify json payload
+    assert len(job.circuit) == 2
+    assert len(requests_mock.request_history) == 1
+    request = requests_mock.request_history[0]
+    assert request.method == "POST"
+    assert request.url == path
+    request_json = request.json()
+    assert "qiskit_header" in request_json["metadata"]
+    # delete the qiskit_header field
+    del request_json["metadata"]["qiskit_header"]
+    assert request_json == {
+        "target": "mock_backend",
+        "shots": 1024,
+        "name": f"{job.circuit[0].name}, {job.circuit[1].name}",
+        "input": {
+            "format": "ionq.circuit.v0",
+            "gateset": "qis",
+            "qubits": 1,
+            "circuits": [
+                {
+                    "circuit": [{"gate": "h", "targets": [0]}],
+                    "registers": {"meas_mapped": [None]},
+                },
+                {
+                    "circuit": [{"gate": "x", "targets": [0]}],
+                    "registers": {"meas_mapped": [None]},
+                },
+            ],
+        },
+        "metadata": {
+            "shots": "1024",
+            "sampler_seed": "None",
+        },
+    }

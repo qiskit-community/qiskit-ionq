@@ -34,7 +34,7 @@ from qiskit.compiler import transpile
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit_ionq.exceptions import IonQGateError
-from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string_to_dict
+from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from qiskit_ionq.constants import ErrorMitigation
 
@@ -138,7 +138,7 @@ def test_metadata_header__with_multiple_registers(
 
     actual = json.loads(ionq_json)
     actual_metadata = actual.pop("metadata") or {}
-    actual_metadata_header = decompress_metadata_string_to_dict(
+    actual_metadata_header = decompress_metadata_string(
         actual_metadata.pop("qiskit_header") or None
     )
 
@@ -153,7 +153,7 @@ def test_full_circuit(simulator_backend):
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
     """
     qc = QuantumCircuit(2, 2, name="test_name")
-    qc.cnot(1, 0)
+    qc.cx(1, 0)
     qc.h(1)
     qc.measure(1, 0)
     qc.measure(0, 1)
@@ -193,7 +193,7 @@ def test_full_circuit(simulator_backend):
 
     actual = json.loads(ionq_json)
     actual_metadata = actual.pop("metadata") or {}
-    actual_metadata_header = decompress_metadata_string_to_dict(
+    actual_metadata_header = decompress_metadata_string(
         actual_metadata.pop("qiskit_header") or None
     )
     actual_maps = actual.pop("registers") or {}
@@ -205,6 +205,25 @@ def test_full_circuit(simulator_backend):
     assert actual_output_map == expected_output_map
     assert actual == expected_rest_of_payload
 
+
+def test_circuit_transpile(simulator_backend):
+    """Test a full circuit on a native backend via transpilation
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    new_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
+    circ = QuantumCircuit(2, 2, name="blame_test")
+    circ.cx(1, 0)
+    circ.h(1)
+    circ.measure(1, 0)
+    circ.measure(0, 1)
+
+    with pytest.raises(TranspilerError) as exc_info:
+        transpile(circ, backend=new_backend)
+    assert "Unable to translate the operations in the circuit" in exc_info.value.message
+
+
 def test_circuit_incorrect(simulator_backend):
     """Test a full circuit on a native backend
 
@@ -213,7 +232,7 @@ def test_circuit_incorrect(simulator_backend):
     """
     native_backend = simulator_backend.with_name("ionq_simulator", gateset="native")
     circ = QuantumCircuit(2, 2, name="blame_test")
-    circ.cnot(1, 0)
+    circ.cx(1, 0)
     circ.h(1)
     circ.measure(1, 0)
     circ.measure(0, 1)
@@ -314,7 +333,7 @@ def test_full_native_circuit(simulator_backend):
 
     actual = json.loads(ionq_json)
     actual_metadata = actual.pop("metadata") or {}
-    actual_metadata_header = decompress_metadata_string_to_dict(
+    actual_metadata_header = decompress_metadata_string(
         actual_metadata.pop("qiskit_header") or None
     )
     registers = actual.pop("registers") or {}

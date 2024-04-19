@@ -48,6 +48,8 @@ from . import exceptions
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
 # also not an exact/complete list of the gates IonQ's backend takes
 #   by name — please refer to IonQ docs for that.
+#
+# Some of these gates may be deprecated or removed in qiskit 1.0
 ionq_basis_gates = [
     "ccx",
     "ch",
@@ -294,37 +296,36 @@ def get_register_sizes_and_labels(registers):
     return sizes, labels
 
 
-def compress_dict_to_metadata_string(metadata_dict):  # pylint: disable=invalid-name
+def compress_to_metadata_string(metadata):  # pylint: disable=invalid-name
     """
-    Convert a dict to a compact string format (dumped, gzipped, base64 encoded)
+    Convert a metadata object to a compact string format (dumped, gzipped, base64 encoded)
     for storing in IonQ API metadata
 
     Parameters:
-        metadata_dict (dict): a dict with metadata relevant to building the results
-            object on a returned job.
+        metadata (dict or list): a dict or list of dicts with metadata relevant
+            to building the results object on a returned job.
 
     Returns:
         str: encoded string
 
     """
-    serialized = json.dumps(metadata_dict)
+    serialized = json.dumps(metadata)
     compressed = gzip.compress(serialized.encode("utf-8"))
     encoded = base64.b64encode(compressed)
-    encoded_string = encoded.decode()
-    return encoded_string
+    return encoded.decode()
 
 
-def decompress_metadata_string_to_dict(input_string):  # pylint: disable=invalid-name
+def decompress_metadata_string(input_string):  # pylint: disable=invalid-name
     """
     Convert compact string format (dumped, gzipped, base64 encoded) from
-    IonQ API metadata back into a dict relevant to building the results object
-    on a returned job.
+    IonQ API metadata back into a dict or list of dicts relevant to building
+    the results object on a returned job.
 
     Parameters:
         input_string (str): compressed string format of metadata dict
 
     Returns:
-        dict: decompressed metadata dict
+        dict or list: decompressed metadata dict or list of dicts
     """
     if input_string is None:
         return None
@@ -352,24 +353,39 @@ def qiskit_to_ionq(
     passed_args = passed_args or {}
     extra_query_params = extra_query_params or {}
     extra_metadata = extra_metadata or {}
-    ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
-    creg_sizes, clbit_labels = get_register_sizes_and_labels(circuit.cregs)
-    qreg_sizes, qubit_labels = get_register_sizes_and_labels(circuit.qregs)
-    qiskit_header = compress_dict_to_metadata_string(
+    ionq_circs = []
+    multi_circuit = False
+    if isinstance(circuit, (list, tuple)):
+        multi_circuit = True
+        for circ in circuit:
+            ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circ, backend.gateset())
+            ionq_circs.append((ionq_circ, meas_map))
+    else:
+        ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
+        circuit = [circuit]
+
+    metadata_list = [
         {
-            "memory_slots": circuit.num_clbits,  # int
-            "global_phase": circuit.global_phase,  # float
-            "n_qubits": circuit.num_qubits,  # int
-            "name": circuit.name,  # str
+            "memory_slots": circ.num_clbits,  # int
+            "global_phase": circ.global_phase,  # float
+            "n_qubits": circ.num_qubits,  # int
+            "name": circ.name,  # str
             # list of [str, int] tuples cardinality memory_slots
-            "creg_sizes": creg_sizes,
+            "creg_sizes": get_register_sizes_and_labels(circ.cregs)[0],
             # list of [str, int] tuples cardinality memory_slots
-            "clbit_labels": clbit_labels,
+            "clbit_labels": get_register_sizes_and_labels(circ.cregs)[1],
             # list of [str, int] tuples cardinality num_qubits
-            "qreg_sizes": qreg_sizes,
+            "qreg_sizes": get_register_sizes_and_labels(circ.qregs)[0],
             # list of [str, int] tuples cardinality num_qubits
-            "qubit_labels": qubit_labels,
+            "qubit_labels": get_register_sizes_and_labels(circ.qregs)[1],
+            # custom metadata from the circuits
+            **({"metadata": circ.metadata} if circ.metadata else {}),
         }
+        for circ in circuit
+    ]
+
+    qiskit_header = compress_to_metadata_string(
+        metadata_list if multi_circuit else metadata_list[0]
     )
 
     target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
@@ -383,14 +399,12 @@ def qiskit_to_ionq(
     ionq_json = {
         "target": target,
         "shots": passed_args.get("shots"),
-        "name": circuit.name,
+        "name": ", ".join([c.name for c in circuit]),
         "input": {
             "format": "ionq.circuit.v0",
             "gateset": backend.gateset(),
-            "qubits": circuit.num_qubits,
-            "circuit": ionq_circ,
+            "qubits": max(c.num_qubits for c in circuit),
         },
-        "registers": {"meas_mapped": meas_map} if meas_map else {},
         # store a couple of things we'll need later for result formatting
         "metadata": {
             "shots": str(passed_args.get("shots")),
@@ -398,6 +412,13 @@ def qiskit_to_ionq(
             "qiskit_header": qiskit_header,
         },
     }
+    if multi_circuit:
+        ionq_json["input"]["circuits"] = [
+            {"circuit": c, "registers": {"meas_mapped": m}} for c, m in ionq_circs
+        ]
+    else:
+        ionq_json["input"]["circuit"] = ionq_circs
+        ionq_json["registers"] = {"meas_mapped": meas_map} if meas_map else {}
     if target == "simulator":
         ionq_json["noise"] = {
             "model": passed_args.get("noise_model") or backend.options.noise_model,
@@ -463,7 +484,7 @@ class SafeEncoder(json.JSONEncoder):
 __all__ = [
     "qiskit_to_ionq",
     "qiskit_circ_to_ionq_circ",
-    "compress_dict_to_metadata_string",
-    "decompress_metadata_string_to_dict",
+    "compress_to_metadata_string",
+    "decompress_metadata_string",
     "get_user_agent",
 ]
