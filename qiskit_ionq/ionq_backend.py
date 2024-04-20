@@ -35,7 +35,7 @@ from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
-from . import exceptions, ionq_client, ionq_job
+from . import exceptions, ionq_client, ionq_job, ionq_equivalence_library
 from .helpers import GATESET_MAP
 
 
@@ -131,6 +131,11 @@ class IonQBackend(Backend):
     """IonQ Backend base class."""
 
     _client = None
+
+    def __init__(self, *args, **kwargs):
+        # Add IonQ equivalences
+        ionq_equivalence_library.add_equivalences()
+        super().__init__(*args, **kwargs)
 
     @classmethod
     def _default_options(cls):

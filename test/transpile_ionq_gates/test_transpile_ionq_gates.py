@@ -24,22 +24,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Test transpilation to native gatesets."""
+
+import collections.abc
 import numpy as np
 import pytest
-import collections.abc
 
 from qiskit import (
-    BasicAer,
     QuantumCircuit,
     QuantumRegister,
-    ClassicalRegister,
     transpile,
-    execute,
 )
-from qiskit_ionq import ionq_provider
+from qiskit.quantum_info import Statevector
 from qiskit.circuit.library import (
     HGate,
-    CXGate,
     RXGate,
     RYGate,
     RZGate,
@@ -62,6 +60,45 @@ from qiskit.circuit.library import (
     CZGate,
     SwapGate,
 )
+from qiskit_ionq import ionq_provider
+
+# Mapping from gate names to gate classes
+gate_map = {
+    "HGate": HGate,
+    "XGate": XGate,
+    "YGate": YGate,
+    "ZGate": ZGate,
+    "IGate": IGate,
+    "RXGate": RXGate,
+    "RYGate": RYGate,
+    "RZGate": RZGate,
+    "SGate": SGate,
+    "SdgGate": SdgGate,
+    "SXGate": SXGate,
+    "SXdgGate": SXdgGate,
+    "TGate": TGate,
+    "TdgGate": TdgGate,
+    "UGate": UGate,
+    "U1Gate": U1Gate,
+    "U2Gate": U2Gate,
+    "U3Gate": U3Gate,
+    "CXGate": CXGate,
+    "CZGate": CZGate,
+    "SwapGate": SwapGate,
+    "PhaseGate": PhaseGate,
+}
+
+
+def append_gate(circuit, gate_name, param, qubits):
+    """Append a gate to a circuit."""
+    gate_class = gate_map[gate_name]
+    if param is not None:
+        if isinstance(param, collections.abc.Sequence):
+            circuit.append(gate_class(*param), qubits)
+        else:
+            circuit.append(gate_class(param), qubits)
+    else:
+        circuit.append(gate_class(), qubits)
 
 
 @pytest.mark.parametrize(
@@ -463,19 +500,13 @@ from qiskit.circuit.library import (
         ),
     ],
 )
-def test_transpiling_one_qubit_circuits_to_native_gates(ideal_results, gates):
+def test_single_qubit_transpilation(ideal_results, gates):
+    """Test transpiling single-qubit circuits to native gates."""
     # create a quantum circuit
     qr = QuantumRegister(1)
     circuit = QuantumCircuit(qr)
     for gate_name, param in gates:
-        gate = eval(gate_name)
-        if param is not None:
-            if isinstance(param, collections.abc.Sequence):
-                circuit.append(gate(*param), [0])
-            else:
-                circuit.append(gate(param), [0])
-        else:
-            circuit.append(gate(), [0])
+        append_gate(circuit, gate_name, param, [0])
 
     # transpile circuit to native gates
     provider = ionq_provider.IonQProvider()
@@ -483,9 +514,7 @@ def test_transpiling_one_qubit_circuits_to_native_gates(ideal_results, gates):
     transpiled_circuit = transpile(circuit, backend, optimization_level=3)
 
     # simulate the circuit
-    simulator = BasicAer.get_backend("statevector_simulator")
-    result = execute(transpiled_circuit, simulator).result()
-    statevector = result.get_statevector()
+    statevector = Statevector(transpiled_circuit)
     probabilities = np.abs(statevector) ** 2
     np.testing.assert_allclose(probabilities, ideal_results, atol=1e-3)
 
@@ -666,19 +695,13 @@ def test_transpiling_one_qubit_circuits_to_native_gates(ideal_results, gates):
         ),
     ],
 )
-def test_transpiling_two_qubit_circuits_to_native_gates(ideal_results, gates):
+def test_multi_qubit_transpilation(ideal_results, gates):
+    """Test transpiling two-qubit circuits to native gates."""
     # create a quantum circuit
     qr = QuantumRegister(2)
     circuit = QuantumCircuit(qr)
     for gate_name, param, qubits in gates:
-        gate = eval(gate_name)
-        if param is not None:
-            if isinstance(param, collections.abc.Sequence):
-                circuit.append(gate(*param), qubits)
-            else:
-                circuit.append(gate(param), qubits)
-        else:
-            circuit.append(gate(), qubits)
+        append_gate(circuit, gate_name, param, qubits)
 
     # transpile circuit to native gates
     provider = ionq_provider.IonQProvider()
@@ -686,8 +709,6 @@ def test_transpiling_two_qubit_circuits_to_native_gates(ideal_results, gates):
     transpiled_circuit = transpile(circuit, backend, optimization_level=2)
 
     # simulate the circuit
-    simulator = BasicAer.get_backend("statevector_simulator")
-    result = execute(transpiled_circuit, simulator).result()
-    statevector = result.get_statevector()
+    statevector = Statevector(transpiled_circuit)
     probabilities = np.abs(statevector) ** 2
     np.testing.assert_allclose(probabilities, ideal_results, atol=1e-3)
