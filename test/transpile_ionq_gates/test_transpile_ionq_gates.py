@@ -38,6 +38,9 @@ from qiskit import (
 from qiskit.quantum_info import Statevector
 from qiskit.circuit.library import (
     HGate,
+    IGate,
+    PhaseGate,
+    RGate,
     RXGate,
     RYGate,
     RZGate,
@@ -54,21 +57,39 @@ from qiskit.circuit.library import (
     XGate,
     YGate,
     ZGate,
-    IGate,
-    PhaseGate,
-    CXGate,
-    CZGate,
+    CHGate,
+    CPhaseGate,
+    CRXGate,
+    RXXGate,
+    CRYGate,
+    RYYGate,
+    CRZGate,
+    RZZGate,
+    RZXGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
+    ECRGate,
+    CSGate,
+    CSdgGate,
     SwapGate,
+    iSwapGate,
+    DCXGate,
+    CUGate,
+    CU1Gate,
+    CU3Gate,
+    CXGate,
+    CYGate,
+    CZGate,
 )
 from qiskit_ionq import ionq_provider
 
 # Mapping from gate names to gate classes
 gate_map = {
+    # single-qubit gates
     "HGate": HGate,
-    "XGate": XGate,
-    "YGate": YGate,
-    "ZGate": ZGate,
     "IGate": IGate,
+    "PhaseGate": PhaseGate,
+    "RGate": RGate,
     "RXGate": RXGate,
     "RYGate": RYGate,
     "RZGate": RZGate,
@@ -82,10 +103,33 @@ gate_map = {
     "U1Gate": U1Gate,
     "U2Gate": U2Gate,
     "U3Gate": U3Gate,
-    "CXGate": CXGate,
-    "CZGate": CZGate,
+    "XGate": XGate,
+    "YGate": YGate,
+    "ZGate": ZGate,
+    # multi-qubit gates
+    "CHGate": CHGate,
+    "CPhaseGate": CPhaseGate,
+    "CRXGate": CRXGate,
+    "RXXGate": RXXGate,
+    "CRYGate": CRYGate,
+    "RYYGate": RYYGate,
+    "CRZGate": CRZGate,
+    "RZZGate": RZZGate,
+    "RZXGate": RZXGate,
+    "XXMinusYYGate": XXMinusYYGate,
+    "XXPlusYYGate": XXPlusYYGate,
+    "ECRGate": ECRGate,
+    "CSGate": CSGate,
+    "CSdgGate": CSdgGate,
     "SwapGate": SwapGate,
-    "PhaseGate": PhaseGate,
+    "iSwapGate": iSwapGate,
+    "DCXGate": DCXGate,
+    "CUGate": CUGate,
+    "CU1Gate": CU1Gate,
+    "CU3Gate": CU3Gate,
+    "CXGate": CXGate,
+    "CYGate": CYGate,
+    "CZGate": CZGate,
 }
 
 
@@ -104,401 +148,55 @@ def append_gate(circuit, gate_name, param, qubits):
 @pytest.mark.parametrize(
     "ideal_results, gates",
     [
+        # single-qubit gates
         ([0.5, 0.5], [("HGate", None)]),
-        ([1, 0], [("HGate", None), ("HGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("HGate", None), ("HGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("ZGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("XGate", None)]),
-        ([1, 0], [("PhaseGate", np.pi)]),
-        ([1, 0], [("PhaseGate", np.pi / 5)]),
-        ([0.5, 0.5], [("HGate", None), ("PhaseGate", np.pi)]),
-        ([0.5, 0.5], [("HGate", None), ("PhaseGate", np.pi / 7)]),
-        ([0, 1], [("XGate", None), ("PhaseGate", np.pi / 5)]),
-        ([0, 1], [("PhaseGate", np.pi / 5), ("XGate", None), ("PhaseGate", np.pi / 5)]),
-        ([0.770151, 0.229849], [("HGate", None), ("PhaseGate", 1), ("HGate", None)]),
-        ([0.535369, 0.464631], [("HGate", None), ("PhaseGate", 1.5), ("HGate", None)]),
-        ([0, 1], [("XGate", None)]),
-        ([1, 0], [("XGate", None), ("XGate", None)]),
-        ([0, 1], [("XGate", None), ("XGate", None), ("XGate", None)]),
-        ([0, 1], [("YGate", None)]),
-        ([0, 1], [("YGate", None), ("ZGate", None)]),
-        ([1, 0], [("YGate", None), ("YGate", None)]),
-        ([0, 1], [("YGate", None), ("YGate", None), ("YGate", None)]),
-        ([1, 0], [("YGate", None), ("ZGate", None), ("YGate", None)]),
-        ([0, 1], [("XGate", None), ("YGate", None), ("XGate", None)]),
-        (
-            [0.848353, 0.151647],
-            [
-                ("HGate", None),
-                ("YGate", None),
-                ("PhaseGate", 0.8),
-                ("YGate", None),
-                ("HGate", None),
-            ],
-        ),
-        (
-            [0.848353, 0.151647],
-            [
-                ("HGate", None),
-                ("YGate", None),
-                ("U1Gate", 0.8),
-                ("YGate", None),
-                ("HGate", None),
-            ],
-        ),
-        ([1, 0], [("ZGate", None)]),
-        ([1, 0], [("ZGate", None), ("ZGate", None)]),
-        ([1, 0], [("ZGate", None), ("ZGate", None), ("ZGate", None)]),
-        ([1, 0], [("XGate", None), ("YGate", None)]),
-        ([0, 1], [("XGate", None), ("ZGate", None)]),
-        ([1, 0], [("XGate", None), ("YGate", None), ("ZGate", None)]),
         ([1, 0], [("IGate", None)]),
-        ([1, 0], [("IGate", None), ("IGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("IGate", None)]),
-        ([1, 0], [("HGate", None), ("IGate", None), ("HGate", None)]),
-        ([1, 0], [("HGate", None), ("HGate", None)]),
-        ([1, 0], [("RXGate", 0)]),
-        ([0, 1], [("RXGate", np.pi)]),
-        ([0.5, 0.5], [("RXGate", np.pi / 2)]),
-        ([0, 1], [("RXGate", np.pi / 3), ("RXGate", np.pi / 3), ("RXGate", np.pi / 3)]),
-        ([1, 0], [("RYGate", 0)]),
-        ([0, 1], [("RYGate", np.pi)]),
-        ([0.5, 0.5], [("RYGate", np.pi / 2)]),
-        ([0, 1], [("RYGate", np.pi / 3), ("RYGate", np.pi / 3), ("RYGate", np.pi / 3)]),
-        ([0.770151, 0.229849], [("HGate", None), ("RYGate", 1), ("HGate", None)]),
-        (
-            [1, 0],
-            [
-                ("HGate", None),
-                ("RYGate", 1),
-                ("HGate", None),
-                ("RYGate", 1),
-            ],
-        ),
-        (
-            [0.645963, 0.354037],
-            [
-                ("HGate", None),
-                ("RYGate", 1),
-                ("HGate", None),
-                ("RXGate", 1),
-            ],
-        ),
-        (
-            [0.454676, 0.545324],
-            [
-                ("HGate", None),
-                ("RYGate", 1),
-                ("RXGate", 1),
-                ("RYGate", 1),
-                ("HGate", None),
-            ],
-        ),
-        ([1, 0], [("RZGate", 0)]),
-        ([1, 0], [("RZGate", np.pi)]),
-        ([0, 1], [("XGate", None), ("RZGate", np.pi / 2)]),
-        ([0.770151, 0.229849], [("HGate", None), ("RZGate", 1), ("HGate", None)]),
-        (
-            [0.229849, 0.770151],
-            [("HGate", None), ("RZGate", 1), ("YGate", None), ("HGate", None)],
-        ),
-        ([1, 0], [("YGate", None), ("RZGate", 1), ("YGate", None)]),
-        (
-            [0.614924, 0.385076],
-            [
-                ("HGate", None),
-                ("RZGate", 1 / 2),
-                ("HGate", None),
-                ("RZGate", 1 / 2),
-                ("HGate", None),
-            ],
-        ),
+        ([1, 0], [("PhaseGate", 0.25)]),
+        ([0.984, 0.016], [("RGate", [0.25, 0.5])]),
+        ([0.984, 0.016], [("RXGate", 0.25)]),
+        ([0.984, 0.016], [("RYGate", 0.25)]),
+        ([1, 0], [("RZGate", 0.25)]),
         ([1, 0], [("SGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("SGate", None)]),
-        ([0.885076, 0.114924], [("RXGate", 0.5), ("SGate", None), ("RXGate", 0.5)]),
-        ([0.885076, 0.114924], [("RXGate", 0.5), ("SGate", None), ("RXGate", 0.5)]),
-        (
-            [0.289632, 0.710368],
-            [("HGate", None), ("RYGate", 0.5), ("SGate", None), ("RYGate", 0.5)],
-        ),
-        (
-            [0.267739, 0.732261],
-            [("HGate", None), ("RYGate", 0.5), ("SGate", None), ("RYGate", 0.25)],
-        ),
-        (
-            [0.608559, 0.391441],
-            [("HGate", None), ("RZGate", 0.5), ("SGate", None), ("RXGate", 0.25)],
-        ),
-        (
-            [0.376298, 0.623702],
-            [("HGate", None), ("RYGate", 0.5), ("SGate", None), ("RXGate", 0.25)],
-        ),
-        (
-            [0.739713, 0.260287],
-            [("HGate", None), ("RXGate", 0.5), ("SGate", None), ("RXGate", 0.5)],
-        ),
-        ([0.770151, 0.229849], [("RXGate", 1)]),
-        ([0.770151, 0.229849], [("RYGate", 1)]),
-        ([1, 0], [("RZGate", 1)]),
-        ([0.079264, 0.920735], [("HGate", None), ("RYGate", 1), ("SGate", None)]),
-        (
-            [0.272676, 0.727324],
-            [("HGate", None), ("RYGate", 1), ("SGate", None), ("RYGate", 1)],
-        ),
-        ([0.5, 0.5], [("HGate", None), ("RYGate", 1), ("SGate", None), ("RXGate", 1)]),
-        ([0.954649, 0.045351], [("RXGate", 2), ("SGate", None), ("HGate", None)]),
-        ([0.045351, 0.954649], [("RXGate", 2), ("SdgGate", None), ("HGate", None)]),
-        (
-            [0.5, 0.5],
-            [("RXGate", 2), ("SGate", None), ("SdgGate", None), ("HGate", None)],
-        ),
-        (
-            [0.5, 0.5],
-            [("RXGate", 2), ("SGate", None), ("SdgGate", None), ("HGate", None)],
-        ),
-        (
-            [0.826145, 0.173855],
-            [
-                ("RXGate", 2),
-                ("SGate", None),
-                ("RZGate", 0.8),
-                ("SdgGate", None),
-                ("HGate", None),
-            ],
-        ),
-        ([0.260287, 0.739713], [("HGate", None), ("SXGate", None), ("RYGate", 0.5)]),
-        (
-            [0.5, 0.5],
-            [("HGate", None), ("SXGate", None), ("RYGate", 0.5), ("SXdgGate", None)],
-        ),
-        (
-            [0.938791, 0.061209],
-            [("HGate", None), ("SXGate", None), ("RYGate", 0.5), ("HGate", None)],
-        ),
-        (
-            [0.810272, 0.189728],
-            [("HGate", None), ("TGate", None), ("RYGate", 0.5), ("HGate", None)],
-        ),
-        (
-            [0.674355, 0.325645],
-            [("HGate", None), ("TdgGate", None), ("RZGate", 2), ("HGate", None)],
-        ),
+        ([1, 0], [("SdgGate", None)]),
         ([0.5, 0.5], [("SXGate", None)]),
-        ([1, 0], [("SGate", None)]),
-        ([1, 0], [("TGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("SXGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("YGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("SGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("TGate", None)]),
-        ([1, 0], [("XGate", None), ("XGate", None)]),
-        ([0, 1], [("SXGate", None), ("SXGate", None)]),
-        ([0, 1], [("SXdgGate", None), ("SXdgGate", None)]),
-        ([1, 0], [("SXdgGate", None), ("SXGate", None)]),
-        ([0.5, 0.5], [("SXdgGate", None), ("SXdgGate", None), ("SXdgGate", None)]),
-        ([1, 0], [("SGate", None), ("SGate", None)]),
-        ([1, 0], [("SGate", None), ("SGate", None), ("SGate", None)]),
-        ([1, 0], [("HGate", None), ("HGate", None), ("SGate", None)]),
-        ([1, 0], [("HGate", None), ("HGate", None), ("TGate", None)]),
-        ([0, 1], [("YGate", None), ("SGate", None), ("SGate", None)]),
+        ([0.5, 0.5], [("SXdgGate", None)]),
         ([1, 0], [("TGate", None)]),
         ([1, 0], [("TdgGate", None)]),
-        ([1, 0], [("TGate", None), ("TGate", None)]),
-        ([1, 0], [("TdgGate", None), ("TdgGate", None)]),
-        ([1, 0], [("TGate", None), ("TGate", None), ("TGate", None)]),
-        ([1, 0], [("TdgGate", None), ("TdgGate", None), ("TdgGate", None)]),
-        ([0, 1], [("YGate", None), ("TdgGate", None), ("TdgGate", None)]),
+        ([0.984, 0.016], [("UGate", [0.25, 0.5, 0.75])]),
+        ([1, 0], [("U1Gate", 0.25)]),
+        ([0.5, 0.5], [("U2Gate", [0.25, 0.5])]),
+        ([0.984, 0.016], [("U3Gate", [0.25, 0.5, 0.75])]),
+        ([0, 1], [("XGate", None)]),
+        ([0, 1], [("YGate", None)]),
+        ([1, 0], [("ZGate", None)]),
+        # sequence of single-qubit gates
         (
-            [0.604379, 0.395622],
-            [("YGate", None), ("RXGate", 1), ("TGate", None), ("RXGate", 1)],
-        ),
-        (
-            [0.604379, 0.395622],
-            [("YGate", None), ("RXGate", 1), ("TdgGate", None), ("RXGate", 1)],
-        ),
-        (
-            [0.410401, 0.589599],
-            [
-                ("YGate", None),
-                ("RXGate", 1),
-                ("HGate", None),
-                ("TdgGate", None),
-                ("RXGate", 1),
-            ],
-        ),
-        ([1, 0], [("U1Gate", np.pi)]),
-        ([1, 0], [("U1Gate", np.pi / 5)]),
-        ([0.5, 0.5], [("HGate", None), ("U1Gate", np.pi)]),
-        ([0.5, 0.5], [("HGate", None), ("U1Gate", np.pi / 7)]),
-        ([0, 1], [("XGate", None), ("U1Gate", np.pi / 5)]),
-        ([0, 1], [("U1Gate", np.pi / 5), ("XGate", None), ("U1Gate", np.pi / 5)]),
-        ([0.770151, 0.229849], [("HGate", None), ("U1Gate", 1), ("HGate", None)]),
-        ([0.535369, 0.464631], [("HGate", None), ("U1Gate", 1.5), ("HGate", None)]),
-        ([0.5, 0.5], [("HGate", None), ("U2Gate", [0, 0]), ("HGate", None)]),
-        ([0.117426, 0.882574], [("HGate", None), ("U2Gate", [1, 2]), ("HGate", None)]),
-        (
-            [0.611645, 0.388255],
+            [0.966, 0.034],
             [
                 ("HGate", None),
-                ("U2Gate", [2, 1]),
-                ("HGate", None),
-                ("U1Gate", 2.5),
-                ("HGate", None),
-            ],
-        ),
-        (
-            [0.611645, 0.388255],
-            [
-                ("HGate", None),
-                ("U2Gate", [2, 1]),
-                ("HGate", None),
-                ("PhaseGate", 2.5),
-                ("HGate", None),
-            ],
-        ),
-        (
-            [0.547137, 0.452862],
-            [("HGate", None), ("U3Gate", [1, 2, 3]), ("HGate", None)],
-        ),
-        ([0.770151, 0.229849], [("U3Gate", [1, 2, 3])]),
-        (
-            [0.453940, 0.546059],
-            [
-                ("HGate", None),
-                ("U3Gate", [1, 2, 3]),
-                ("HGate", None),
-                ("U3Gate", [3, 2, 1]),
-            ],
-        ),
-        (
-            [0.180872, 0.819128],
-            [("HGate", None), ("U2Gate", [1, 2]), ("HGate", None), ("U2Gate", [2, 1])],
-        ),
-        (
-            [0.950819, 0.049181],
-            [
-                ("HGate", None),
-                ("U3Gate", [1, 2, 3]),
-                ("HGate", None),
-                ("U2Gate", [2, 3]),
-            ],
-        ),
-        (
-            [0.571019, 0.428981],
-            [
-                ("HGate", None),
-                ("U2Gate", [0.2, 0.1]),
-                ("HGate", None),
-                ("U1Gate", 1.5),
-                ("HGate", None),
-                ("U3Gate", [0.2, 0.4, 0.6]),
-            ],
-        ),
-        (
-            [0.571019, 0.428981],
-            [
-                ("HGate", None),
-                ("U2Gate", [0.2, 0.1]),
-                ("HGate", None),
-                ("PhaseGate", 1.5),
-                ("HGate", None),
-                ("U3Gate", [0.2, 0.4, 0.6]),
-            ],
-        ),
-        (
-            [0.019810, 0.980190],
-            [
-                ("HGate", None),
-                ("U2Gate", [0.2, 0.1]),
-                ("TGate", None),
-                ("U1Gate", 1.5),
-                ("TdgGate", None),
-                ("U3Gate", [0.2, 0.4, 0.6]),
-            ],
-        ),
-        (
-            [0.291751, 0.708249],
-            [
-                ("HGate", None),
-                ("U2Gate", [1.2, 1.1]),
-                ("TGate", None),
-                ("U1Gate", 0.65),
-                ("TdgGate", None),
-                ("U3Gate", [1.2, 1.4, 1.6]),
-            ],
-        ),
-        (
-            [0.424045, 0.575955],
-            [
-                ("HGate", None),
-                ("U2Gate", [1.2, 1.1]),
-                ("TGate", None),
-                ("U1Gate", 0.65),
+                ("IGate", None),
+                ("PhaseGate", 0.25),
+                ("RGate", [0.25, 0.5]),
+                ("RXGate", 0.25),
+                ("RYGate", 0.25),
+                ("RZGate", 0.25),
+                ("SGate", None),
+                ("SdgGate", None),
+                ("SXGate", None),
                 ("SXdgGate", None),
-                ("U3Gate", [1.2, 1.4, 1.6]),
-            ],
-        ),
-        (
-            [0.778976, 0.221024],
-            [
-                ("HGate", None),
-                ("U2Gate", [1.2, 1.1]),
-                ("TdgGate", None),
-                ("U1Gate", 0.65),
-                ("SXGate", None),
-                ("U3Gate", [1.2, 1.4, 1.6]),
-            ],
-        ),
-        (
-            [0.158230, 0.841770],
-            [
-                ("HGate", None),
-                ("U2Gate", [1.2, 1.1]),
-                ("SGate", None),
-                ("U3Gate", [0.5, 0.6, 0.7]),
-                ("SdgGate", None),
-                ("U3Gate", [1.2, 1.4, 1.6]),
-            ],
-        ),
-        (
-            [0.158230, 0.841770],
-            [
-                ("HGate", None),
-                ("U2Gate", [1.2, 1.1]),
-                ("IGate", None),
-                ("SGate", None),
-                ("U3Gate", [0.5, 0.6, 0.7]),
-                ("SdgGate", None),
-                ("U3Gate", [1.2, 1.4, 1.6]),
-            ],
-        ),
-        (
-            [0.757411, 0.242589],
-            [
-                ("HGate", None),
-                ("RXGate", 0.7),
-                ("IGate", None),
-                ("SGate", None),
-                ("RZGate", 1.22),
-                ("SdgGate", None),
-                ("U3Gate", [1.2, 1.4, 1.6]),
-                ("RYGate", 1.4),
-            ],
-        ),
-        ([1, 0], [("IGate", None)]),
-        (
-            [0.883156, 0.116844],
-            [("U3Gate", [1.2, 1.6, 1.8]), ("TGate", None), ("RYGate", 1)],
-        ),
-        (
-            [0.180237, 0.819763],
-            [
-                ("U3Gate", [1.2, 1.6, 1.8]),
                 ("TGate", None),
-                ("HGate", None),
-                ("SXGate", None),
+                ("TdgGate", None),
+                ("UGate", [0.25, 0.5, 0.75]),
+                ("U1Gate", 0.25),
+                ("U2Gate", [0.25, 0.5]),
+                ("U3Gate", [0.25, 0.5, 0.75]),
+                ("XGate", None),
+                ("YGate", None),
+                ("ZGate", None),
             ],
         ),
     ],
+    ids=lambda val: f"{val}",
 )
 def test_single_qubit_transpilation(ideal_results, gates):
     """Test transpiling single-qubit circuits to native gates."""
@@ -516,187 +214,155 @@ def test_single_qubit_transpilation(ideal_results, gates):
     # simulate the circuit
     statevector = Statevector(transpiled_circuit)
     probabilities = np.abs(statevector) ** 2
-    np.testing.assert_allclose(probabilities, ideal_results, atol=1e-3)
+    np.testing.assert_allclose(
+        probabilities,
+        ideal_results,
+        atol=1e-3,
+        err_msg=(
+            f"Ideal: {np.round(ideal_results, 3)},\n"
+            f"Actual: {np.round(probabilities, 3)},\n"
+            f"Circuit: {circuit}"
+        ),
+    )
 
 
 @pytest.mark.parametrize(
     "ideal_results, gates",
     [
-        ([0, 1, 0, 0], [("XGate", None, [0])]),
-        ([0, 0, 1, 0], [("XGate", None, [1])]),
-        ([0.5, 0.5, 0, 0], [("HGate", None, [0])]),
+        # two-qubit gates
         (
-            [0, 0, 1, 0],
+            [0.984, 0.008, 0, 0.008],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CHGate", None, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CPhaseGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CRXGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.969, 0.015, 0, 0.015],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("RXXGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CRYGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.969, 0.015, 0, 0.015],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("RYYGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CRZGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("RZZGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.969, 0.015, 0.015, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("RZXGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.969, 0.016, 0, 0.015],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("XXMinusYYGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("XXPlusYYGate", 0.25, [0, 1])],
+        ),
+        (
+            [0.008, 0.492, 0.008, 0.492],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("ECRGate", None, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CSGate", None, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CSdgGate", None, [0, 1])],
+        ),
+        (
+            [0.984, 0, 0.016, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("SwapGate", None, [0, 1])],
+        ),
+        (
+            [0.984, 0, 0.016, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("iSwapGate", None, [0, 1])],
+        ),
+        (
+            [0.984, 0, 0.016, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("DCXGate", None, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
             [
-                ("XGate", None, [0]),
-                ("CXGate", None, [0, 1]),
-                ("CXGate", None, [1, 0]),
-                ("CXGate", None, [0, 1]),
+                ("U3Gate", [0.25, 0.5, 0.75], [0]),
+                ("CUGate", [0.25, 0.5, 0.75, 1], [0, 1]),
             ],
         ),
         (
-            [0, 0, 1, 0],
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CU1Gate", 0.25, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
             [
-                ("XGate", None, [0]),
-                ("CXGate", None, [1, 0]),
-                ("CXGate", None, [0, 1]),
-                ("CXGate", None, [1, 0]),
+                ("U3Gate", [0.25, 0.5, 0.75], [0]),
+                ("CU3Gate", [0.25, 0.5, 0.75], [0, 1]),
             ],
         ),
-        ([0, 0, 1, 0], [("XGate", None, [0]), ("SwapGate", None, [0, 1])]),
-        ([0.5, 0, 0.5, 0], [("HGate", None, [0]), ("SwapGate", None, [0, 1])]),
-        ([1, 0, 0, 0], [("SwapGate", None, [0, 1])]),
-        ([0, 0, 1, 0], [("YGate", None, [0]), ("SwapGate", None, [0, 1])]),
-        ([0, 0, 1, 0], [("XGate", None, [0]), ("SwapGate", None, [0, 1])]),
-        ([1, 0, 0, 0], [("ZGate", None, [0]), ("SwapGate", None, [0, 1])]),
-        ([0.5, 0, 0.5, 0], [("SXGate", None, [0]), ("SwapGate", None, [0, 1])]),
         (
-            [0, 0, 0, 1],
+            [0.984, 0, 0, 0.016],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CXGate", None, [0, 1])],
+        ),
+        (
+            [0.984, 0, 0, 0.016],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CYGate", None, [0, 1])],
+        ),
+        (
+            [0.984, 0.016, 0, 0],
+            [("U3Gate", [0.25, 0.5, 0.75], [0]), ("CZGate", None, [0, 1])],
+        ),
+        # sequence of two-qubit gates
+        (
+            [0.012, 0.619, 0.350, 0.019],
             [
-                ("XGate", None, [1]),
+                ("U3Gate", [0.25, 0.5, 0.75], [0]),
+                ("CHGate", None, [0, 1]),
+                ("CPhaseGate", 0.25, [0, 1]),
+                ("CRXGate", 0.25, [0, 1]),
+                ("RXXGate", 0.25, [0, 1]),
+                ("CRYGate", 0.25, [0, 1]),
+                ("RYYGate", 0.25, [0, 1]),
+                ("CRZGate", 0.25, [0, 1]),
+                ("RZZGate", 0.25, [0, 1]),
+                ("RZXGate", 0.25, [0, 1]),
+                ("XXMinusYYGate", 0.25, [0, 1]),
+                ("XXPlusYYGate", 0.25, [0, 1]),
+                ("ECRGate", None, [0, 1]),
+                ("CSGate", None, [0, 1]),
+                ("CSdgGate", None, [0, 1]),
                 ("SwapGate", None, [0, 1]),
+                ("iSwapGate", None, [0, 1]),
+                ("DCXGate", None, [0, 1]),
+                ("CUGate", [0.25, 0.5, 0.75, 1], [0, 1]),
+                ("CU1Gate", 0.25, [0, 1]),
+                ("CU3Gate", [0.25, 0.5, 0.75], [0, 1]),
                 ("CXGate", None, [0, 1]),
-            ],
-        ),
-        ([0, 0, 0, 1], [("XGate", None, [0]), ("XGate", None, [1])]),
-        ([0, 0, 0, 1], [("YGate", None, [0]), ("YGate", None, [1])]),
-        ([1, 0, 0, 0], [("ZGate", None, [0]), ("ZGate", None, [1])]),
-        ([0, 0, 0, 1], [("XGate", None, [0]), ("CXGate", None, [0, 1])]),
-        ([0, 0, 0, 1], [("YGate", None, [0]), ("CXGate", None, [0, 1])]),
-        ([1, 0, 0, 0], [("ZGate", None, [0]), ("CXGate", None, [0, 1])]),
-        ([0.5, 0, 0, 0.5], [("HGate", None, [0]), ("CXGate", None, [0, 1])]),
-        (
-            [0.25, 0.25, 0.25, 0.25],
-            [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("HGate", None, [0])],
-        ),
-        (
-            [0, 0.5, 0.5, 0],
-            [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("XGate", None, [0])],
-        ),
-        (
-            [0, 0.5, 0.5, 0],
-            [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("YGate", None, [0])],
-        ),
-        (
-            [0.5, 0, 0, 0.5],
-            [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("ZGate", None, [0])],
-        ),
-        (
-            [0, 0.5, 0.5, 0],
-            [
-                ("HGate", None, [0]),
-                ("CXGate", None, [0, 1]),
-                ("SXGate", None, [0]),
-                ("SXGate", None, [1]),
-            ],
-        ),
-        (
-            [0, 0.5, 0.5, 0],
-            [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("XGate", None, [1])],
-        ),
-        (
-            [0.25, 0.25, 0.25, 0.25],
-            [("HGate", None, [0]), ("CXGate", None, [0, 1]), ("SXGate", None, [1])],
-        ),
-        ([0, 1, 0, 0], [("XGate", None, [0]), ("CZGate", None, [0, 1])]),
-        (
-            [1, 0, 0, 0],
-            [
-                ("XGate", None, [0]),
+                ("CYGate", None, [0, 1]),
                 ("CZGate", None, [0, 1]),
-                ("XGate", None, [0]),
-            ],
-        ),
-        ([0.5, 0.5, 0, 0], [("HGate", None, [0]), ("CZGate", None, [0, 1])]),
-        ([0.5, 0.5, 0, 0], [("SXGate", None, [0]), ("CZGate", None, [0, 1])]),
-        (
-            [0, 1, 0, 0],
-            [("SXGate", None, [0]), ("CZGate", None, [0, 1]), ("SXGate", None, [0])],
-        ),
-        (
-            [1, 0, 0, 0],
-            [("HGate", None, [0]), ("CZGate", None, [0, 1]), ("HGate", None, [0])],
-        ),
-        (
-            [0, 0.5, 0, 0.5],
-            [("XGate", None, [0]), ("CZGate", None, [0, 1]), ("HGate", None, [1])],
-        ),
-        (
-            [0.5, 0.5, 0, 0],
-            [
-                ("HGate", None, [0]),
-                ("SwapGate", None, [0, 1]),
-                ("CZGate", None, [0, 1]),
-                ("HGate", None, [0]),
-                ("HGate", None, [1]),
-            ],
-        ),
-        (
-            [0, 0, 0.5, 0.5],
-            [
-                ("HGate", None, [1]),
-                ("SwapGate", None, [0, 1]),
-                ("CXGate", None, [1, 0]),
-                ("XGate", None, [1]),
-            ],
-        ),
-        (
-            [0, 0, 0.5, 0.5],
-            [
-                ("HGate", None, [1]),
-                ("SwapGate", None, [0, 1]),
-                ("CXGate", None, [1, 0]),
-                ("YGate", None, [1]),
-            ],
-        ),
-        (
-            [0.25, 0.25, 0.25, 0.25],
-            [
-                ("HGate", None, [1]),
-                ("SwapGate", None, [0, 1]),
-                ("CXGate", None, [1, 0]),
-                ("SXGate", None, [1]),
-            ],
-        ),
-        (
-            [1, 0, 0, 0],
-            [
-                ("HGate", None, [0]),
-                ("SwapGate", None, [0, 1]),
-                ("CXGate", None, [0, 1]),
-                ("HGate", None, [1]),
-            ],
-        ),
-        (
-            [0.5, 0, 0.5, 0],
-            [
-                ("HGate", None, [0]),
-                ("SwapGate", None, [0, 1]),
-                ("CXGate", None, [0, 1]),
-                ("SXGate", None, [1]),
-            ],
-        ),
-        (
-            [0.5, 0.5, 0, 0],
-            [
-                ("HGate", None, [1]),
-                ("SwapGate", None, [0, 1]),
-                ("CXGate", None, [1, 0]),
-            ],
-        ),
-        (
-            [0.5, 0, 0.5, 0],
-            [
-                ("HGate", None, [1]),
-                ("SwapGate", None, [0, 1]),
-                ("CXGate", None, [1, 0]),
-                ("SwapGate", None, [0, 1]),
             ],
         ),
     ],
+    ids=lambda val: f"{val}",
 )
 def test_multi_qubit_transpilation(ideal_results, gates):
-    """Test transpiling two-qubit circuits to native gates."""
+    """Test transpiling multi-qubit circuits to native gates."""
     # create a quantum circuit
     qr = QuantumRegister(2)
     circuit = QuantumCircuit(qr)
@@ -711,4 +377,13 @@ def test_multi_qubit_transpilation(ideal_results, gates):
     # simulate the circuit
     statevector = Statevector(transpiled_circuit)
     probabilities = np.abs(statevector) ** 2
-    np.testing.assert_allclose(probabilities, ideal_results, atol=1e-3)
+    np.testing.assert_allclose(
+        probabilities,
+        ideal_results,
+        atol=1e-3,
+        err_msg=(
+            f"Ideal: {np.round(ideal_results, 3)},\n"
+            f"Actual: {np.round(probabilities, 3)},\n"
+            f"Circuit: {circuit}"
+        ),
+    )
