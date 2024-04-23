@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Helpers" href="helpers.html" /><link rel="prev" title="IonQ Result" href="result.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
-        <title>Exceptions - Qiskit IonQ Provider 0.5.1.dev0</title>
+    <!-- Generated with Sphinx 7.3.7 and Furo 2024.01.29 -->
+        <title>Exceptions - Qiskit IonQ Provider 0.5.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.1.dev0</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.1.dev0</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.1</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -232,15 +232,15 @@
         </div>
         <article role="main">
           <section id="exceptions">
-<span id="id1"></span><h1>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading">#</a></h1>
+<span id="id1"></span><h1>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading">¶</a></h1>
 <p id="module-qiskit_ionq.exceptions">Exceptions for the IonQ Provider.</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQAPIError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQAPIError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQAPIError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQAPIError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQAPIError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError" title="Link to this definition">¶</a></dt>
 <dd><p>Base exception for fatal API errors.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQAPIError.status_code">
-<span class="sig-name descname"><span class="pre">status_code</span></span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.status_code" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">status_code</span></span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.status_code" title="Link to this definition">¶</a></dt>
 <dd><p>An HTTP response status code.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -251,7 +251,7 @@
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQAPIError.error_type">
-<span class="sig-name descname"><span class="pre">error_type</span></span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.error_type" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">error_type</span></span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.error_type" title="Link to this definition">¶</a></dt>
 <dd><p>An error type string from the IonQ REST API.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -263,14 +263,14 @@
 <p>Set the error message.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQAPIError.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.add_note" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.add_note" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.add_note(note) –
 add a note to the exception</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQAPIError.from_response">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQAPIError.from_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.from_response" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQAPIError.from_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.from_response" title="Link to this definition">¶</a></dt>
 <dd><p>Raise an instance of the exception class from an API response object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -287,7 +287,7 @@ add a note to the exception</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQAPIError.raise_for_status">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">raise_for_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQAPIError.raise_for_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.raise_for_status" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">raise_for_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQAPIError.raise_for_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.raise_for_status" title="Link to this definition">¶</a></dt>
 <dd><p>Raise an instance of the exception class from an API response object if needed.
 :param response: An IonQ REST API response.
 :type response: <code class="xref py py-class docutils literal notranslate"><span class="pre">Response</span></code></p>
@@ -303,7 +303,7 @@ add a note to the exception</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQAPIError.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.with_traceback" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQAPIError.with_traceback" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.with_traceback(tb) –
 set self.__traceback__ to tb and return self.</p>
 </dd></dl>
@@ -312,19 +312,19 @@ set self.__traceback__ to tb and return self.</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQBackendError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQBackendError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQBackendError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQBackendError" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQBackendError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQBackendError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQBackendError" title="Link to this definition">¶</a></dt>
 <dd><p>Errors generated from improper usage of IonQBackend objects.</p>
 <p>Set the error message.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQBackendError.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQBackendError.add_note" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQBackendError.add_note" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.add_note(note) –
 add a note to the exception</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQBackendError.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQBackendError.with_traceback" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQBackendError.with_traceback" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.with_traceback(tb) –
 set self.__traceback__ to tb and return self.</p>
 </dd></dl>
@@ -333,19 +333,19 @@ set self.__traceback__ to tb and return self.</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQClientError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQClientError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQClientError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQClientError" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQClientError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQClientError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQClientError" title="Link to this definition">¶</a></dt>
 <dd><p>Errors that arise from unexpected behavior while using IonQClient.</p>
 <p>Set the error message.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQClientError.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQClientError.add_note" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQClientError.add_note" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.add_note(note) –
 add a note to the exception</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQClientError.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQClientError.with_traceback" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQClientError.with_traceback" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.with_traceback(tb) –
 set self.__traceback__ to tb and return self.</p>
 </dd></dl>
@@ -354,19 +354,19 @@ set self.__traceback__ to tb and return self.</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQCredentialsError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQCredentialsError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQCredentialsError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQCredentialsError" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQCredentialsError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQCredentialsError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQCredentialsError" title="Link to this definition">¶</a></dt>
 <dd><p>Errors generated from bad credentials or config</p>
 <p>Set the error message.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQCredentialsError.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQCredentialsError.add_note" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQCredentialsError.add_note" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.add_note(note) –
 add a note to the exception</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQCredentialsError.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQCredentialsError.with_traceback" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQCredentialsError.with_traceback" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.with_traceback(tb) –
 set self.__traceback__ to tb and return self.</p>
 </dd></dl>
@@ -375,19 +375,19 @@ set self.__traceback__ to tb and return self.</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQError" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQError" title="Link to this definition">¶</a></dt>
 <dd><p>Base class for errors raised by an IonQProvider.</p>
 <p>Set the error message.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQError.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQError.add_note" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQError.add_note" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.add_note(note) –
 add a note to the exception</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQError.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQError.with_traceback" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQError.with_traceback" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.with_traceback(tb) –
 set self.__traceback__ to tb and return self.</p>
 </dd></dl>
@@ -396,25 +396,25 @@ set self.__traceback__ to tb and return self.</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQGateError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQGateError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gate_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQGateError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQGateError" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQGateError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gate_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQGateError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQGateError" title="Link to this definition">¶</a></dt>
 <dd><p>Errors generated from invalid gate defs</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQGateError.gate_name">
-<span class="sig-name descname"><span class="pre">gate_name</span></span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQGateError.gate_name" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">gate_name</span></span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQGateError.gate_name" title="Link to this definition">¶</a></dt>
 <dd><p>The name of the gate which caused this error.</p>
 </dd></dl>
 
 <p>Set the error message.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQGateError.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQGateError.add_note" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQGateError.add_note" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.add_note(note) –
 add a note to the exception</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQGateError.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQGateError.with_traceback" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQGateError.with_traceback" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.with_traceback(tb) –
 set self.__traceback__ to tb and return self.</p>
 </dd></dl>
@@ -423,19 +423,19 @@ set self.__traceback__ to tb and return self.</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQJobError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQJobError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQJobError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobError" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQJobError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQJobError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobError" title="Link to this definition">¶</a></dt>
 <dd><p>Errors generated from improper usage of IonQJob objects.</p>
 <p>Set the error message.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQJobError.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobError.add_note" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobError.add_note" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.add_note(note) –
 add a note to the exception</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQJobError.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobError.with_traceback" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobError.with_traceback" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.with_traceback(tb) –
 set self.__traceback__ to tb and return self.</p>
 </dd></dl>
@@ -444,19 +444,19 @@ set self.__traceback__ to tb and return self.</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQJobTimeoutError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQJobTimeoutError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQJobTimeoutError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobTimeoutError" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQJobTimeoutError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQJobTimeoutError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobTimeoutError" title="Link to this definition">¶</a></dt>
 <dd><p>Errors generated from job timeouts</p>
 <p>Set the error message.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQJobTimeoutError.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobTimeoutError.add_note" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobTimeoutError.add_note" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.add_note(note) –
 add a note to the exception</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQJobTimeoutError.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobTimeoutError.with_traceback" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQJobTimeoutError.with_traceback" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.with_traceback(tb) –
 set self.__traceback__ to tb and return self.</p>
 </dd></dl>
@@ -465,26 +465,26 @@ set self.__traceback__ to tb and return self.</p>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQMidCircuitMeasurementError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQMidCircuitMeasurementError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gate_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQMidCircuitMeasurementError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQMidCircuitMeasurementError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gate_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQMidCircuitMeasurementError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError" title="Link to this definition">¶</a></dt>
 <dd><p>Errors generated from attempting mid-circuit measurement, which is not supported.
 Measurement must come after all instructions.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.qubit_index">
-<span class="sig-name descname"><span class="pre">qubit_index</span></span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.qubit_index" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">qubit_index</span></span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.qubit_index" title="Link to this definition">¶</a></dt>
 <dd><p>The qubit index to be measured mid-circuit</p>
 </dd></dl>
 
 <p>Set the error message.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.add_note">
-<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.add_note" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.add_note" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.add_note(note) –
 add a note to the exception</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.with_traceback">
-<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.with_traceback" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.with_traceback" title="Link to this definition">¶</a></dt>
 <dd><p>Exception.with_traceback(tb) –
 set self.__traceback__ to tb and return self.</p>
 </dd></dl>
@@ -612,8 +612,8 @@ set self.__traceback__ to tb and return self.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=215e94d7"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/documentation_options.js?v=b9afe91b"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
