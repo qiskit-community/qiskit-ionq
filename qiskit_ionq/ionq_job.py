@@ -131,12 +131,10 @@ def _build_counts(
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
         hex_bits = hex(int(bits, 2))
         count = sampled[key] if use_sampler else round(val * shots)
-        counts[hex_bits] = count
-        probabilities[hex_bits] = val
+        if count > 0:  # Check to ensure only non-zero counts are added
+            counts[hex_bits] = count
+            probabilities[hex_bits] = val
 
-    # Drop any zero counts
-    counts = {key: val for key, val in counts.items() if val > 0}
-    probabilities = {key: val for key, val in probabilities.items() if val > 0}
     return counts, probabilities
 
 
