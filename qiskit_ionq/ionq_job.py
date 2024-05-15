@@ -115,31 +115,25 @@ def _build_counts(
     if use_sampler:
         rand = np.random.RandomState(sampler_seed)
         outcomes, weights = zip(*output_probs.items())
-        weights = np.array(weights).astype(float)
+        weights = np.array(weights, dtype=float)
         # just in case the sum isn't exactly 1 — sometimes the API returns
         #  e.g. 0.499999 due to floating point error
         weights /= weights.sum()
-        outcomes = np.array(outcomes)
-
-        rand_values = rand.choice(outcomes, shots, p=weights)
-
-        sampled.update(
-            {key: np.count_nonzero(rand_values == key) for key in output_probs}
+        sample_counts = np.bincount(
+            rand.choice(len(outcomes), shots, p=weights), minlength=len(outcomes)
         )
+        sampled = dict(zip(outcomes, sample_counts))
 
-    # Build counts
+    # Build counts and probabilities
     counts = {}
-    for key, val in output_probs.items():
-        bits = bin(int(key))[2:].rjust(num_qubits, "0")
-        hex_bits = hex(int(bits, 2))
-        count = sampled[key] if use_sampler else round(val * shots)
-        counts[hex_bits] = count
-    # build probs
     probabilities = {}
     for key, val in output_probs.items():
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
         hex_bits = hex(int(bits, 2))
-        probabilities[hex_bits] = val
+        count = sampled[key] if use_sampler else round(val * shots)
+        if count > 0:  # Check to ensure only non-zero counts are added
+            counts[hex_bits] = count
+            probabilities[hex_bits] = val
 
     return counts, probabilities
 
