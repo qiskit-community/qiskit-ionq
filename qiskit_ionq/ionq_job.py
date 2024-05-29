@@ -366,6 +366,65 @@ class IonQJob(JobV1):
 
         return self._status
 
+    def children_status(self):
+        """Retrieve the status of the children
+
+        Raises:
+            IonQJobError: If the IonQ job status was unknown or otherwise
+                unmappable to a qiskit job status.
+            IonQJobFailureError: If the job fails
+            IonQJobStateError: If the job was cancelled
+
+        Returns:
+            dict: A dictionary containing the detailed status of the children.
+        """
+        response = self._client.retrieve_job(self._job_id)
+        child_ids = response.get("children", [])
+        child_statuses = []
+
+        for child_id in child_ids:
+            response = self._client.retrieve_job(child_id)
+            api_response_status = response.get("status")
+
+            # Map API status to JobStatus enum
+            try:
+                status_enum = constants.APIJobStatus(api_response_status)
+            except ValueError as ex:
+                raise exceptions.IonQJobError(
+                    f"Unknown job status {api_response_status}"
+                ) from ex
+
+            try:
+                status_enum = constants.JobStatusMap[status_enum.name]
+            except ValueError as ex:
+                raise exceptions.IonQJobError(
+                    f"Job status {status_enum} has no qiskit status mapping!"
+                ) from ex
+
+            try:
+                qiskit_status = jobstatus.JobStatus[status_enum.value]
+            except KeyError as ex:
+                raise exceptions.IonQJobError(
+                    f"Qiskit has no JobStatus named '{status_enum}'"
+                ) from ex
+
+            child_statuses.append(qiskit_status)
+
+        total = len(child_statuses)
+        completed = child_statuses.count(jobstatus.JobStatus.DONE)
+        failed = child_statuses.count(jobstatus.JobStatus.ERROR)
+        percentage_complete = completed / total if total else 0
+
+        status_summary = {
+            "total": total,
+            "completed": completed,
+            "failed": failed,
+            "percentage_complete": percentage_complete,
+            "statuses": child_statuses,
+        }
+
+        return status_summary
+
     def _format_result(self, data):
         """Translate IonQ's result format into a qiskit Result instance.
 
