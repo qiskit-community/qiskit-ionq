@@ -236,13 +236,8 @@ def test_pauliexp_circuit():
             "gate": "pauliexp",
             "targets": [1, 2],
             "terms": ["XX", "YY", "ZZ"],
-            "coefficients": [
-                {"r": 0.1, "i": 0.0},
-                {"r": 0.2, "i": 0.0},
-                {"r": 0.3, "i": 0.0},
-            ],
-            "unitary": True,
-            "rotation": 0.4,
+            "coefficients": [0.1, 0.2, 0.3],
+            "time": 0.4,
         }
     ]
     built, _, _ = qiskit_circ_to_ionq_circ(circuit)

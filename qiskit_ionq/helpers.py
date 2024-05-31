@@ -189,6 +189,9 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
                         instruction.params[0]
                     )
                 }
+                if instruction_name == "PauliEvolution":
+                    # rename rotation to time
+                    rotation["time"] = rotation.pop("rotation")
             elif instruction_name in {"zz"}:
                 rotation = {"angle": instruction.params[0]}
             else:
@@ -254,24 +257,23 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
             )
 
         if instruction_name == "pauliexp":
+            assert set([coeff.imag for coeff in instruction.operator.coeffs]) == {0}, (
+                "PauliEvolution gate must have real coefficients, "
+                f"but got {set([coeff.imag for coeff in instruction.operator.coeffs])}"
+            )
             targets = [
                 input_circuit.qubits.index(qargs[i])
                 for i in range(instruction.num_qubits)
             ]
             terms = [term[0] for term in instruction.operator.to_list()]
-            coefficients = [
-                {"r": coeff.real, "i": coeff.imag}
-                for coeff in instruction.operator.coeffs
-            ]
-            converted.update(
-                {
-                    "gate": instruction_name,
-                    "targets": targets,
-                    "terms": terms,
-                    "coefficients": coefficients,
-                    "unitary": instruction.label.startswith("exp(-i"),
-                }
-            )
+            coefficients = [coeff.real for coeff in instruction.operator.coeffs]
+            gate = {
+                "gate": instruction_name,
+                "targets": targets,
+                "terms": terms,
+                "coefficients": coefficients,
+            }
+            converted.update(gate)
 
         # if there's a valid instruction after a measurement,
         if num_meas > 0:
