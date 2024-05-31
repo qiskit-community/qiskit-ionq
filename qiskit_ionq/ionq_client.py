@@ -26,6 +26,8 @@
 
 """Basic API Client for IonQ's REST API"""
 
+import json
+from collections import OrderedDict
 from typing import Optional
 from warnings import warn
 import requests
@@ -75,7 +77,7 @@ class IonQClient:
         Returns:
             str: A URL to use for an API call.
         """
-        return "/".join([self._url] + list(parts))
+        return f"{self._url}/{'/'.join(parts)}"
 
     def _get_with_retry(self, req_path, params=None, headers=None, timeout=30):
         """Make a GET request with retry logic and exception handling.
@@ -94,7 +96,10 @@ class IonQClient:
         """
         try:
             res = requests.get(
-                req_path, params=params, headers=headers, timeout=timeout
+                req_path,
+                params=params,
+                headers=headers,
+                timeout=timeout,
             )
         except requests.exceptions.RequestException as req_exc:
             raise IonQRetriableError(req_exc) from req_exc
@@ -173,6 +178,17 @@ class IonQClient:
         res = requests.put(req_path, headers=self.api_headers, timeout=30)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
+
+    def cancel_jobs(self, job_ids: list):
+        """Cancel multiple jobs at once.
+
+        Args:
+            job_ids (list): A list of job IDs to cancel.
+
+        Returns:
+            list: A list of :meth:`cancel_job <cancel_job>` responses.
+        """
+        return [self.cancel_job(job_id) for job_id in job_ids]
 
     @retry(exceptions=IonQRetriableError, tries=3)
     def delete_job(self, job_id: str):
@@ -255,7 +271,8 @@ class IonQClient:
         req_path = self.make_path("jobs", job_id, "results")
         res = self._get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
-        return res.json()
+        # Use json.loads with object_pairs_hook to maintain order of JSON keys
+        return json.loads(res.text, object_pairs_hook=OrderedDict)
 
 
 __all__ = ["IonQClient"]

@@ -28,6 +28,7 @@
 
 import logging
 import os
+from dotenv import dotenv_values
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
@@ -54,11 +55,19 @@ def resolve_credentials(token: str = None, url: str = None):
         dict[str]: A dict with "token" and "url" keys, for use by a client.
     """
     env_token = (
-        os.environ.get("QISKIT_IONQ_API_TOKEN")
-        or os.environ.get("IONQ_API_TOKEN")
-        or os.environ.get("IONQ_API_KEY")
+        dotenv_values().get("QISKIT_IONQ_API_TOKEN")  # first check for dotenv values
+        or dotenv_values().get("IONQ_API_KEY")
+        or dotenv_values().get("IONQ_API_TOKEN")
+        or os.getenv("QISKIT_IONQ_API_TOKEN")  # then check for global env values
+        or os.getenv("IONQ_API_KEY")
+        or os.getenv("IONQ_API_TOKEN")
     )
-    env_url = os.environ.get("QISKIT_IONQ_API_URL") or os.environ.get("IONQ_API_URL")
+    env_url = (
+        dotenv_values().get("QISKIT_IONQ_API_URL")
+        or dotenv_values().get("IONQ_API_URL")
+        or os.getenv("QISKIT_IONQ_API_URL")
+        or os.getenv("IONQ_API_URL")
+    )
     return {
         "token": token or env_token,
         "url": url or env_url or "https://api.ionq.co/v0.3",
@@ -87,7 +96,7 @@ class IonQProvider:
             ]
         )
 
-    def get_backend(self, name=None, gateset="qis", **kwargs):
+    def get_backend(self, name: str = None, gateset="qis", **kwargs):
         """Return a single backend matching the specified filtering.
         Args:
             name (str): name of the backend.

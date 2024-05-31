@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# Copyright 2020 IonQ, Inc. (www.ionq.com)
+# Copyright 2024 IonQ, Inc. (www.ionq.com)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,21 +23,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""Provider for IonQ backends"""
-
-import warnings
-
-# warn if qiskit is not installed
-try:
-    from qiskit.version import get_version_info  # pylint: disable=unused-import
-except ImportError as exc:
-    raise ImportError(
-        "Qiskit is not installed. Please install the latest version of Qiskit."
-    ) from exc
-
-from .ionq_provider import IonQProvider
-from .version import __version__
-from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
-from .constants import ErrorMitigation
-from .ionq_equivalence_library import add_equivalences
