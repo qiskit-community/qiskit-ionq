@@ -27,32 +27,44 @@
 """Tests for the IonQ's GPIGate, GPI2Gate, MSGate, ZZGate."""
 # pylint: disable=redefined-outer-name
 
-import math
 import numpy
 
 import pytest
 
-from qiskit.circuit.library import XGate, YGate, RXGate, RYGate
+from qiskit.circuit.library import XGate, YGate, RXGate, RYGate, RZGate, HGate
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate, ZZGate
 
 
-@pytest.mark.parametrize("gate,phase", [(XGate(), 0), (YGate(), 0.25)])
+@pytest.mark.parametrize("gate,phase", [(XGate(), 0), (YGate(), numpy.pi / 2)])
 def test_gpi_equivalences(gate, phase):
     """Tests equivalence of the GPI gate at specific phases."""
     gpi = GPIGate(phase)
-    numpy.testing.assert_array_almost_equal(numpy.array(gate), numpy.array(gpi))
+    numpy.testing.assert_array_almost_equal(gate.to_matrix(), gpi.to_matrix())
 
 
 @pytest.mark.parametrize(
-    "gate,phase", [(RXGate(math.pi / 2), 1), (RYGate(math.pi / 2), 0.25)]
+    "gate,phase", [(RXGate(numpy.pi / 2), 0), (RYGate(numpy.pi / 2), numpy.pi / 2)]
 )
 def test_gpi2_equivalences(gate, phase):
     """Tests equivalence of the GPI2 gate at specific phases."""
-    gpi = GPI2Gate(phase)
-    numpy.testing.assert_array_almost_equal(numpy.array(gate), numpy.array(gpi))
+    gpi2 = GPI2Gate(phase)
+    numpy.testing.assert_array_almost_equal(gate.to_matrix(), gpi2.to_matrix())
 
 
-@pytest.mark.parametrize("phase", [0, 0.1, 0.4, math.pi / 2, math.pi, 2 * math.pi])
+@pytest.mark.parametrize(
+    "gpi_angle, gpi2_angle, virtualz_angle",
+    [(1.25 * numpy.pi, 0, 1.5 * numpy.pi)],
+)
+def test_hadamard_equivalence(gpi_angle, gpi2_angle, virtualz_angle):
+    """Tests equivalence of the Hadamard gate with the GPI, GPI2, and VirtualZ gates."""
+    gpi = GPIGate(gpi_angle)
+    gpi2 = GPI2Gate(gpi2_angle)
+    virtualz = RZGate(virtualz_angle)
+    native_hadamard = numpy.dot(virtualz, numpy.dot(gpi2, gpi))
+    numpy.testing.assert_array_almost_equal(native_hadamard, HGate().to_matrix())
+
+
+@pytest.mark.parametrize("phase", [0, 0.1, 0.4, numpy.pi / 2, numpy.pi, 2 * numpy.pi])
 def test_gpi_inverse(phase):
     """Tests that the GPI gate is unitary."""
     gate = GPIGate(phase)
@@ -60,7 +72,7 @@ def test_gpi_inverse(phase):
     numpy.testing.assert_array_almost_equal(mat.dot(mat.conj().T), numpy.identity(2))
 
 
-@pytest.mark.parametrize("phase", [0, 0.1, 0.4, math.pi / 2, math.pi, 2 * math.pi])
+@pytest.mark.parametrize("phase", [0, 0.1, 0.4, numpy.pi / 2, numpy.pi, 2 * numpy.pi])
 def test_gpi2_inverse(phase):
     """Tests that the GPI2 gate is unitary."""
     gate = GPI2Gate(phase)
@@ -75,9 +87,9 @@ def test_gpi2_inverse(phase):
         (0, 1, 0.25),
         (0.1, 1, 0.25),
         (0.4, 1, 0.25),
-        (math.pi / 2, 0, 0.25),
-        (0, math.pi, 0.25),
-        (0.1, 2 * math.pi, 0.25),
+        (numpy.pi / 2, 0, 0.25),
+        (0, numpy.pi, 0.25),
+        (0.1, 2 * numpy.pi, 0.25),
     ],
 )
 def test_ms_inverse(params):
@@ -90,7 +102,7 @@ def test_ms_inverse(params):
 
 @pytest.mark.parametrize(
     "angle",
-    [0, 0.1, 0.4, math.pi / 2, math.pi, 2 * math.pi],
+    [0, 0.1, 0.4, numpy.pi / 2, numpy.pi, 2 * numpy.pi],
 )
 def test_zz_inverse(angle):
     """Tests that the ZZ gate is unitary."""

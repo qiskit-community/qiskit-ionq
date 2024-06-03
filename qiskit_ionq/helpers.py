@@ -89,6 +89,7 @@ ionq_basis_gates = [
     "x",
     "y",
     "z",
+    "PauliEvolution",
 ]
 
 ionq_api_aliases = {  # todo fix alias bug
@@ -100,6 +101,7 @@ ionq_api_aliases = {  # todo fix alias bug
     "mcx_gray": "cx",  # just one C for all mcx
     "tdg": "ti",
     "p": "z",
+    "PauliEvolution": "pauliexp",
     "rxx": "xx",
     "ryy": "yy",
     "rzz": "zz",
@@ -189,6 +191,9 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
                         instruction.params[0]
                     )
                 }
+                if instruction_name == "PauliEvolution":
+                    # rename rotation to time
+                    rotation["time"] = rotation.pop("rotation")
             elif instruction_name in {"zz"}:
                 rotation = {"angle": instruction.params[0]}
             else:
@@ -252,6 +257,25 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
                     "targets": targets,
                 }
             )
+
+        if instruction_name == "pauliexp":
+            assert set([coeff.imag for coeff in instruction.operator.coeffs]) == {0}, (
+                "PauliEvolution gate must have real coefficients, "
+                f"but got {set([coeff.imag for coeff in instruction.operator.coeffs])}"
+            )
+            targets = [
+                input_circuit.qubits.index(qargs[i])
+                for i in range(instruction.num_qubits)
+            ]
+            terms = [term[0] for term in instruction.operator.to_list()]
+            coefficients = [coeff.real for coeff in instruction.operator.coeffs]
+            gate = {
+                "gate": instruction_name,
+                "targets": targets,
+                "terms": terms,
+                "coefficients": coefficients,
+            }
+            converted.update(gate)
 
         # if there's a valid instruction after a measurement,
         if num_meas > 0:
