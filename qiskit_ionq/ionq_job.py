@@ -287,17 +287,22 @@ class IonQJob(JobV1):
 
         return self._result
 
-    def status(self):
+    def status(self, detailed=False):
         """Retrieve the status of a job
+
+        Args:
+            detailed (bool): If True, returns a detailed status of children.
+
+        Returns:
+            JobStatus or dict: An enum value from Qiskit's
+                :class:`JobStatus <qiskit.providers.JobStatus>` if detailed is False.
+                A dictionary containing the detailed status of the children if detailed is True.
 
         Raises:
             IonQJobError: If the IonQ job status was unknown or otherwise
                 unmappable to a qiskit job status.
             IonQJobFailureError: If the job fails
             IonQJobStateError: If the job was cancelled
-
-        Returns:
-            JobStatus: An enum value from Qiskit's :class:`JobStatus <qiskit.providers.JobStatus>`.
         """
         # Return early if we have no job id yet.
         if self._job_id is None:
@@ -305,6 +310,8 @@ class IonQJob(JobV1):
 
         # Return early if the job is already done.
         if self._status in jobstatus.JOB_FINAL_STATES:
+            if detailed:
+                return self._children_status()
             return self._status
 
         # Otherwise, look up a status enum from the response.
@@ -364,9 +371,12 @@ class IonQJob(JobV1):
             for warning in response["warning"]["messages"]:
                 warnings.warn(warning)
 
+        if detailed:
+            return self._children_status()
+
         return self._status
 
-    def children_status(self):
+    def _children_status(self):
         """Retrieve the status of the children
 
         Raises:

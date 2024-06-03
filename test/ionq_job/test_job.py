@@ -686,3 +686,41 @@ def test_status__already_final_state(
 
     job_fetch_spy.assert_not_called()
     assert actual_status is job._status is jobstatus.JobStatus.DONE
+
+
+def test_status_with_detailed(mock_backend, requests_mock):
+    """Test status() with detailed argument returns detailed children status.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    job_id = "test_id"
+    child_job_id = "child_test_id"
+    job_response = conftest.dummy_job_response(
+        job_id, status="completed", children=[child_job_id]
+    )
+    child_job_response = conftest.dummy_job_response(child_job_id, status="completed")
+    client = mock_backend.client
+
+    # Mock the job response API calls.
+    path = client.make_path("jobs", job_id)
+    child_path = client.make_path("jobs", child_job_id)
+    requests_mock.get(path, status_code=200, json=job_response)
+    requests_mock.get(child_path, status_code=200, json=child_job_response)
+
+    # Create a job ref (this will call .status() to fetch our mock above)
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    # Call status with detailed=True
+    detailed_status = job.status(detailed=True)
+
+    expected_detailed_status = {
+        "total": 1,
+        "completed": 1,
+        "failed": 0,
+        "percentage_complete": 1.0,
+        "statuses": [jobstatus.JobStatus.DONE],
+    }
+
+    assert detailed_status == expected_detailed_status

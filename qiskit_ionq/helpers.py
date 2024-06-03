@@ -473,7 +473,7 @@ class SafeEncoder(json.JSONEncoder):
         for func in funcs:
             try:
                 return func()
-            except Exception as exception:
+            except Exception as exception:  # pylint: disable=broad-except
                 warnings.warn(
                     f"Unable to encode {o} using {func.__name__}: {exception}"
                 )
