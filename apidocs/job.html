@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="IonQ Provider" href="provider.html" /><link rel="prev" title="Qiskit IonQ Provider API Reference" href="index.html" />
 
     <!-- Generated with Sphinx 7.3.7 and Furo 2024.01.29 -->
-        <title>IonQ Job - Qiskit IonQ Provider 0.5.1</title>
+        <title>IonQ Job - Qiskit IonQ Provider 0.5.2</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.1</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.2</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -407,22 +407,30 @@ method to poll for a completed job.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_job.IonQJob.status">
-<span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_job.html#IonQJob.status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_job.IonQJob.status" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">detailed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_job.html#IonQJob.status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_job.IonQJob.status" title="Link to this definition">¶</a></dt>
 <dd><p>Retrieve the status of a job</p>
 <dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>detailed</strong> (<em>bool</em>) – If True, returns a detailed status of children.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>An enum value from Qiskit’s</dt><dd><p><code class="xref py py-class docutils literal notranslate"><span class="pre">JobStatus</span></code> if detailed is False.
+A dictionary containing the detailed status of the children if detailed is True.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>JobStatus or dict</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
 <li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQJobError" title="qiskit_ionq.exceptions.IonQJobError"><strong>IonQJobError</strong></a> – If the IonQ job status was unknown or otherwise
     unmappable to a qiskit job status.</p></li>
 <li><p><strong>IonQJobFailureError</strong> – If the job fails</p></li>
 <li><p><strong>IonQJobStateError</strong> – If the job was cancelled</p></li>
 </ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>An enum value from Qiskit’s <code class="xref py py-class docutils literal notranslate"><span class="pre">JobStatus</span></code>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>JobStatus</p>
 </dd>
 </dl>
 </dd></dl>
@@ -556,7 +564,7 @@ the callback function.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=b9afe91b"></script>
+    <script src="../_static/documentation_options.js?v=8e576371"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
