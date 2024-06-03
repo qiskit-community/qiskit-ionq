@@ -74,7 +74,7 @@ class MockBackend(ionq_backend.IonQBackend):
 
 
 def dummy_job_response(
-    job_id, target="mock_backend", status="completed", job_settings=None
+    job_id, target="mock_backend", status="completed", job_settings=None, children=None
 ):
     """A dummy response payload for `job_id`.
 
@@ -83,6 +83,7 @@ def dummy_job_response(
         target (str): Backend target string.
         status (str): A provided status string.
         job_settings (dict): Settings provided to the API.
+        children (list): A list of child job IDs.
 
     Returns:
         dict: A json response dict.
@@ -99,7 +100,7 @@ def dummy_job_response(
             "global_phase": 0,
         }
     )
-    return {
+    response = {
         "status": status,
         "predicted_execution_time": 4,
         "metadata": {
@@ -121,6 +122,11 @@ def dummy_job_response(
         "settings": (job_settings or {}),
         "name": "test_name",
     }
+
+    if children is not None:
+        response["children"] = children
+
+    return response
 
 
 def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-type-doc
