@@ -28,9 +28,11 @@
 
 import json
 from collections import OrderedDict
+from collections.abc import Iterable
 from typing import Optional
 from warnings import warn
 import requests
+import qiskit
 
 from retry import retry
 
@@ -128,6 +130,7 @@ class IonQClient:
             job.extra_query_params,
             job.extra_metadata,
         )
+        self.check_empty_circuit(job.circuit)
         req_path = self.make_path("jobs")
         res = requests.post(
             req_path,
@@ -135,8 +138,35 @@ class IonQClient:
             headers=self.api_headers,
             timeout=30,
         )
+        # print a formatted json of the data
+        print(json.dumps(as_json, indent=4))
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
+
+    @staticmethod
+    def check_empty_circuit(circuit: qiskit.QuantumCircuit):
+        """Check if the circuit is empty after optimization.
+
+        Args:
+            circuit (QuantumCircuit): The circuit to check.
+
+        Raises:
+            UserWarning: When the circuit is optimized to an empty circuit.
+        """
+        if isinstance(circuit, qiskit.QuantumCircuit):
+            optimized_circuit = qiskit.transpile(circuit, optimization_level=3)
+            if (
+                sum(
+                    count
+                    for op, count in optimized_circuit.count_ops().items()
+                    if op not in ["barrier", "measure", "reset"]
+                )
+                == 0
+            ):
+                warn("The circuit will be optimized to an empty circuit.")
+        elif isinstance(circuit, Iterable):
+            for circ in circuit:
+                IonQClient.check_empty_circuit(circ)
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def retrieve_job(self, job_id: str):
@@ -272,6 +302,7 @@ class IonQClient:
         res = self._get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
+        print(json.loads(res.text, object_pairs_hook=OrderedDict))
         return json.loads(res.text, object_pairs_hook=OrderedDict)
 
 
