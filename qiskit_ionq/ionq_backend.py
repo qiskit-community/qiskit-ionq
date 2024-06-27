@@ -412,7 +412,28 @@ class IonQSimulatorBackend(IonQBackend):
                 "max_shots": 1,
                 "max_experiments": 1,
                 "open_pulse": False,
-                "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO"}],
+                "gates": [
+                    {
+                        "name": "gpi",
+                        "parameters": ["phi"],
+                        "qasm_def": "TODO"
+                    },
+                    {
+                        "name": "gpi2",
+                        "parameters": ["phi"],
+                        "qasm_def": "TODO"
+                    },
+                    {
+                        "name": "ms",
+                        "parameters": ["phi0", "phi1", "theta"],
+                        "qasm_def": "TODO"
+                    },
+                    {
+                        "name": "zz",
+                        "parameters": ["theta"],
+                        "qasm_def": "TODO"
+                    },
+                ],
             }
         )
         super().__init__(configuration=config, provider=provider)
@@ -448,7 +469,28 @@ class IonQQPUBackend(IonQBackend):
                 "max_shots": 10000,
                 "max_experiments": 1,
                 "open_pulse": False,
-                "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO"}],
+                "gates": [
+                    {
+                        "name": "gpi",
+                        "parameters": ["phi"],
+                        "qasm_def": "TODO"
+                    },
+                    {
+                        "name": "gpi2",
+                        "parameters": ["phi"],
+                        "qasm_def": "TODO"
+                    },
+                    {
+                        "name": "ms",
+                        "parameters": ["phi0", "phi1", "theta"],
+                        "qasm_def": "TODO"
+                    },
+                    {
+                        "name": "zz",
+                        "parameters": ["theta"],
+                        "qasm_def": "TODO"
+                    },
+                ],
             }
         )
         super().__init__(configuration=config, provider=provider)
