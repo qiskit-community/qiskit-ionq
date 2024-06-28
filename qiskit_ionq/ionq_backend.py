@@ -416,22 +416,25 @@ class IonQSimulatorBackend(IonQBackend):
                     {
                         "name": "gpi",
                         "parameters": ["phi"],
-                        "qasm_def": "TODO"
+                        "qasm_def": "gate gpi(phi) q { U(pi, 0, pi) q; U(0, 0, 4 * phi * pi) q;}",
                     },
                     {
                         "name": "gpi2",
                         "parameters": ["phi"],
-                        "qasm_def": "TODO"
+                        "qasm_def": "gate gpi2(phi) q { U(0, 0, -2 * phi * pi) q; U(pi/2, -pi/2, pi/2) q; U(0, 0, 2 * phi * pi) q;}",
                     },
                     {
                         "name": "ms",
                         "parameters": ["phi0", "phi1", "theta"],
-                        "qasm_def": "TODO"
-                    },
-                    {
-                        "name": "zz",
-                        "parameters": ["theta"],
-                        "qasm_def": "TODO"
+                        "qasm_def": "gate ms(phi0, phi1, theta) q0, q1 \
+                            { \
+                                ctrl @ U(pi , 0, pi) q1, q0; \
+                                U(pi, 0, pi) q0; \
+                                ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
+                                U(pi, 0, pi) q0; \
+                                ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
+                                ctrl @ U(pi , 0, pi) q1, q0; \
+                            }",
                     },
                 ],
             }
@@ -473,22 +476,25 @@ class IonQQPUBackend(IonQBackend):
                     {
                         "name": "gpi",
                         "parameters": ["phi"],
-                        "qasm_def": "TODO"
+                        "qasm_def": "gate gpi(phi) q { U(pi, 0, pi) q; U(0, 0, 4 * phi * pi) q;}",
                     },
                     {
                         "name": "gpi2",
                         "parameters": ["phi"],
-                        "qasm_def": "TODO"
+                        "qasm_def": "gate gpi2(phi) q { U(0, 0, -2 * phi * pi) q; U(pi/2, -pi/2, pi/2) q; U(0, 0, 2 * phi * pi) q;}",
                     },
                     {
                         "name": "ms",
                         "parameters": ["phi0", "phi1", "theta"],
-                        "qasm_def": "TODO"
-                    },
-                    {
-                        "name": "zz",
-                        "parameters": ["theta"],
-                        "qasm_def": "TODO"
+                        "qasm_def": "gate ms(phi0, phi1, theta) q0, q1 \
+                            { \
+                                ctrl @ U(pi , 0, pi) q1, q0; \
+                                U(pi, 0, pi) q0; \
+                                ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
+                                U(pi, 0, pi) q0; \
+                                ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
+                                ctrl @ U(pi , 0, pi) q1, q0; \
+                            }",
                     },
                 ],
             }
