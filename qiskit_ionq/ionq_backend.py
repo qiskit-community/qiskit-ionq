@@ -427,14 +427,24 @@ class IonQSimulatorBackend(IonQBackend):
                         "name": "ms",
                         "parameters": ["phi0", "phi1", "theta"],
                         "qasm_def": "gate ms(phi0, phi1, theta) q0, q1 \
-                            { \
-                                ctrl @ U(pi , 0, pi) q1, q0; \
-                                U(pi, 0, pi) q0; \
-                                ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
-                                U(pi, 0, pi) q0; \
-                                ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
-                                ctrl @ U(pi , 0, pi) q1, q0; \
-                            }",
+{ \
+    ctrl @ U(pi , 0, pi) q1, q0; \
+    U(pi, 0, pi) q0; \
+    ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
+    U(pi, 0, pi) q0; \
+    ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
+    ctrl @ U(pi , 0, pi) q1, q0; \
+}",
+                    },
+                    {
+                        "name": "zz",
+                        "parameters": ["theta"],
+                         "qasm_def": "gate zz(theta) q0, q1  \
+{ \
+    ctrl @ U(pi , 0, pi) q0, q1; \
+    U(0, 0, 2 * theta * pi) q1;  \
+    ctrl @ U(pi , 0, pi) q0, q1; \
+}",
                     },
                 ],
             }
@@ -487,14 +497,24 @@ class IonQQPUBackend(IonQBackend):
                         "name": "ms",
                         "parameters": ["phi0", "phi1", "theta"],
                         "qasm_def": "gate ms(phi0, phi1, theta) q0, q1 \
-                            { \
-                                ctrl @ U(pi , 0, pi) q1, q0; \
-                                U(pi, 0, pi) q0; \
-                                ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
-                                U(pi, 0, pi) q0; \
-                                ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
-                                ctrl @ U(pi , 0, pi) q1, q0; \
-                            }",
+{ \
+    ctrl @ U(pi , 0, pi) q1, q0; \
+    U(pi, 0, pi) q0; \
+    ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
+    U(pi, 0, pi) q0; \
+    ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
+    ctrl @ U(pi , 0, pi) q1, q0; \
+}",
+                    },
+                    {
+                        "name": "zz",
+                        "parameters": ["theta"],
+                         "qasm_def": "gate zz(theta) q0, q1  \
+{ \
+    ctrl @ U(pi , 0, pi) q0, q1; \
+    U(0, 0, 2 * theta * pi) q1;  \
+    ctrl @ U(pi , 0, pi) q0, q1; \
+}",
                     },
                 ],
             }

@@ -39,7 +39,7 @@ class GPIGate(Gate):
     **Circuit symbol:**
     .. parsed-literal::
              ┌───────┐
-        q_0: ┤ GPI(ϴ)├
+        q_0: ┤ GPI(φ)├
              └───────┘
     **Matrix Representation:**
 
@@ -68,7 +68,7 @@ class GPI2Gate(Gate):
     **Circuit symbol:**
     .. parsed-literal::
              ┌───────┐
-        q_0: ┤GPI2(ϴ)├
+        q_0: ┤GPI2(φ)├
              └───────┘
     **Matrix Representation:**
 
