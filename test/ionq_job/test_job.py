@@ -573,6 +573,45 @@ def test_result__from_circuit(mock_backend, requests_mock):
     assert res == expected_result
 
 
+def test_result__meas_mapped(mock_backend, requests_mock):
+    """Test result fetching when the job has uses meas_mapped to remap results.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    # Create the job:
+    job_id = "test_id"
+    job_response = conftest.dummy_mapped_job_response(job_id)
+    client = mock_backend.client
+
+    meas_mapped = QuantumCircuit(2, 2, name="meas_mapped")
+    meas_mapped.x(0)
+    meas_mapped.measure([0, 1], [1, 0])
+
+    # Create a job ref (this does not call status, since circuit is not None).
+    job = ionq_job.IonQJob(mock_backend, None, circuit=meas_mapped)
+
+    # Mock the create:
+    create_path = client.make_path("jobs")
+    requests_mock.post(create_path, status_code=200, json=job_response)
+
+    # Submit the job.
+    job.submit()
+
+    # Mock the fetch from `result`, since status should still be "initializing".
+    fetch_path = client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, status_code=200, json=job_response)
+
+    # Mock the fetch from `results`
+    fetch_path = client.make_path("jobs", job_id, "results")
+    requests_mock.get(fetch_path, status_code=200, json={"2": 1})
+
+    # Validate the result and its format. should be the same as base case.
+    res = job.result().get_counts()
+    assert res == {"01": 1234}  # 1234 shots, all 10(2) remapped to 01(1)
+
+
 def test_result__failed_from_api(mock_backend, requests_mock):
     """Test result fetching when the job fails on the API side (e.g. due to bad input)
 
