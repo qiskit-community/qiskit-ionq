@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
-    <!-- Generated with Sphinx 7.3.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 0.5.2</title>
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 0.5.3</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.2</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.3</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.2</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.3</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -600,7 +600,16 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_children</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;children&quot;</span><span class="p">,</span> <span class="p">[])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qubits&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="n">default_map</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_clbits</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;registers&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;meas_mapped&quot;</span><span class="p">,</span> <span class="n">default_map</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_clbits</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">retrieve_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;registers&quot;</span><span class="p">,</span> <span class="p">{})</span>
+                    <span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;meas_mapped&quot;</span><span class="p">,</span> <span class="n">default_map</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span>
+                <span class="k">else</span> <span class="p">[</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;registers&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;meas_mapped&quot;</span><span class="p">,</span> <span class="n">default_map</span><span class="p">)]</span>
+            <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_execution_time</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;execution_time&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">==</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">ERROR</span><span class="p">:</span>
@@ -747,14 +756,7 @@
                 <span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">probabilities</span><span class="p">)</span> <span class="o">=</span> <span class="n">_build_counts</span><span class="p">(</span>
                     <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
                     <span class="n">qiskit_header</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;n_qubits&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span><span class="p">),</span>
-                    <span class="nb">range</span><span class="p">(</span>
-                        <span class="nb">sum</span><span class="p">(</span>
-                            <span class="n">creg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                            <span class="k">for</span> <span class="n">creg</span> <span class="ow">in</span> <span class="n">qiskit_header</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                                <span class="s2">&quot;creg_sizes&quot;</span><span class="p">,</span> <span class="p">[[</span><span class="s2">&quot;meas&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clbits</span><span class="p">)]]</span>
-                            <span class="p">)</span>
-                        <span class="p">)</span>
-                    <span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_clbits</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
                     <span class="n">shots</span><span class="p">,</span>
                     <span class="n">use_sampler</span><span class="o">=</span><span class="n">is_ideal_simulator</span><span class="p">,</span>
                     <span class="n">sampler_seed</span><span class="o">=</span><span class="n">sampler_seed</span><span class="p">,</span>
@@ -825,7 +827,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=8e576371"></script>
+    <script src="../../_static/documentation_options.js?v=2a2fe768"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>
