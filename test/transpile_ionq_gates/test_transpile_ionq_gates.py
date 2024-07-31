@@ -209,7 +209,7 @@ def test_single_qubit_transpilation(ideal_results, gates):
     # transpile circuit to native gates
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
-    transpiled_circuit = transpile(circuit, backend, optimization_level=3)
+    transpiled_circuit = transpile(circuit, backend)
 
     # simulate the circuit
     statevector = Statevector(transpiled_circuit)
@@ -372,7 +372,10 @@ def test_multi_qubit_transpilation(ideal_results, gates):
     # transpile circuit to native gates
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
-    transpiled_circuit = transpile(circuit, backend, optimization_level=2)
+    # Using optmization level 0 below is important here because ElidePermutations transpiler pass
+    # in Qiskit will remove swap gates and instead premute qubits if optimization level is 2 or 3.
+    # In the future this feature could be extended to optmization level 1 as well.
+    transpiled_circuit = transpile(circuit, backend, optimization_level=0)
 
     # simulate the circuit
     statevector = Statevector(transpiled_circuit)

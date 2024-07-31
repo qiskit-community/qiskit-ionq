@@ -39,10 +39,10 @@ def u_gate_equivalence():
     theta_param = Parameter("theta_param")
     phi_param = Parameter("phi_param")
     lambda_param = Parameter("lambda_param")
-    u3_gate = QuantumCircuit(q)
+    u_gate = QuantumCircuit(q)
     # this sequence can be compacted if virtual-z gates will be introduced
-    u3_gate.append(GPI2Gate(0.5 - lambda_param / (2 * np.pi)), [0])
-    u3_gate.append(
+    u_gate.append(GPI2Gate(0.5 - lambda_param / (2 * np.pi)), [0])
+    u_gate.append(
         GPIGate(
             theta_param / (4 * np.pi)
             + phi_param / (4 * np.pi)
@@ -50,9 +50,9 @@ def u_gate_equivalence():
         ),
         [0],
     )
-    u3_gate.append(GPI2Gate(0.5 + phi_param / (2 * np.pi)), [0])
+    u_gate.append(GPI2Gate(0.5 + phi_param / (2 * np.pi)), [0])
     SessionEquivalenceLibrary.add_equivalence(
-        UGate(theta_param, phi_param, lambda_param), u3_gate
+        UGate(theta_param, phi_param, lambda_param), u_gate
     )
 
 
@@ -69,7 +69,6 @@ def cx_gate_equivalence():
 
 
 # Below are the rules needed for Aer simulator to simulate circuits containing IonQ native gates
-
 
 def gpi_gate_equivalence():
     """Add GPI gate equivalence to the SessionEquivalenceLibrary."""

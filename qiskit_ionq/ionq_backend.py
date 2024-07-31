@@ -412,7 +412,46 @@ class IonQSimulatorBackend(IonQBackend):
                 "max_shots": 1,
                 "max_experiments": 1,
                 "open_pulse": False,
-                "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO"}],
+                "gates": [
+                    {
+                        "name": "gpi",
+                        "parameters": ["phi"],
+                        "qasm_def": "gate gpi(phi) q { U(pi, 0, pi) q; U(0, 0, 4 * phi * pi) q;}",
+                    },
+                    {
+                        "name": "gpi2",
+                        "parameters": ["phi"],
+                        "qasm_def": "gate gpi2(phi) q \
+{ \
+    U(0, 0, -2 * phi * pi) q; \
+    U(pi/2, -pi/2, pi/2) q; \
+    U(0, 0, 2 * phi * pi) q; \
+}",
+                    },
+                    {
+                        "name": "ms",
+                        "parameters": ["phi0", "phi1", "theta"],
+                        "qasm_def": "gate ms(phi0, phi1, theta) q0, q1 \
+{ \
+    ctrl @ U(pi , 0, pi) q1, q0; \
+    U(pi, 0, pi) q0; \
+    ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
+    U(pi, 0, pi) q0; \
+    ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
+    ctrl @ U(pi , 0, pi) q1, q0; \
+}",
+                    },
+                    {
+                        "name": "zz",
+                        "parameters": ["theta"],
+                        "qasm_def": "gate zz(theta) q0, q1  \
+{ \
+    ctrl @ U(pi , 0, pi) q0, q1; \
+    U(0, 0, 2 * theta * pi) q1;  \
+    ctrl @ U(pi , 0, pi) q0, q1; \
+}",
+                    },
+                ],
             }
         )
         super().__init__(configuration=config, provider=provider)
@@ -448,7 +487,46 @@ class IonQQPUBackend(IonQBackend):
                 "max_shots": 10000,
                 "max_experiments": 1,
                 "open_pulse": False,
-                "gates": [{"name": "TODO", "parameters": [], "qasm_def": "TODO"}],
+                "gates": [
+                    {
+                        "name": "gpi",
+                        "parameters": ["phi"],
+                        "qasm_def": "gate gpi(phi) q { U(pi, 0, pi) q; U(0, 0, 4 * phi * pi) q;}",
+                    },
+                    {
+                        "name": "gpi2",
+                        "parameters": ["phi"],
+                        "qasm_def": "gate gpi2(phi) q \
+{ \
+    U(0, 0, -2 * phi * pi) q; \
+    U(pi/2, -pi/2, pi/2) q; \
+    U(0, 0, 2 * phi * pi) q; \
+}",
+                    },
+                    {
+                        "name": "ms",
+                        "parameters": ["phi0", "phi1", "theta"],
+                        "qasm_def": "gate ms(phi0, phi1, theta) q0, q1 \
+{ \
+    ctrl @ U(pi , 0, pi) q1, q0; \
+    U(pi, 0, pi) q0; \
+    ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
+    U(pi, 0, pi) q0; \
+    ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
+    ctrl @ U(pi , 0, pi) q1, q0; \
+}",
+                    },
+                    {
+                        "name": "zz",
+                        "parameters": ["theta"],
+                        "qasm_def": "gate zz(theta) q0, q1  \
+{ \
+    ctrl @ U(pi , 0, pi) q0, q1; \
+    U(0, 0, 2 * theta * pi) q1;  \
+    ctrl @ U(pi , 0, pi) q0, q1; \
+}",
+                    },
+                ],
             }
         )
         super().__init__(configuration=config, provider=provider)
