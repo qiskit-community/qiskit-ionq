@@ -348,7 +348,16 @@ class IonQJob(JobV1):
             self._children = response.get("children", [])
             self._num_qubits = response.get("qubits", 0)
             default_map = list(range(self._num_qubits))
-            self._clbits = response.get("registers", {}).get("meas_mapped", default_map)
+            self._clbits = (
+                [
+                    self._client.retrieve_job(job_id)
+                    .get("registers", {})
+                    .get("meas_mapped", default_map)
+                    for job_id in self._children
+                ]
+                if self._children
+                else [response.get("registers", {}).get("meas_mapped", default_map)]
+            )
             self._execution_time = response.get("execution_time") / 1000
 
         if self._status == jobstatus.JobStatus.ERROR:
@@ -494,14 +503,7 @@ class IonQJob(JobV1):
                 (counts, probabilities) = _build_counts(
                     data[i],
                     qiskit_header[i].get("n_qubits", self._num_qubits),
-                    range(
-                        sum(
-                            creg[1]
-                            for creg in qiskit_header[i].get(
-                                "creg_sizes", [["meas", len(self._clbits)]]
-                            )
-                        )
-                    ),
+                    self._clbits[i],
                     shots,
                     use_sampler=is_ideal_simulator,
                     sampler_seed=sampler_seed,
