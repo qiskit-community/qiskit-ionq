@@ -421,7 +421,12 @@ class IonQSimulatorBackend(IonQBackend):
                     {
                         "name": "gpi2",
                         "parameters": ["phi"],
-                        "qasm_def": "gate gpi2(phi) q { U(0, 0, -2 * phi * pi) q; U(pi/2, -pi/2, pi/2) q; U(0, 0, 2 * phi * pi) q;}",
+                        "qasm_def": "gate gpi2(phi) q \
+{ \
+    U(0, 0, -2 * phi * pi) q; \
+    U(pi/2, -pi/2, pi/2) q; \
+    U(0, 0, 2 * phi * pi) q; \
+}",
                     },
                     {
                         "name": "ms",
@@ -439,7 +444,7 @@ class IonQSimulatorBackend(IonQBackend):
                     {
                         "name": "zz",
                         "parameters": ["theta"],
-                         "qasm_def": "gate zz(theta) q0, q1  \
+                        "qasm_def": "gate zz(theta) q0, q1  \
 { \
     ctrl @ U(pi , 0, pi) q0, q1; \
     U(0, 0, 2 * theta * pi) q1;  \
@@ -491,7 +496,12 @@ class IonQQPUBackend(IonQBackend):
                     {
                         "name": "gpi2",
                         "parameters": ["phi"],
-                        "qasm_def": "gate gpi2(phi) q { U(0, 0, -2 * phi * pi) q; U(pi/2, -pi/2, pi/2) q; U(0, 0, 2 * phi * pi) q;}",
+                        "qasm_def": "gate gpi2(phi) q \
+{ \
+    U(0, 0, -2 * phi * pi) q; \
+    U(pi/2, -pi/2, pi/2) q; \
+    U(0, 0, 2 * phi * pi) q; \
+}",
                     },
                     {
                         "name": "ms",
@@ -509,7 +519,7 @@ class IonQQPUBackend(IonQBackend):
                     {
                         "name": "zz",
                         "parameters": ["theta"],
-                         "qasm_def": "gate zz(theta) q0, q1  \
+                        "qasm_def": "gate zz(theta) q0, q1  \
 { \
     ctrl @ U(pi , 0, pi) q0, q1; \
     U(0, 0, 2 * theta * pi) q1;  \
