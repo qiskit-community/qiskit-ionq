@@ -389,13 +389,6 @@ def qiskit_to_ionq(
     )
 
     target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
-    if target == "qpu":
-        target = "qpu.harmony"  # todo default to cheapest available option
-        warnings.warn(
-            "The ionq_qpu backend is deprecated. Defaulting to ionq_qpu.harmony.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     ionq_json = {
         "target": target,
         "shots": passed_args.get("shots"),
