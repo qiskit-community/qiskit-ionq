@@ -27,7 +27,7 @@
 """global pytest fixtures"""
 import pytest
 import requests_mock as _requests_mock
-from qiskit.providers import models as q_models
+from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from requests_mock import adapter as rm_adapter
 
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
@@ -43,7 +43,7 @@ class MockBackend(ionq_backend.IonQBackend):
     def __init__(
         self, provider, name="ionq_mock_backend"
     ):  # pylint: disable=redefined-outer-name
-        config = q_models.BackendConfiguration.from_dict(
+        config = BackendConfiguration.from_dict(
             {
                 "backend_name": name,
                 "backend_version": "0.0.1",

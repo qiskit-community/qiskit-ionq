@@ -31,7 +31,7 @@ from datetime import datetime
 import warnings
 
 from qiskit.providers import BackendV1 as Backend
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
