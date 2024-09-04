@@ -227,7 +227,7 @@ def test_warn_null_mappings(mock_backend, requests_mock):
 
     with pytest.warns(UserWarning) as warninfo:
         mock_backend.run(qc)
-    assert len(warninfo) == 1
+    assert len(warninfo) == 3  # TODO: Change to 1 after BackendV2
     assert str(warninfo[-1].message) == "Circuit is not measuring any qubits"
 
 
