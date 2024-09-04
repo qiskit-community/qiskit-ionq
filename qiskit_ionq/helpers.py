@@ -34,6 +34,8 @@ import gzip
 import base64
 import platform
 import warnings
+import os
+import requests
 
 from qiskit import __version__ as qiskit_terra_version
 from qiskit.circuit import controlledgate as q_cgates
@@ -472,6 +474,33 @@ class SafeEncoder(json.JSONEncoder):
                 )
 
         return "unknown"
+
+
+def get_n_qubits(backend: str) -> int:
+    """Get the number of qubits for a given backend.
+
+    Args:
+        backend (str): The name of the backend.
+
+    Returns:
+        int: The number of qubits for the backend.
+    """
+
+    try:
+        return requests.get(url=f"https://api.ionq.co/v0.3/characterizations/backends/{backend}/current", headers={
+            "Authorization": f"apiKey {os.getenv('IONQ_API_KEY')}"
+        }).json()["qubits"]
+    except Exception as e:
+        if backend == "ionq_qpu.harmony":
+            return 11
+        elif backend == "ionq_qpu.aria-1":
+            return 25
+        elif backend == "ionq_qpu.aria-2":
+            return 25
+        elif backend == "ionq_qpu.forte-1":
+            return 36
+        else:
+            return 36
 
 
 __all__ = [

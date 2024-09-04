@@ -36,7 +36,7 @@ from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
 from . import exceptions, ionq_client, ionq_job, ionq_equivalence_library
-from .helpers import GATESET_MAP
+from .helpers import GATESET_MAP, get_n_qubits
 
 
 class Calibration:
@@ -407,7 +407,7 @@ class IonQSimulatorBackend(IonQBackend):
                 "basis_gates": GATESET_MAP[gateset],
                 "memory": False,
                 # Varied based on noise model, but enforced server-side.
-                "n_qubits": 35,
+                "n_qubits": get_n_qubits(name),
                 "conditional": False,
                 "max_shots": 1,
                 "max_experiments": 1,
@@ -482,7 +482,7 @@ class IonQQPUBackend(IonQBackend):
                 # This is a generic backend for all IonQ hardware, the server will do more specific
                 # qubit count checks. In the future, dynamic backend configuration from the server
                 # will be used in place of these hard-coded caps.
-                "n_qubits": 35,
+                "n_qubits": get_n_qubits(name),
                 "conditional": False,
                 "max_shots": 10000,
                 "max_experiments": 1,
