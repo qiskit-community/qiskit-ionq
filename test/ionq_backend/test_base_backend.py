@@ -227,8 +227,7 @@ def test_warn_null_mappings(mock_backend, requests_mock):
 
     with pytest.warns(UserWarning) as warninfo:
         mock_backend.run(qc)
-    assert len(warninfo) == 1
-    assert str(warninfo[-1].message) == "Circuit is not measuring any qubits"
+    assert "Circuit is not measuring any qubits" in {str(w.message) for w in warninfo}
 
 
 def test_multiexp_job(mock_backend, requests_mock):

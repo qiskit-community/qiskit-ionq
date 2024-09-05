@@ -34,6 +34,9 @@ import gzip
 import base64
 import platform
 import warnings
+import os
+import requests
+from dotenv import dotenv_values
 
 from qiskit import __version__ as qiskit_terra_version
 from qiskit.circuit import controlledgate as q_cgates
@@ -423,7 +426,9 @@ def qiskit_to_ionq(
     settings = passed_args.get("job_settings") or None
     if settings is not None:
         ionq_json["settings"] = settings
-    error_mitigation = passed_args.get("error_mitigation")
+    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
+        "error_mitigation"
+    )
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
     return json.dumps(ionq_json, cls=SafeEncoder)
@@ -474,10 +479,74 @@ class SafeEncoder(json.JSONEncoder):
         return "unknown"
 
 
+
+def resolve_credentials(token: str = None, url: str = None):
+    """Resolve credentials for use in IonQ API calls.
+
+    If the provided ``token`` and ``url`` are both ``None``, then these values
+    are loaded from the ``IONQ_API_TOKEN`` and ``IONQ_API_URL``
+    environment variables, respectively.
+
+    If no url is discovered, then ``https://api.ionq.co/v0.3`` is used.
+
+    Args:
+        token (str): IonQ API access token.
+        url (str, optional): IonQ API url. Defaults to ``None``.
+
+    Returns:
+        dict[str]: A dict with "token" and "url" keys, for use by a client.
+    """
+    env_token = (
+        dotenv_values().get("QISKIT_IONQ_API_TOKEN")  # first check for dotenv values
+        or dotenv_values().get("IONQ_API_KEY")
+        or dotenv_values().get("IONQ_API_TOKEN")
+        or os.getenv("QISKIT_IONQ_API_TOKEN")  # then check for global env values
+        or os.getenv("IONQ_API_KEY")
+        or os.getenv("IONQ_API_TOKEN")
+    )
+    env_url = (
+        dotenv_values().get("QISKIT_IONQ_API_URL")
+        or dotenv_values().get("IONQ_API_URL")
+        or os.getenv("QISKIT_IONQ_API_URL")
+        or os.getenv("IONQ_API_URL")
+    )
+    return {
+        "token": token or env_token,
+        "url": url or env_url or "https://api.ionq.co/v0.3",
+    }
+
+
+
+def get_n_qubits(backend: str, _fallback=100) -> int:
+    """Get the number of qubits for a given backend.
+
+    Args:
+        backend (str): The name of the backend.
+
+    Returns:
+        int: The number of qubits for the backend.
+    """
+    url, token = resolve_credentials().values()
+    # could use provider.get_calibration_data().get("qubits", 36)
+    try:
+        return requests.get(
+            url=f"{url}/characterizations/backends/{backend}/current",
+            headers={"Authorization": f"apiKey {token}"},
+            timeout=5,
+        ).json()["qubits"]
+    except Exception as exception:  # pylint: disable=broad-except
+        warnings.warn(
+            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {_fallback}."
+        )
+        return _fallback
+
+
 __all__ = [
     "qiskit_to_ionq",
     "qiskit_circ_to_ionq_circ",
     "compress_to_metadata_string",
     "decompress_metadata_string",
     "get_user_agent",
+    "resolve_credentials",
+    "get_n_qubits",
 ]
