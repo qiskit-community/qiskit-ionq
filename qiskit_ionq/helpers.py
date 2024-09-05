@@ -527,23 +527,12 @@ def get_n_qubits(backend: str) -> int:
         int: The number of qubits for the backend.
     """
     url, token = resolve_credentials().values()
-    try:
-        return requests.get(
-            url=f"{url}/characterizations/backends/{backend}/current",
-            headers={"Authorization": f"apiKey {token}"},
-            timeout=5,
-        ).json()["qubits"]
-    except Exception:  # pylint: disable=broad-except
-        if backend == "ionq_qpu.harmony":
-            return 11
-        elif backend == "ionq_qpu.aria-1":
-            return 25
-        elif backend == "ionq_qpu.aria-2":
-            return 25
-        elif backend == "ionq_qpu.forte-1":
-            return 36
-        else:
-            return 36
+    # could use provider.get_calibration_data().get("qubits", 36)
+    return requests.get(
+        url=f"{url}/characterizations/backends/{backend}/current",
+        headers={"Authorization": f"apiKey {token}"},
+        timeout=5,
+    ).json().get("qubits", 36)
 
 
 __all__ = [
@@ -552,4 +541,6 @@ __all__ = [
     "compress_to_metadata_string",
     "decompress_metadata_string",
     "get_user_agent",
+    "resolve_credentials",
+    "get_n_qubits",
 ]
