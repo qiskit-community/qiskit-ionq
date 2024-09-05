@@ -517,7 +517,7 @@ def resolve_credentials(token: str = None, url: str = None):
 
 
 
-def get_n_qubits(backend: str) -> int:
+def get_n_qubits(backend: str, _fallback=100) -> int:
     """Get the number of qubits for a given backend.
 
     Args:
@@ -535,8 +535,10 @@ def get_n_qubits(backend: str) -> int:
             timeout=5,
         ).json()["qubits"]
     except Exception as exception:  # pylint: disable=broad-except
-        warnings.warn(f"Unable to get qubit count for {backend}: {exception}. Defaulting to 36.")
-        return 36
+        warnings.warn(
+            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {_fallback}."
+        )
+        return _fallback
 
 
 __all__ = [
