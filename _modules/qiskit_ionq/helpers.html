@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.helpers - Qiskit IonQ Provider 0.5.4</title>
+        <title>qiskit_ionq.helpers - Qiskit IonQ Provider 0.5.5</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.4</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.5</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.4</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.5</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -267,6 +267,9 @@
 <span class="kn">import</span> <span class="nn">base64</span>
 <span class="kn">import</span> <span class="nn">platform</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">dotenv_values</span>
 
 <span class="kn">from</span> <span class="nn">qiskit</span> <span class="kn">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">qiskit_terra_version</span>
 <span class="kn">from</span> <span class="nn">qiskit.circuit</span> <span class="kn">import</span> <span class="n">controlledgate</span> <span class="k">as</span> <span class="n">q_cgates</span>
@@ -633,13 +636,6 @@
     <span class="p">)</span>
 
     <span class="n">target</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span><span class="p">()[</span><span class="mi">5</span><span class="p">:]</span> <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ionq&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s2">&quot;qpu&quot;</span><span class="p">:</span>
-        <span class="n">target</span> <span class="o">=</span> <span class="s2">&quot;qpu.harmony&quot;</span>  <span class="c1"># todo default to cheapest available option</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="s2">&quot;The ionq_qpu backend is deprecated. Defaulting to ionq_qpu.harmony.&quot;</span><span class="p">,</span>
-            <span class="ne">DeprecationWarning</span><span class="p">,</span>
-            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="p">)</span>
     <span class="n">ionq_json</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;target&quot;</span><span class="p">:</span> <span class="n">target</span><span class="p">,</span>
         <span class="s2">&quot;shots&quot;</span><span class="p">:</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shots&quot;</span><span class="p">),</span>
@@ -674,7 +670,9 @@
     <span class="n">settings</span> <span class="o">=</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;job_settings&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ionq_json</span><span class="p">[</span><span class="s2">&quot;settings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span>
-    <span class="n">error_mitigation</span> <span class="o">=</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;error_mitigation&quot;</span><span class="p">)</span>
+    <span class="n">error_mitigation</span> <span class="o">=</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;error_mitigation&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">backend</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="s2">&quot;error_mitigation&quot;</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">error_mitigation</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error_mitigation</span><span class="p">,</span> <span class="n">ErrorMitigation</span><span class="p">):</span>
         <span class="n">ionq_json</span><span class="p">[</span><span class="s2">&quot;error_mitigation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">error_mitigation</span><span class="o">.</span><span class="n">value</span>
     <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">ionq_json</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">SafeEncoder</span><span class="p">)</span></div>
@@ -729,12 +727,82 @@
         <span class="k">return</span> <span class="s2">&quot;unknown&quot;</span>
 
 
+
+<div class="viewcode-block" id="resolve_credentials">
+<a class="viewcode-back" href="../../apidocs/helpers.html#qiskit_ionq.helpers.resolve_credentials">[docs]</a>
+<span class="k">def</span> <span class="nf">resolve_credentials</span><span class="p">(</span><span class="n">token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve credentials for use in IonQ API calls.</span>
+
+<span class="sd">    If the provided ``token`` and ``url`` are both ``None``, then these values</span>
+<span class="sd">    are loaded from the ``IONQ_API_TOKEN`` and ``IONQ_API_URL``</span>
+<span class="sd">    environment variables, respectively.</span>
+
+<span class="sd">    If no url is discovered, then ``https://api.ionq.co/v0.3`` is used.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        token (str): IonQ API access token.</span>
+<span class="sd">        url (str, optional): IonQ API url. Defaults to ``None``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str]: A dict with &quot;token&quot; and &quot;url&quot; keys, for use by a client.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">env_token</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">dotenv_values</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;QISKIT_IONQ_API_TOKEN&quot;</span><span class="p">)</span>  <span class="c1"># first check for dotenv values</span>
+        <span class="ow">or</span> <span class="n">dotenv_values</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;IONQ_API_KEY&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">dotenv_values</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;IONQ_API_TOKEN&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;QISKIT_IONQ_API_TOKEN&quot;</span><span class="p">)</span>  <span class="c1"># then check for global env values</span>
+        <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;IONQ_API_KEY&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;IONQ_API_TOKEN&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">env_url</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">dotenv_values</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;QISKIT_IONQ_API_URL&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">dotenv_values</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;IONQ_API_URL&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;QISKIT_IONQ_API_URL&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;IONQ_API_URL&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="n">token</span> <span class="ow">or</span> <span class="n">env_token</span><span class="p">,</span>
+        <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">url</span> <span class="ow">or</span> <span class="n">env_url</span> <span class="ow">or</span> <span class="s2">&quot;https://api.ionq.co/v0.3&quot;</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+
+
+
+<div class="viewcode-block" id="get_n_qubits">
+<a class="viewcode-back" href="../../apidocs/helpers.html#qiskit_ionq.helpers.get_n_qubits">[docs]</a>
+<span class="k">def</span> <span class="nf">get_n_qubits</span><span class="p">(</span><span class="n">backend</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">_fallback</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the number of qubits for a given backend.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        backend (str): The name of the backend.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: The number of qubits for the backend.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">url</span><span class="p">,</span> <span class="n">token</span> <span class="o">=</span> <span class="n">resolve_credentials</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+    <span class="c1"># could use provider.get_calibration_data().get(&quot;qubits&quot;, 36)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">url</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">/characterizations/backends/</span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2">/current&quot;</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Authorization&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;apiKey </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">},</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;qubits&quot;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exception</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Unable to get qubit count for </span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exception</span><span class="si">}</span><span class="s2">. Defaulting to </span><span class="si">{</span><span class="n">_fallback</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">_fallback</span></div>
+
+
+
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;qiskit_to_ionq&quot;</span><span class="p">,</span>
     <span class="s2">&quot;qiskit_circ_to_ionq_circ&quot;</span><span class="p">,</span>
     <span class="s2">&quot;compress_to_metadata_string&quot;</span><span class="p">,</span>
     <span class="s2">&quot;decompress_metadata_string&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_user_agent&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;resolve_credentials&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_n_qubits&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 </pre></div>
         </article>
@@ -769,7 +837,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=e1a677a5"></script>
+    <script src="../../_static/documentation_options.js?v=45def3bc"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>

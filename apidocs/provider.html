@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="IonQ Backends" href="backends.html" /><link rel="prev" title="IonQ Job" href="job.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>IonQ Provider - Qiskit IonQ Provider 0.5.4</title>
+        <title>IonQ Provider - Qiskit IonQ Provider 0.5.5</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.4</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.5</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.4</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.5</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -289,30 +289,6 @@ IonQ API URL, respectively.</p>
 
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_provider.resolve_credentials">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_provider.</span></span><span class="sig-name descname"><span class="pre">resolve_credentials</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_provider.html#resolve_credentials"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_provider.resolve_credentials" title="Link to this definition">¶</a></dt>
-<dd><p>Resolve credentials for use in IonQ Client API calls.</p>
-<p>If the provided <code class="docutils literal notranslate"><span class="pre">token</span></code> and <code class="docutils literal notranslate"><span class="pre">url</span></code> are both <code class="docutils literal notranslate"><span class="pre">None</span></code>, then these values
-are loaded from the <code class="docutils literal notranslate"><span class="pre">IONQ_API_TOKEN</span></code> and <code class="docutils literal notranslate"><span class="pre">IONQ_API_URL</span></code>
-environment variables, respectively.</p>
-<p>If no url is discovered, then <code class="docutils literal notranslate"><span class="pre">https://api.ionq.co/v0.3</span></code> is used.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>token</strong> (<em>str</em>) – IonQ API access token.</p></li>
-<li><p><strong>url</strong> (<em>str</em><em>, </em><em>optional</em>) – IonQ API url. Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A dict with “token” and “url” keys, for use by a client.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict[str]</p>
-</dd>
-</dl>
-</dd></dl>
-
 </section>
 
         </article>
@@ -376,7 +352,6 @@ environment variables, respectively.</p>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_provider.IonQProvider.get_backend"><code class="docutils literal notranslate"><span class="pre">IonQProvider.get_backend()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_provider.resolve_credentials"><code class="docutils literal notranslate"><span class="pre">resolve_credentials()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -390,7 +365,7 @@ environment variables, respectively.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=e1a677a5"></script>
+    <script src="../_static/documentation_options.js?v=45def3bc"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
