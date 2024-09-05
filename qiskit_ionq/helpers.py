@@ -528,11 +528,15 @@ def get_n_qubits(backend: str) -> int:
     """
     url, token = resolve_credentials().values()
     # could use provider.get_calibration_data().get("qubits", 36)
-    return requests.get(
-        url=f"{url}/characterizations/backends/{backend}/current",
-        headers={"Authorization": f"apiKey {token}"},
-        timeout=5,
-    ).json().get("qubits", 36)
+    try:
+        return requests.get(
+            url=f"{url}/characterizations/backends/{backend}/current",
+            headers={"Authorization": f"apiKey {token}"},
+            timeout=5,
+        ).json()["qubits"]
+    except Exception as exception:  # pylint: disable=broad-except
+        warnings.warn(f"Unable to get qubit count for {backend}: {exception}. Defaulting to 36.")
+        return 36
 
 
 __all__ = [
