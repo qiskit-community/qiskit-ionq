@@ -426,7 +426,7 @@ def qiskit_to_ionq(
     settings = passed_args.get("job_settings") or None
     if settings is not None:
         ionq_json["settings"] = settings
-    error_mitigation = passed_args.get("error_mitigation")
+    error_mitigation = passed_args.get("error_mitigation") or backend.options.error_mitigation
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
     return json.dumps(ionq_json, cls=SafeEncoder)
