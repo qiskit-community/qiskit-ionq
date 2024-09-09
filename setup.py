@@ -78,7 +78,7 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     setup_requires=["pytest-runner"],
     install_requires=REQUIREMENTS,
     tests_require=TEST_REQUIREMENTS,
