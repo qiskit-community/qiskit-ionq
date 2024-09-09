@@ -38,8 +38,8 @@
 from __future__ import annotations
 
 import warnings
-import numpy as np
 from typing import TYPE_CHECKING
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus

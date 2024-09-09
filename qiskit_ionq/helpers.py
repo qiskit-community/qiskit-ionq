@@ -37,8 +37,8 @@ import base64
 import platform
 import warnings
 import os
-import requests
 from typing import Literal
+import requests
 from dotenv import dotenv_values
 
 from qiskit import __version__ as qiskit_terra_version
