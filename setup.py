@@ -84,6 +84,7 @@ setup(
     tests_require=TEST_REQUIREMENTS,
     zip_safe=False,
     include_package_data=True,
+    package_data={"qiskit_ionq": ["py.typed"]},
     project_urls={
         "Bug Tracker": "https://github.com/qiskit-partners/qiskit-ionq/issues",
         "Source Code": "https://github.com/qiskit-partners/qiskit-ionq",
