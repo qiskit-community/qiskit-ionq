@@ -29,17 +29,25 @@ Helper methods for mapping Qiskit classes
 to IonQ REST API compatible values.
 """
 
+from __future__ import annotations
+
 import json
 import gzip
 import base64
 import platform
 import warnings
 import os
+from typing import Literal
 import requests
 from dotenv import dotenv_values
 
 from qiskit import __version__ as qiskit_terra_version
-from qiskit.circuit import controlledgate as q_cgates
+from qiskit.circuit import (
+    controlledgate as q_cgates,
+    QuantumCircuit,
+    QuantumRegister,
+    ClassicalRegister,
+)
 from qiskit.circuit.library import standard_gates as q_gates
 
 # Use this to get version instead of __version__ to avoid circular dependency.
@@ -133,7 +141,9 @@ GATESET_MAP = {
 }
 
 
-def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
+def qiskit_circ_to_ionq_circ(
+    input_circuit: QuantumCircuit, gateset: Literal["qis", "native"] = "qis"
+):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
     .. ATTENTION:: This function ignores the following compiler directives:
@@ -273,7 +283,9 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
     return output_circuit, num_meas, meas_map
 
 
-def get_register_sizes_and_labels(registers):
+def get_register_sizes_and_labels(
+    registers: list[QuantumRegister | ClassicalRegister],
+) -> tuple[list, list]:
     """Returns a tuple of sizes and labels in for a given register
 
     Args:
@@ -299,7 +311,7 @@ def get_register_sizes_and_labels(registers):
     return sizes, labels
 
 
-def compress_to_metadata_string(metadata):  # pylint: disable=invalid-name
+def compress_to_metadata_string(metadata: dict | list) -> str:  # pylint: disable=invalid-name
     """
     Convert a metadata object to a compact string format (dumped, gzipped, base64 encoded)
     for storing in IonQ API metadata
@@ -318,7 +330,7 @@ def compress_to_metadata_string(metadata):  # pylint: disable=invalid-name
     return encoded.decode()
 
 
-def decompress_metadata_string(input_string):  # pylint: disable=invalid-name
+def decompress_metadata_string(input_string: str) -> dict | list:  # pylint: disable=invalid-name
     """
     Convert compact string format (dumped, gzipped, base64 encoded) from
     IonQ API metadata back into a dict or list of dicts relevant to building
@@ -366,7 +378,7 @@ def qiskit_to_ionq(
     else:
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
         circuit = [circuit]
-
+    circuit: list[QuantumCircuit] | tuple[QuantumCircuit, ...]
     metadata_list = [
         {
             "memory_slots": circ.num_clbits,  # int
@@ -479,7 +491,6 @@ class SafeEncoder(json.JSONEncoder):
         return "unknown"
 
 
-
 def resolve_credentials(token: str = None, url: str = None):
     """Resolve credentials for use in IonQ API calls.
 
@@ -514,7 +525,6 @@ def resolve_credentials(token: str = None, url: str = None):
         "token": token or env_token,
         "url": url or env_url or "https://api.ionq.co/v0.3",
     }
-
 
 
 def get_n_qubits(backend: str, _fallback=100) -> int:

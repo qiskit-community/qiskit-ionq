@@ -35,16 +35,23 @@
    :class:`BaseJob <qiskit.providers.BaseJob>`.
 """
 
+from __future__ import annotations
+
 import warnings
+from typing import TYPE_CHECKING
 import numpy as np
 
+from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
 from .helpers import decompress_metadata_string
 
-
 from . import constants, exceptions
+
+if TYPE_CHECKING:
+    from . import ionq_backend
+    from . import ionq_client
 
 
 def map_output(data, clbits, num_qubits):
@@ -155,11 +162,11 @@ class IonQJob(JobV1):
 
     def __init__(
         self,
-        backend,
-        job_id,
-        client=None,
-        circuit=None,
-        passed_args=None,
+        backend: ionq_backend.IonQBackend,
+        job_id: str,
+        client: ionq_client.IonQClient | None = None,
+        circuit: QuantumCircuit | None = None,
+        passed_args: dict | None = None,
     ):
         super().__init__(backend, job_id)
         self._client = client or backend.client
@@ -187,11 +194,11 @@ class IonQJob(JobV1):
             self._job_id = job_id
             self.status()
 
-    def cancel(self):
+    def cancel(self) -> None:
         """Cancel this job."""
         self._client.cancel_job(self._job_id)
 
-    def submit(self):
+    def submit(self) -> None:
         """Submit a job to the IonQ API.
 
         Raises:
@@ -206,7 +213,7 @@ class IonQJob(JobV1):
         response = self._client.submit_job(job=self)
         self._job_id = response["id"]
 
-    def get_counts(self, circuit=None):
+    def get_counts(self, circuit: QuantumCircuit | None = None) -> dict:
         """Return the counts for the job.
 
         .. ATTENTION::
@@ -287,7 +294,7 @@ class IonQJob(JobV1):
 
         return self._result
 
-    def status(self, detailed=False):
+    def status(self, detailed: bool = False) -> jobstatus.JobStatus | dict:
         """Retrieve the status of a job
 
         Args:
