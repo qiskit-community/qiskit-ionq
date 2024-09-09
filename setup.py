@@ -81,7 +81,7 @@ setup(
     python_requires=">=3.9",
     setup_requires=[],
     install_requires=REQUIREMENTS,
-    tests_require=TEST_REQUIREMENTS,
+    extras_require={"test": TEST_REQUIREMENTS},
     zip_safe=False,
     include_package_data=True,
     package_data={"qiskit_ionq": ["py.typed"]},
