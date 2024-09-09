@@ -25,7 +25,9 @@
 # limitations under the License.
 
 """Exceptions for the IonQ Provider."""
-from __future__  import annotations
+from __future__ import annotations
+
+from typing import Literal
 
 import json.decoder as jd
 
@@ -113,7 +115,7 @@ class IonQAPIError(IonQError):
         raise res
 
     @classmethod
-    def from_response(cls, response):
+    def from_response(cls, response: requests.Response) -> IonQAPIError:
         """Raise an instance of the exception class from an API response object.
 
         Args:
@@ -189,7 +191,7 @@ class IonQGateError(IonQError, JobError):
         gate_name: The name of the gate which caused this error.
     """
 
-    def __init__(self, gate_name: str, gateset):
+    def __init__(self, gate_name: str, gateset: Literal["qis", "native"]):
         self.gate_name = gate_name
         self.gateset = gateset
         super().__init__(
@@ -212,7 +214,7 @@ class IonQMidCircuitMeasurementError(IonQError, JobError):
         qubit_index: The qubit index to be measured mid-circuit
     """
 
-    def __init__(self, qubit_index, gate_name):
+    def __init__(self, qubit_index: int, gate_name: str):
         self.qubit_index = qubit_index
         self.gate_name = gate_name
         super().__init__(
