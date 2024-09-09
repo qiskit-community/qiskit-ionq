@@ -156,7 +156,7 @@ class IonQJob(JobV1):
     def __init__(
         self,
         backend,
-        job_id,
+        job_id: str,
         client=None,
         circuit=None,
         passed_args=None,
