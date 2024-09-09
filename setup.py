@@ -79,7 +79,7 @@ setup(
     ],
     keywords="qiskit sdk quantum",
     python_requires=">=3.9",
-    setup_requires=["pytest-runner"],
+    setup_requires=[],
     install_requires=REQUIREMENTS,
     tests_require=TEST_REQUIREMENTS,
     zip_safe=False,
