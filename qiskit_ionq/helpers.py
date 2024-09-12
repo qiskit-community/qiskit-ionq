@@ -543,13 +543,13 @@ def get_n_qubits(backend: str, _fallback=100) -> int:
     try:
         target = backend[5:] if backend.startswith("ionq") else backend
         return requests.get(
-            url=f"{url}/characterizations/backends/{backend}/current",
+            url=f"{url}/characterizations/backends/{target}/current",
             headers={"Authorization": f"apiKey {token}"},
             timeout=5,
         ).json()["qubits"]
     except Exception as exception:  # pylint: disable=broad-except
         warnings.warn(
-            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {_fallback}."
+            f"Unable to get qubit count for {target}: {exception}. Defaulting to {_fallback}."
         )
         return _fallback
 
