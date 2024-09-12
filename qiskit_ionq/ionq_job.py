@@ -34,12 +34,14 @@
    perform a mapping between these status values for compatibility with
    :class:`BaseJob <qiskit.providers.BaseJob>`.
 """
+from __future__ import annotations
 
 from __future__ import annotations
 
 import warnings
 from typing import TYPE_CHECKING
 import numpy as np
+from typing import Any, Union
 
 from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus
@@ -163,7 +165,7 @@ class IonQJob(JobV1):
     def __init__(
         self,
         backend: ionq_backend.IonQBackend,
-        job_id: str,
+        job_id: str | None,
         client: ionq_client.IonQClient | None = None,
         circuit: QuantumCircuit | None = None,
         passed_args: dict | None = None,
@@ -173,7 +175,7 @@ class IonQJob(JobV1):
         self._result = None
         self._status = None
         self._execution_time = None
-        self._metadata = {}
+        self._metadata: dict[str, Any] = {}
 
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
@@ -196,6 +198,7 @@ class IonQJob(JobV1):
 
     def cancel(self) -> None:
         """Cancel this job."""
+        assert self._job_id is not None, "Cannot cancel a job without a job_id."
         self._client.cancel_job(self._job_id)
 
     def submit(self) -> None:
@@ -249,7 +252,7 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
-    def result(self, sharpen: bool = None, extra_query_params: dict = None, **kwargs):
+    def result(self, sharpen: bool | None = None, extra_query_params: dict | None = None, **kwargs):
         """Retrieve job result data.
 
         .. NOTE::
@@ -285,6 +288,7 @@ class IonQJob(JobV1):
             ) from ex
 
         if self._status is jobstatus.JobStatus.DONE:
+            assert self._job_id is not None
             response = self._client.get_results(
                 job_id=self._job_id,
                 sharpen=sharpen,
@@ -324,6 +328,7 @@ class IonQJob(JobV1):
         # Otherwise, look up a status enum from the response.
         response = self._client.retrieve_job(self._job_id)
         api_response_status = response.get("status")
+        status_enum: Union[constants.APIJobStatus, constants.JobStatusMap, jobstatus.JobStatus]
         try:
             status_enum = constants.APIJobStatus(api_response_status)
         except ValueError as ex:
@@ -365,7 +370,7 @@ class IonQJob(JobV1):
                 if self._children
                 else [response.get("registers", {}).get("meas_mapped", default_map)]
             )
-            self._execution_time = response.get("execution_time") / 1000
+            self._execution_time = response["execution_time"] / 1000
 
         if self._status == jobstatus.JobStatus.ERROR:
             failure = response.get("failure") or {}
