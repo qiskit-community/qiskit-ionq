@@ -308,7 +308,7 @@ class IonQBackend(Backend):
             status_msg="",
         )
 
-    def calibration(self) -> Calibration:
+    def calibration(self) -> Calibration | None:
         """Fetch the most recent calibration data for this backend.
 
         Returns:

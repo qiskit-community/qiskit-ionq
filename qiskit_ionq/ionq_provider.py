@@ -26,6 +26,8 @@
 
 """Provider for interacting with IonQ backends"""
 
+from __future__ import annotations
+
 import logging
 
 from typing import Callable, Literal
@@ -38,7 +40,6 @@ from . import ionq_backend
 
 
 logger = logging.getLogger(__name__)
-
 
 class IonQProvider:
     """Provider for interacting with IonQ backends
@@ -69,7 +70,7 @@ class IonQProvider:
 
     def get_backend(
         self,
-        name: str | None = None,
+        name: str,
         gateset: Literal["qis", "native"] = "qis",
         **kwargs,
     ) -> ionq_backend.Backend:
