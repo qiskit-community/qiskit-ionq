@@ -70,6 +70,7 @@ def cx_gate_equivalence() -> None:
 
 # Below are the rules needed for Aer simulator to simulate circuits containing IonQ native gates
 
+
 def gpi_gate_equivalence() -> None:
     """Add GPI gate equivalence to the SessionEquivalenceLibrary."""
     q = QuantumRegister(1, "q")

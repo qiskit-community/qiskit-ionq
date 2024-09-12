@@ -25,6 +25,7 @@
 # limitations under the License.
 
 """global pytest fixtures"""
+
 import pytest
 import requests_mock as _requests_mock
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
@@ -40,9 +41,7 @@ class MockBackend(ionq_backend.IonQBackend):
     def gateset(self):
         return "qis"
 
-    def __init__(
-        self, provider, name="ionq_mock_backend"
-    ):  # pylint: disable=redefined-outer-name
+    def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
         config = BackendConfiguration.from_dict(
             {
                 "backend_name": name,

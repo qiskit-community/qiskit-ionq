@@ -43,6 +43,7 @@ from .exceptions import IonQRetriableError
 if TYPE_CHECKING:
     from .ionq_job import IonQJob
 
+
 class IonQClient:
     """IonQ API Client
 
