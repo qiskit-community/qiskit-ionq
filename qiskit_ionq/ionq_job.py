@@ -36,12 +36,9 @@
 """
 from __future__ import annotations
 
-from __future__ import annotations
-
 import warnings
-from typing import TYPE_CHECKING
+from typing import Any, Union, TYPE_CHECKING
 import numpy as np
-from typing import Any, Union
 
 from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus
