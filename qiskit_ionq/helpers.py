@@ -549,7 +549,7 @@ def get_n_qubits(backend: str, _fallback=100) -> int:
         ).json()["qubits"]
     except Exception as exception:  # pylint: disable=broad-except
         warnings.warn(
-            f"Unable to get qubit count for {target}: {exception}. Defaulting to {_fallback}."
+            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {_fallback}."
         )
         return _fallback
 
