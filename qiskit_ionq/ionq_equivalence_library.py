@@ -33,7 +33,7 @@ from qiskit.circuit.library import CXGate, RXGate, RZGate, UGate, XGate, CU3Gate
 from .ionq_gates import GPIGate, GPI2Gate, MSGate
 
 
-def u_gate_equivalence():
+def u_gate_equivalence() -> None:
     """Add U gate equivalence to the SessionEquivalenceLibrary."""
     q = QuantumRegister(1, "q")
     theta_param = Parameter("theta_param")
@@ -56,7 +56,7 @@ def u_gate_equivalence():
     )
 
 
-def cx_gate_equivalence():
+def cx_gate_equivalence() -> None:
     """Add CX gate equivalence to the SessionEquivalenceLibrary."""
     q = QuantumRegister(2, "q")
     cx_gate = QuantumCircuit(q)
@@ -70,7 +70,7 @@ def cx_gate_equivalence():
 
 # Below are the rules needed for Aer simulator to simulate circuits containing IonQ native gates
 
-def gpi_gate_equivalence():
+def gpi_gate_equivalence() -> None:
     """Add GPI gate equivalence to the SessionEquivalenceLibrary."""
     q = QuantumRegister(1, "q")
     phi_param = Parameter("phi_param")
@@ -80,7 +80,7 @@ def gpi_gate_equivalence():
     SessionEquivalenceLibrary.add_equivalence(GPIGate(phi_param), gpi_gate)
 
 
-def gpi2_gate_equivalence():
+def gpi2_gate_equivalence() -> None:
     """Add GPI2 gate equivalence to the SessionEquivalenceLibrary."""
     q = QuantumRegister(1, "q")
     phi_param = Parameter("phi_param")
@@ -91,7 +91,7 @@ def gpi2_gate_equivalence():
     SessionEquivalenceLibrary.add_equivalence(GPI2Gate(phi_param), gpi2_gate)
 
 
-def ms_gate_equivalence():
+def ms_gate_equivalence() -> None:
     """Add MS gate equivalence to the SessionEquivalenceLibrary."""
     q = QuantumRegister(2, "q")
     phi0_param = Parameter("phi0_param")
@@ -125,7 +125,7 @@ def ms_gate_equivalence():
     )
 
 
-def add_equivalences():
+def add_equivalences() -> None:
     """Add IonQ gate equivalences to the SessionEquivalenceLibrary."""
     u_gate_equivalence()
     cx_gate_equivalence()

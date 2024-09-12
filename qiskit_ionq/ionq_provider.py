@@ -28,14 +28,16 @@
 
 import logging
 
+from typing import Callable, Literal
+
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
 from .helpers import resolve_credentials
 
 from . import ionq_backend
 
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 
 class IonQProvider:
@@ -49,7 +51,12 @@ class IonQProvider:
 
     name = "ionq_provider"
 
-    def __init__(self, token: str = None, url: str = None, custom_headers: dict = None):
+    def __init__(
+        self,
+        token: str | None = None,
+        url: str | None = None,
+        custom_headers: dict | None = None,
+    ):
         super().__init__()
         self.custom_headers = custom_headers
         self.credentials = resolve_credentials(token, url)
@@ -60,7 +67,12 @@ class IonQProvider:
             ]
         )
 
-    def get_backend(self, name: str = None, gateset="qis", **kwargs):
+    def get_backend(
+        self,
+        name: str | None = None,
+        gateset: Literal["qis", "native"] = "qis",
+        **kwargs,
+    ) -> ionq_backend.Backend:
         """Return a single backend matching the specified filtering.
         Args:
             name (str): name of the backend.
@@ -87,7 +99,7 @@ class BackendService:
     of backends from provider.
     """
 
-    def __init__(self, backends):
+    def __init__(self, backends: list[ionq_backend.Backend]):
         """Initialize service
 
         Parameters:
@@ -97,7 +109,9 @@ class BackendService:
         for backend in backends:
             setattr(self, backend.name(), backend)
 
-    def __call__(self, name=None, filters=None, **kwargs):
+    def __call__(
+        self, name: str | None = None, filters: Callable | None = None, **kwargs
+    ) -> list[ionq_backend.Backend]:
         """A listing of all backends from this provider.
 
         Parameters:

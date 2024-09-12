@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import abc
 from datetime import datetime
+from typing import Literal, TYPE_CHECKING
 import warnings
 
 from qiskit.circuit import QuantumCircuit
@@ -40,6 +41,9 @@ from qiskit.providers import Options
 
 from . import exceptions, ionq_client, ionq_job, ionq_equivalence_library
 from .helpers import GATESET_MAP, get_n_qubits
+
+if TYPE_CHECKING:
+    from .ionq_provider import IonQProvider
 
 
 class Calibration:
@@ -322,9 +326,8 @@ class IonQBackend(Backend):
         pass
 
     @abc.abstractmethod
-    def gateset(self):
+    def gateset(self) -> Literal["qis", "native"]:
         """Helper method returning the gateset this backend is targeting."""
-        pass
 
     def __eq__(self, other) -> bool:
         if isinstance(other, self.__class__):
@@ -355,7 +358,7 @@ class IonQSimulatorBackend(IonQBackend):
     """
 
     @classmethod
-    def _default_options(cls):
+    def _default_options(cls) -> Options:
         return Options(
             shots=1024,
             job_settings=None,
@@ -366,7 +369,7 @@ class IonQSimulatorBackend(IonQBackend):
         )
 
     # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,useless-super-delegation
-    def run(self, circuit: QuantumCircuit, **kwargs):
+    def run(self, circuit: QuantumCircuit, **kwargs) -> ionq_job.IonQJob:
         """Create and run a job on IonQ's Simulator Backend.
 
         .. WARNING:
@@ -391,10 +394,15 @@ class IonQSimulatorBackend(IonQBackend):
         """
         return None
 
-    def gateset(self):
+    def gateset(self) -> Literal["qis", "native"]:
         return self._gateset
 
-    def __init__(self, provider, name="simulator", gateset="qis"):
+    def __init__(
+        self,
+        provider,
+        name: str = "simulator",
+        gateset: Literal["qis", "native"] = "qis",
+    ):
         """Base class for interfacing with an IonQ backend"""
         self._gateset = gateset
         config = BackendConfiguration.from_dict(
@@ -459,7 +467,7 @@ class IonQSimulatorBackend(IonQBackend):
         )
         super().__init__(configuration=config, provider=provider)
 
-    def with_name(self, name, **kwargs):
+    def with_name(self, name, **kwargs) -> IonQSimulatorBackend:
         """Helper method that returns this backend with a more specific target system."""
         return IonQSimulatorBackend(self._provider, name, **kwargs)
 
@@ -467,10 +475,15 @@ class IonQSimulatorBackend(IonQBackend):
 class IonQQPUBackend(IonQBackend):
     """IonQ Backend for running qpu-based jobs."""
 
-    def gateset(self):
+    def gateset(self) -> Literal["qis", "native"]:
         return self._gateset
 
-    def __init__(self, provider, name="ionq_qpu", gateset="qis"):
+    def __init__(
+        self,
+        provider: IonQProvider,
+        name: str = "ionq_qpu",
+        gateset: Literal["qis", "native"] = "qis",
+    ):
         self._gateset = gateset
         config = BackendConfiguration.from_dict(
             {
@@ -534,7 +547,7 @@ class IonQQPUBackend(IonQBackend):
         )
         super().__init__(configuration=config, provider=provider)
 
-    def with_name(self, name, **kwargs):
+    def with_name(self, name: str, **kwargs) -> IonQQPUBackend:
         """Helper method that returns this backend with a more specific target system."""
         return IonQQPUBackend(self._provider, name, **kwargs)
 
