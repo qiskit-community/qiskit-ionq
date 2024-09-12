@@ -21,4 +21,6 @@ repos:
     hooks:
       - id: mypy
         exclude: ipynb_filter.py|docs/source/conf.py
-        additional_dependencies: []
+        additional_dependencies:
+          - types-requests
+          - types-retry
