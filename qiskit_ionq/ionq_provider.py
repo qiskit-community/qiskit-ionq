@@ -41,6 +41,7 @@ from . import ionq_backend
 
 logger = logging.getLogger(__name__)
 
+
 class IonQProvider:
     """Provider for interacting with IonQ backends
 

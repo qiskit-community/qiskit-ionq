@@ -26,7 +26,6 @@
 
 """Test the helper functions."""
 
-
 import re
 from qiskit_ionq.ionq_client import IonQClient
 
@@ -37,12 +36,13 @@ def test_user_agent_header():
     version format.
     """
     ionq_client = IonQClient()
-    generated_user_agent = ionq_client.api_headers['User-Agent']
+    generated_user_agent = ionq_client.api_headers["User-Agent"]
 
     user_agent_info_keywords = ["qiskit-ionq", "qiskit-terra", "os", "python"]
     # Checks if all keywords are present in user-agent string.
-    all_user_agent_keywords_avail = all(keyword in generated_user_agent for keyword in
-                                        user_agent_info_keywords)
+    all_user_agent_keywords_avail = all(
+        keyword in generated_user_agent for keyword in user_agent_info_keywords
+    )
 
     # Checks whether there is at-least 3 version strings from qiskit-ionq, qiskit-terra, python.
     has_all_version_strings = len(re.findall(r"\s*([\d.]+)", generated_user_agent)) >= 3

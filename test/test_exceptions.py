@@ -46,10 +46,11 @@ def test_base_str_and_repr():
 def test_gate_error_str_and_repr():
     """Test that IonQAPIError has a str/repr that includes args."""
     err = exceptions.IonQGateError("a gate", "b set")
-    str_expected = ("IonQGateError(\"gate 'a gate' is not supported on the 'b set' IonQ backends."
-                    " Please use the qiskit.transpile method, manually rewrite to remove the gate,"
-                    " or change the gateset selection as appropriate.\")"
-                    )
+    str_expected = (
+        "IonQGateError(\"gate 'a gate' is not supported on the 'b set' IonQ backends."
+        " Please use the qiskit.transpile method, manually rewrite to remove the gate,"
+        ' or change the gateset selection as appropriate.")'
+    )
     repr_expected = "IonQGateError(gate_name='a gate', gateset='b set')"
     assert str(err) == str_expected
     assert repr(err) == repr_expected
@@ -62,7 +63,7 @@ def test_api_error():
         status_code=500,
         headers={"Content-Type": "text/html"},
         body="<!doctype html><html><body>Hello IonQ!</body></html>",
-        error_type="internal_error"
+        error_type="internal_error",
     )
     assert err.message == "an error"
     assert err.status_code == 500
@@ -78,13 +79,15 @@ def test_api_error_str_and_repr():
         status_code=500,
         headers={"Content-Type": "text/html"},
         body="<!doctype html><html><body>Hello IonQ!</body></html>",
-        error_type="internal_error"
+        error_type="internal_error",
     )
-    expected = ("IonQAPIError(message='an error',"
-                "status_code=500,"
-                "headers={'Content-Type': 'text/html'},"
-                "body=<!doctype html><html><body>Hello IonQ!</body></html>,"
-                "error_type='internal_error')")
+    expected = (
+        "IonQAPIError(message='an error',"
+        "status_code=500,"
+        "headers={'Content-Type': 'text/html'},"
+        "body=<!doctype html><html><body>Hello IonQ!</body></html>,"
+        "error_type='internal_error')"
+    )
     assert str(err) == expected
     assert repr(err) == repr(expected)
 
@@ -120,7 +123,7 @@ def test_api_error_from_response():
 def test_api_error_raise_for_status():
     """Test that IonQAPIError can be made directly from a response JSON dict."""
     # Create a request object
-    request = requests.Request('POST', 'https://api.ionq.co')
+    request = requests.Request("POST", "https://api.ionq.co")
     prepared_request = request.prepare()
     # Create a response object
     response = requests.Response()
@@ -153,7 +156,7 @@ def test_api_error_raise_for_status():
 def test_retriable_raise_for_status():
     """Test that IonQAPIError can be made directly from a response JSON dict."""
     # Create a request object
-    request = requests.Request('POST', 'https://api.ionq.co')
+    request = requests.Request("POST", "https://api.ionq.co")
     prepared_request = request.prepare()
     # Create a response object
     response = requests.Response()

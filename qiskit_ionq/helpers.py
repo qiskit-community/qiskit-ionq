@@ -491,7 +491,6 @@ class SafeEncoder(json.JSONEncoder):
         return "unknown"
 
 
-
 def resolve_credentials(token: str | None = None, url: str | None = None):
     """Resolve credentials for use in IonQ API calls.
 

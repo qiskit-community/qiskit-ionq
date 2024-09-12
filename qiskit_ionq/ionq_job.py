@@ -34,6 +34,7 @@
    perform a mapping between these status values for compatibility with
    :class:`BaseJob <qiskit.providers.BaseJob>`.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -249,7 +250,12 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
-    def result(self, sharpen: bool | None = None, extra_query_params: dict | None = None, **kwargs):
+    def result(
+        self,
+        sharpen: bool | None = None,
+        extra_query_params: dict | None = None,
+        **kwargs,
+    ):
         """Retrieve job result data.
 
         .. NOTE::
@@ -325,7 +331,9 @@ class IonQJob(JobV1):
         # Otherwise, look up a status enum from the response.
         response = self._client.retrieve_job(self._job_id)
         api_response_status = response.get("status")
-        status_enum: Union[constants.APIJobStatus, constants.JobStatusMap, jobstatus.JobStatus]
+        status_enum: Union[
+            constants.APIJobStatus, constants.JobStatusMap, jobstatus.JobStatus
+        ]
         try:
             status_enum = constants.APIJobStatus(api_response_status)
         except ValueError as ex:
