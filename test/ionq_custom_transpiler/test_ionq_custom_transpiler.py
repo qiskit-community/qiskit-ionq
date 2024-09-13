@@ -173,7 +173,7 @@ def test_ionq_custom_transpiler(gates):
 
     # optimized transpilation of circuit to native gates
     custom_transpiler = IonQCustomTranspiler(backend)
-    transpiled_circuit_optimized = custom_transpiler.transpile(circuit)
+    transpiled_circuit_optimized = custom_transpiler.transpile(circuit, optimization_level=3)
 
     # simulate the optimized circuit
     statevector_optimized = Statevector(transpiled_circuit_optimized)

@@ -21,9 +21,9 @@ class IonQCustomTranspiler:
         ])
         return pm
 
-    def transpile(self, qc):  
+    def transpile(self, qc, optimization_level=1):  
         
-        ibm_transpiled = transpile(qc, backend=self.backend, optimization_level=3) # TODO: Replace with the custom transpiler 
+        ibm_transpiled = transpile(qc, backend=self.backend, optimization_level=optimization_level) # TODO: Replace with the custom transpiler ??
         optimized_circuit = self.pass_manager.run(ibm_transpiled)
 
         # Run the pass manager until no further optimizations are possible
