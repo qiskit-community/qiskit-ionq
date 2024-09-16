@@ -1,3 +1,5 @@
+import math
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagnode import DAGOpNode
@@ -8,14 +10,12 @@ class GPI2_Adjoint(TransformationPass):
 
         for node in dag.topological_op_nodes():
             if isinstance(node, DAGOpNode) and node.op.name == 'gpi2':
-                #print(f"Found gpi2 node: {node}, params: {node.op.params}")
                 successors = [succ for succ in dag.quantum_successors(node) if isinstance(succ, DAGOpNode)]
                 for next_node in successors:
                     if next_node.op.name == 'gpi2' and node.qargs == next_node.qargs:
                         phi1 = node.op.params[0]
                         phi2 = next_node.op.params[0]
-                        if (phi2 + 0.5) % 1 == phi1 % 1 or (phi1 + 0.5) % 1 == phi2 % 1:
-                            #print(f"Removing gpi2 nodes: {node} and {next_node}")
+                        if math.isclose((phi2 + 0.5) % 1, phi1 % 1) or math.isclose((phi1 + 0.5) % 1, phi2 % 1):
                             nodes_to_remove.extend([node, next_node])
                             
         for node in nodes_to_remove:
@@ -30,7 +30,7 @@ class CancelFourGPI2(TransformationPass):
         gpi2_streak = []
 
         for node in dag.topological_op_nodes():
-            if node.op.name == 'gpi2' and node.op.params == [0.5]:  # GPI2(pi)
+            if node.op.name == 'gpi2' and math.isclose(node.op.params[0], 0.5):  # GPI2(pi)
                 if gpi2_streak and node.qargs != gpi2_streak[-1].qargs:
                     gpi2_streak = []  
                 gpi2_streak.append(node)
@@ -54,14 +54,12 @@ class GPI_Adjoint(TransformationPass):
 
         for node in dag.topological_op_nodes():
             if isinstance(node, DAGOpNode) and node.op.name == 'gpi':
-               #print(f"Found gpi node: {node}, params: {node.op.params}")
                 successors = [succ for succ in dag.quantum_successors(node) if isinstance(succ, DAGOpNode)]
                 for next_node in successors:
                     if next_node.op.name == 'gpi' and node.qargs == next_node.qargs:
                         phi1 = node.op.params[0]
                         phi2 = next_node.op.params[0]
-                        if phi2 == phi1:
-                            #print(f"Removing gpi nodes: {node} and {next_node}")
+                        if math.isclose(phi1, phi2):
                             nodes_to_remove.extend([node, next_node])
                             
 
@@ -78,11 +76,13 @@ class CommuteGPI2MS(TransformationPass):
             if node in nodes_to_remove:
                 continue
 
-            if node.op.name == 'gpi2' and node.op.params == [0.5]:  # GPI2(pi/2)
+            if node.op.name == 'gpi2' and math.isclose(node.op.params[0], 0.5):  # GPI2(pi/2)
                 successors = [succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)]
                 for next_node in successors:
                     if (next_node.op.name == 'ms' and
-                            next_node.op.params == [0, 0, 0.25] and
+                            math.isclose(next_node.op.params[0], 0) and
+                            math.isclose(next_node.op.params[1], 0) and
+                            math.isclose(next_node.op.params[2], 0.25) and
                             node.qargs[0] in next_node.qargs):
                     
                     
@@ -107,4 +107,24 @@ class CommuteGPI2MS(TransformationPass):
         for node in nodes_to_remove:
             dag.remove_op_node(node)
 
+        return dag
+
+class GPI2TwiceIsGPI(TransformationPass):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        nodes_to_remove = []
+
+        for node in dag.topological_op_nodes():
+            if isinstance(node, DAGOpNode) and node.op.name == 'gpi2':
+                successors = [succ for succ in dag.quantum_successors(node) if isinstance(succ, DAGOpNode)]
+                for next_node in successors:
+                    if next_node.op.name == 'gpi2' and node.qargs == next_node.qargs:
+                        phi1 = node.op.params[0]
+                        phi2 = next_node.op.params[0]
+                        if math.isclose(phi1, phi2):
+                            next_node.op.name = 'gpi'
+                            nodes_to_remove.append(node)
+                            
+        for node in nodes_to_remove:
+            dag.remove_op_node(node)
+        
         return dag

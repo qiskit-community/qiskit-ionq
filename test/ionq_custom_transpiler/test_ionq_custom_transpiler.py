@@ -82,7 +82,7 @@ from qiskit.circuit.library import (
     CZGate,
 )
 from qiskit_ionq import ionq_provider
-from qiskit_ionq.ionq_custom_transpiler import IonQCustomTranspiler
+from qiskit_ionq.ionq_custom_transpiler import IonQTranspiler
 
 # Mapping from gate names to gate classes
 gate_map = {
@@ -147,6 +147,7 @@ def append_gate(circuit, gate_name, param, qubits):
 @pytest.mark.parametrize(
     "gates",
     [
+        [("CXGate", None, [0, 1]), ("CXGate", None, [0, 2]), ("CXGate", None, [0, 3]), ("CXGate", None, [0, 4])],
         [("HGate", None, [0]), ("CHGate", None, [0, 1]), ("CHGate", None, [0, 2]), ("CHGate", None, [0, 3]), ("CHGate", None, [0, 4])],
         [("HGate", None, [0]), ("CHGate", None, [0, 1]), ("HGate", None, [1]), ("CHGate", None, [0, 2]), ("HGate", None, [2]), ("CHGate", None, [0, 3]), ("HGate", None, [3]), ("CHGate", None, [0, 4])],
         [("XGate", None, [0]), ("CHGate", None, [0, 1]), ("XGate", None, [1]), ("CHGate", None, [0, 2]), ("XGate", None, [2]), ("CHGate", None, [0, 3]), ("XGate", None, [3]), ("CHGate", None, [0, 4])],
@@ -172,8 +173,8 @@ def test_ionq_custom_transpiler(gates):
     probabilities_unoptimized = np.abs(statevector_unoptimized) ** 2
 
     # optimized transpilation of circuit to native gates
-    custom_transpiler = IonQCustomTranspiler(backend)
-    transpiled_circuit_optimized = custom_transpiler.transpile(circuit, optimization_level=3)
+    custom_transpiler = IonQTranspiler(backend)
+    transpiled_circuit_optimized = custom_transpiler.transpile(circuit, optimization_level=1)
 
     # simulate the optimized circuit
     statevector_optimized = Statevector(transpiled_circuit_optimized)
