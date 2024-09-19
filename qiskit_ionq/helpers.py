@@ -541,7 +541,7 @@ def get_n_qubits(backend: str, _fallback=100) -> int:
     token = creds.get("token")
     # could use provider.get_calibration_data().get("qubits", 36)
     try:
-        target = backend[5:] if backend.startswith("ionq") else backend
+        target = backend[8:] if backend.startswith("ionq_qpu.") else backend
         return requests.get(
             url=f"{url}/characterizations/backends/{target}/current",
             headers={"Authorization": f"apiKey {token}"},

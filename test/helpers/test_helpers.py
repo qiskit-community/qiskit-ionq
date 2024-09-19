@@ -53,20 +53,40 @@ def test_user_agent_header():
 
 
 def test_get_n_qubits_success():
-    """Test get_n_qubits returns correct number of qubits when request is successful."""
-    # Mock the response from requests.get to return a JSON with a "qubits" key
+    """Test get_n_qubits returns correct number of qubits and checks correct URL."""
     with patch("requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.json.return_value = {"qubits": 11}
         mock_get.return_value = mock_response
 
-        result = get_n_qubits("ionq_simulator")
+        backend = "ionq_qpu.aria-1"
+        result = get_n_qubits(backend)
+
+        expected_url = (
+            "https://api.ionq.co/v0.3/characterizations/backends/aria-1/current"
+        )
+        mock_get.assert_called_with(
+            url=expected_url,
+            headers={"Authorization": f"apiKey {MagicMock().token}"},
+            timeout=5,
+        )
+
         assert result == 11, f"Expected 11 qubits, but got {result}"
 
 
 def test_get_n_qubits_fallback():
-    """Test get_n_qubits returns fallback number of qubits when request fails."""
-    # Mock the response from requests.get to raise an exception
-    with patch("requests.get", side_effect=Exception("Network error")):
-        result = get_n_qubits("ionq_simulator")
+    """Test get_n_qubits returns fallback number of qubits and checks correct URL on failure."""
+    with patch("requests.get", side_effect=Exception("Network error")) as mock_get:
+        backend = "aria-1"
+        result = get_n_qubits(backend)
+
+        expected_url = (
+            "https://api.ionq.co/v0.3/characterizations/backends/aria-1/current"
+        )
+        mock_get.assert_called_with(
+            url=expected_url,
+            headers={"Authorization": f"apiKey {MagicMock().token}"},
+            timeout=5,
+        )
+
         assert result == 100, f"Expected fallback of 100 qubits, but got {result}"
