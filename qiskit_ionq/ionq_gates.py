@@ -62,6 +62,24 @@ class GPIGate(Gate):
         bot = cmath.exp(self.params[0] * 2 * math.pi * 1j)
         return numpy.array([[0, top], [bot, 0]], dtype=dtype)
 
+    def _define(self):
+        """
+        gate gpi(phi) a
+        {
+            x a;
+            rz(4*phi*pi) a;
+        }
+        """
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library import XGate, RZGate
+        from math import pi
+
+        phi_param = self.params[0]
+        qc = QuantumCircuit(1)
+        qc.append(XGate(), [0])
+        qc.append(RZGate(4 * phi_param * pi), [0])
+        self.definition = qc
+
 
 class GPI2Gate(Gate):
     r"""Single-qubit GPI2 gate.
@@ -90,6 +108,26 @@ class GPI2Gate(Gate):
         top = -1j * cmath.exp(self.params[0] * 2 * math.pi * -1j)
         bot = -1j * cmath.exp(self.params[0] * 2 * math.pi * 1j)
         return numpy.array([[1, top], [bot, 1]], dtype=dtype) / math.sqrt(2)
+
+    def _define(self):
+        """
+        gate gpi2(phi) a
+        {
+            rz(-2*phi*pi) a;
+            rx(pi/2) a;
+            rz(2*phi*pi) a;
+        }
+        """
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library import RXGate, RZGate
+        from math import pi
+
+        phi_param = self.params[0]
+        qc = QuantumCircuit(1)
+        qc.append(RZGate(-2 * phi_param * pi), [0])
+        qc.append(RXGate(pi / 2), [0])
+        qc.append(RZGate(2 * phi_param * pi), [0])
+        self.definition = qc
 
 
 class MSGate(Gate):
@@ -146,6 +184,47 @@ class MSGate(Gate):
             ],
             dtype=dtype,
         )
+
+    def _define(self):
+        """
+        gate ms(phi0, phi1, theta) a,b
+        {
+            cx a,b;
+            x a;
+            cu3(2*theta*pi, 2*(phi0+phi1)*pi-pi/2, pi/2-2*(phi0+phi1)*pi) a,b;
+            x a;
+            cu3(2*theta*pi, -2*(phi0-phi1)*pi-pi/2, pi/2+2*(phi0-phi1)*pi) a,b;
+            cx a,b;
+        }
+        """
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library import CXGate, CU3Gate
+        from math import pi
+
+        theta_param = self.params[2]
+        alpha_param = self.params[0] + self.params[1]
+        beta_param = self.params[0] - self.params[1]
+        qc = QuantumCircuit(2)
+        qc.append(CXGate(), [1, 0])
+        qc.x(0)
+        qc.append(
+            CU3Gate(
+                2 * theta_param * pi,
+                2 * alpha_param * pi - pi / 2,
+                pi / 2 - 2 * alpha_param * pi,
+            ),
+            [0, 1],
+        )
+        qc.x(0)
+        qc.append(
+            CU3Gate(
+                2 * theta_param * pi,
+                -2 * beta_param * pi - pi / 2,
+                pi / 2 + 2 * beta_param * pi,
+            ),
+            [0, 1],
+        )
+        self.definition = qc
 
 
 class ZZGate(Gate):
