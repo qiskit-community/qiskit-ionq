@@ -28,7 +28,9 @@
 
 
 import re
+from unittest.mock import patch, MagicMock
 from qiskit_ionq.ionq_client import IonQClient
+from qiskit_ionq.helpers import get_n_qubits
 
 
 def test_user_agent_header():
@@ -37,13 +39,34 @@ def test_user_agent_header():
     version format.
     """
     ionq_client = IonQClient()
-    generated_user_agent = ionq_client.api_headers['User-Agent']
+    generated_user_agent = ionq_client.api_headers["User-Agent"]
 
     user_agent_info_keywords = ["qiskit-ionq", "qiskit-terra", "os", "python"]
     # Checks if all keywords are present in user-agent string.
-    all_user_agent_keywords_avail = all(keyword in generated_user_agent for keyword in
-                                        user_agent_info_keywords)
+    all_user_agent_keywords_avail = all(
+        keyword in generated_user_agent for keyword in user_agent_info_keywords
+    )
 
     # Checks whether there is at-least 3 version strings from qiskit-ionq, qiskit-terra, python.
     has_all_version_strings = len(re.findall(r"\s*([\d.]+)", generated_user_agent)) >= 3
     assert all_user_agent_keywords_avail and has_all_version_strings
+
+
+def test_get_n_qubits_success():
+    """Test get_n_qubits returns correct number of qubits when request is successful."""
+    # Mock the response from requests.get to return a JSON with a "qubits" key
+    with patch("requests.get") as mock_get:
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"qubits": 11}
+        mock_get.return_value = mock_response
+
+        result = get_n_qubits("ionq_simulator")
+        assert result == 11, f"Expected 11 qubits, but got {result}"
+
+
+def test_get_n_qubits_fallback():
+    """Test get_n_qubits returns fallback number of qubits when request fails."""
+    # Mock the response from requests.get to raise an exception
+    with patch("requests.get", side_effect=Exception("Network error")):
+        result = get_n_qubits("ionq_simulator")
+        assert result == 100, f"Expected fallback of 100 qubits, but got {result}"
