@@ -38,7 +38,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import Any, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Union, Optional
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -81,7 +81,7 @@ def map_output(data, clbits, num_qubits):
 
 def _build_counts(
     data, num_qubits, clbits, shots, use_sampler=False, sampler_seed=None
-):
+):  # pylint: disable=too-many-positional-arguments
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
     .. NOTE:: For simulator jobs, this method builds counts using a randomly
@@ -163,11 +163,14 @@ class IonQJob(JobV1):
     def __init__(
         self,
         backend: ionq_backend.IonQBackend,
-        job_id: str | None,
-        client: ionq_client.IonQClient | None = None,
-        circuit: QuantumCircuit | None = None,
-        passed_args: dict | None = None,
-    ):
+        job_id: Optional[str] = None,
+        client: Optional[ionq_client.IonQClient] = None,
+        circuit: Optional[QuantumCircuit] = None,
+        passed_args: Optional[dict] = None,
+    ):  # pylint: disable=too-many-positional-arguments
+        assert (
+            job_id is not None or circuit is not None
+        ), "Job must have a job_id or circuit"
         super().__init__(backend, job_id)
         self._client = client or backend.client
         self._result = None
@@ -214,7 +217,7 @@ class IonQJob(JobV1):
         response = self._client.submit_job(job=self)
         self._job_id = response["id"]
 
-    def get_counts(self, circuit: QuantumCircuit | None = None) -> dict:
+    def get_counts(self, circuit: Optional[QuantumCircuit] = None) -> dict:
         """Return the counts for the job.
 
         .. ATTENTION::
