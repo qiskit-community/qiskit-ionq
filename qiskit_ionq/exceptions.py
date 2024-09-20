@@ -25,6 +25,7 @@
 # limitations under the License.
 
 """Exceptions for the IonQ Provider."""
+
 from __future__ import annotations
 
 from typing import Literal
@@ -98,7 +99,7 @@ class IonQAPIError(IonQError):
     """
 
     @classmethod
-    def raise_for_status(cls, response) -> IonQAPIError:
+    def raise_for_status(cls, response) -> IonQAPIError | None:
         """Raise an instance of the exception class from an API response object if needed.
         Args:
             response (:class:`Response <requests.Response>`): An IonQ REST API response.

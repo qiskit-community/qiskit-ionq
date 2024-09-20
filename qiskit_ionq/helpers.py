@@ -37,7 +37,7 @@ import base64
 import platform
 import warnings
 import os
-from typing import Literal
+from typing import Literal, Any
 import requests
 from dotenv import dotenv_values
 
@@ -191,7 +191,7 @@ def qiskit_circ_to_ionq_circ(
             raise exceptions.IonQGateError(instruction_name, gateset)
 
         # Process the instruction and convert.
-        rotation = {}
+        rotation: dict[str, Any] = {}
         if len(instruction.params) > 0:
             if gateset == "qis" or (
                 len(instruction.params) == 1 and instruction_name != "zz"
@@ -356,7 +356,7 @@ def decompress_metadata_string(
 
 def qiskit_to_ionq(
     circuit, backend, passed_args=None, extra_query_params=None, extra_metadata=None
-):
+) -> str:
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
@@ -382,7 +382,7 @@ def qiskit_to_ionq(
     else:
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
         circuit = [circuit]
-    circuit: list[QuantumCircuit] | tuple[QuantumCircuit, ...]
+    circuit: list[QuantumCircuit] | tuple[QuantumCircuit, ...]  # type: ignore[no-redef]
     metadata_list = [
         {
             "memory_slots": circ.num_clbits,  # int
@@ -495,7 +495,7 @@ class SafeEncoder(json.JSONEncoder):
         return "unknown"
 
 
-def resolve_credentials(token: str = None, url: str = None):
+def resolve_credentials(token: str | None = None, url: str | None = None):
     """Resolve credentials for use in IonQ API calls.
 
     If the provided ``token`` and ``url`` are both ``None``, then these values

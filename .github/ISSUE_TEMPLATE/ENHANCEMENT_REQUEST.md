@@ -1,6 +1,6 @@
 ---
 name: Enhancement request ✨
-about: Suggest an improvement for this project 
+about: Suggest an improvement for this project
 labels: 'type: enhancement'
 ---
 

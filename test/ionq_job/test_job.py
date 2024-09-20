@@ -25,6 +25,7 @@
 # limitations under the License.
 
 """Test basic behavior of :class:`IonQJob`."""
+
 from unittest import mock
 import warnings
 
@@ -696,9 +697,7 @@ def test_status__no_job_id(mock_backend):
     assert actual_status is job._status is jobstatus.JobStatus.INITIALIZING
 
 
-def test_status__already_final_state(
-    mock_backend, requests_mock
-):  # pylint: disable=invalid-name
+def test_status__already_final_state(mock_backend, requests_mock):  # pylint: disable=invalid-name
     """Test status() returns early when the job is already completed.
 
     Args:

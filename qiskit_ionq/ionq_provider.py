@@ -26,6 +26,8 @@
 
 """Provider for interacting with IonQ backends"""
 
+from __future__ import annotations
+
 import logging
 
 from typing import Callable, Literal, Optional

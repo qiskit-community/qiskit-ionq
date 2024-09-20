@@ -26,7 +26,6 @@
 
 """Test the helper functions."""
 
-
 import re
 from unittest.mock import patch, MagicMock
 from qiskit_ionq.ionq_client import IonQClient

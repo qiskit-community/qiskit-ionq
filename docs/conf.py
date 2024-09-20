@@ -41,6 +41,7 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 """Sphinx doc build configuration."""
+
 import qiskit_sphinx_theme
 from qiskit_ionq.version import VERSION_INFO
 

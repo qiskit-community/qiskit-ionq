@@ -25,6 +25,7 @@
 # limitations under the License.
 
 """Constants used by components of the provider."""
+
 import enum
 
 from qiskit.providers import jobstatus
