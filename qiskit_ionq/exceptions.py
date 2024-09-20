@@ -151,7 +151,9 @@ class IonQAPIError(IonQError):
             error_type = error_data.get("type") or error_type
         return cls(message, status_code, headers, body, error_type)
 
-    def __init__(self, message, status_code, headers, body, error_type):
+    def __init__(
+        self, message, status_code, headers, body, error_type
+    ):  # pylint: disable=too-many-positional-arguments
         super().__init__(message)
         self.status_code = status_code
         self.headers = headers

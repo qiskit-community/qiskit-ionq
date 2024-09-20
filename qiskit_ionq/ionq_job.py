@@ -81,7 +81,7 @@ def map_output(data, clbits, num_qubits):
 
 def _build_counts(
     data, num_qubits, clbits, shots, use_sampler=False, sampler_seed=None
-):
+):  # pylint: disable=too-many-positional-arguments
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
     .. NOTE:: For simulator jobs, this method builds counts using a randomly
@@ -167,7 +167,7 @@ class IonQJob(JobV1):
         client: Optional[ionq_client.IonQClient] = None,
         circuit: Optional[QuantumCircuit] = None,
         passed_args: Optional[dict] = None,
-    ):
+    ):  # pylint: disable=too-many-positional-arguments
         assert (
             job_id is not None or circuit is not None
         ), "Job must have a job_id or circuit"
