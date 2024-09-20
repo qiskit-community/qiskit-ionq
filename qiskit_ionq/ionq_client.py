@@ -54,9 +54,9 @@ class IonQClient:
 
     def __init__(
         self,
-        token: str | None = None,
-        url: str | None = None,
-        custom_headers: dict | None = None,
+        token: Optional[str] = None,
+        url: Optional[str] = None,
+        custom_headers: Optional[dict] = None,
     ):
         self._token = token
         self._custom_headers = custom_headers or {}

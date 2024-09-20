@@ -28,7 +28,7 @@
 
 import logging
 
-from typing import Callable, Literal
+from typing import Callable, Literal, Optional
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
@@ -53,9 +53,9 @@ class IonQProvider:
 
     def __init__(
         self,
-        token: str | None = None,
-        url: str | None = None,
-        custom_headers: dict | None = None,
+        token: Optional[str] = None,
+        url: Optional[str] = None,
+        custom_headers: Optional[dict] = None,
     ):
         super().__init__()
         self.custom_headers = custom_headers
@@ -69,7 +69,7 @@ class IonQProvider:
 
     def get_backend(
         self,
-        name: str | None = None,
+        name: Optional[str] = None,
         gateset: Literal["qis", "native"] = "qis",
         **kwargs,
     ) -> ionq_backend.Backend:
@@ -110,7 +110,7 @@ class BackendService:
             setattr(self, backend.name(), backend)
 
     def __call__(
-        self, name: str | None = None, filters: Callable | None = None, **kwargs
+        self, name: Optional[str] = None, filters: Optional[Callable] = None, **kwargs
     ) -> list[ionq_backend.Backend]:
         """A listing of all backends from this provider.
 

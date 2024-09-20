@@ -38,7 +38,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -164,9 +164,9 @@ class IonQJob(JobV1):
         self,
         backend: ionq_backend.IonQBackend,
         job_id: str,
-        client: ionq_client.IonQClient | None = None,
-        circuit: QuantumCircuit | None = None,
-        passed_args: dict | None = None,
+        client: Optional[ionq_client.IonQClient] = None,
+        circuit: Optional[QuantumCircuit] = None,
+        passed_args: Optional[dict] = None,
     ):
         super().__init__(backend, job_id)
         self._client = client or backend.client
@@ -213,7 +213,7 @@ class IonQJob(JobV1):
         response = self._client.submit_job(job=self)
         self._job_id = response["id"]
 
-    def get_counts(self, circuit: QuantumCircuit | None = None) -> dict:
+    def get_counts(self, circuit: Optional[QuantumCircuit] = None) -> dict:
         """Return the counts for the job.
 
         .. ATTENTION::
