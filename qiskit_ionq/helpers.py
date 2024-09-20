@@ -311,7 +311,9 @@ def get_register_sizes_and_labels(
     return sizes, labels
 
 
-def compress_to_metadata_string(metadata: dict | list) -> str:  # pylint: disable=invalid-name
+def compress_to_metadata_string(
+    metadata: dict | list,
+) -> str:  # pylint: disable=invalid-name
     """
     Convert a metadata object to a compact string format (dumped, gzipped, base64 encoded)
     for storing in IonQ API metadata
@@ -330,7 +332,9 @@ def compress_to_metadata_string(metadata: dict | list) -> str:  # pylint: disabl
     return encoded.decode()
 
 
-def decompress_metadata_string(input_string: str) -> dict | list:  # pylint: disable=invalid-name
+def decompress_metadata_string(
+    input_string: str,
+) -> dict | list:  # pylint: disable=invalid-name
     """
     Convert compact string format (dumped, gzipped, base64 encoded) from
     IonQ API metadata back into a dict or list of dicts relevant to building
@@ -541,7 +545,11 @@ def get_n_qubits(backend: str, _fallback=100) -> int:
     token = creds.get("token")
     # could use provider.get_calibration_data().get("qubits", 36)
     try:
-        target = backend[8:] if backend.startswith("ionq_qpu.") else backend
+        target = (
+            backend.split("ionq_qpu.")[1]
+            if backend.startswith("ionq_qpu.")
+            else backend
+        )
         return requests.get(
             url=f"{url}/characterizations/backends/{target}/current",
             headers={"Authorization": f"apiKey {token}"},
