@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Exceptions" href="exceptions.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>Helpers - Qiskit IonQ Provider 0.5.5</title>
+        <title>Helpers - Qiskit IonQ Provider 0.5.6</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.5</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.6</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.5</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.6</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -237,7 +237,7 @@
 to IonQ REST API compatible values.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.compress_to_metadata_string">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">compress_to_metadata_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#compress_to_metadata_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.compress_to_metadata_string" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">compress_to_metadata_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#compress_to_metadata_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.compress_to_metadata_string" title="Link to this definition">¶</a></dt>
 <dd><p>Convert a metadata object to a compact string format (dumped, gzipped, base64 encoded)
 for storing in IonQ API metadata</p>
 <dl class="field-list simple">
@@ -256,7 +256,7 @@ to building the results object on a returned job.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.decompress_metadata_string">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">decompress_metadata_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#decompress_metadata_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.decompress_metadata_string" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">decompress_metadata_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#decompress_metadata_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.decompress_metadata_string" title="Link to this definition">¶</a></dt>
 <dd><p>Convert compact string format (dumped, gzipped, base64 encoded) from
 IonQ API metadata back into a dict or list of dicts relevant to building
 the results object on a returned job.</p>
@@ -309,7 +309,7 @@ python,libraries details.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.qiskit_circ_to_ionq_circ">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">qiskit_circ_to_ionq_circ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_circuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'qis'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#qiskit_circ_to_ionq_circ"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.qiskit_circ_to_ionq_circ" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">qiskit_circ_to_ionq_circ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'qis'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#qiskit_circ_to_ionq_circ"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.qiskit_circ_to_ionq_circ" title="Link to this definition">¶</a></dt>
 <dd><p>Build a circuit in IonQ’s instruction format from qiskit instructions.</p>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
@@ -344,7 +344,7 @@ dict: The measurement map from qubit number to classical bit number.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.qiskit_to_ionq">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">qiskit_to_ionq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passed_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_query_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#qiskit_to_ionq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.qiskit_to_ionq" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">qiskit_to_ionq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passed_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_query_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#qiskit_to_ionq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.qiskit_to_ionq" title="Link to this definition">¶</a></dt>
 <dd><p>Convert a Qiskit circuit to a IonQ compatible dict.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -367,7 +367,7 @@ dict: The measurement map from qubit number to classical bit number.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.resolve_credentials">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">resolve_credentials</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#resolve_credentials"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.resolve_credentials" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">resolve_credentials</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#resolve_credentials"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.resolve_credentials" title="Link to this definition">¶</a></dt>
 <dd><p>Resolve credentials for use in IonQ API calls.</p>
 <p>If the provided <code class="docutils literal notranslate"><span class="pre">token</span></code> and <code class="docutils literal notranslate"><span class="pre">url</span></code> are both <code class="docutils literal notranslate"><span class="pre">None</span></code>, then these values
 are loaded from the <code class="docutils literal notranslate"><span class="pre">IONQ_API_TOKEN</span></code> and <code class="docutils literal notranslate"><span class="pre">IONQ_API_URL</span></code>
@@ -458,7 +458,7 @@ environment variables, respectively.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=45def3bc"></script>
+    <script src="../_static/documentation_options.js?v=722679d6"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

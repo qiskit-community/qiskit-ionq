@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_client - Qiskit IonQ Provider 0.5.5</title>
+        <title>qiskit_ionq.ionq_client - Qiskit IonQ Provider 0.5.6</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.5</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.6</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.5</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.6</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -259,9 +259,11 @@
 
 <span class="sd">&quot;&quot;&quot;Basic API Client for IonQ&#39;s REST API&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 <span class="kn">import</span> <span class="nn">requests</span>
 
@@ -270,6 +272,9 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">exceptions</span>
 <span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">qiskit_to_ionq</span><span class="p">,</span> <span class="n">get_user_agent</span>
 <span class="kn">from</span> <span class="nn">.exceptions</span> <span class="kn">import</span> <span class="n">IonQRetriableError</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.ionq_job</span> <span class="kn">import</span> <span class="n">IonQJob</span>
 
 
 <div class="viewcode-block" id="IonQClient">
@@ -283,7 +288,12 @@
 <span class="sd">        _custom_headers(dict): Extra headers to add to the request.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_headers</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">custom_headers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_token</span> <span class="o">=</span> <span class="n">token</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_custom_headers</span> <span class="o">=</span> <span class="n">custom_headers</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="c1"># strip trailing slashes from our base URL.</span>
@@ -293,7 +303,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_user_agent</span> <span class="o">=</span> <span class="n">get_user_agent</span><span class="p">()</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">api_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">api_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;API Headers needed to make calls to the REST API.</span>
 
 <span class="sd">        Returns:</span>
@@ -308,7 +318,7 @@
 
 <div class="viewcode-block" id="IonQClient.make_path">
 <a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.make_path">[docs]</a>
-    <span class="k">def</span> <span class="nf">make_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">parts</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">make_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">parts</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Make a &quot;/&quot;-delimited path, then append it to :attr:`_url`.</span>
 
 <span class="sd">        Returns:</span>
@@ -347,7 +357,7 @@
 <div class="viewcode-block" id="IonQClient.submit_job">
 <a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.submit_job">[docs]</a>
     <span class="nd">@retry</span><span class="p">(</span><span class="n">exceptions</span><span class="o">=</span><span class="n">IonQRetriableError</span><span class="p">,</span> <span class="n">tries</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">submit_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">submit_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">:</span> <span class="n">IonQJob</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Submit job to IonQ API</span>
 
 <span class="sd">        This returns a JSON dict with status &quot;submitted&quot; and the job&#39;s id.</span>
@@ -382,7 +392,7 @@
 <div class="viewcode-block" id="IonQClient.retrieve_job">
 <a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.retrieve_job">[docs]</a>
     <span class="nd">@retry</span><span class="p">(</span><span class="n">exceptions</span><span class="o">=</span><span class="n">IonQRetriableError</span><span class="p">,</span> <span class="n">max_delay</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">backoff</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">jitter</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">retrieve_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">retrieve_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve job information from the IonQ API.</span>
 
 <span class="sd">        The returned JSON dict will only have data if job has completed.</span>
@@ -406,7 +416,7 @@
 <div class="viewcode-block" id="IonQClient.cancel_job">
 <a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.cancel_job">[docs]</a>
     <span class="nd">@retry</span><span class="p">(</span><span class="n">exceptions</span><span class="o">=</span><span class="n">IonQRetriableError</span><span class="p">,</span> <span class="n">tries</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">cancel_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">cancel_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Attempt to cancel a job which has not yet run.</span>
 
 <span class="sd">        .. NOTE:: If the job has already reached status &quot;completed&quot;, this cancel action is a no-op.</span>
@@ -428,7 +438,7 @@
 
 <div class="viewcode-block" id="IonQClient.cancel_jobs">
 <a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.cancel_jobs">[docs]</a>
-    <span class="k">def</span> <span class="nf">cancel_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">cancel_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Cancel multiple jobs at once.</span>
 
 <span class="sd">        Args:</span>
@@ -443,7 +453,7 @@
 <div class="viewcode-block" id="IonQClient.delete_job">
 <a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.delete_job">[docs]</a>
     <span class="nd">@retry</span><span class="p">(</span><span class="n">exceptions</span><span class="o">=</span><span class="n">IonQRetriableError</span><span class="p">,</span> <span class="n">tries</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">delete_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">delete_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete a job and associated data.</span>
 
 <span class="sd">        Args:</span>
@@ -493,7 +503,7 @@
         <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">sharpen</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">extra_query_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve job results from the IonQ API.</span>
 
 <span class="sd">        The returned JSON dict will only have data if job has completed.</span>
@@ -569,7 +579,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=45def3bc"></script>
+    <script src="../../_static/documentation_options.js?v=722679d6"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>

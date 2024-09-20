@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 0.5.5</title>
+        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 0.5.6</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.5</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.6</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.5</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.6</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -268,16 +268,23 @@
 <span class="sd">   :class:`BaseJob &lt;qiskit.providers.BaseJob&gt;`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
+<span class="kn">from</span> <span class="nn">qiskit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
 <span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">JobV1</span><span class="p">,</span> <span class="n">jobstatus</span>
 <span class="kn">from</span> <span class="nn">qiskit.providers.exceptions</span> <span class="kn">import</span> <span class="n">JobTimeoutError</span>
 <span class="kn">from</span> <span class="nn">.ionq_result</span> <span class="kn">import</span> <span class="n">IonQResult</span> <span class="k">as</span> <span class="n">Result</span>
 <span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">decompress_metadata_string</span>
 
-
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">constants</span><span class="p">,</span> <span class="n">exceptions</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ionq_backend</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ionq_client</span>
 
 
 <span class="k">def</span> <span class="nf">map_output</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">clbits</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">):</span>
@@ -307,7 +314,7 @@
 
 <span class="k">def</span> <span class="nf">_build_counts</span><span class="p">(</span>
     <span class="n">data</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">,</span> <span class="n">clbits</span><span class="p">,</span> <span class="n">shots</span><span class="p">,</span> <span class="n">use_sampler</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sampler_seed</span><span class="o">=</span><span class="kc">None</span>
-<span class="p">):</span>
+<span class="p">):</span>  <span class="c1"># pylint: disable=too-many-positional-arguments</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Map IonQ&#39;s ``counts`` onto qiskit&#39;s ``counts`` model.</span>
 
 <span class="sd">    .. NOTE:: For simulator jobs, this method builds counts using a randomly</span>
@@ -390,18 +397,21 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">backend</span><span class="p">,</span>
-        <span class="n">job_id</span><span class="p">,</span>
-        <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">circuit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">passed_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="p">):</span>
+        <span class="n">backend</span><span class="p">:</span> <span class="n">ionq_backend</span><span class="o">.</span><span class="n">IonQBackend</span><span class="p">,</span>
+        <span class="n">job_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ionq_client</span><span class="o">.</span><span class="n">IonQClient</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">circuit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">passed_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-positional-arguments</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">job_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">circuit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">),</span> <span class="s2">&quot;Job must have a job_id or circuit&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">client</span> <span class="ow">or</span> <span class="n">backend</span><span class="o">.</span><span class="n">client</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_result</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_execution_time</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="n">passed_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">extra_query_params</span> <span class="o">=</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;extra_query_params&quot;</span><span class="p">,</span> <span class="p">{})</span>
@@ -424,14 +434,15 @@
 
 <div class="viewcode-block" id="IonQJob.cancel">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.cancel">[docs]</a>
-    <span class="k">def</span> <span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Cancel this job.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Cannot cancel a job without a job_id.&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">cancel_job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="IonQJob.submit">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.submit">[docs]</a>
-    <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Submit a job to the IonQ API.</span>
 
 <span class="sd">        Raises:</span>
@@ -449,7 +460,7 @@
 
 <div class="viewcode-block" id="IonQJob.get_counts">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.get_counts">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_counts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_counts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the counts for the job.</span>
 
 <span class="sd">        .. ATTENTION::</span>
@@ -491,7 +502,12 @@
 
 <div class="viewcode-block" id="IonQJob.result">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.result">[docs]</a>
-    <span class="k">def</span> <span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sharpen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">extra_query_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">result</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sharpen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">extra_query_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve job result data.</span>
 
 <span class="sd">        .. NOTE::</span>
@@ -527,6 +543,7 @@
             <span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="ow">is</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">DONE</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">get_results</span><span class="p">(</span>
                 <span class="n">job_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="p">,</span>
                 <span class="n">sharpen</span><span class="o">=</span><span class="n">sharpen</span><span class="p">,</span>
@@ -539,7 +556,7 @@
 
 <div class="viewcode-block" id="IonQJob.status">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.status">[docs]</a>
-    <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detailed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detailed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve the status of a job</span>
 
 <span class="sd">        Args:</span>
@@ -569,6 +586,9 @@
         <span class="c1"># Otherwise, look up a status enum from the response.</span>
         <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">retrieve_job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="p">)</span>
         <span class="n">api_response_status</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">)</span>
+        <span class="n">status_enum</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+            <span class="n">constants</span><span class="o">.</span><span class="n">APIJobStatus</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">JobStatusMap</span><span class="p">,</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span>
+        <span class="p">]</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">status_enum</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">APIJobStatus</span><span class="p">(</span><span class="n">api_response_status</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
@@ -610,7 +630,7 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span>
                 <span class="k">else</span> <span class="p">[</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;registers&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;meas_mapped&quot;</span><span class="p">,</span> <span class="n">default_map</span><span class="p">)]</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_execution_time</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;execution_time&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_execution_time</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;execution_time&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1000</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">==</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">ERROR</span><span class="p">:</span>
             <span class="n">failure</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
@@ -827,7 +847,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=45def3bc"></script>
+    <script src="../../_static/documentation_options.js?v=722679d6"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>

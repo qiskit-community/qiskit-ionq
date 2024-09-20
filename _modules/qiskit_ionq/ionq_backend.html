@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_backend - Qiskit IonQ Provider 0.5.5</title>
+        <title>qiskit_ionq.ionq_backend - Qiskit IonQ Provider 0.5.6</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.5</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.6</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.5</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.6</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -259,10 +259,14 @@
 
 <span class="sd">&quot;&quot;&quot;IonQ provider backends.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
 <span class="kn">import</span> <span class="nn">abc</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
+<span class="kn">from</span> <span class="nn">qiskit.circuit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
 <span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">BackendV1</span> <span class="k">as</span> <span class="n">Backend</span>
 <span class="kn">from</span> <span class="nn">qiskit.providers.models.backendconfiguration</span> <span class="kn">import</span> <span class="n">BackendConfiguration</span>
 <span class="kn">from</span> <span class="nn">qiskit.providers.models.backendstatus</span> <span class="kn">import</span> <span class="n">BackendStatus</span>
@@ -270,6 +274,9 @@
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">exceptions</span><span class="p">,</span> <span class="n">ionq_client</span><span class="p">,</span> <span class="n">ionq_job</span><span class="p">,</span> <span class="n">ionq_equivalence_library</span>
 <span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">GATESET_MAP</span><span class="p">,</span> <span class="n">get_n_qubits</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.ionq_provider</span> <span class="kn">import</span> <span class="n">IonQProvider</span>
 
 
 <span class="k">class</span> <span class="nc">Calibration</span><span class="p">:</span>
@@ -283,16 +290,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">uuid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">uuid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The ID of the calibration.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">           str: The ID.</span>
+<span class="sd">            str: The ID.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">num_qubits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">num_qubits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The number of qubits available.</span>
 
 <span class="sd">        Returns:</span>
@@ -301,7 +308,7 @@
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;qubits&quot;</span><span class="p">])</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The target calibrated hardware.</span>
 
 <span class="sd">        Returns:</span>
@@ -310,7 +317,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;backend&quot;</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">calibration_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">calibration_time</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Time of the measurement, in UTC.</span>
 
 <span class="sd">        Returns:</span>
@@ -319,7 +326,7 @@
         <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">])</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">fidelities</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">fidelities</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fidelity for single-qubit (1q) and two-qubit (2q) gates, and State</span>
 <span class="sd">        Preparation and Measurement (spam) operations.</span>
 
@@ -332,7 +339,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;fidelity&quot;</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">timings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">timings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Various system property timings. All times expressed as seconds.</span>
 
 <span class="sd">        Timings currently include::</span>
@@ -350,7 +357,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;timing&quot;</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">connectivity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">connectivity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns connectivity data.</span>
 
 <span class="sd">        Returns:</span>
@@ -367,13 +374,13 @@
 
     <span class="n">_client</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Add IonQ equivalences</span>
         <span class="n">ionq_equivalence_library</span><span class="o">.</span><span class="n">add_equivalences</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_default_options</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_default_options</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Options</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Options</span><span class="p">(</span>
             <span class="n">shots</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
             <span class="n">job_settings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -383,7 +390,7 @@
         <span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">client</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">client</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ionq_client</span><span class="o">.</span><span class="n">IonQClient</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;A lazily populated IonQ API Client.</span>
 
 <span class="sd">        Returns:</span>
@@ -395,7 +402,7 @@
 
 <div class="viewcode-block" id="IonQBackend.create_client">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.create_client">[docs]</a>
-    <span class="k">def</span> <span class="nf">create_client</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">create_client</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ionq_client</span><span class="o">.</span><span class="n">IonQClient</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an IonQ REST API Client using provider credentials.</span>
 
 <span class="sd">        Raises:</span>
@@ -436,7 +443,7 @@
     <span class="c1"># pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,arguments-renamed</span>
 <div class="viewcode-block" id="IonQBackend.run">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.run">[docs]</a>
-    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ionq_job</span><span class="o">.</span><span class="n">IonQJob</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and run a job on an IonQ Backend.</span>
 
 <span class="sd">        Args:</span>
@@ -495,35 +502,35 @@
 
 <div class="viewcode-block" id="IonQBackend.retrieve_job">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.retrieve_job">[docs]</a>
-    <span class="k">def</span> <span class="nf">retrieve_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">retrieve_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ionq_job</span><span class="o">.</span><span class="n">IonQJob</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;get a job from a specific backend, by job id.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">ionq_job</span><span class="o">.</span><span class="n">IonQJob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="IonQBackend.retrieve_jobs">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.retrieve_jobs">[docs]</a>
-    <span class="k">def</span> <span class="nf">retrieve_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_ids</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">retrieve_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ionq_job</span><span class="o">.</span><span class="n">IonQJob</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;get a list of jobs from a specific backend, job id&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">ionq_job</span><span class="o">.</span><span class="n">IonQJob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">)</span> <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">job_ids</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="IonQBackend.cancel_job">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.cancel_job">[docs]</a>
-    <span class="k">def</span> <span class="nf">cancel_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">cancel_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;cancels a job from a specific backend, by job id.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">cancel_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="IonQBackend.cancel_jobs">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.cancel_jobs">[docs]</a>
-    <span class="k">def</span> <span class="nf">cancel_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_ids</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">cancel_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;cancels a list of jobs from a specific backend, job id&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">cancel_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span> <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">job_ids</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="IonQBackend.has_valid_mapping">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.has_valid_mapping">[docs]</a>
-    <span class="k">def</span> <span class="nf">has_valid_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">has_valid_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">QuantumCircuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;checks if the circuit has at least one</span>
 <span class="sd">        valid qubit -&gt; bit measurement.</span>
 
@@ -545,7 +552,7 @@
     <span class="c1"># TODO: Implement backend status checks.</span>
 <div class="viewcode-block" id="IonQBackend.status">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.status">[docs]</a>
-    <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BackendStatus</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a backend status object to the caller.</span>
 
 <span class="sd">        Returns:</span>
@@ -562,7 +569,7 @@
 
 <div class="viewcode-block" id="IonQBackend.calibration">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.calibration">[docs]</a>
-    <span class="k">def</span> <span class="nf">calibration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">calibration</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Calibration</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch the most recent calibration data for this backend.</span>
 
 <span class="sd">        Returns:</span>
@@ -578,7 +585,7 @@
 <div class="viewcode-block" id="IonQBackend.with_name">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.with_name">[docs]</a>
     <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
-    <span class="k">def</span> <span class="nf">with_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">with_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IonQBackend</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper method that returns this backend with a more specific target system.&quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
@@ -586,18 +593,17 @@
 <div class="viewcode-block" id="IonQBackend.gateset">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.gateset">[docs]</a>
     <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
-    <span class="k">def</span> <span class="nf">gateset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper method returning the gateset this backend is targeting.&quot;&quot;&quot;</span>
-        <span class="k">pass</span></div>
+    <span class="k">def</span> <span class="nf">gateset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;qis&quot;</span><span class="p">,</span> <span class="s2">&quot;native&quot;</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper method returning the gateset this backend is targeting.&quot;&quot;&quot;</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">()</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">gateset</span><span class="p">()</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">gateset</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
 
-    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span></div>
 
 
@@ -623,7 +629,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_default_options</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_default_options</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Options</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Options</span><span class="p">(</span>
             <span class="n">shots</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
             <span class="n">job_settings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -636,7 +642,7 @@
     <span class="c1"># pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,useless-super-delegation</span>
 <div class="viewcode-block" id="IonQSimulatorBackend.run">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQSimulatorBackend.run">[docs]</a>
-    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ionq_job</span><span class="o">.</span><span class="n">IonQJob</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and run a job on IonQ&#39;s Simulator Backend.</span>
 
 <span class="sd">        .. WARNING:</span>
@@ -656,7 +662,7 @@
 
 <div class="viewcode-block" id="IonQSimulatorBackend.calibration">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQSimulatorBackend.calibration">[docs]</a>
-    <span class="k">def</span> <span class="nf">calibration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">calibration</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Simulators have no calibration data.</span>
 
 <span class="sd">        Returns:</span>
@@ -667,11 +673,16 @@
 
 <div class="viewcode-block" id="IonQSimulatorBackend.gateset">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQSimulatorBackend.gateset">[docs]</a>
-    <span class="k">def</span> <span class="nf">gateset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">gateset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;qis&quot;</span><span class="p">,</span> <span class="s2">&quot;native&quot;</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;simulator&quot;</span><span class="p">,</span> <span class="n">gateset</span><span class="o">=</span><span class="s2">&quot;qis&quot;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">provider</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;simulator&quot;</span><span class="p">,</span>
+        <span class="n">gateset</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;qis&quot;</span><span class="p">,</span> <span class="s2">&quot;native&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;qis&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Base class for interfacing with an IonQ backend&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span> <span class="o">=</span> <span class="n">gateset</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">BackendConfiguration</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
@@ -738,7 +749,7 @@
 
 <div class="viewcode-block" id="IonQSimulatorBackend.with_name">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQSimulatorBackend.with_name">[docs]</a>
-    <span class="k">def</span> <span class="nf">with_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">with_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IonQSimulatorBackend</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper method that returns this backend with a more specific target system.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">IonQSimulatorBackend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_provider</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 </div>
@@ -752,11 +763,16 @@
 
 <div class="viewcode-block" id="IonQQPUBackend.gateset">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQQPUBackend.gateset">[docs]</a>
-    <span class="k">def</span> <span class="nf">gateset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">gateset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;qis&quot;</span><span class="p">,</span> <span class="s2">&quot;native&quot;</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ionq_qpu&quot;</span><span class="p">,</span> <span class="n">gateset</span><span class="o">=</span><span class="s2">&quot;qis&quot;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">provider</span><span class="p">:</span> <span class="n">IonQProvider</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ionq_qpu&quot;</span><span class="p">,</span>
+        <span class="n">gateset</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;qis&quot;</span><span class="p">,</span> <span class="s2">&quot;native&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;qis&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span> <span class="o">=</span> <span class="n">gateset</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">BackendConfiguration</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
             <span class="p">{</span>
@@ -822,7 +838,7 @@
 
 <div class="viewcode-block" id="IonQQPUBackend.with_name">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQQPUBackend.with_name">[docs]</a>
-    <span class="k">def</span> <span class="nf">with_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">with_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IonQQPUBackend</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper method that returns this backend with a more specific target system.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">IonQQPUBackend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_provider</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 </div>
@@ -863,7 +879,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=45def3bc"></script>
+    <script src="../../_static/documentation_options.js?v=722679d6"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>
