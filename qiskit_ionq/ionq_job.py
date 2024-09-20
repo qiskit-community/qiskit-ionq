@@ -163,11 +163,14 @@ class IonQJob(JobV1):
     def __init__(
         self,
         backend: ionq_backend.IonQBackend,
-        job_id: str,
+        job_id: Optional[str] = None,
         client: Optional[ionq_client.IonQClient] = None,
         circuit: Optional[QuantumCircuit] = None,
         passed_args: Optional[dict] = None,
     ):
+        assert (
+            job_id is not None or circuit is not None
+        ), "Job must have a job_id or circuit"
         super().__init__(backend, job_id)
         self._client = client or backend.client
         self._result = None

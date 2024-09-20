@@ -71,7 +71,7 @@ class IonQProvider:
 
     def get_backend(
         self,
-        name: Optional[str] = None,
+        name: str,
         gateset: Literal["qis", "native"] = "qis",
         **kwargs,
     ) -> ionq_backend.Backend:
