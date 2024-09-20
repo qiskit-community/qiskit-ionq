@@ -14,7 +14,8 @@ jobs:
         with:
           python-version: 3.12
       - name: install-deps
-        run: pip install -U twine wheel
+        run: |
+          pip install -U setuptools twine wheel
       - name: build
         shell: bash
         run: |
