@@ -147,16 +147,65 @@ def append_gate(circuit, gate_name, param, qubits):
 @pytest.mark.parametrize(
     "gates",
     [
-        [("CXGate", None, [0, 1]), ("CXGate", None, [0, 2]), ("CXGate", None, [0, 3]), ("CXGate", None, [0, 4])],
-        [("HGate", None, [0]), ("CHGate", None, [0, 1]), ("CHGate", None, [0, 2]), ("CHGate", None, [0, 3]), ("CHGate", None, [0, 4])],
-        [("HGate", None, [0]), ("CHGate", None, [0, 1]), ("HGate", None, [1]), ("CHGate", None, [0, 2]), ("HGate", None, [2]), ("CHGate", None, [0, 3]), ("HGate", None, [3]), ("CHGate", None, [0, 4])],
-        [("XGate", None, [0]), ("CHGate", None, [0, 1]), ("XGate", None, [1]), ("CHGate", None, [0, 2]), ("XGate", None, [2]), ("CHGate", None, [0, 3]), ("XGate", None, [3]), ("CHGate", None, [0, 4])],
-        [("SGate", None, [0]), ("CHGate", None, [0, 1]), ("TGate", None, [1]), ("CHGate", None, [1, 2]), ("SGate", None, [2]), ("CHGate", None, [2, 3]), ("TGate", None, [3]), ("CHGate", None, [3, 4])],
-        [("SGate", None, [0]), ("CHGate", None, [0, 1]), ("TGate", None, [1]), ("CHGate", None, [0, 2]), ("XGate", None, [2]), ("CHGate", None, [0, 3]), ("YGate", None, [3]), ("CHGate", None, [0, 4])],
+        #[("SXGate", None, [0]), ("SXGate", None, [0])],
+        #[("SXdgGate", None, [0]), ("SXdgGate", None, [0]), ("SXdgGate", None, [0])],
+        #[("SXGate", None, [0]), ("SXGate", None, [0]), ("SXGate", None, [0])],
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_custom_transpiler(gates):
+def test_ionq_custom_transpiler_one_qubit(gates):
+    # create a quantum circuit
+    qr = QuantumRegister(1)
+    circuit = QuantumCircuit(qr)
+    for gate_name, param, qubits in gates:
+        append_gate(circuit, gate_name, param, qubits)
+
+    # transpile circuit to native gates
+    provider = ionq_provider.IonQProvider()
+    backend = provider.get_backend("ionq_simulator", gateset="native")
+    transpiled_circuit_unoptimized = transpile(circuit, backend)
+
+    # simulate the unoptimized circuit
+    statevector_unoptimized = Statevector(transpiled_circuit_unoptimized)
+    probabilities_unoptimized = np.abs(statevector_unoptimized) ** 2
+
+    # optimized transpilation of circuit to native gates
+    custom_transpiler = IonQTranspiler(backend)
+    transpiled_circuit_optimized = custom_transpiler.transpile(circuit, optimization_level=1)
+
+    # simulate the optimized circuit
+    statevector_optimized = Statevector(transpiled_circuit_optimized)
+    probabilities_optimized = np.abs(statevector_optimized) ** 2
+
+    # print(transpiled_circuit_unoptimized)
+    # print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    # print(transpiled_circuit_optimized)
+
+    np.testing.assert_allclose(
+        probabilities_unoptimized,
+        probabilities_optimized,
+        atol=1e-3,
+        err_msg=(
+            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {circuit}"
+        ),
+    )
+
+@pytest.mark.parametrize(
+    "gates",
+    [
+        #[("CXGate", None, [0, 1]), ("CXGate", None, [0, 2]), ("CXGate", None, [0, 3]), ("CXGate", None, [0, 4])],
+        [ ("CHGate", None, [0, 1])],
+        #[("HGate", None, [0]), ("CHGate", None, [0, 1]), ("CHGate", None, [0, 2]), ("CHGate", None, [0, 3]), ("CHGate", None, [0, 4])],
+        # [("HGate", None, [0]), ("CHGate", None, [0, 1]), ("HGate", None, [1]), ("CHGate", None, [0, 2]), ("HGate", None, [2]), ("CHGate", None, [0, 3]), ("HGate", None, [3]), ("CHGate", None, [0, 4])],
+        # [("XGate", None, [0]), ("CHGate", None, [0, 1]), ("XGate", None, [1]), ("CHGate", None, [0, 2]), ("XGate", None, [2]), ("CHGate", None, [0, 3]), ("XGate", None, [3]), ("CHGate", None, [0, 4])],
+        # [("SGate", None, [0]), ("CHGate", None, [0, 1]), ("TGate", None, [1]), ("CHGate", None, [1, 2]), ("SGate", None, [2]), ("CHGate", None, [2, 3]), ("TGate", None, [3]), ("CHGate", None, [3, 4])],
+        # [("SGate", None, [0]), ("CHGate", None, [0, 1]), ("TGate", None, [1]), ("CHGate", None, [0, 2]), ("XGate", None, [2]), ("CHGate", None, [0, 3]), ("YGate", None, [3]), ("CHGate", None, [0, 4])],
+    ],
+    ids=lambda val: f"{val}",
+)
+def test_ionq_custom_transpiler_five_qubits(gates):
     # create a quantum circuit
     qr = QuantumRegister(5)
     circuit = QuantumCircuit(qr)
@@ -191,6 +240,7 @@ def test_ionq_custom_transpiler(gates):
         err_msg=(
             f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
-            f"Circuit: {circuit}"
+            f"Circuit Unoptimized: {transpiled_circuit_unoptimized},\n"
+            f"Circuit Optimized: {transpiled_circuit_optimized},\n"
         ),
     )

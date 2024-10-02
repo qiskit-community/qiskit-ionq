@@ -30,7 +30,7 @@ from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 from qiskit.converters import circuit_to_dag
 
-from qiskit_ionq.rewrite_rules import GPI2_Adjoint, GPI_Adjoint, CommuteGPI2MS, CancelFourGPI2
+from qiskit_ionq.rewrite_rules import GPI2_Adjoint, GPI_Adjoint, CommuteGPI2MS, CancelFourGPI2, GPI2TwiceIsGPI
     
 class IonQTranspiler:
     def __init__(self, backend):
@@ -44,7 +44,8 @@ class IonQTranspiler:
             GPI2_Adjoint(), 
             GPI_Adjoint(),
             CommuteGPI2MS(), 
-            CancelFourGPI2()
+            CancelFourGPI2(),
+            GPI2TwiceIsGPI(),
         ])
         return pm
 
