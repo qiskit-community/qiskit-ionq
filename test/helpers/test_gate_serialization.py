@@ -33,6 +33,8 @@ from qiskit.circuit import (
     ClassicalRegister,
     instruction,
 )
+from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.quantum_info import SparsePauliOp
 
 from qiskit_ionq import exceptions
 from qiskit_ionq.helpers import qiskit_circ_to_ionq_circ
@@ -216,6 +218,47 @@ def test_circuit_with_entangling_ops():
     expected = [{"gate": "x", "targets": [0], "controls": [1]}]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected
+
+
+def test_pauliexp_circuit():
+    """Test structure of circuits with a Pauli evolution gate."""
+    # build the evolution gate
+    operator = SparsePauliOp(["XX", "YY", "ZZ"], coeffs=[0.1, 0.2, 0.3])
+    evo = PauliEvolutionGate(operator, time=0.4)
+    # append it to a circuit
+    circuit = QuantumCircuit(3)
+    circuit.append(evo, [1, 2])
+    expected = [
+        {
+            "gate": "pauliexp",
+            "targets": [1, 2],
+            "terms": ["XX", "YY", "ZZ"],
+            "coefficients": [0.1, 0.2, 0.3],
+            "time": 0.4,
+        }
+    ]
+    built, _, _ = qiskit_circ_to_ionq_circ(circuit)
+    assert built == expected
+
+
+@pytest.mark.parametrize("ionq_compiler_synthesis", [True, False])
+def test_non_commuting_pauliexp_circuit(ionq_compiler_synthesis):
+    """Test that non-commuting Pauli evolution gates raise an error."""
+    # build the evolution gate
+    operator = SparsePauliOp(["XX", "XY"], coeffs=[0.1, 0.2])
+    evo = PauliEvolutionGate(operator, time=0.3)
+    # append it to a circuit
+    circuit = QuantumCircuit(2)
+    circuit.append(evo, [0, 1])
+    if ionq_compiler_synthesis:
+        qiskit_circ_to_ionq_circ(
+            circuit, ionq_compiler_synthesis=ionq_compiler_synthesis
+        )
+    else:
+        with pytest.raises(exceptions.IonQPauliExponentialError) as _:
+            qiskit_circ_to_ionq_circ(
+                circuit, ionq_compiler_synthesis=ionq_compiler_synthesis
+            )
 
 
 def test_multi_control():
