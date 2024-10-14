@@ -25,6 +25,7 @@
 # limitations under the License.
 
 """Test basic behavior of :class:`IonQJob`."""
+
 from unittest import mock
 import warnings
 
@@ -573,6 +574,45 @@ def test_result__from_circuit(mock_backend, requests_mock):
     assert res == expected_result
 
 
+def test_result__meas_mapped(mock_backend, requests_mock):
+    """Test result fetching when the job has uses meas_mapped to remap results.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    # Create the job:
+    job_id = "test_id"
+    job_response = conftest.dummy_mapped_job_response(job_id)
+    client = mock_backend.client
+
+    meas_mapped = QuantumCircuit(2, 2, name="meas_mapped")
+    meas_mapped.x(0)
+    meas_mapped.measure([0, 1], [1, 0])
+
+    # Create a job ref (this does not call status, since circuit is not None).
+    job = ionq_job.IonQJob(mock_backend, None, circuit=meas_mapped)
+
+    # Mock the create:
+    create_path = client.make_path("jobs")
+    requests_mock.post(create_path, status_code=200, json=job_response)
+
+    # Submit the job.
+    job.submit()
+
+    # Mock the fetch from `result`, since status should still be "initializing".
+    fetch_path = client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, status_code=200, json=job_response)
+
+    # Mock the fetch from `results`
+    fetch_path = client.make_path("jobs", job_id, "results")
+    requests_mock.get(fetch_path, status_code=200, json={"2": 1})
+
+    # Validate the result and its format. should be the same as base case.
+    res = job.result().get_counts()
+    assert res == {"01": 1234}  # 1234 shots, all 10(2) remapped to 01(1)
+
+
 def test_result__failed_from_api(mock_backend, requests_mock):
     """Test result fetching when the job fails on the API side (e.g. due to bad input)
 
@@ -657,9 +697,7 @@ def test_status__no_job_id(mock_backend):
     assert actual_status is job._status is jobstatus.JobStatus.INITIALIZING
 
 
-def test_status__already_final_state(
-    mock_backend, requests_mock
-):  # pylint: disable=invalid-name
+def test_status__already_final_state(mock_backend, requests_mock):  # pylint: disable=invalid-name
     """Test status() returns early when the job is already completed.
 
     Args:
@@ -686,3 +724,58 @@ def test_status__already_final_state(
 
     job_fetch_spy.assert_not_called()
     assert actual_status is job._status is jobstatus.JobStatus.DONE
+
+
+def test_status_with_detailed(mock_backend, requests_mock):
+    """Test status() with detailed argument returns detailed children status.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`requests_mock.Mocker`): A requests mocker.
+    """
+    job_id = "test_id"
+    child_job_id_1 = "child_test_id_1"
+    child_job_id_2 = "child_test_id_2"
+
+    # Create dummy job responses
+    job_response = conftest.dummy_job_response(
+        job_id, status="completed", children=[child_job_id_1, child_job_id_2]
+    )
+    child_job_1_response = conftest.dummy_job_response(
+        child_job_id_1, status="completed"
+    )
+    child_job_2_response = conftest.dummy_job_response(child_job_id_2, status="running")
+
+    # Mock the job response API calls
+    client = mock_backend.client
+    requests_mock.get(
+        client.make_path("jobs", job_id), status_code=200, json=job_response
+    )
+    requests_mock.get(
+        client.make_path("jobs", child_job_id_1),
+        status_code=200,
+        json=child_job_1_response,
+    )
+    requests_mock.get(
+        client.make_path("jobs", child_job_id_2),
+        status_code=200,
+        json=child_job_2_response,
+    )
+
+    # Create a job ref (this will call .status() to fetch our mock above)
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    # Call status with detailed=True
+    detailed_status = job.status(detailed=True)
+
+    # Expected detailed status
+    expected_detailed_status = {
+        "total": 2,
+        "completed": 1,
+        "failed": 0,
+        "percentage_complete": 0.5,
+        "statuses": [jobstatus.JobStatus.DONE, jobstatus.JobStatus.RUNNING],
+    }
+
+    # Assert the detailed status
+    assert detailed_status == expected_detailed_status

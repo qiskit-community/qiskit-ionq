@@ -25,9 +25,10 @@
 # limitations under the License.
 
 """global pytest fixtures"""
+
 import pytest
 import requests_mock as _requests_mock
-from qiskit.providers import models as q_models
+from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from requests_mock import adapter as rm_adapter
 
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
@@ -40,10 +41,8 @@ class MockBackend(ionq_backend.IonQBackend):
     def gateset(self):
         return "qis"
 
-    def __init__(
-        self, provider, name="ionq_mock_backend"
-    ):  # pylint: disable=redefined-outer-name
-        config = q_models.BackendConfiguration.from_dict(
+    def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
+        config = BackendConfiguration.from_dict(
             {
                 "backend_name": name,
                 "backend_version": "0.0.1",
@@ -74,7 +73,7 @@ class MockBackend(ionq_backend.IonQBackend):
 
 
 def dummy_job_response(
-    job_id, target="mock_backend", status="completed", job_settings=None
+    job_id, target="mock_backend", status="completed", job_settings=None, children=None
 ):
     """A dummy response payload for `job_id`.
 
@@ -83,6 +82,7 @@ def dummy_job_response(
         target (str): Backend target string.
         status (str): A provided status string.
         job_settings (dict): Settings provided to the API.
+        children (list): A list of child job IDs.
 
     Returns:
         dict: A json response dict.
@@ -99,7 +99,7 @@ def dummy_job_response(
             "global_phase": 0,
         }
     )
-    return {
+    response = {
         "status": status,
         "predicted_execution_time": 4,
         "metadata": {
@@ -121,6 +121,67 @@ def dummy_job_response(
         "settings": (job_settings or {}),
         "name": "test_name",
     }
+
+    if children is not None:
+        response["children"] = children
+
+    return response
+
+
+def dummy_mapped_job_response(
+    job_id, target="mock_backend", status="completed", job_settings=None, children=None
+):
+    """A dummy mapped response payload for `job_id`.
+
+    Args:
+        job_id (str): An arbitrary job id.
+        target (str): Backend target string.
+        status (str): A provided status string.
+        job_settings (dict): Settings provided to the API.
+        children (list): A list of child job IDs.
+
+    Returns:
+        dict: A json response dict.
+    """
+    qiskit_header = compress_to_metadata_string(
+        {
+            "qubit_labels": [["q", 0], ["q", 1]],
+            "n_qubits": 2,
+            "qreg_sizes": [["q", 2]],
+            "clbit_labels": [["c", 0], ["c", 1]],
+            "memory_slots": 2,
+            "creg_sizes": [["c", 2]],
+            "name": job_id,
+            "global_phase": 0,
+        }
+    )
+    response = {
+        "status": status,
+        "predicted_execution_time": 4,
+        "metadata": {
+            "qobj_id": "test_qobj_id",
+            "shots": "1234",
+            "sampler_seed": "42",
+            "output_length": "2",
+            "qiskit_header": qiskit_header,
+        },
+        "registers": {"meas_mapped": [1, 0]},
+        "execution_time": 8,
+        "qubits": 2,
+        "type": "circuit",
+        "request": 1600000000,
+        "start": 1600000001,
+        "response": 1600000002,
+        "target": target,
+        "id": job_id,
+        "settings": (job_settings or {}),
+        "name": "test_name",
+    }
+
+    if children is not None:
+        response["children"] = children
+
+    return response
 
 
 def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-type-doc

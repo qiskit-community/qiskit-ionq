@@ -29,14 +29,25 @@ Helper methods for mapping Qiskit classes
 to IonQ REST API compatible values.
 """
 
+from __future__ import annotations
+
 import json
 import gzip
 import base64
 import platform
 import warnings
+import os
+from typing import Literal, Any
+import requests
+from dotenv import dotenv_values
 
 from qiskit import __version__ as qiskit_terra_version
-from qiskit.circuit import controlledgate as q_cgates
+from qiskit.circuit import (
+    controlledgate as q_cgates,
+    QuantumCircuit,
+    QuantumRegister,
+    ClassicalRegister,
+)
 from qiskit.circuit.library import standard_gates as q_gates
 
 # Use this to get version instead of __version__ to avoid circular dependency.
@@ -132,7 +143,9 @@ GATESET_MAP = {
 }
 
 
-def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
+def qiskit_circ_to_ionq_circ(
+    input_circuit: QuantumCircuit, gateset: Literal["qis", "native"] = "qis"
+):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
     .. ATTENTION:: This function ignores the following compiler directives:
@@ -180,7 +193,7 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
             raise exceptions.IonQGateError(instruction_name, gateset)
 
         # Process the instruction and convert.
-        rotation = {}
+        rotation: dict[str, Any] = {}
         if len(instruction.params) > 0:
             if gateset == "qis" or (
                 len(instruction.params) == 1 and instruction_name != "zz"
@@ -294,7 +307,9 @@ def qiskit_circ_to_ionq_circ(input_circuit, gateset="qis"):
     return output_circuit, num_meas, meas_map
 
 
-def get_register_sizes_and_labels(registers):
+def get_register_sizes_and_labels(
+    registers: list[QuantumRegister | ClassicalRegister],
+) -> tuple[list, list]:
     """Returns a tuple of sizes and labels in for a given register
 
     Args:
@@ -320,7 +335,9 @@ def get_register_sizes_and_labels(registers):
     return sizes, labels
 
 
-def compress_to_metadata_string(metadata):  # pylint: disable=invalid-name
+def compress_to_metadata_string(
+    metadata: dict | list,
+) -> str:  # pylint: disable=invalid-name
     """
     Convert a metadata object to a compact string format (dumped, gzipped, base64 encoded)
     for storing in IonQ API metadata
@@ -339,7 +356,9 @@ def compress_to_metadata_string(metadata):  # pylint: disable=invalid-name
     return encoded.decode()
 
 
-def decompress_metadata_string(input_string):  # pylint: disable=invalid-name
+def decompress_metadata_string(
+    input_string: str,
+) -> dict | list:  # pylint: disable=invalid-name
     """
     Convert compact string format (dumped, gzipped, base64 encoded) from
     IonQ API metadata back into a dict or list of dicts relevant to building
@@ -361,7 +380,7 @@ def decompress_metadata_string(input_string):  # pylint: disable=invalid-name
 
 def qiskit_to_ionq(
     circuit, backend, passed_args=None, extra_query_params=None, extra_metadata=None
-):
+) -> str:
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
     Parameters:
@@ -387,7 +406,7 @@ def qiskit_to_ionq(
     else:
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
         circuit = [circuit]
-
+    circuit: list[QuantumCircuit] | tuple[QuantumCircuit, ...]  # type: ignore[no-redef]
     metadata_list = [
         {
             "memory_slots": circ.num_clbits,  # int
@@ -413,13 +432,6 @@ def qiskit_to_ionq(
     )
 
     target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
-    if target == "qpu":
-        target = "qpu.harmony"  # todo default to cheapest available option
-        warnings.warn(
-            "The ionq_qpu backend is deprecated. Defaulting to ionq_qpu.harmony.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     ionq_json = {
         "target": target,
         "shots": passed_args.get("shots"),
@@ -454,7 +466,9 @@ def qiskit_to_ionq(
     settings = passed_args.get("job_settings") or None
     if settings is not None:
         ionq_json["settings"] = settings
-    error_mitigation = passed_args.get("error_mitigation")
+    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
+        "error_mitigation"
+    )
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
         ionq_json["error_mitigation"] = error_mitigation.value
     return json.dumps(ionq_json, cls=SafeEncoder)
@@ -505,10 +519,79 @@ class SafeEncoder(json.JSONEncoder):
         return "unknown"
 
 
+def resolve_credentials(token: str | None = None, url: str | None = None):
+    """Resolve credentials for use in IonQ API calls.
+
+    If the provided ``token`` and ``url`` are both ``None``, then these values
+    are loaded from the ``IONQ_API_TOKEN`` and ``IONQ_API_URL``
+    environment variables, respectively.
+
+    If no url is discovered, then ``https://api.ionq.co/v0.3`` is used.
+
+    Args:
+        token (str): IonQ API access token.
+        url (str, optional): IonQ API url. Defaults to ``None``.
+
+    Returns:
+        dict[str]: A dict with "token" and "url" keys, for use by a client.
+    """
+    env_token = (
+        dotenv_values().get("QISKIT_IONQ_API_TOKEN")  # first check for dotenv values
+        or dotenv_values().get("IONQ_API_KEY")
+        or dotenv_values().get("IONQ_API_TOKEN")
+        or os.getenv("QISKIT_IONQ_API_TOKEN")  # then check for global env values
+        or os.getenv("IONQ_API_KEY")
+        or os.getenv("IONQ_API_TOKEN")
+    )
+    env_url = (
+        dotenv_values().get("QISKIT_IONQ_API_URL")
+        or dotenv_values().get("IONQ_API_URL")
+        or os.getenv("QISKIT_IONQ_API_URL")
+        or os.getenv("IONQ_API_URL")
+    )
+    return {
+        "token": token or env_token,
+        "url": url or env_url or "https://api.ionq.co/v0.3",
+    }
+
+
+def get_n_qubits(backend: str, _fallback=100) -> int:
+    """Get the number of qubits for a given backend.
+
+    Args:
+        backend (str): The name of the backend.
+
+    Returns:
+        int: The number of qubits for the backend.
+    """
+    creds = resolve_credentials()
+    url = creds.get("url")
+    token = creds.get("token")
+    # could use provider.get_calibration_data().get("qubits", 36)
+    try:
+        target = (
+            backend.split("ionq_qpu.")[1]
+            if backend.startswith("ionq_qpu.")
+            else backend
+        )
+        return requests.get(
+            url=f"{url}/characterizations/backends/{target}/current",
+            headers={"Authorization": f"apiKey {token}"},
+            timeout=5,
+        ).json()["qubits"]
+    except Exception as exception:  # pylint: disable=broad-except
+        warnings.warn(
+            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {_fallback}."
+        )
+        return _fallback
+
+
 __all__ = [
     "qiskit_to_ionq",
     "qiskit_circ_to_ionq_circ",
     "compress_to_metadata_string",
     "decompress_metadata_string",
     "get_user_agent",
+    "resolve_credentials",
+    "get_n_qubits",
 ]

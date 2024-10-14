@@ -25,6 +25,11 @@
 # limitations under the License.
 
 """Exceptions for the IonQ Provider."""
+
+from __future__ import annotations
+
+from typing import Literal
+
 import json.decoder as jd
 
 import requests
@@ -36,10 +41,10 @@ from qiskit.providers import JobError, JobTimeoutError
 class IonQError(QiskitError):
     """Base class for errors raised by an IonQProvider."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.message!r})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(str(self))
 
 
@@ -94,7 +99,7 @@ class IonQAPIError(IonQError):
     """
 
     @classmethod
-    def raise_for_status(cls, response):
+    def raise_for_status(cls, response) -> IonQAPIError | None:
         """Raise an instance of the exception class from an API response object if needed.
         Args:
             response (:class:`Response <requests.Response>`): An IonQ REST API response.
@@ -111,7 +116,7 @@ class IonQAPIError(IonQError):
         raise res
 
     @classmethod
-    def from_response(cls, response):
+    def from_response(cls, response: requests.Response) -> IonQAPIError:
         """Raise an instance of the exception class from an API response object.
 
         Args:
@@ -146,7 +151,7 @@ class IonQAPIError(IonQError):
             error_type = error_data.get("type") or error_type
         return cls(message, status_code, headers, body, error_type)
 
-    def __init__(self, message, status_code, headers, body, error_type):
+    def __init__(self, message, status_code, headers, body, error_type):  # pylint: disable=too-many-positional-arguments
         super().__init__(message)
         self.status_code = status_code
         self.headers = headers
@@ -187,7 +192,7 @@ class IonQGateError(IonQError, JobError):
         gate_name: The name of the gate which caused this error.
     """
 
-    def __init__(self, gate_name, gateset):
+    def __init__(self, gate_name: str, gateset: Literal["qis", "native"]):
         self.gate_name = gate_name
         self.gateset = gateset
         super().__init__(
@@ -210,7 +215,7 @@ class IonQMidCircuitMeasurementError(IonQError, JobError):
         qubit_index: The qubit index to be measured mid-circuit
     """
 
-    def __init__(self, qubit_index, gate_name):
+    def __init__(self, qubit_index: int, gate_name: str):
         self.qubit_index = qubit_index
         self.gate_name = gate_name
         super().__init__(

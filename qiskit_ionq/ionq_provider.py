@@ -26,52 +26,20 @@
 
 """Provider for interacting with IonQ backends"""
 
+from __future__ import annotations
+
 import logging
-import os
-from dotenv import dotenv_values
+
+from typing import Callable, Literal, Optional
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
+from .helpers import resolve_credentials
 
 from . import ionq_backend
 
+
 logger = logging.getLogger(__name__)
-
-
-def resolve_credentials(token: str = None, url: str = None):
-    """Resolve credentials for use in IonQ Client API calls.
-
-    If the provided ``token`` and ``url`` are both ``None``, then these values
-    are loaded from the ``IONQ_API_TOKEN`` and ``IONQ_API_URL``
-    environment variables, respectively.
-
-    If no url is discovered, then ``https://api.ionq.co/v0.3`` is used.
-
-    Args:
-        token (str): IonQ API access token.
-        url (str, optional): IonQ API url. Defaults to ``None``.
-
-    Returns:
-        dict[str]: A dict with "token" and "url" keys, for use by a client.
-    """
-    env_token = (
-        dotenv_values().get("QISKIT_IONQ_API_TOKEN")  # first check for dotenv values
-        or dotenv_values().get("IONQ_API_KEY")
-        or dotenv_values().get("IONQ_API_TOKEN")
-        or os.getenv("QISKIT_IONQ_API_TOKEN")  # then check for global env values
-        or os.getenv("IONQ_API_KEY")
-        or os.getenv("IONQ_API_TOKEN")
-    )
-    env_url = (
-        dotenv_values().get("QISKIT_IONQ_API_URL")
-        or dotenv_values().get("IONQ_API_URL")
-        or os.getenv("QISKIT_IONQ_API_URL")
-        or os.getenv("IONQ_API_URL")
-    )
-    return {
-        "token": token or env_token,
-        "url": url or env_url or "https://api.ionq.co/v0.3",
-    }
 
 
 class IonQProvider:
@@ -85,7 +53,12 @@ class IonQProvider:
 
     name = "ionq_provider"
 
-    def __init__(self, token: str = None, url: str = None, custom_headers: dict = None):
+    def __init__(
+        self,
+        token: Optional[str] = None,
+        url: Optional[str] = None,
+        custom_headers: Optional[dict] = None,
+    ):
         super().__init__()
         self.custom_headers = custom_headers
         self.credentials = resolve_credentials(token, url)
@@ -96,7 +69,12 @@ class IonQProvider:
             ]
         )
 
-    def get_backend(self, name: str = None, gateset="qis", **kwargs):
+    def get_backend(
+        self,
+        name: str,
+        gateset: Literal["qis", "native"] = "qis",
+        **kwargs,
+    ) -> ionq_backend.Backend:
         """Return a single backend matching the specified filtering.
         Args:
             name (str): name of the backend.
@@ -123,7 +101,7 @@ class BackendService:
     of backends from provider.
     """
 
-    def __init__(self, backends):
+    def __init__(self, backends: list[ionq_backend.Backend]):
         """Initialize service
 
         Parameters:
@@ -133,7 +111,9 @@ class BackendService:
         for backend in backends:
             setattr(self, backend.name(), backend)
 
-    def __call__(self, name=None, filters=None, **kwargs):
+    def __call__(
+        self, name: Optional[str] = None, filters: Optional[Callable] = None, **kwargs
+    ) -> list[ionq_backend.Backend]:
         """A listing of all backends from this provider.
 
         Parameters:

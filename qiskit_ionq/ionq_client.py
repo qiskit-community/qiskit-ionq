@@ -26,9 +26,11 @@
 
 """Basic API Client for IonQ's REST API"""
 
+from __future__ import annotations
+
 import json
 from collections import OrderedDict
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from warnings import warn
 import requests
 
@@ -37,6 +39,9 @@ from retry import retry
 from . import exceptions
 from .helpers import qiskit_to_ionq, get_user_agent
 from .exceptions import IonQRetriableError
+
+if TYPE_CHECKING:
+    from .ionq_job import IonQJob
 
 
 class IonQClient:
@@ -48,7 +53,12 @@ class IonQClient:
         _custom_headers(dict): Extra headers to add to the request.
     """
 
-    def __init__(self, token=None, url=None, custom_headers=None):
+    def __init__(
+        self,
+        token: Optional[str] = None,
+        url: Optional[str] = None,
+        custom_headers: Optional[dict] = None,
+    ):
         self._token = token
         self._custom_headers = custom_headers or {}
         # strip trailing slashes from our base URL.
@@ -58,7 +68,7 @@ class IonQClient:
         self._user_agent = get_user_agent()
 
     @property
-    def api_headers(self):
+    def api_headers(self) -> dict:
         """API Headers needed to make calls to the REST API.
 
         Returns:
@@ -71,7 +81,7 @@ class IonQClient:
             "User-Agent": self._user_agent,
         }
 
-    def make_path(self, *parts):
+    def make_path(self, *parts: str) -> str:
         """Make a "/"-delimited path, then append it to :attr:`_url`.
 
         Returns:
@@ -107,7 +117,7 @@ class IonQClient:
         return res
 
     @retry(exceptions=IonQRetriableError, tries=5)
-    def submit_job(self, job) -> dict:
+    def submit_job(self, job: IonQJob) -> dict:
         """Submit job to IonQ API
 
         This returns a JSON dict with status "submitted" and the job's id.
@@ -139,7 +149,7 @@ class IonQClient:
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
-    def retrieve_job(self, job_id: str):
+    def retrieve_job(self, job_id: str) -> dict:
         """Retrieve job information from the IonQ API.
 
         The returned JSON dict will only have data if job has completed.
@@ -160,7 +170,7 @@ class IonQClient:
         return res.json()
 
     @retry(exceptions=IonQRetriableError, tries=5)
-    def cancel_job(self, job_id: str):
+    def cancel_job(self, job_id: str) -> dict:
         """Attempt to cancel a job which has not yet run.
 
         .. NOTE:: If the job has already reached status "completed", this cancel action is a no-op.
@@ -179,7 +189,7 @@ class IonQClient:
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
-    def cancel_jobs(self, job_ids: list):
+    def cancel_jobs(self, job_ids: list[str]) -> list[dict]:
         """Cancel multiple jobs at once.
 
         Args:
@@ -191,7 +201,7 @@ class IonQClient:
         return [self.cancel_job(job_id) for job_id in job_ids]
 
     @retry(exceptions=IonQRetriableError, tries=3)
-    def delete_job(self, job_id: str):
+    def delete_job(self, job_id: str) -> dict:
         """Delete a job and associated data.
 
         Args:
@@ -235,7 +245,7 @@ class IonQClient:
         job_id: str,
         sharpen: Optional[bool] = None,
         extra_query_params: Optional[dict] = None,
-    ):
+    ) -> dict:
         """Retrieve job results from the IonQ API.
 
         The returned JSON dict will only have data if job has completed.

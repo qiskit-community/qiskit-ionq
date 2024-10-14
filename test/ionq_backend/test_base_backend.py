@@ -140,7 +140,9 @@ def test_run(mock_backend, requests_mock):
     requests_mock.post(path, json=dummy_response, status_code=200)
 
     # Run a dummy circuit.
-    job = mock_backend.run(QuantumCircuit(1, 1))
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    job = mock_backend.run(qc)
 
     assert isinstance(job, ionq_job.IonQJob)
     assert job.job_id() == "fake_job"
@@ -160,7 +162,9 @@ def test_run_single_element_list(mock_backend, requests_mock):
     requests_mock.post(path, json=dummy_response, status_code=200)
 
     # Run a dummy circuit.
-    job = mock_backend.run([QuantumCircuit(1, 1)])
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    job = mock_backend.run([qc])
 
     assert isinstance(job, ionq_job.IonQJob)
     assert job.job_id() == "fake_job"
@@ -180,8 +184,10 @@ def test_run_extras(mock_backend, requests_mock):
     requests_mock.post(path, json=dummy_response, status_code=200)
 
     # Run a dummy circuit.
+    qc = QuantumCircuit(1, metadata={"experiment": "abc123"})
+    qc.measure_all()
     job = mock_backend.run(
-        QuantumCircuit(1, 1, metadata={"experiment": "abc123"}),
+        qc,
         extra_query_params={
             "error_mitigation": {"debias": True},
         },
@@ -221,8 +227,7 @@ def test_warn_null_mappings(mock_backend, requests_mock):
 
     with pytest.warns(UserWarning) as warninfo:
         mock_backend.run(qc)
-    assert len(warninfo) == 1
-    assert str(warninfo[-1].message) == "Circuit is not measuring any qubits"
+    assert "Circuit is not measuring any qubits" in {str(w.message) for w in warninfo}
 
 
 def test_multiexp_job(mock_backend, requests_mock):
@@ -241,8 +246,10 @@ def test_multiexp_job(mock_backend, requests_mock):
     # Run a dummy multi-experiment job.
     qc1 = QuantumCircuit(1, 1)
     qc1.h(0)
+    qc1.measure(0, 0)
     qc2 = QuantumCircuit(1, 1)
     qc2.x(0)
+    qc2.measure(0, 0)
     job = mock_backend.run([qc1, qc2])
 
     # Verify json payload
@@ -266,11 +273,11 @@ def test_multiexp_job(mock_backend, requests_mock):
             "circuits": [
                 {
                     "circuit": [{"gate": "h", "targets": [0]}],
-                    "registers": {"meas_mapped": [None]},
+                    "registers": {"meas_mapped": [0]},
                 },
                 {
                     "circuit": [{"gate": "x", "targets": [0]}],
-                    "registers": {"meas_mapped": [None]},
+                    "registers": {"meas_mapped": [0]},
                 },
             ],
         },

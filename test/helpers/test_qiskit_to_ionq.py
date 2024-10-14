@@ -206,6 +206,58 @@ def test_full_circuit(simulator_backend):
     assert actual == expected_rest_of_payload
 
 
+def test_multicircuit_mapping(simulator_backend):
+    """Test multiple circuits with mapped qubits
+
+    Args:
+        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
+    """
+    no_reg_map = QuantumCircuit(2, 2, name="no_reg_map")
+    no_reg_map.x(0)
+    # measure 0 to 1 and 1 to 0
+    no_reg_map.measure([0, 1], [1, 0])
+    no_reg_no_map = QuantumCircuit(2, 2, name="no_reg_no_map")
+    no_reg_no_map.x(0)
+    # measure 0 to 0 and 1 to 1
+    no_reg_no_map.measure([0, 1], [0, 1])
+
+    ionq_json = qiskit_to_ionq(
+        [no_reg_map, no_reg_no_map],
+        simulator_backend,
+        passed_args={"shots": 1024},
+    )
+
+    expected_payload = {
+        "target": "simulator",
+        "shots": 1024,
+        "name": "no_reg_map, no_reg_no_map",
+        "input": {
+            "format": "ionq.circuit.v0",
+            "gateset": "qis",
+            "qubits": 2,
+            "circuits": [
+                {
+                    "circuit": [{"gate": "x", "targets": [0]}],
+                    "registers": {"meas_mapped": [1, 0]},
+                },
+                {
+                    "circuit": [{"gate": "x", "targets": [0]}],
+                    "registers": {"meas_mapped": [0, 1]},
+                },
+            ],
+        },
+        "metadata": {
+            "shots": "1024",
+            "sampler_seed": "None",
+        },
+        "noise": {"model": "ideal", "seed": None},
+    }
+
+    actual = json.loads(ionq_json)
+    actual["metadata"].pop("qiskit_header")  # remove qiskit_header for comparison
+    assert actual == expected_payload
+
+
 def test_circuit_incorrect(simulator_backend):
     """Test a full circuit on a native backend
 
@@ -278,7 +330,7 @@ def test_full_native_circuit(simulator_backend):
     ionq_json = qiskit_to_ionq(
         qc,
         native_backend,
-        passed_args={"noise_model": "harmony", "sampler_seed": 23, "shots": 200},
+        passed_args={"noise_model": "aria-1", "sampler_seed": 23, "shots": 200},
         extra_metadata={"iteration": "10"},
     )
     expected_metadata_header = {
@@ -297,7 +349,7 @@ def test_full_native_circuit(simulator_backend):
         "name": "blame_test",
         "shots": 200,
         "noise": {
-            "model": "harmony",
+            "model": "aria-1",
             "seed": None,
         },
         "input": {

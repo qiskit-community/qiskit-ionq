@@ -8,19 +8,20 @@ jobs:
     name: publish-to-pypi
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         name: install-python
         with:
-          python-version: "3.11"
+          python-version: 3.12
       - name: install-deps
-        run: pip install -U twine wheel
+        run: |
+          pip install -U setuptools twine wheel
       - name: build
         shell: bash
         run: |
           python setup.py sdist
           python setup.py bdist_wheel
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           path: ./dist/qiskit*
       - name: publish

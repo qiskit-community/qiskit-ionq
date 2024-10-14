@@ -38,7 +38,7 @@ class GPIGate(Gate):
     **Circuit symbol:**
     .. parsed-literal::
              ┌───────┐
-        q_0: ┤ GPI(ϴ)├
+        q_0: ┤ GPI(φ)├
              └───────┘
     **Matrix Representation:**
 
@@ -67,7 +67,7 @@ class GPI2Gate(Gate):
     **Circuit symbol:**
     .. parsed-literal::
              ┌───────┐
-        q_0: ┤GPI2(ϴ)├
+        q_0: ┤GPI2(φ)├
              └───────┘
     **Matrix Representation:**
 
@@ -172,7 +172,7 @@ class ZZGate(Gate):
         """Create new ZZ gate."""
         super().__init__("zz", 2, [theta], label=label)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> numpy.ndarray:
         """Return a numpy.array for the ZZ gate."""
         itheta2 = 1j * float(self.params[0]) * math.pi
         return numpy.array(
