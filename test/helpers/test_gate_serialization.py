@@ -255,7 +255,7 @@ def test_non_commuting_pauliexp_circuit(ionq_compiler_synthesis):
             circuit, ionq_compiler_synthesis=ionq_compiler_synthesis
         )
     else:
-        with pytest.raises(exceptions.IonQPauliExponentialError) as exc:
+        with pytest.raises(exceptions.IonQPauliExponentialError) as _:
             qiskit_circ_to_ionq_circ(
                 circuit, ionq_compiler_synthesis=ionq_compiler_synthesis
             )

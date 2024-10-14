@@ -158,12 +158,14 @@ def qiskit_circ_to_ionq_circ(
         gateset (string): Set of gates to target. It can be QIS (required transpilation pass in
           IonQ backend, which is sent standard gates) or native (only IonQ native gates are
           allowed, in the future we may provide transpilation to these gates in Qiskit).
-        ionq_compiler_synthesis (bool): Whether to opt-in to IonQ compiler's intelligent trotterization.
+        ionq_compiler_synthesis (bool): Whether to opt-in to IonQ compiler's intelligent
+          trotterization.
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
         IonQMidCircuitMeasurementError: If a mid-circuit measurement is detected.
-        IonQPauliExponentialError: If non-commuting PauliExponentials are found without the appropriate flag.
+        IonQPauliExponentialError: If non-commuting PauliExponentials are found without
+          the appropriate flag.
 
     Returns:
         list[dict]: A list of instructions in a converted dict format.
@@ -285,7 +287,8 @@ def qiskit_circ_to_ionq_circ(
             if not ionq_compiler_synthesis and not paulis_commute(terms):
                 raise exceptions.IonQPauliExponentialError(
                     f"You have included a PauliEvolutionGate with non-commuting terms: {terms}."
-                    "To decompose it with IonQ hardware-aware synthesis, resubmit with the IONQ_COMPILER_SYNTHESIS flag."
+                    "To decompose it with IonQ hardware-aware synthesis, resubmit with the "
+                    "IONQ_COMPILER_SYNTHESIS flag."
                 )
             targets = [
                 input_circuit.qubits.index(qargs[i])
@@ -317,15 +320,23 @@ def qiskit_circ_to_ionq_circ(
     return output_circuit, num_meas, meas_map
 
 
-def paulis_commute(pauli_terms):
+def paulis_commute(pauli_terms: list[str]) -> bool:
+    """Check if a list of Pauli terms commute.
+
+    Args:
+        pauli_terms (list): A list of Pauli terms.
+
+    Returns:
+        bool: Whether the Pauli terms commute.
+    """
     for i, term in enumerate(pauli_terms):
         for other_term in pauli_terms[i:]:
             assert len(term) == len(other_term)
             anticommutation_parity = 0
-            for ci, c in enumerate(term):
-                oc = other_term[ci]
-                if "I" not in (c, oc):
-                    if c != oc:
+            for index, char in enumerate(term):
+                other_char = other_term[index]
+                if "I" not in (char, other_char):
+                    if char != other_char:
                         anticommutation_parity += 1
             if anticommutation_parity % 2 == 1:
                 return False
