@@ -51,13 +51,13 @@ def test_gpi2_equivalences(gate, phase):
     numpy.testing.assert_array_almost_equal(gate.to_matrix(), gpi2.to_matrix())
 
 
-@pytest.mark.parametrize("gpi_angle, gpi2_angle, virtualz_angle", [(0.625, 0, 0.75)])
-def test_hadamard_equivalence(gpi_angle, gpi2_angle, virtualz_angle):
-    """Tests equivalence of the Hadamard gate with the GPI, GPI2, and VirtualZ gates."""
+@pytest.mark.parametrize("gpi2_angle_1, gpi_angle, gpi2_angle_2", [(0, -0.125, 0.5)])
+def test_hadamard_equivalence(gpi2_angle_1, gpi_angle, gpi2_angle_2):
+    """Tests equivalence of the Hadamard gate with the GPI and GPI2 gates."""
+    gpi2_1 = GPI2Gate(gpi2_angle_1)
     gpi = GPIGate(gpi_angle)
-    gpi2 = GPI2Gate(gpi2_angle)
-    virtualz = RZGate(virtualz_angle)
-    native_hadamard = numpy.dot(virtualz, numpy.dot(gpi2, gpi))
+    gpi2_2 = GPI2Gate(gpi2_angle_2)
+    native_hadamard = numpy.dot(gpi2_2, numpy.dot(gpi, gpi2_1))
     numpy.testing.assert_array_almost_equal(native_hadamard, HGate().to_matrix())
 
 
