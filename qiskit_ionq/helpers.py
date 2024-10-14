@@ -144,7 +144,9 @@ GATESET_MAP = {
 
 
 def qiskit_circ_to_ionq_circ(
-    input_circuit: QuantumCircuit, gateset: Literal["qis", "native"] = "qis"
+    input_circuit: QuantumCircuit,
+    gateset: Literal["qis", "native"] = "qis",
+    ionq_compiler_synthesis: bool = False,
 ):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
@@ -156,10 +158,12 @@ def qiskit_circ_to_ionq_circ(
         gateset (string): Set of gates to target. It can be QIS (required transpilation pass in
           IonQ backend, which is sent standard gates) or native (only IonQ native gates are
           allowed, in the future we may provide transpilation to these gates in Qiskit).
+        ionq_compiler_synthesis (bool): Whether to opt-in to IonQ compiler's intelligent trotterization.
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
         IonQMidCircuitMeasurementError: If a mid-circuit measurement is detected.
+        IonQPauliExponentialError: If non-commuting PauliExponentials are found without the appropriate flag.
 
     Returns:
         list[dict]: A list of instructions in a converted dict format.
@@ -277,11 +281,16 @@ def qiskit_circ_to_ionq_circ(
                 "PauliEvolution gate must have real coefficients, "
                 f"but got {imag_coeff}"
             )
+            terms = [term[0] for term in instruction.operator.to_list()]
+            if not ionq_compiler_synthesis and not paulis_commute(terms):
+                raise exceptions.IonQPauliExponentialError(
+                    f"You have included a PauliEvolutionGate with non-commuting terms: {terms}."
+                    "To decompose it with IonQ hardware-aware synthesis, resubmit with the IONQ_COMPILER_SYNTHESIS flag."
+                )
             targets = [
                 input_circuit.qubits.index(qargs[i])
                 for i in range(instruction.num_qubits)
             ]
-            terms = [term[0] for term in instruction.operator.to_list()]
             coefficients = [coeff.real for coeff in instruction.operator.coeffs]
             gate = {
                 "gate": instruction_name,
@@ -306,6 +315,21 @@ def qiskit_circ_to_ionq_circ(
         output_circuit.append({**converted, **rotation})
 
     return output_circuit, num_meas, meas_map
+
+
+def paulis_commute(pauli_terms):
+    for i, term in enumerate(pauli_terms):
+        for other_term in pauli_terms[i:]:
+            assert len(term) == len(other_term)
+            anticommutation_parity = 0
+            for ci, c in enumerate(term):
+                oc = other_term[ci]
+                if "I" not in (c, oc):
+                    if c != oc:
+                        anticommutation_parity += 1
+            if anticommutation_parity % 2 == 1:
+                return False
+    return True
 
 
 def get_register_sizes_and_labels(
@@ -402,10 +426,18 @@ def qiskit_to_ionq(
     if isinstance(circuit, (list, tuple)):
         multi_circuit = True
         for circ in circuit:
-            ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(circ, backend.gateset())
+            ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(
+                circ,
+                backend.gateset(),
+                extra_metadata.get("ionq_compiler_synthesis", False),
+            )
             ionq_circs.append((ionq_circ, meas_map))
     else:
-        ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(circuit, backend.gateset())
+        ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(
+            circuit,
+            backend.gateset(),
+            extra_metadata.get("ionq_compiler_synthesis", False),
+        )
         circuit = [circuit]
     circuit: list[QuantumCircuit] | tuple[QuantumCircuit, ...]  # type: ignore[no-redef]
     metadata_list = [

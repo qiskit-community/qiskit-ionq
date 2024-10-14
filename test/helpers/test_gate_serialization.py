@@ -241,6 +241,26 @@ def test_pauliexp_circuit():
     assert built == expected
 
 
+@pytest.mark.parametrize("ionq_compiler_synthesis", [True, False])
+def test_non_commuting_pauliexp_circuit(ionq_compiler_synthesis):
+    """Test that non-commuting Pauli evolution gates raise an error."""
+    # build the evolution gate
+    operator = SparsePauliOp(["XX", "XY"], coeffs=[0.1, 0.2])
+    evo = PauliEvolutionGate(operator, time=0.3)
+    # append it to a circuit
+    circuit = QuantumCircuit(2)
+    circuit.append(evo, [0, 1])
+    if ionq_compiler_synthesis:
+        qiskit_circ_to_ionq_circ(
+            circuit, ionq_compiler_synthesis=ionq_compiler_synthesis
+        )
+    else:
+        with pytest.raises(exceptions.IonQPauliExponentialError) as exc:
+            qiskit_circ_to_ionq_circ(
+                circuit, ionq_compiler_synthesis=ionq_compiler_synthesis
+            )
+
+
 def test_multi_control():
     """Test structure of circuits with multiple controls"""
     qc = QuantumCircuit(3, 3)
