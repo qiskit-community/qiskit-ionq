@@ -272,9 +272,9 @@ def qiskit_circ_to_ionq_circ(
             )
 
         if instruction_name == "pauliexp":
-            assert set([coeff.imag for coeff in instruction.operator.coeffs]) == {0}, (
+            assert {coeff.imag for coeff in instruction.operator.coeffs} == {0}, (
                 "PauliEvolution gate must have real coefficients, "
-                f"but got {set([coeff.imag for coeff in instruction.operator.coeffs])}"
+                f"but got {{coeff.imag for coeff in instruction.operator.coeffs}}"
             )
             targets = [
                 input_circuit.qubits.index(qargs[i])

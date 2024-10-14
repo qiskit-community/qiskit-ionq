@@ -31,7 +31,7 @@ import numpy
 
 import pytest
 
-from qiskit.circuit.library import XGate, YGate, RXGate, RYGate, RZGate, HGate
+from qiskit.circuit.library import XGate, YGate, RXGate, RYGate, HGate
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate, ZZGate
 
 
