@@ -46,8 +46,8 @@ class GPIGate(Gate):
 
        GPI(\phi) =
             \begin{pmatrix}
-                0 & e^{-i*\phi} \\
-                e^{i*\phi} & 0
+                0 & e^{-i*2*\pi*\phi} \\
+                e^{i*2*\pi*\phi} & 0
             \end{pmatrix}
     """
 
@@ -57,8 +57,8 @@ class GPIGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI gate."""
-        top = numpy.exp(-1j * self.params[0])
-        bottom = numpy.exp(1j * self.params[0])
+        top = numpy.exp(-1j * 2 * math.pi * self.params[0])
+        bottom = numpy.exp(1j * 2 * math.pi * self.params[0])
         return numpy.array([[0, top], [bottom, 0]], dtype=dtype)
 
 
@@ -76,8 +76,8 @@ class GPI2Gate(Gate):
         GPI2(\phi) =
             \frac{1}{\sqrt{2}}
             \begin{pmatrix}
-                1 & -i*e^{-i*\phi} \\
-                -i*e^{i*\phi} & 1
+                1 & -i*e^{-i*2*\pi*\phi} \\
+                -i*e^{i*2*\pi*\phi} & 1
             \end{pmatrix}
     """
 
@@ -87,8 +87,8 @@ class GPI2Gate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the GPI2 gate."""
-        top = -1j * numpy.exp(-1j * self.params[0])
-        bottom = -1j * numpy.exp(1j * self.params[0])
+        top = -1j * numpy.exp(-1j * self.params[0] * 2 * math.pi)
+        bottom = -1j * numpy.exp(1j * self.params[0] * 2 * math.pi)
         return 1 / numpy.sqrt(2) * numpy.array([[1, top], [bottom, 1]], dtype=dtype)
 
 
