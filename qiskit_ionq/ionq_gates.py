@@ -139,10 +139,10 @@ class MSGate(Gate):
 
         return numpy.array(
             [
-                [diag, 0, 0, sin * -1j * cmath.exp(-1j * 2 * math.pi * (phi0 + phi1))],
-                [0, diag, sin * -1j * cmath.exp(1j * 2 * math.pi * (phi0 - phi1)), 0],
-                [0, sin * -1j * cmath.exp(-1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
-                [sin * -1j * cmath.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
+                [diag, 0, 0, sin * -1j * numpy.exp(-1j * 2 * math.pi * (phi0 + phi1))],
+                [0, diag, sin * -1j * numpy.exp(1j * 2 * math.pi * (phi0 - phi1)), 0],
+                [0, sin * -1j * numpy.exp(-1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
+                [sin * -1j * numpy.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
             ],
             dtype=dtype,
         )
