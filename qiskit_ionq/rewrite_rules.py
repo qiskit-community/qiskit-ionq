@@ -200,6 +200,7 @@ class CollapseMoreThanThreeSingleQubitGates(TransformationPass):
                         )
                         trd_node = single_qubit_gates_streak[2]
                         trd_node.op.params[0] = 0.5 + phi / (2 * pi)
+                        single_qubit_gates_streak = []
 
         for node in nodes_to_remove:
             dag.remove_op_node(node)
