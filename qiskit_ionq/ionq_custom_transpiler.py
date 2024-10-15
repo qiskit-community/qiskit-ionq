@@ -24,87 +24,63 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from qiskit import transpile
-from qiskit.transpiler import PassManager
-from qiskit.converters import circuit_to_dag
+from qiskit.transpiler import PassManager, PassManagerConfig
+from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 
 from qiskit_ionq.rewrite_rules import (
     GPI2_Adjoint,
     GPI_Adjoint,
     CommuteGPI2MS,
     CancelFourGPI2,
-    GPI2TwiceIsGPITimesI,
-    SimplifyIds,
-    CommuteGPisAndIds,
-    CommuteMSAndIds,
+    GPI2TwiceIsGPI,
+    CollapseMoreThanThreeSingleQubitGates,
 )
 
 
-class IonQTranspiler:
-    """A custom transpiler that optimizes a circuit composed of IonQ native gates
-    and reduces the number of gates in the circuit."""
+class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
+    def pass_manager(
+        self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
+    ) -> PassManager:
+        custom_pass_manager = PassManager()
+        if optimization_level == 0:
+            pass
+        if optimization_level >= 1:
+            custom_pass_manager.append(GPI2_Adjoint())
+            custom_pass_manager.append(GPI_Adjoint())
+            custom_pass_manager.append(CommuteGPI2MS())
+            custom_pass_manager.append(CancelFourGPI2())
+            custom_pass_manager.append(GPI2TwiceIsGPI())
+            custom_pass_manager.append(CollapseMoreThanThreeSingleQubitGates())
+        return custom_pass_manager
 
-    def __init__(self, backend):
-        self.backend = backend
-        self.full_pass_manager = self.full_custom_pass_manager()
+    # def __init__(self, backend):
+    #     """A custom transpiler that optimizes a circuit composed of IonQ native gates
+    #     and reduces the number of gates in the circuit."""
+    #     self.backend = backend
+    #     self.pass_manager = self.custom_pass_manager()
 
-    @staticmethod
-    def initial_custom_pass_manager():
-        """A pass manager intended to optimize native gates which adds +i*Id, -i*Id and -Id
-        gates where necessary. When this is pass is complete the +i*Id, -i*Id and -Id gates
-        should be found only at the end of the circuit since commutation rules should achieve
-        this result.
-        """
-        pm = PassManager()
-        pm.append(
-            [
-                GPI2_Adjoint(),
-                GPI_Adjoint(),
-                CommuteGPI2MS(),
-                CancelFourGPI2(),
-                GPI2TwiceIsGPITimesI(),
-                SimplifyIds(),
-                CommuteGPisAndIds(),
-                CommuteMSAndIds(),
-            ]
-        )
-        return pm
+    # @staticmethod
+    # def pass_manager(self, pass_manager_config: PassManagerConfig, optimization_level: int = 0):
+    #     custom_pass_manager = PassManager()
+    #     custom_pass_manager.append([
+    #         GPI2_Adjoint(),
+    #         GPI_Adjoint(),
+    #         CommuteGPI2MS(),
+    #         CancelFourGPI2(),
+    #         GPI2TwiceIsGPI(),
+    #     ])
+    #     return custom_pass_manager
 
-    @staticmethod
-    def final_custom_pass_manager():
-        """A pass manager intended to optmize the gates in circuit on the right-end
-        after +i*Id, -i*Id and -Id have been replaced by IonQ native gates."""
-        pm = PassManager()
-        pm.append(
-            [
-                GPI2_Adjoint(),
-                GPI_Adjoint(),
-                CommuteGPI2MS(),
-                CancelFourGPI2(),
-            ]
-        )
-        return pm
+    # def transpile(self, qc, optimization_level=1):
 
-    def transpile(self, qc, optimization_level=1):
-        """Transpile and optimize a circuit."""
-        ibm_transpiled = transpile(
-            qc, backend=self.backend, optimization_level=optimization_level
-        )
-        optimized_circuit = self.initial_custom_pass_manager.run(ibm_transpiled)
+    #     ibm_transpiled = transpile(qc, backend=self.backend, optimization_level=optimization_level)
+    #     optimized_circuit = self.pass_manager.run(ibm_transpiled)
 
-        # Run the initial pass manager until no further optimizations are possible
-        while True:
-            previous_dag = circuit_to_dag(optimized_circuit)
-            optimized_circuit = self.initial_custom_pass_manager.run(optimized_circuit)
-            if circuit_to_dag(optimized_circuit) == previous_dag:
-                break
+    #     # Run the pass manager until no further optimizations are possible
+    #     while True:
+    #         previous_dag = circuit_to_dag(optimized_circuit)
+    #         optimized_circuit = self.pass_manager.run(optimized_circuit)
+    #         if circuit_to_dag(optimized_circuit) == previous_dag:
+    #             break
 
-        # Run the final pass manager until no further optimizations are possible
-        while True:
-            previous_dag = circuit_to_dag(optimized_circuit)
-            optimized_circuit = self.final_custom_pass_manager.run(optimized_circuit)
-            if circuit_to_dag(optimized_circuit) == previous_dag:
-                break
-
-        return optimized_circuit
+    #     return optimized_circuit
