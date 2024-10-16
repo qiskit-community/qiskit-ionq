@@ -23,32 +23,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""Provider for IonQ backends"""
-
-# warn if qiskit is not installed
-try:
-    from qiskit.version import get_version_info  # pylint: disable=unused-import
-except ImportError as exc:
-    raise ImportError(
-        "Qiskit is not installed. Please install the latest version of Qiskit."
-    ) from exc
-
-from .ionq_provider import IonQProvider
-from .ionq_optimizer_plugin import TrappedIonOptimizerPlugin
-from .version import __version__
-from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
-from .constants import ErrorMitigation
-from .ionq_equivalence_library import add_equivalences
-
-__all__ = [
-    "__version__",
-    "IonQProvider",
-    "TrappedIonOptimizerPlugin",
-    "GPIGate",
-    "GPI2Gate",
-    "MSGate",
-    "ZZGate",
-    "ErrorMitigation",
-    "add_equivalences",
-]
