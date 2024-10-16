@@ -34,6 +34,8 @@ from qiskit_ionq.rewrite_rules import (
     CancelFourGPI2,
     GPI2TwiceIsGPI,
     CollapseMoreThanThreeSingleQubitGates,
+    CommuteGPIsThroughMS,
+    CancelFourMS
 )
 
 
@@ -47,40 +49,11 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
         if optimization_level >= 1:
             custom_pass_manager.append(GPI2_Adjoint())
             custom_pass_manager.append(GPI_Adjoint())
-            custom_pass_manager.append(CommuteGPI2MS())
             custom_pass_manager.append(CancelFourGPI2())
             custom_pass_manager.append(GPI2TwiceIsGPI())
-            custom_pass_manager.append(CollapseMoreThanThreeSingleQubitGates())
+            # custom_pass_manager.append(CollapseMoreThanThreeSingleQubitGates())
+            # custom_pass_manager.append(CommuteGPI2MS())
+            # custom_pass_manager.append(CommuteGPIsThroughMS())
+            # custom_pass_manager.append(CancelFourMS())
         return custom_pass_manager
 
-    # def __init__(self, backend):
-    #     """A custom transpiler that optimizes a circuit composed of IonQ native gates
-    #     and reduces the number of gates in the circuit."""
-    #     self.backend = backend
-    #     self.pass_manager = self.custom_pass_manager()
-
-    # @staticmethod
-    # def pass_manager(self, pass_manager_config: PassManagerConfig, optimization_level: int = 0):
-    #     custom_pass_manager = PassManager()
-    #     custom_pass_manager.append([
-    #         GPI2_Adjoint(),
-    #         GPI_Adjoint(),
-    #         CommuteGPI2MS(),
-    #         CancelFourGPI2(),
-    #         GPI2TwiceIsGPI(),
-    #     ])
-    #     return custom_pass_manager
-
-    # def transpile(self, qc, optimization_level=1):
-
-    #     ibm_transpiled = transpile(qc, backend=self.backend, optimization_level=optimization_level)
-    #     optimized_circuit = self.pass_manager.run(ibm_transpiled)
-
-    #     # Run the pass manager until no further optimizations are possible
-    #     while True:
-    #         previous_dag = circuit_to_dag(optimized_circuit)
-    #         optimized_circuit = self.pass_manager.run(optimized_circuit)
-    #         if circuit_to_dag(optimized_circuit) == previous_dag:
-    #             break
-
-    #     return optimized_circuit

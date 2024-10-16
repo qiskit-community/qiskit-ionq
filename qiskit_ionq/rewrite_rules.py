@@ -15,11 +15,13 @@ class GPI2_Adjoint(TransformationPass):
         nodes_to_remove = []
 
         for node in dag.topological_op_nodes():
-            if isinstance(node, DAGOpNode) and node.op.name == "gpi2":
+            if (
+                isinstance(node, DAGOpNode)
+                and node.op.name == "gpi2"
+                and node not in nodes_to_remove
+            ):
                 successors = [
-                    succ
-                    for succ in dag.quantum_successors(node)
-                    if isinstance(succ, DAGOpNode)
+                    succ for succ in dag.quantum_successors(node) if isinstance(succ, DAGOpNode)
                 ]
                 for next_node in successors:
                     if next_node.op.name == "gpi2" and node.qargs == next_node.qargs:
@@ -44,7 +46,11 @@ class CancelFourGPI2(TransformationPass):
         gpi2_streak = []
 
         for node in dag.topological_op_nodes():
-            if isinstance(node, DAGOpNode) and node.op.name == "gpi2":
+            if (
+                isinstance(node, DAGOpNode)
+                and node.op.name == "gpi2"
+                and node not in nodes_to_remove
+            ):
                 if gpi2_streak and node.qargs != gpi2_streak[-1].qargs:
                     gpi2_streak = []
                 gpi2_streak.append(node)
@@ -68,11 +74,13 @@ class GPI_Adjoint(TransformationPass):
         nodes_to_remove = []
 
         for node in dag.topological_op_nodes():
-            if isinstance(node, DAGOpNode) and node.op.name == "gpi":
+            if (
+                isinstance(node, DAGOpNode)
+                and node.op.name == "gpi"
+                and node not in nodes_to_remove
+            ):
                 successors = [
-                    succ
-                    for succ in dag.quantum_successors(node)
-                    if isinstance(succ, DAGOpNode)
+                    succ for succ in dag.quantum_successors(node) if isinstance(succ, DAGOpNode)
                 ]
                 for next_node in successors:
                     if next_node.op.name == "gpi" and node.qargs == next_node.qargs:
@@ -87,57 +95,6 @@ class GPI_Adjoint(TransformationPass):
         return dag
 
 
-class CommuteGPI2MS(TransformationPass):
-    """GPI2 * MS is replaced by MS * GPI2."""
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        nodes_to_remove = set()
-
-        for node in dag.topological_op_nodes():
-            if node in nodes_to_remove:
-                continue
-
-            if node.op.name == "gpi2" and math.isclose(
-                node.op.params[0], 0.5
-            ):  # GPI2(pi/2)
-                successors = [
-                    succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)
-                ]
-                for next_node in successors:
-                    if (
-                        next_node.op.name == "ms"
-                        and math.isclose(next_node.op.params[0], 0)
-                        and math.isclose(next_node.op.params[1], 0)
-                        and math.isclose(next_node.op.params[2], 0.25)
-                        and node.qargs[0] in next_node.qargs
-                    ):
-
-                        sub_dag = DAGCircuit()
-                        for qreg in dag.qregs.values():
-                            sub_dag.add_qreg(qreg)
-
-                        # map the ops to the qubits in the sub-DAG
-                        ms_qubits = [next_node.qargs[0], next_node.qargs[1]]
-                        gpi2_qubit = [node.qargs[0]]
-
-                        sub_dag.apply_operation_back(next_node.op, ms_qubits)
-                        sub_dag.apply_operation_back(node.op, gpi2_qubit)
-
-                        wire_mapping = {qubit: qubit for qubit in ms_qubits}
-                        wire_mapping[node.qargs[0]] = node.qargs[0]
-
-                        dag.substitute_node_with_dag(
-                            next_node, sub_dag, wires=wire_mapping
-                        )
-                        nodes_to_remove.add(node)
-                        break
-
-        for node in nodes_to_remove:
-            dag.remove_op_node(node)
-
-        return dag
-
-
 class GPI2TwiceIsGPI(TransformationPass):
     """GPI2 times GPI2 is GPI times i. Below the i factor will be ignored."""
 
@@ -145,11 +102,13 @@ class GPI2TwiceIsGPI(TransformationPass):
         nodes_to_remove = []
 
         for node in dag.topological_op_nodes():
-            if isinstance(node, DAGOpNode) and node.op.name == "gpi2":
+            if (
+                isinstance(node, DAGOpNode)
+                and node.op.name == "gpi2"
+                and node not in nodes_to_remove
+            ):
                 successors = [
-                    succ
-                    for succ in dag.quantum_successors(node)
-                    if isinstance(succ, DAGOpNode)
+                    succ for succ in dag.quantum_successors(node) if isinstance(succ, DAGOpNode)
                 ]
                 for next_node in successors:
                     if next_node.op.name == "gpi2" and node.qargs == next_node.qargs:
@@ -173,14 +132,14 @@ class CollapseMoreThanThreeSingleQubitGates(TransformationPass):
         single_qubit_gates_streak = []
 
         for node in dag.topological_op_nodes():
-            if isinstance(node, DAGOpNode) and (
-                node.op.name == "gpi" or node.op.name == "gpi2"
+            if (
+                isinstance(node, DAGOpNode)
+                and (node.op.name == "gpi" or node.op.name == "gpi2")
+                and node not in nodes_to_remove
             ):
                 single_qubit_gates_streak.append(node)
                 successors = [
-                    succ
-                    for succ in dag.quantum_successors(node)
-                    if isinstance(succ, DAGOpNode)
+                    succ for succ in dag.quantum_successors(node) if isinstance(succ, DAGOpNode)
                 ]
                 for next_node in successors:
                     if (
@@ -195,11 +154,10 @@ class CollapseMoreThanThreeSingleQubitGates(TransformationPass):
                         fst_node = single_qubit_gates_streak[0]
                         fst_node.op.params[0] = 0.5 - lambd / (2 * pi)
                         snd_node = single_qubit_gates_streak[1]
-                        snd_node.op.params[0] = (
-                            theta / (4 * pi) + phi / (4 * pi) - lambd / (4 * pi)
-                        )
+                        snd_node.op.params[0] = theta / (4 * pi) + phi / (4 * pi) - lambd / (4 * pi)
                         trd_node = single_qubit_gates_streak[2]
                         trd_node.op.params[0] = 0.5 + phi / (2 * pi)
+                        # TODO: is equal to identity -,+i, -i remove the gates
                         single_qubit_gates_streak = []
 
         for node in nodes_to_remove:
@@ -228,3 +186,63 @@ class CollapseMoreThanThreeSingleQubitGates(TransformationPass):
         decomposer = OneQubitEulerDecomposer("U3")
         theta, phi, lambd = decomposer.angles(operator)
         return (theta, phi, lambd)
+
+
+class CommuteGPI2MS(TransformationPass):
+    """GPI2 * MS is replaced by MS * GPI2."""
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        nodes_to_remove = set()
+
+        for node in dag.topological_op_nodes():
+            if node in nodes_to_remove:
+                continue
+
+            if node.op.name == "gpi2" and math.isclose(node.op.params[0], 0.5):  # GPI2(pi/2) ????
+                successors = [succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)]
+                for next_node in successors:
+                    if (
+                        next_node.op.name == "ms"
+                        and math.isclose(next_node.op.params[0], 0)
+                        and math.isclose(next_node.op.params[1], 0)
+                        and math.isclose(next_node.op.params[2], 0.25)
+                        and node.qargs[0] in next_node.qargs
+                    ):
+
+                        sub_dag = DAGCircuit()
+                        for qreg in dag.qregs.values():
+                            sub_dag.add_qreg(qreg)
+
+                        # map the ops to the qubits in the sub-DAG
+                        ms_qubits = [next_node.qargs[0], next_node.qargs[1]]
+                        gpi2_qubit = [node.qargs[0]]
+
+                        sub_dag.apply_operation_back(next_node.op, ms_qubits)
+                        sub_dag.apply_operation_back(node.op, gpi2_qubit)
+
+                        wire_mapping = {qubit: qubit for qubit in ms_qubits}
+                        wire_mapping[node.qargs[0]] = node.qargs[0]
+
+                        dag.substitute_node_with_dag(next_node, sub_dag, wires=wire_mapping)
+                        nodes_to_remove.add(node)
+                        break
+
+        for node in nodes_to_remove:
+            dag.remove_op_node(node)
+
+        return dag
+
+
+class CommuteGPIsThroughMS(TransformationPass):
+    """GPI2(0), GPI2(π), GPI2(-π), GPI(0), GPI(π), GPI(-π)
+    on either qubit commute with MS"""
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        pass
+
+
+class CancelFourMS(TransformationPass):
+    """Four MS(pi/2) should cancel up to -1 factor which is ignored."""
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        pass
