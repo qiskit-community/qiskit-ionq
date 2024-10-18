@@ -544,6 +544,8 @@ def get_n_qubits(backend: str, _fallback=100) -> int:
     Returns:
         int: The number of qubits for the backend.
     """
+    if backend == "simulator":
+        return 29
     creds = resolve_credentials()
     url = creds.get("url")
     token = creds.get("token")
