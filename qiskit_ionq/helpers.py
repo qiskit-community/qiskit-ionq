@@ -539,12 +539,12 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     }
 
 
-def get_n_qubits(backend: str, _fallback: int = 100) -> int:
+def get_n_qubits(backend: str, fallback: int = 100) -> int:
     """Get the number of qubits for a given backend.
 
     Args:
         backend (str): The name of the backend.
-        _fallback (int): Fallback number of qubits if API call fails.
+        fallback (int): Fallback number of qubits if API call fails.
 
     Returns:
         int: The number of qubits for the backend.
@@ -569,13 +569,13 @@ def get_n_qubits(backend: str, _fallback: int = 100) -> int:
         )
         response.raise_for_status()  # Ensure we catch any HTTP errors
         return response.json().get(
-            "qubits", _fallback
-        )  # Default to _fallback if "qubits" key is missing
+            "qubits", fallback
+        )  # Default to fallback if "qubits" key is missing
     except Exception as exception:  # pylint: disable=broad-except
         warnings.warn(
-            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {_fallback}."
+            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {fallback}."
         )
-        return _fallback
+        return fallback
 
 
 __all__ = [
