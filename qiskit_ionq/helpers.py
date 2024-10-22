@@ -571,9 +571,9 @@ def get_n_qubits(backend: str, _fallback: int = 100) -> int:
         return response.json().get(
             "qubits", _fallback
         )  # Default to _fallback if "qubits" key is missing
-    except requests.RequestException as e:
+    except Exception as exception:  # pylint: disable=broad-except
         warnings.warn(
-            f"Unable to get qubit count for {backend}: {e}. Defaulting to {_fallback}."
+            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {_fallback}."
         )
         return _fallback
 
