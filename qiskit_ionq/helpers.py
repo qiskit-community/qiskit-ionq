@@ -549,28 +549,23 @@ def get_n_qubits(backend: str, fallback: int = 100) -> int:
     Returns:
         int: The number of qubits for the backend.
     """
-    # Handle known case for the simulator directly
-    if backend == "simulator":
-        return 29
-
     creds = resolve_credentials()
     url = creds.get("url")
-    token = creds.get("token")
 
     target = (
-        backend.split("ionq_qpu.")[-1] if backend.startswith("ionq_qpu.") else backend
+        backend.split("ionq_")[-1] if backend.startswith("ionq_qpu.") else backend
     )
 
     try:
         response = requests.get(
-            url=f"{url}/characterizations/backends/{target}/current",
-            headers={"Authorization": f"apiKey {token}"},
+            url=f"{url}/backends",
             timeout=5,
         )
         response.raise_for_status()  # Ensure we catch any HTTP errors
-        return response.json().get(
-            "qubits", fallback
-        )  # Default to fallback if "qubits" key is missing
+        return next(
+            (item["qubits"] for item in response.json() if item["backend"] == target),
+            fallback,
+        )  # Default to fallback if no backend found
     except Exception as exception:  # pylint: disable=broad-except
         warnings.warn(
             f"Unable to get qubit count for {backend}: {exception}. Defaulting to {fallback}."
