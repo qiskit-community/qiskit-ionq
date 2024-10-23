@@ -296,4 +296,8 @@ def test_serializing_error():
         message="hi", status_code=400, headers="hi", body="hi", error_type="hi"
     )
     err2 = pickle.loads(pickle.dumps(err))
-    assert err == err2
+    assert err.message == err2.message
+    assert err.status_code == err2.status_code
+    assert err.headers == err2.headers
+    assert err.body == err2.body
+    assert err.error_type == err2.error_type

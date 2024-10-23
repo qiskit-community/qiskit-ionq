@@ -98,6 +98,13 @@ class IonQAPIError(IonQError):
         error_type(str): An error type string from the IonQ REST API.
     """
 
+    def __init__(self, message, status_code, headers, body, error_type):  # pylint: disable=too-many-positional-arguments
+        super().__init__(message)
+        self.status_code = status_code
+        self.headers = headers
+        self.body = body
+        self.error_type = error_type
+
     @classmethod
     def raise_for_status(cls, response) -> IonQAPIError | None:
         """Raise an instance of the exception class from an API response object if needed.
@@ -151,13 +158,6 @@ class IonQAPIError(IonQError):
             error_type = error_data.get("type") or error_type
         return cls(message, status_code, headers, body, error_type)
 
-    def __init__(self, message, status_code, headers, body, error_type):  # pylint: disable=too-many-positional-arguments
-        super().__init__(message)
-        self.status_code = status_code
-        self.headers = headers
-        self.body = body
-        self.error_type = error_type
-
     def __str__(self):
         return (
             f"{self.__class__.__name__}("
@@ -168,17 +168,11 @@ class IonQAPIError(IonQError):
             f"error_type={self.error_type!r})"
         )
 
-    def __getstate__(self) -> object:
+    def __reduce__(self):
         return (
-            self.message,
-            self.status_code,
-            self.headers,
-            self.body,
-            self.error_type,
+            self.__class__,
+            (self.message, self.status_code, self.headers, self.body, self.error_type),
         )
-
-    def __setstate__(self, state: tuple[object, ...]) -> None:
-        self.message, self.status_code, self.headers, self.body, self.error_type = state
 
 
 class IonQBackendError(IonQError):
