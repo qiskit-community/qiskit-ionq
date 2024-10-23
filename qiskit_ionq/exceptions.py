@@ -168,6 +168,18 @@ class IonQAPIError(IonQError):
             f"error_type={self.error_type!r})"
         )
 
+    def __getstate__(self) -> object:
+        return (
+            self.message,
+            self.status_code,
+            self.headers,
+            self.body,
+            self.error_type,
+        )
+
+    def __setstate__(self, state: tuple[object, ...]) -> None:
+        self.message, self.status_code, self.headers, self.body, self.error_type = state
+
 
 class IonQBackendError(IonQError):
     """Errors generated from improper usage of IonQBackend objects."""
