@@ -26,10 +26,11 @@
 
 """Test basic exceptions behavior"""
 
-from unittest import mock
-import requests
 import pickle
+from unittest import mock
+
 import pytest
+import requests
 
 from qiskit_ionq import exceptions
 from qiskit_ionq.exceptions import IonQRetriableError
