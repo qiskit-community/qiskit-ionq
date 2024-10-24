@@ -294,7 +294,11 @@ def test_serializing_error():
     """Test that an error can be serialized and deserialized."""
 
     err = exceptions.IonQAPIError(
-        message="message", status_code=400, headers="headers", body="body", error_type="error_type"
+        message="message",
+        status_code=400,
+        headers="headers",
+        body="body",
+        error_type="error_type",
     )
     err2 = pickle.loads(pickle.dumps(err))
     assert err.message == err2.message
