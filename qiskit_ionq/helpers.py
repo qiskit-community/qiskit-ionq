@@ -442,7 +442,7 @@ def qiskit_to_ionq(
                 backend.gateset(),
                 extra_metadata.get("ionq_compiler_synthesis", False),
             )
-            ionq_circs.append((ionq_circ, meas_map))
+            ionq_circs.append((ionq_circ, meas_map, circ.name))
     else:
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(
             circuit,
@@ -476,10 +476,13 @@ def qiskit_to_ionq(
     )
 
     target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
+    name = passed_args.get("name") or (
+        f"{len(circuit)} circuits" if multi_circuit else circuit[0].name
+    )
     ionq_json = {
         "target": target,
         "shots": passed_args.get("shots"),
-        "name": ", ".join([c.name for c in circuit]),
+        "name": name,
         "input": {
             "format": "ionq.circuit.v0",
             "gateset": backend.gateset(),
@@ -494,7 +497,8 @@ def qiskit_to_ionq(
     }
     if multi_circuit:
         ionq_json["input"]["circuits"] = [
-            {"circuit": c, "registers": {"meas_mapped": m}} for c, m in ionq_circs
+            {"name": n, "circuit": c, "registers": {"meas_mapped": m}}
+            for c, m, n in ionq_circs
         ]
     else:
         ionq_json["input"]["circuit"] = ionq_circs

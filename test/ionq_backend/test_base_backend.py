@@ -265,17 +265,19 @@ def test_multiexp_job(mock_backend, requests_mock):
     assert request_json == {
         "target": "mock_backend",
         "shots": 1024,
-        "name": f"{job.circuit[0].name}, {job.circuit[1].name}",
+        "name": f"{len(job.circuit)} circuits",
         "input": {
             "format": "ionq.circuit.v0",
             "gateset": "qis",
             "qubits": 1,
             "circuits": [
                 {
+                    "name": qc1.name,
                     "circuit": [{"gate": "h", "targets": [0]}],
                     "registers": {"meas_mapped": [0]},
                 },
                 {
+                    "name": qc2.name,
                     "circuit": [{"gate": "x", "targets": [0]}],
                     "registers": {"meas_mapped": [0]},
                 },
