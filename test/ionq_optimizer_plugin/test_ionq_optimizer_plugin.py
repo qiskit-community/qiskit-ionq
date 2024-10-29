@@ -83,7 +83,6 @@ from qiskit.circuit.library import (
     CYGate,
     CZGate,
 )
-from qiskit_ionq import ionq_provider
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate
 from qiskit_ionq import IonQProvider, TrappedIonOptimizerPlugin
 
@@ -176,15 +175,13 @@ def test_ionq_optmizer_plugin_one_qubit(gates):
     )
 
     # create a quantum circuit
-    qr = QuantumRegister(1)
-    circuit = QuantumCircuit(qr)
+    qc = QuantumCircuit(1)
     for gate_name, param, qubits in gates:
-        append_gate(circuit, gate_name, param, qubits)
+        append_gate(qc, gate_name, param, qubits)
 
-    # transpile circuit to native gates
-    provider = ionq_provider.IonQProvider()
-    backend = provider.get_backend("ionq_simulator", gateset="native")
-    transpiled_circuit_unoptimized = transpile(circuit, backend, optimization_level=3)
+    provider = IonQProvider()
+    backend = provider.get_backend("simulator", gateset="native")
+    transpiled_circuit_unoptimized = transpile(qc, backend=backend, optimization_level=3)
 
     # simulate the unoptimized circuit
     statevector_unoptimized = Statevector.from_instruction(transpiled_circuit_unoptimized)
@@ -209,7 +206,7 @@ def test_ionq_optmizer_plugin_one_qubit(gates):
         err_msg=(
             f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
-            f"Circuit: {circuit}"
+            f"Circuit: {qc}"
         ),
     )
 

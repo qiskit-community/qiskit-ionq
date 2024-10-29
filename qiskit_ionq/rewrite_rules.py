@@ -1,12 +1,15 @@
 import math
 from sympy import Matrix, exp, pi, sqrt
 
+from qiskit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.quantum_info import Operator
 from qiskit.synthesis import OneQubitEulerDecomposer
 from qiskit.transpiler.basepasses import TransformationPass
 
+from .ionq_gates import GPIGate
 
 class GPI2_Adjoint(TransformationPass):
     """GPI2 times GPI2 adjoint should cancel."""
@@ -96,7 +99,7 @@ class GPI_Adjoint(TransformationPass):
 
 
 class GPI2TwiceIsGPI(TransformationPass):
-    """GPI2 times GPI2 is GPI times i. Below the i factor will be ignored."""
+    """GPI2 times GPI2 is GPI times -i. Below the -i factor will be ignored."""
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         nodes_to_remove = []
@@ -115,7 +118,15 @@ class GPI2TwiceIsGPI(TransformationPass):
                         phi1 = node.op.params[0]
                         phi2 = next_node.op.params[0]
                         if math.isclose(phi1, phi2):
-                            next_node.op.name = "gpi"
+
+                            qc = QuantumCircuit(1)
+                            qc.append(GPIGate(phi1), [0])
+                            qc_dag = circuit_to_dag(qc)
+
+                            # map the ops to the qubits in the sub-DAG
+                            wire_mapping = {next_node.qargs[0] : next_node.qargs[0]}
+
+                            dag.substitute_node_with_dag(next_node, qc_dag, wires=wire_mapping)
                             nodes_to_remove.append(node)
 
         for node in nodes_to_remove:
