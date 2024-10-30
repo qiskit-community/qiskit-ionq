@@ -121,7 +121,7 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             custom_pass_manager.append(GPI_Adjoint())
             custom_pass_manager.append(CancelFourGPI2())
             custom_pass_manager.append(GPI2TwiceIsGPI())
-            custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
+            #custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
             # custom_pass_manager.append(CommuteGPI2MS())
             # custom_pass_manager.append(CommuteGPIsThroughMS())
             # custom_pass_manager.append(CancelFourMS())
