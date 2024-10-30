@@ -26,24 +26,55 @@
 
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
+from qiskit.converters import circuit_to_dag
 
 from qiskit_ionq.rewrite_rules import (
     GPI2_Adjoint,
     GPI_Adjoint,
-    CommuteGPI2MS,
     CancelFourGPI2,
     GPI2TwiceIsGPI,
-    CollapseMoreThanThreeSingleQubitGates,
+    CompactMoreThanThreeSingleQubitGates,
+    CommuteGPI2MS,
     CommuteGPIsThroughMS,
-    CancelFourMS
+    CancelFourMS,
 )
 
 
-class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
+class CustomPassManager(PassManager):
+    def run(self, circuit):
+        """
+        Runs the pass manager iteratively until no further optimizations are possible.
+        """
+        optimized_circuit = super().run(circuit)
+
+        while True:
+            previous_dag = circuit_to_dag(optimized_circuit)
+            optimized_circuit = super().run(optimized_circuit)
+            current_dag = circuit_to_dag(optimized_circuit)
+
+            if current_dag == previous_dag:
+                break
+
+        return optimized_circuit
+
+
+class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
+    """
+    This class is no intended to be tested in production, is is meant
+     to test the following transformation passes in isolation:
+        - GPI2_Adjoint
+        - GPI_Adjoint
+        - CancelFourGPI2
+        - GPI2TwiceIsGPI
+    """
+
     def pass_manager(
         self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
     ) -> PassManager:
-        custom_pass_manager = PassManager()
+        """
+        Creates a PassManager class with added custom transformation passes.
+        """
+        custom_pass_manager = CustomPassManager()
         if optimization_level == 0:
             pass
         if optimization_level >= 1:
@@ -51,9 +82,47 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             custom_pass_manager.append(GPI_Adjoint())
             custom_pass_manager.append(CancelFourGPI2())
             custom_pass_manager.append(GPI2TwiceIsGPI())
-            # custom_pass_manager.append(CollapseMoreThanThreeSingleQubitGates())
+        return custom_pass_manager
+
+class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
+    """
+    This class is no intended to be tested in production, is is meant
+     to test the following transformation passes in isolation:
+        - CompactMoreThanThreeSingleQubitGates
+    """
+
+    def pass_manager(
+        self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
+    ) -> PassManager:
+        """
+        Creates a PassManager class with added custom transformation passes.
+        """
+        custom_pass_manager = CustomPassManager()
+        if optimization_level == 0:
+            pass
+        if optimization_level >= 1:
+            custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
+        return custom_pass_manager
+
+class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
+    def pass_manager(
+        self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
+    ) -> PassManager:
+        """
+        Creates a PassManager class with added custom transformation passes.
+        """
+        custom_pass_manager = CustomPassManager()
+        if optimization_level == 0:
+            pass
+        if optimization_level >= 1:
+            # Note the TransformationPasses should be applied
+            # in the order were added to the PassManager
+            custom_pass_manager.append(GPI2_Adjoint())
+            custom_pass_manager.append(GPI_Adjoint())
+            custom_pass_manager.append(CancelFourGPI2())
+            custom_pass_manager.append(GPI2TwiceIsGPI())
+            custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
             # custom_pass_manager.append(CommuteGPI2MS())
             # custom_pass_manager.append(CommuteGPIsThroughMS())
             # custom_pass_manager.append(CancelFourMS())
         return custom_pass_manager
-
