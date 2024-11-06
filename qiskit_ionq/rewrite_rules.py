@@ -160,28 +160,26 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
                 and (node.op.name == "gpi" or node.op.name == "gpi2")
                 and node not in nodes_to_remove
             ):
-                single_qubit_gates_streak.append(node)
-                successors = [
-                    succ
-                    for succ in dag.quantum_successors(node)
-                    if isinstance(succ, DAGOpNode)
-                ]
-                if successors:
-                    for next_node in successors:
-                        if (
-                            next_node.op.name != "gpi"
-                            and next_node.op.name != "gpi2"
-                            and node.qargs == next_node.qargs
-                        ):
-                            self.compact_single_qubits_streak(
-                                dag, single_qubit_gates_streak, nodes_to_remove
-                            )
-                            single_qubit_gates_streak = []
+                if (
+                    single_qubit_gates_streak
+                    and node.qargs == single_qubit_gates_streak[-1].qargs
+                ):
+                    single_qubit_gates_streak.append(node)
                 else:
                     self.compact_single_qubits_streak(
                         dag, single_qubit_gates_streak, nodes_to_remove
                     )
                     single_qubit_gates_streak = []
+
+            else:
+                self.compact_single_qubits_streak(
+                    dag, single_qubit_gates_streak, nodes_to_remove
+                )
+                single_qubit_gates_streak = []
+
+        self.compact_single_qubits_streak(
+            dag, single_qubit_gates_streak, nodes_to_remove
+        )
 
         for node in nodes_to_remove:
             dag.remove_op_node(node)
@@ -193,19 +191,18 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
         for node in nodes:
             if node.op.name == "gpi":
                 phi = node.op.params[0]
-                matrix = matrix * Matrix([[0, exp(-1j * phi)], [exp(1j * phi), 0]])
+                matrix = Matrix([[0, exp(-1j * phi)], [exp(1j * phi), 0]]) * matrix
             if node.op.name == "gpi2":
                 phi = node.op.params[0]
                 matrix = (
-                    matrix
-                    * Matrix([[1, -1j * exp(-1j * phi)], [-1j * exp(1j * phi), 1]])
+                    Matrix([[1, -1j * exp(-1j * phi)], [-1j * exp(1j * phi), 1]])
+                    * matrix
                     * (1 / sqrt(2))
                 )
         return matrix
 
     def get_euler_angles(self, matrix: Matrix) -> tuple:
-        matrix = matrix * (-1j)
-        operator = Operator(list(matrix))
+        operator = Operator(matrix.tolist())
         decomposer = OneQubitEulerDecomposer("U3")
         theta, phi, lambd = decomposer.angles(operator)
         return (theta, phi, lambd)
@@ -219,12 +216,18 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
             matrix = self.multiply_node_matrices(single_qubit_gates_streak)
             theta, phi, lambd = self.get_euler_angles(matrix)
 
+            pi_float = float(pi)
             qc = QuantumCircuit(1)
-            qc.append(GPI2Gate(0.5 - lambd / (2 * pi)), [0])
+            qc.append(GPI2Gate(0.5 - lambd / (2 * pi_float)), [0])
             qc.append(
-                GPIGate(theta / (4 * pi) + phi / (4 * pi) - lambd / (4 * pi)), [0]
+                GPIGate(
+                    theta / (4 * pi_float)
+                    + phi / (4 * pi_float)
+                    - lambd / (4 * pi_float)
+                ),
+                [0],
             )
-            qc.append(GPI2Gate(0.5 + phi / (2 * pi)), [0])
+            qc.append(GPI2Gate(0.5 + phi / (2 * pi_float)), [0])
             qc_dag = circuit_to_dag(qc)
 
             last_gate = single_qubit_gates_streak[-1]

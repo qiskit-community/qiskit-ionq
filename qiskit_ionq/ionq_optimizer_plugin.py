@@ -60,7 +60,7 @@ class CustomPassManager(PassManager):
 
 class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
     """
-    This class is no intended to be tested in production, is is meant
+    This class is no intended to be used in production, is is meant
      to test the following transformation passes in isolation:
         - GPI2_Adjoint
         - GPI_Adjoint
@@ -84,9 +84,10 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
             custom_pass_manager.append(GPI2TwiceIsGPI())
         return custom_pass_manager
 
+
 class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
     """
-    This class is no intended to be tested in production, is is meant
+    This class is no intended to be used in production, is is meant
      to test the following transformation passes in isolation:
         - CompactMoreThanThreeSingleQubitGates
     """
@@ -104,12 +105,14 @@ class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
             custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
         return custom_pass_manager
 
+
 class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
     def pass_manager(
         self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
     ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
+        This class is meant to be used in production.
         """
         custom_pass_manager = CustomPassManager()
         if optimization_level == 0:
@@ -121,7 +124,7 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             custom_pass_manager.append(GPI_Adjoint())
             custom_pass_manager.append(CancelFourGPI2())
             custom_pass_manager.append(GPI2TwiceIsGPI())
-            #custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
+            custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
             # custom_pass_manager.append(CommuteGPI2MS())
             # custom_pass_manager.append(CommuteGPIsThroughMS())
             # custom_pass_manager.append(CancelFourMS())

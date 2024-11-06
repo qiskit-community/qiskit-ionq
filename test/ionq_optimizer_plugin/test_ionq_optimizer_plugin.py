@@ -88,6 +88,7 @@ from qiskit_ionq import (
     IonQProvider,
     TrappedIonOptimizerPlugin,
     TrappedIonOptimizerPluginSimpleRules,
+    TrappedIonOptimizerPluginCompactGates,
 )
 
 # Mapping from gate names to gate classes
@@ -300,9 +301,102 @@ def append_gate(circuit, gate_name, param, qubits):
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optmizer_plugin_one_qubit(gates, optimized_depth):
+def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
 
     custom_pass_manager_plugin = TrappedIonOptimizerPluginSimpleRules()
+    pass_manager_config = PassManagerConfig()
+    custom_pass_manager = custom_pass_manager_plugin.pass_manager(
+        pass_manager_config,
+        optimization_level=3,
+    )
+
+    # create a quantum circuit
+    qc = QuantumCircuit(1)
+    for gate_name, param, qubits in gates:
+        append_gate(qc, gate_name, param, qubits)
+
+    provider = IonQProvider()
+    backend = provider.get_backend("simulator", gateset="native")
+    transpiled_circuit_unoptimized = transpile(
+        qc, backend=backend, optimization_level=3
+    )
+
+    # simulate the unoptimized circuit
+    statevector_unoptimized = Statevector.from_instruction(
+        transpiled_circuit_unoptimized
+    )
+    probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
+
+    # optimized transpilation of circuit to native gates
+    optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
+
+    # simulate the optimized circuit
+    statevector_optimized = Statevector.from_instruction(optimized_circuit)
+    probabilities_optimized = np.abs(statevector_optimized.data) ** 2
+
+    np.testing.assert_allclose(
+        probabilities_unoptimized,
+        probabilities_optimized,
+        atol=1e-3,
+        err_msg=(
+            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {qc}"
+        ),
+    )
+
+    optimized_dag = circuit_to_dag(optimized_circuit)
+    assert optimized_dag.depth() == optimized_depth
+
+
+@pytest.mark.parametrize(
+    "gates, optimized_depth",
+    [
+        (
+            [
+                ("GPIGate", [2.2], [0]),
+                ("GPIGate", [0.7], [0]),
+                ("GPIGate", [1.7], [0]),
+                ("GPIGate", [1.7], [0]),
+            ],
+            3,
+        ),
+        (
+            [
+                ("GPIGate", [1.8], [0]),
+                ("GPIGate", [0.7], [0]),
+                ("GPIGate", [1.1], [0]),
+                ("GPIGate", [1.7], [0]),
+                ("GPIGate", [2.7], [0]),
+            ],
+            3,
+        ),
+        (
+            [
+                ("GPIGate", [0.8], [0]),
+                ("GPIGate", [2.7], [0]),
+                ("GPIGate", [0.1], [0]),
+                ("GPIGate", [2.7], [0]),
+                ("GPIGate", [0.7], [0]),
+                ("GPIGate", [1.7], [0]),
+            ],
+            3,
+        ),
+        (
+            [
+                ("GPI2Gate", [0.2], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [1.5], [0]),
+                ("GPI2Gate", [2.8], [0]),
+            ],
+            3,
+        ),
+    ],
+    ids=lambda val: f"{val}",
+)
+def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_depth):
+
+    custom_pass_manager_plugin = TrappedIonOptimizerPluginCompactGates()
     pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
         pass_manager_config,

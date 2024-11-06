@@ -38,6 +38,7 @@ from .ionq_provider import IonQProvider
 from .ionq_optimizer_plugin import (
     TrappedIonOptimizerPlugin,
     TrappedIonOptimizerPluginSimpleRules,
+    TrappedIonOptimizerPluginCompactGates,
 )
 from .version import __version__
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
@@ -49,6 +50,7 @@ __all__ = [
     "IonQProvider",
     "TrappedIonOptimizerPlugin",
     "TrappedIonOptimizerPluginSimpleRules",
+    "TrappedIonOptimizerPluginCompactGates",
     "GPIGate",
     "GPI2Gate",
     "MSGate",
