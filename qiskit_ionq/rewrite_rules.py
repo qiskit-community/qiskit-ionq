@@ -52,11 +52,7 @@ class CancelFourGPI2(TransformationPass):
         gpi2_streak = []
 
         for node in dag.topological_op_nodes():
-            if (
-                isinstance(node, DAGOpNode)
-                and node.op.name == "gpi2"
-                and node not in nodes_to_remove
-            ):
+            if node.op.name == "gpi2" and node not in nodes_to_remove:
                 if (
                     gpi2_streak
                     and node.qargs == gpi2_streak[-1].qargs
@@ -84,11 +80,7 @@ class GPI_Adjoint(TransformationPass):
         nodes_to_remove = []
 
         for node in dag.topological_op_nodes():
-            if (
-                isinstance(node, DAGOpNode)
-                and node.op.name == "gpi"
-                and node not in nodes_to_remove
-            ):
+            if node.op.name == "gpi" and node not in nodes_to_remove:
                 successors = [
                     succ
                     for succ in dag.quantum_successors(node)
@@ -114,11 +106,7 @@ class GPI2TwiceIsGPI(TransformationPass):
         nodes_to_remove = []
 
         for node in dag.topological_op_nodes():
-            if (
-                isinstance(node, DAGOpNode)
-                and node.op.name == "gpi2"
-                and node not in nodes_to_remove
-            ):
+            if node.op.name == "gpi2" and node not in nodes_to_remove:
                 successors = [
                     succ
                     for succ in dag.quantum_successors(node)
@@ -152,39 +140,39 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         nodes_to_remove = []
-        single_qubit_gates_streak = []
+        visited_nodes = []
 
         for node in dag.topological_op_nodes():
             if (
-                isinstance(node, DAGOpNode)
-                and (node.op.name == "gpi" or node.op.name == "gpi2")
-                and node not in nodes_to_remove
-            ):
-                if (
-                    single_qubit_gates_streak
-                    and node.qargs == single_qubit_gates_streak[-1].qargs
-                ):
-                    single_qubit_gates_streak.append(node)
+                node.op.name == "gpi" or node.op.name == "gpi2"
+            ) and node not in visited_nodes:
+                single_qubit_gates_streak = self.get_streak_recursively(dag, [node])
+                if len(single_qubit_gates_streak) > 3:
+                    self.compact_single_qubits_streak(dag, single_qubit_gates_streak)
+                    nodes_to_remove.extend(single_qubit_gates_streak[:-1])
+                    visited_nodes.extend(single_qubit_gates_streak[:-1])
                 else:
-                    self.compact_single_qubits_streak(
-                        dag, single_qubit_gates_streak, nodes_to_remove
-                    )
-                    single_qubit_gates_streak = []
-
-            else:
-                self.compact_single_qubits_streak(
-                    dag, single_qubit_gates_streak, nodes_to_remove
-                )
-                single_qubit_gates_streak = []
-
-        self.compact_single_qubits_streak(
-            dag, single_qubit_gates_streak, nodes_to_remove
-        )
+                    visited_nodes.extend(single_qubit_gates_streak)
 
         for node in nodes_to_remove:
             dag.remove_op_node(node)
 
         return dag
+
+    def get_streak_recursively(self, dag, streak):
+        last_node = streak[-1]
+        successors = [
+            succ
+            for succ in dag.quantum_successors(last_node)
+            if isinstance(succ, DAGOpNode)
+        ]
+        for node in successors:
+            if (
+                node.op.name == "gpi" or node.op.name == "gpi2"
+            ) and last_node.qargs == node.qargs:
+                streak.append(node)
+                return self.get_streak_recursively(dag, streak)
+        return streak
 
     def multiply_node_matrices(self, nodes: list) -> Matrix:
         matrix = Matrix([[1, 0], [0, 1]])
@@ -207,32 +195,25 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
         theta, phi, lambd = decomposer.angles(operator)
         return (theta, phi, lambd)
 
-    def compact_single_qubits_streak(
-        self, dag, single_qubit_gates_streak, nodes_to_remove
-    ):
-        if len(single_qubit_gates_streak) > 3:
-            nodes_to_remove.extend(single_qubit_gates_streak[:-1])
+    def compact_single_qubits_streak(self, dag, single_qubit_gates_streak):
+        matrix = self.multiply_node_matrices(single_qubit_gates_streak)
+        theta, phi, lambd = self.get_euler_angles(matrix)
 
-            matrix = self.multiply_node_matrices(single_qubit_gates_streak)
-            theta, phi, lambd = self.get_euler_angles(matrix)
+        pi_float = float(pi)
+        qc = QuantumCircuit(1)
+        qc.append(GPI2Gate(0.5 - lambd / (2 * pi_float)), [0])
+        qc.append(
+            GPIGate(
+                theta / (4 * pi_float) + phi / (4 * pi_float) - lambd / (4 * pi_float)
+            ),
+            [0],
+        )
+        qc.append(GPI2Gate(0.5 + phi / (2 * pi_float)), [0])
+        qc_dag = circuit_to_dag(qc)
 
-            pi_float = float(pi)
-            qc = QuantumCircuit(1)
-            qc.append(GPI2Gate(0.5 - lambd / (2 * pi_float)), [0])
-            qc.append(
-                GPIGate(
-                    theta / (4 * pi_float)
-                    + phi / (4 * pi_float)
-                    - lambd / (4 * pi_float)
-                ),
-                [0],
-            )
-            qc.append(GPI2Gate(0.5 + phi / (2 * pi_float)), [0])
-            qc_dag = circuit_to_dag(qc)
-
-            last_gate = single_qubit_gates_streak[-1]
-            wire_mapping = {last_gate.qargs[0]: last_gate.qargs[0]}
-            dag.substitute_node_with_dag(last_gate, qc_dag, wires=wire_mapping)
+        last_gate = single_qubit_gates_streak[-1]
+        wire_mapping = {last_gate.qargs[0]: last_gate.qargs[0]}
+        dag.substitute_node_with_dag(last_gate, qc_dag, wires=wire_mapping)
 
 
 class CommuteGPI2MS(TransformationPass):
