@@ -179,11 +179,11 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
         for node in nodes:
             if node.op.name == "gpi":
                 phi = node.op.params[0]
-                matrix = Matrix([[0, exp(-1j * phi)], [exp(1j * phi), 0]]) * matrix
+                matrix = Matrix([[0, exp(-1j * phi * 2 * math.pi)], [exp(1j * phi * 2 * math.pi), 0]]) * matrix
             if node.op.name == "gpi2":
                 phi = node.op.params[0]
                 matrix = (
-                    Matrix([[1, -1j * exp(-1j * phi)], [-1j * exp(1j * phi), 1]])
+                    Matrix([[1, -1j * exp(-1j * phi * 2 * math.pi)], [-1j * exp(1j * phi * 2 * math.pi), 1]])
                     * matrix
                     * (1 / sqrt(2))
                 )
@@ -199,16 +199,15 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
         matrix = self.multiply_node_matrices(single_qubit_gates_streak)
         theta, phi, lambd = self.get_euler_angles(matrix)
 
-        pi_float = float(pi)
         qc = QuantumCircuit(1)
-        qc.append(GPI2Gate(0.5 - lambd / (2 * pi_float)), [0])
+        qc.append(GPI2Gate(0.5 - lambd / (2 * math.pi)), [0])
         qc.append(
             GPIGate(
-                theta / (4 * pi_float) + phi / (4 * pi_float) - lambd / (4 * pi_float)
+                theta / (4 * math.pi) + phi / (4 * math.pi) - lambd / (4 * math.pi)
             ),
             [0],
         )
-        qc.append(GPI2Gate(0.5 + phi / (2 * pi_float)), [0])
+        qc.append(GPI2Gate(0.5 + phi / (2 * math.pi)), [0])
         qc_dag = circuit_to_dag(qc)
 
         last_gate = single_qubit_gates_streak[-1]

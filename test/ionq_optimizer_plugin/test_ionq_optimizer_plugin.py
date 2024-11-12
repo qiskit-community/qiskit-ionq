@@ -385,9 +385,9 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
         (
             [
                 ("GPI2Gate", [0.2], [0]),
-                ("GPI2Gate", [0.7], [0]),
+                ("GPIGate", [0.7], [0]),
                 ("GPI2Gate", [1.5], [0]),
-                ("GPI2Gate", [2.8], [0]),
+                ("GPIGate", [2.8], [0]),
             ],
             3,
         ),
@@ -427,14 +427,18 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
     statevector_optimized = Statevector.from_instruction(optimized_circuit)
     probabilities_optimized = np.abs(statevector_optimized.data) ** 2
 
+    # print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    # print(transpiled_circuit_unoptimized)
+    # print(optimized_circuit)
+
     np.testing.assert_allclose(
         probabilities_unoptimized,
         probabilities_optimized,
         atol=1e-3,
         err_msg=(
             f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
-            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
-            f"Circuit: {qc}"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n\n"
+            f"Circuit: {qc}\n\n",
         ),
     )
 
