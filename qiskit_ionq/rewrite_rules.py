@@ -44,33 +44,34 @@ class GPI2_Adjoint(TransformationPass):
         return dag
 
 
-class CancelFourGPI2(TransformationPass):
-    """Four GPI2 should cancel up to -1 factor which is ignored."""
+# redundant since: GPI2 * GPI2 * GPI2 * GPI -> GPI * GPI -> Id
+# class CancelFourGPI2(TransformationPass):
+#     """Four GPI2 should cancel up to -1 factor which is ignored."""
 
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        nodes_to_remove = []
-        gpi2_streak = []
+#     def run(self, dag: DAGCircuit) -> DAGCircuit:
+#         nodes_to_remove = []
+#         gpi2_streak = []
 
-        for node in dag.topological_op_nodes():
-            if node.op.name == "gpi2" and node not in nodes_to_remove:
-                if (
-                    gpi2_streak
-                    and node.qargs == gpi2_streak[-1].qargs
-                    and node.op.params[0] != gpi2_streak[-1].op.params[0]
-                ):
-                    gpi2_streak = []
-                gpi2_streak.append(node)
+#         for node in dag.topological_op_nodes():
+#             if node.op.name == "gpi2" and node not in nodes_to_remove:
+#                 if (
+#                     gpi2_streak
+#                     and node.qargs == gpi2_streak[-1].qargs
+#                     and node.op.params[0] != gpi2_streak[-1].op.params[0]
+#                 ):
+#                     gpi2_streak = []
+#                 gpi2_streak.append(node)
 
-                if len(gpi2_streak) == 4:
-                    nodes_to_remove.extend(gpi2_streak)
-                    gpi2_streak = []
-            else:
-                gpi2_streak = []
+#                 if len(gpi2_streak) == 4:
+#                     nodes_to_remove.extend(gpi2_streak)
+#                     gpi2_streak = []
+#             else:
+#                 gpi2_streak = []
 
-        for node in nodes_to_remove:
-            dag.remove_op_node(node)
+#         for node in nodes_to_remove:
+#             dag.remove_op_node(node)
 
-        return dag
+#         return dag
 
 
 class GPI_Adjoint(TransformationPass):
@@ -117,12 +118,12 @@ class GPI2TwiceIsGPI(TransformationPass):
                         phi1 = node.op.params[0]
                         phi2 = next_node.op.params[0]
                         if math.isclose(phi1, phi2):
-
-                            qc = QuantumCircuit(1)
-                            qc.append(GPIGate(phi1), [0])
+                            qc = QuantumCircuit(dag.num_qubits())
+                            qubit_index = dag.qubits.index(node.qargs[0])
+                            qc.append(GPIGate(phi1), [qubit_index])
                             qc_dag = circuit_to_dag(qc)
 
-                            wire_mapping = {next_node.qargs[0]: next_node.qargs[0]}
+                            wire_mapping = {qarg: qarg for qarg in next_node.qargs}
 
                             dag.substitute_node_with_dag(
                                 next_node, qc_dag, wires=wire_mapping
@@ -179,11 +180,24 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
         for node in nodes:
             if node.op.name == "gpi":
                 phi = node.op.params[0]
-                matrix = Matrix([[0, exp(-1j * phi * 2 * math.pi)], [exp(1j * phi * 2 * math.pi), 0]]) * matrix
+                matrix = (
+                    Matrix(
+                        [
+                            [0, exp(-1j * phi * 2 * math.pi)],
+                            [exp(1j * phi * 2 * math.pi), 0],
+                        ]
+                    )
+                    * matrix
+                )
             if node.op.name == "gpi2":
                 phi = node.op.params[0]
                 matrix = (
-                    Matrix([[1, -1j * exp(-1j * phi * 2 * math.pi)], [-1j * exp(1j * phi * 2 * math.pi), 1]])
+                    Matrix(
+                        [
+                            [1, -1j * exp(-1j * phi * 2 * math.pi)],
+                            [-1j * exp(1j * phi * 2 * math.pi), 1],
+                        ]
+                    )
                     * matrix
                     * (1 / sqrt(2))
                 )
@@ -198,20 +212,21 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
     def compact_single_qubits_streak(self, dag, single_qubit_gates_streak):
         matrix = self.multiply_node_matrices(single_qubit_gates_streak)
         theta, phi, lambd = self.get_euler_angles(matrix)
+        last_gate = single_qubit_gates_streak[-1]
 
-        qc = QuantumCircuit(1)
-        qc.append(GPI2Gate(0.5 - lambd / (2 * math.pi)), [0])
+        qc = QuantumCircuit(dag.num_qubits())
+        qubit_index = dag.qubits.index(last_gate.qargs[0])
+        qc.append(GPI2Gate(0.5 - lambd / (2 * math.pi)), [qubit_index])
         qc.append(
             GPIGate(
                 theta / (4 * math.pi) + phi / (4 * math.pi) - lambd / (4 * math.pi)
             ),
-            [0],
+            [qubit_index],
         )
-        qc.append(GPI2Gate(0.5 + phi / (2 * math.pi)), [0])
+        qc.append(GPI2Gate(0.5 + phi / (2 * math.pi)), [qubit_index])
         qc_dag = circuit_to_dag(qc)
 
-        last_gate = single_qubit_gates_streak[-1]
-        wire_mapping = {last_gate.qargs[0]: last_gate.qargs[0]}
+        wire_mapping = {qarg: qarg for qarg in last_gate.qargs}
         dag.substitute_node_with_dag(last_gate, qc_dag, wires=wire_mapping)
 
 

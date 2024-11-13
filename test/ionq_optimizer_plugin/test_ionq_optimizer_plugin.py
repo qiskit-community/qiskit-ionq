@@ -147,14 +147,18 @@ gate_map = {
 
 def append_gate(circuit, gate_name, param, qubits):
     """Append a gate to a circuit."""
-    gate_class = gate_map[gate_name]
-    if param is not None:
-        if isinstance(param, collections.abc.Sequence):
-            circuit.append(gate_class(*param), qubits)
-        else:
-            circuit.append(gate_class(param), qubits)
+    if gate_name == "measure":
+        for qubit in qubits:
+            circuit.measure(qubit, qubit)
     else:
-        circuit.append(gate_class(), qubits)
+        gate_class = gate_map[gate_name]
+        if param is not None:
+            if isinstance(param, collections.abc.Sequence):
+                circuit.append(gate_class(*param), qubits)
+            else:
+                circuit.append(gate_class(param), qubits)
+        else:
+            circuit.append(gate_class(), qubits)
 
 
 @pytest.mark.parametrize(
@@ -162,6 +166,28 @@ def append_gate(circuit, gate_name, param, qubits):
     [
         # GPI2(phi) * GPI2(phi + 0.5) = Id
         ([("GPI2Gate", [1], [0]), ("GPI2Gate", [1.5], [0])], 0),
+        # GPI2(phi) * GPI2(phi + 0.5) on different qubits do not cancel
+        ([("GPI2Gate", [1], [0]), ("GPI2Gate", [1.5], [2])], 1),
+        # GPI2(phi) * MS *  GPI2(phi + 0.5) do not cancel
+        (
+            [
+                ("GPI2Gate", [1], [0]),
+                ("MSGate", [0.2, 0.3, 0.25], [0, 2]),
+                ("GPI2Gate", [1.5], [0]),
+            ],
+            3,
+        ),
+        # GPI2(phi) * MS *  GPI2(phi + 0.5) do cancel if MS applies to qubits 0 and 2 while GPIs apply to qubit 1
+        (
+            [
+                ("GPI2Gate", [1], [1]),
+                ("MSGate", [0.2, 0.3, 0.25], [0, 2]),
+                ("GPI2Gate", [1.5], [1]),
+            ],
+            1,
+        ),
+        # GPI2(phi) * GPI2(phi + 0.5) but on different qubits do not cancel
+        ([("GPI2Gate", [1], [1]), ("GPI2Gate", [1.5], [2])], 1),
         # GPI2(phi1) * GPI2(phi2) != Id  if phi1 + 0.5 is close but not phi2
         ([("GPI2Gate", [0], [0]), ("GPI2Gate", [0.501], [0])], 2),
         # GPI2(phi + 0.5) * GPI2(phi) = Id
@@ -188,6 +214,28 @@ def append_gate(circuit, gate_name, param, qubits):
         ),
         # GPI(phi) * GPI(phi) = Id
         ([("GPIGate", [1], [0]), ("GPIGate", [1], [0])], 0),
+        # GPI(phi) * GPI(phi) do not cancel if applied to different qubits
+        ([("GPIGate", [1], [0]), ("GPIGate", [1], [1])], 1),
+        # GPI(phi) * GPI(phi) do not cancel if MS between them
+        (
+            [
+                ("GPIGate", [1], [0]),
+                ("MSGate", [0.2, 0.3, 0.25], [0, 1]),
+                ("GPIGate", [1], [0]),
+            ],
+            3,
+        ),
+        # GPI(phi) * GPI(phi) do  cancel if MS between them applies to different qubits
+        (
+            [
+                ("GPIGate", [1], [1]),
+                ("MSGate", [0.2, 0.3, 0.25], [0, 2]),
+                ("GPIGate", [1], [1]),
+            ],
+            1,
+        ),
+        # GPI(phi) * GPI(phi) on different qubits do not cancel
+        ([("GPIGate", [1], [0]), ("GPIGate", [1], [1])], 1),
         # GPI(phi1) * GPI(phi2) != Id if phi1 is close to phi2 but not identical
         ([("GPIGate", [1], [0]), ("GPIGate", [1.01], [0])], 2),
         # GPI(phi) * GPI(phi) = Id
@@ -203,6 +251,16 @@ def append_gate(circuit, gate_name, param, qubits):
                 ("GPI2Gate", [0.7], [0]),
             ],
             0,
+        ),
+        # Four GPI2 with equal arguments but on different qubits do not cancel
+        (
+            [
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [0.7], [2]),
+                ("GPI2Gate", [0.7], [0]),
+            ],
+            2,
         ),
         # Four GPI2 with almost equal but not equal arguments should not cancel
         (
@@ -238,6 +296,44 @@ def append_gate(circuit, gate_name, param, qubits):
         ),
         # Two GPI2 with equal arguments equal GPI
         ([("GPI2Gate", [1.7], [0]), ("GPI2Gate", [1.7], [0])], 1),
+        # Two GPI2 with equal arguments equal GPI on different qubits stay unchanged
+        ([("GPI2Gate", [1.7], [0]), ("GPI2Gate", [1.7], [1])], 1),
+        # Two GPI2 with equal arguments equal GPI but with MS between stay unchanged
+        (
+            [
+                ("GPI2Gate", [1.7], [0]),
+                ("MSGate", [0.2, 0.3, 0.25], [0, 1]),
+                ("GPI2Gate", [1.7], [0]),
+            ],
+            3,
+        ),
+        # Two GPI2 with equal arguments equal GPI but with MS between an different qubits will be replaced by GPI
+        (
+            [
+                ("GPI2Gate", [1.7], [0]),
+                ("MSGate", [0.2, 0.3, 0.25], [2, 1]),
+                ("GPI2Gate", [1.7], [0]),
+            ],
+            1,
+        ),
+        # Two GPI2 * GPI2 * GPI = GPI * GPI = Id
+        (
+            [
+                ("GPI2Gate", [1.7], [1]),
+                ("GPI2Gate", [1.7], [1]),
+                ("GPIGate", [1.7], [1]),
+            ],
+            0,
+        ),
+        # Two GPI2 * GPI2 * GPI  not all an the same qubit stay the same
+        (
+            [
+                ("GPI2Gate", [1.7], [1]),
+                ("GPI2Gate", [1.7], [2]),
+                ("GPIGate", [1.7], [1]),
+            ],
+            2,
+        ),
         # Two GPI2 with almost equal arguments do not change
         ([("GPI2Gate", [1.701], [0]), ("GPI2Gate", [1.7], [0])], 2),
         # Two GPI2 with equal arguments equal GPI
@@ -246,6 +342,23 @@ def append_gate(circuit, gate_name, param, qubits):
                 ("GPI2Gate", [1.7], [0]),
                 ("GPI2Gate", [1.7], [0]),
                 ("GPI2Gate", [1.7], [0]),
+            ],
+            2,
+        ),
+        # Two GPI2 with equal arguments but different qubits are not merged
+        (
+            [
+                ("GPIGate", [1.7], [0]),
+                ("GPI2Gate", [1.7], [0]),
+                ("GPI2Gate", [1.7], [1]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("GPIGate", [1.7], [1]),
+                ("GPI2Gate", [1.7], [0]),
+                ("GPI2Gate", [1.7], [1]),
             ],
             2,
         ),
@@ -287,14 +400,25 @@ def append_gate(circuit, gate_name, param, qubits):
             ],
             0,
         ),
+        # same as above but not all on the same qubit
+        (
+            [
+                ("GPIGate", [1.7], [0]),
+                ("GPI2Gate", [1.7], [0]),
+                ("GPI2Gate", [1.7], [2]),
+                ("GPI2Gate", [1.7], [0]),
+                ("GPI2Gate", [1.2], [1]),
+            ],
+            1,
+        ),
         # GPI2-dag * GPI * GPI2 * GPI2 * GPI2  -> GPI2-dag * GPI * GPI * GPI2 -> GPI2-dag * GPI2 -> Id
         (
             [
-                ("GPI2Gate", [2.2], [0]),
-                ("GPIGate", [1.7], [0]),
-                ("GPI2Gate", [1.7], [0]),
-                ("GPI2Gate", [1.7], [0]),
-                ("GPI2Gate", [1.7], [0]),
+                ("GPI2Gate", [2.2], [1]),
+                ("GPIGate", [1.7], [1]),
+                ("GPI2Gate", [1.7], [1]),
+                ("GPI2Gate", [1.7], [1]),
+                ("GPI2Gate", [1.7], [1]),
             ],
             0,
         ),
@@ -311,7 +435,7 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
     )
 
     # create a quantum circuit
-    qc = QuantumCircuit(1)
+    qc = QuantumCircuit(3)
     for gate_name, param, qubits in gates:
         append_gate(qc, gate_name, param, qubits)
 
@@ -352,6 +476,8 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
 @pytest.mark.parametrize(
     "gates, optimized_depth",
     [
+        # any combination of GPI/GPI2 gates on the
+        # same qubit is collaped to 3 gates
         (
             [
                 ("GPIGate", [2.2], [0]),
@@ -363,14 +489,16 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
         ),
         (
             [
-                ("GPIGate", [1.8], [0]),
-                ("GPIGate", [0.7], [0]),
-                ("GPIGate", [1.1], [0]),
-                ("GPIGate", [1.7], [0]),
-                ("GPIGate", [2.7], [0]),
+                ("GPI2Gate", [1.8], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [1.1], [0]),
+                ("GPI2Gate", [1.7], [0]),
+                ("GPI2Gate", [2.7], [0]),
             ],
             3,
         ),
+        # any combination of GPI/GPI2 gates on the
+        # same qubit is collaped to 3 gates
         (
             [
                 ("GPIGate", [0.8], [0]),
@@ -382,6 +510,45 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
             ],
             3,
         ),
+        # any combination of GPI/GPI2 gates on the
+        # same qubit is collaped to 3 gates
+        (
+            [
+                ("GPI2Gate", [1.8], [0]),
+                ("GPI2Gate", [1.7], [0]),
+                ("GPI2Gate", [0.1], [0]),
+                ("GPI2Gate", [2.7], [0]),
+                ("GPI2Gate", [2.7], [0]),
+                ("GPI2Gate", [1.7], [0]),
+            ],
+            3,
+        ),
+        # any combination of GPI/GPI2 gates on the
+        # same qubit is collaped to 3 gates
+        (
+            [
+                ("GPIGate", [1.8], [0]),
+                ("GPI2Gate", [1.7], [1]),
+                ("GPI2Gate", [0.1], [0]),
+                ("GPI2Gate", [2.7], [1]),
+                ("GPI2Gate", [2.7], [0]),
+                ("GPIGate", [1.7], [0]),
+            ],
+            3,
+        ),
+        # any combination of GPI/GPI2 gates on the
+        # same qubit is collaped to 3 gates
+        (
+            [
+                ("GPI2Gate", [0.2], [0]),
+                ("GPIGate", [0.7], [1]),
+                ("GPI2Gate", [1.5], [0]),
+                ("GPIGate", [2.8], [1]),
+            ],
+            2,
+        ),
+        # any combination of GPI/GPI2 gates on the
+        # same qubit is collaped to 3 gates
         (
             [
                 ("GPI2Gate", [0.2], [0]),
@@ -390,6 +557,99 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
                 ("GPIGate", [2.8], [0]),
             ],
             3,
+        ),
+        # combine one qubit gates with two qubit gates
+        (
+            [
+                ("MSGate", [0.2, 0.3, 0.25], [0, 1]),
+                ("GPIGate", [0.2], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [1.5], [0]),
+                ("GPIGate", [2.8], [0]),
+                ("MSGate", [1.2, 1.3, 1.25], [0, 1]),
+                ("GPIGate", [0.2], [1]),
+                ("GPIGate", [0.7], [1]),
+                ("GPI2Gate", [1.5], [1]),
+                ("GPI2Gate", [0.8], [1]),
+                ("GPI2Gate", [0.7], [1]),
+            ],
+            8,
+        ),
+        # same as above but MS apply to qubits 0 and 2
+        (
+            [
+                ("MSGate", [0.2, 0.3, 0.25], [0, 2]),
+                ("GPIGate", [0.2], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [1.5], [0]),
+                ("GPIGate", [2.8], [0]),
+                ("MSGate", [1.2, 1.3, 1.25], [0, 2]),
+                ("GPIGate", [0.2], [1]),
+                ("GPIGate", [0.7], [1]),
+                ("GPI2Gate", [1.5], [1]),
+                ("GPI2Gate", [0.8], [1]),
+                ("GPI2Gate", [0.7], [1]),
+            ],
+            5,
+        ),
+        # simililar to the two tests above bit after second
+        # MS gate not all gates are lined on the same qubit
+        (
+            [
+                ("MSGate", [0.2, 0.3, 0.25], [0, 1]),
+                ("GPIGate", [0.2], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [1.5], [0]),
+                ("GPIGate", [2.8], [0]),
+                ("MSGate", [1.2, 1.3, 1.25], [0, 1]),
+                ("GPIGate", [0.2], [0]),
+                ("GPIGate", [0.7], [0]),
+                ("GPI2Gate", [1.5], [1]),
+                ("GPI2Gate", [0.8], [1]),
+                ("GPI2Gate", [0.75], [2]),
+                ("GPI2Gate", [0.7], [2]),
+            ],
+            7,
+        ),
+        # all GPI and GPI2 gates are expected
+        # to be consolidated as GPI2 * GPI * GPI2
+        (
+            [
+                ("MSGate", [0.2, 0.3, 0.25], [0, 2]),
+                ("GPIGate", [3.2], [1]),
+                ("GPI2Gate", [0.1], [1]),
+                ("GPI2Gate", [1.5], [1]),
+                ("GPIGate", [2.4], [1]),
+                ("MSGate", [1.2, 1.3, 1.25], [0, 2]),
+                ("GPIGate", [1.2], [1]),
+                ("GPIGate", [2.7], [1]),
+                ("GPI2Gate", [0.5], [1]),
+                ("GPI2Gate", [1.8], [1]),
+                ("GPI2Gate", [1.75], [1]),
+                ("GPI2Gate", [1.7], [1]),
+            ],
+            3,
+        ),
+        # the first sequence of 5 GPI and GPI2 is expected
+        # and the second sequence of 6 GPI and GPI2 is expected
+        # to be consolidated as GPI2 * GPI * GPI2 separately
+        (
+            [
+                ("MSGate", [0.2, 0.3, 0.25], [0, 2]),
+                ("GPIGate", [3.2], [1]),
+                ("GPI2Gate", [0.1], [1]),
+                ("GPI2Gate", [1.5], [1]),
+                ("GPIGate", [2.4], [1]),
+                ("GPI2Gate", [0.2], [1]),
+                ("MSGate", [1.2, 1.3, 1.25], [0, 1]),
+                ("GPIGate", [1.2], [1]),
+                ("GPIGate", [2.7], [1]),
+                ("GPI2Gate", [0.5], [1]),
+                ("GPI2Gate", [1.8], [1]),
+                ("GPI2Gate", [1.75], [1]),
+                ("GPI2Gate", [1.7], [1]),
+            ],
+            7,
         ),
     ],
     ids=lambda val: f"{val}",
@@ -404,7 +664,7 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
     )
 
     # create a quantum circuit
-    qc = QuantumCircuit(1)
+    qc = QuantumCircuit(3)
     for gate_name, param, qubits in gates:
         append_gate(qc, gate_name, param, qubits)
 
@@ -427,18 +687,14 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
     statevector_optimized = Statevector.from_instruction(optimized_circuit)
     probabilities_optimized = np.abs(statevector_optimized.data) ** 2
 
-    # print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-    # print(transpiled_circuit_unoptimized)
-    # print(optimized_circuit)
-
     np.testing.assert_allclose(
         probabilities_unoptimized,
         probabilities_optimized,
         atol=1e-3,
         err_msg=(
             f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
-            f"Optimized: {np.round(probabilities_optimized, 3)},\n\n"
-            f"Circuit: {qc}\n\n",
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {qc}",
         ),
     )
 
@@ -491,6 +747,10 @@ def test_ionq_optmizer_plugin_five_qubits(gates, optimized_depth):
     statevector_optimized = Statevector.from_instruction(optimized_circuit)
     probabilities_optimized = np.abs(statevector_optimized.data) ** 2
 
+    # print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    # print(transpiled_circuit_unoptimized)
+    # print(optimized_circuit)
+
     np.testing.assert_allclose(
         probabilities_unoptimized,
         probabilities_optimized,
@@ -504,3 +764,6 @@ def test_ionq_optmizer_plugin_five_qubits(gates, optimized_depth):
 
     optimized_dag = circuit_to_dag(optimized_circuit)
     assert optimized_dag.depth() == optimized_depth
+
+
+# TODO add tests with mesure gates

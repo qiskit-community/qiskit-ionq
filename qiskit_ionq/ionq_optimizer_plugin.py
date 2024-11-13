@@ -31,7 +31,6 @@ from qiskit.converters import circuit_to_dag
 from qiskit_ionq.rewrite_rules import (
     GPI2_Adjoint,
     GPI_Adjoint,
-    CancelFourGPI2,
     GPI2TwiceIsGPI,
     CompactMoreThanThreeSingleQubitGates,
     CommuteGPI2MS,
@@ -64,7 +63,6 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
      to test the following transformation passes in isolation:
         - GPI2_Adjoint
         - GPI_Adjoint
-        - CancelFourGPI2
         - GPI2TwiceIsGPI
     """
 
@@ -80,7 +78,6 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
         if optimization_level >= 1:
             custom_pass_manager.append(GPI2_Adjoint())
             custom_pass_manager.append(GPI_Adjoint())
-            custom_pass_manager.append(CancelFourGPI2())
             custom_pass_manager.append(GPI2TwiceIsGPI())
         return custom_pass_manager
 
@@ -122,7 +119,6 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             # in the order were added to the PassManager
             custom_pass_manager.append(GPI2_Adjoint())
             custom_pass_manager.append(GPI_Adjoint())
-            custom_pass_manager.append(CancelFourGPI2())
             custom_pass_manager.append(GPI2TwiceIsGPI())
             custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
             # custom_pass_manager.append(CommuteGPI2MS())
