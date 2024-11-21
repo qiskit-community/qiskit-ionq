@@ -230,8 +230,9 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
         dag.substitute_node_with_dag(last_gate, qc_dag, wires=wire_mapping)
 
 
-class CommuteGPI2MS(TransformationPass):
-    """GPI2 * MS is replaced by MS * GPI2."""
+class CommuteGPIsThroughMS(TransformationPass):
+    """GPI(0), GPI(π), GPI(-π), GPI2(0), GPI2(π), GPI2(-π)
+    on either qubit commute with MS"""
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         nodes_to_remove = set()
@@ -240,9 +241,11 @@ class CommuteGPI2MS(TransformationPass):
             if node in nodes_to_remove:
                 continue
 
-            if node.op.name == "gpi2" and math.isclose(
-                node.op.params[0], 0.5
-            ):  # GPI2(pi/2) ????
+            if (node.op.name == "gpi" or node.op.name == "gpi2") and (
+                math.isclose(node.op.params[0], 0)
+                or math.isclose(node.op.params[0], 0.5)
+                or math.isclose(node.op.params[0], -0.5)
+            ):
                 successors = [
                     succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)
                 ]
@@ -261,10 +264,10 @@ class CommuteGPI2MS(TransformationPass):
 
                         # map the ops to the qubits in the sub-DAG
                         ms_qubits = [next_node.qargs[0], next_node.qargs[1]]
-                        gpi2_qubit = [node.qargs[0]]
+                        gpis_qubit = [node.qargs[0]]
 
                         sub_dag.apply_operation_back(next_node.op, ms_qubits)
-                        sub_dag.apply_operation_back(node.op, gpi2_qubit)
+                        sub_dag.apply_operation_back(node.op, gpis_qubit)
 
                         wire_mapping = {qubit: qubit for qubit in ms_qubits}
                         wire_mapping[node.qargs[0]] = node.qargs[0]
@@ -279,18 +282,3 @@ class CommuteGPI2MS(TransformationPass):
             dag.remove_op_node(node)
 
         return dag
-
-
-class CommuteGPIsThroughMS(TransformationPass):
-    """GPI2(0), GPI2(π), GPI2(-π), GPI(0), GPI(π), GPI(-π)
-    on either qubit commute with MS"""
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        pass
-
-
-class CancelFourMS(TransformationPass):
-    """Four MS(pi/2) should cancel up to -1 factor which is ignored."""
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        pass

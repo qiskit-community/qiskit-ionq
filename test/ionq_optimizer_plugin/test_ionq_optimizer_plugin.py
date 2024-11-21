@@ -89,6 +89,7 @@ from qiskit_ionq import (
     TrappedIonOptimizerPlugin,
     TrappedIonOptimizerPluginSimpleRules,
     TrappedIonOptimizerPluginCompactGates,
+    TrappedIonOptimizerPluginCommuteGpi2ThroughMs,
 )
 
 # Mapping from gate names to gate classes
@@ -703,20 +704,207 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
 
 
 @pytest.mark.parametrize(
-    "gates",
+    "gates, optimized_depth",
     [
-        # [("CXGate", None, [0, 1]), ("CXGate", None, [0, 2]), ("CXGate", None, [0, 3]), ("CXGate", None, [0, 4])],
-        # [ ("CHGate", None, [0, 1])], !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # [("HGate", None, [0]), ("CHGate", None, [0, 1]), ("CHGate", None, [0, 2]), ("CHGate", None, [0, 3]), ("CHGate", None, [0, 4])],
-        # [("HGate", None, [0]), ("CHGate", None, [0, 1]), ("HGate", None, [1]), ("CHGate", None, [0, 2]), ("HGate", None, [2]), ("CHGate", None, [0, 3]), ("HGate", None, [3]), ("CHGate", None, [0, 4])],
-        # [("XGate", None, [0]), ("CHGate", None, [0, 1]), ("XGate", None, [1]), ("CHGate", None, [0, 2]), ("XGate", None, [2]), ("CHGate", None, [0, 3]), ("XGate", None, [3]), ("CHGate", None, [0, 4])],
-        # [("SGate", None, [0]), ("CHGate", None, [0, 1]), ("TGate", None, [1]), ("CHGate", None, [1, 2]), ("SGate", None, [2]), ("CHGate", None, [2, 3]), ("TGate", None, [3]), ("CHGate", None, [3, 4])],
-        # [("SGate", None, [0]), ("CHGate", None, [0, 1]), ("TGate", None, [1]), ("CHGate", None, [0, 2]), ("XGate", None, [2]), ("CHGate", None, [0, 3]), ("YGate", None, [3]), ("CHGate", None, [0, 4])],
+        # testing GPI gates
+        (
+            [
+                ("GPIGate", [0], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [0], [-0]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            5,
+        ),
+        (
+            [
+                ("GPIGate", [0], [1]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [0], [1]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            5,
+        ),
+        (
+            [
+                ("GPIGate", [0.5], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [0.5], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            5,
+        ),
+        (
+            [
+                ("GPIGate", [0.5], [1]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [0.5], [1]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            5,
+        ),
+        (
+            [
+                ("GPIGate", [-0.5], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [-0.5], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            5,
+        ),
+        (
+            [
+                ("GPIGate", [-0.5], [1]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [-0.5], [1]),
+                ("MSGate", [0, 0, 0.25], [0, 1]),
+            ],
+            5,
+        ),
+        # testing GPI2 gates
+        (
+            [
+                ("GPI2Gate", [0], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [0], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            6,
+        ),
+        (
+            [
+                ("GPI2Gate", [0], [2]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [0], [2]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            7,
+        ),
+        (
+            [
+                ("GPI2Gate", [0.5], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [0.5], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            6,
+        ),
+        (
+            [
+                ("GPI2Gate", [0.5], [2]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [0.5], [2]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            7,
+        ),
+        (
+            [
+                ("GPI2Gate", [-0.5], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [-0.5], [0]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            6,
+        ),
+        (
+            [
+                ("GPI2Gate", [-0.5], [2]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            2,
+        ),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [-0.5], [2]),
+                ("MSGate", [0, 0, 0.25], [0, 2]),
+            ],
+            7,
+        ),
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optmizer_plugin_five_qubits(gates, optimized_depth):
-    custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
+def test_commute_gpis_through_ms(gates, optimized_depth):
+    custom_pass_manager_plugin = TrappedIonOptimizerPluginCommuteGpi2ThroughMs()
     pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
         pass_manager_config,
@@ -724,7 +912,7 @@ def test_ionq_optmizer_plugin_five_qubits(gates, optimized_depth):
     )
 
     # create a quantum circuit
-    qc = QuantumCircuit(2)
+    qc = QuantumCircuit(3)
     for gate_name, param, qubits in gates:
         append_gate(qc, gate_name, param, qubits)
 
@@ -747,10 +935,6 @@ def test_ionq_optmizer_plugin_five_qubits(gates, optimized_depth):
     statevector_optimized = Statevector.from_instruction(optimized_circuit)
     probabilities_optimized = np.abs(statevector_optimized.data) ** 2
 
-    # print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-    # print(transpiled_circuit_unoptimized)
-    # print(optimized_circuit)
-
     np.testing.assert_allclose(
         probabilities_unoptimized,
         probabilities_optimized,
@@ -764,6 +948,153 @@ def test_ionq_optmizer_plugin_five_qubits(gates, optimized_depth):
 
     optimized_dag = circuit_to_dag(optimized_circuit)
     assert optimized_dag.depth() == optimized_depth
+    assert optimized_circuit != transpiled_circuit_unoptimized
+
+
+@pytest.mark.parametrize(
+    "gates",
+    [
+        [
+            ("HGate", None, [0]),
+            ("HGate", None, [1]),
+            ("HGate", None, [2]),
+            ("CHGate", None, [0, 2]),
+            ("XGate", None, [0]),
+            ("XGate", None, [1]),
+            ("XGate", None, [2]),
+            ("HGate", None, [0]),
+            ("SGate", None, [1]),
+            ("HGate", None, [2]),
+            ("CXGate", None, [0, 1]),
+        ],
+        [
+            ("SGate", None, [0]),
+            ("HGate", None, [1]),
+            ("TGate", None, [2]),
+            ("CSGate", None, [0, 2]),
+            ("SwapGate", None, [0, 1]),
+            ("CHGate", None, [1, 2]),
+            ("TGate", None, [0]),
+            ("XGate", None, [1]),
+            ("SGate", None, [2]),
+            ("HGate", None, [0]),
+            ("SGate", None, [1]),
+            ("XGate", None, [2]),
+            ("CU3Gate", [1, 2, 3], [0, 1]),
+            ("HGate", None, [0]),
+            ("HGate", None, [1]),
+            ("HGate", None, [2]),
+            ("SwapGate", None, [2, 1]),
+        ],
+        [
+            ("TGate", None, [0]),
+            ("XGate", None, [1]),
+            ("SwapGate", None, [0, 1]),
+            ("HGate", None, [1]),
+            ("XGate", None, [2]),
+            ("CSGate", None, [0, 2]),
+            ("CHGate", None, [1, 2]),
+            ("TGate", None, [0]),
+            ("XGate", None, [1]),
+            ("SwapGate", None, [2, 1]),
+            ("SGate", None, [2]),
+            ("HGate", None, [0]),
+            ("SGate", None, [1]),
+            ("XGate", None, [2]),
+            ("CU3Gate", [1, 2, 3], [0, 1]),
+            ("HGate", None, [0]),
+            ("HGate", None, [1]),
+            ("HGate", None, [2]),
+            ("SwapGate", None, [0, 2]),
+            ("TGate", None, [0]),
+            ("TGate", None, [1]),
+            ("TGate", None, [2]),
+            ("SwapGate", None, [0, 1]),
+            ("SwapGate", None, [1, 2]),
+            ("SwapGate", None, [0, 2]),
+        ],
+        [
+            ("HGate", None, [0]),
+            ("XGate", None, [1]),
+            ("CHGate", None, [1, 0]),
+            ("HGate", None, [1]),
+            ("XGate", None, [2]),
+            ("CXGate", None, [2, 0]),
+            ("CHGate", None, [1, 2]),
+            ("HGate", None, [0]),
+            ("XGate", None, [1]),
+            ("CHGate", None, [2, 1]),
+            ("YGate", None, [2]),
+            ("HGate", None, [0]),
+            ("XGate", None, [1]),
+            ("XGate", None, [2]),
+            ("CYGate", None, [0, 1]),
+            ("HGate", None, [0]),
+            ("XGate", None, [1]),
+            ("HGate", None, [2]),
+            ("CXGate", None, [0, 2]),
+            ("XGate", None, [0]),
+            ("HGate", None, [1]),
+            ("YGate", None, [2]),
+            ("CXGate", None, [0, 1]),
+            ("CXGate", None, [1, 2]),
+            ("CXGate", None, [0, 2]),
+        ],
+    ],
+    ids=lambda val: f"{val}",
+)
+def test_all_rewrite_rules(gates):
+    custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
+    pass_manager_config = PassManagerConfig()
+    custom_pass_manager = custom_pass_manager_plugin.pass_manager(
+        pass_manager_config,
+        optimization_level=3,
+    )
+
+    # create a quantum circuit
+    qc = QuantumCircuit(3)
+    for gate_name, param, qubits in gates:
+        append_gate(qc, gate_name, param, qubits)
+
+    provider = IonQProvider()
+    backend = provider.get_backend("simulator", gateset="native")
+    transpiled_circuit_unoptimized = transpile(
+        qc, backend=backend, optimization_level=3
+    )
+
+    # simulate the unoptimized circuit
+    statevector_unoptimized = Statevector.from_instruction(
+        transpiled_circuit_unoptimized
+    )
+    probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
+
+    # optimized transpilation of circuit to native gates
+    optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
+
+    # simulate the optimized circuit
+    statevector_optimized = Statevector.from_instruction(optimized_circuit)
+    probabilities_optimized = np.abs(statevector_optimized.data) ** 2
+
+    np.testing.assert_allclose(
+        probabilities_unoptimized,
+        probabilities_optimized,
+        atol=1e-3,
+        err_msg=(
+            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {qc}"
+        ),
+    )
+
+    assert optimized_circuit != transpiled_circuit_unoptimized
+
+    # print(
+    #     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    # )
+    # print(transpiled_circuit_unoptimized)
+    # print(optimized_circuit)
+    # print(probabilities_unoptimized)
+    # print(probabilities_optimized)
 
 
 # TODO add tests with mesure gates

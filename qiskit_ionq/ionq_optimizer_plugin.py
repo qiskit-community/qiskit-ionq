@@ -33,9 +33,7 @@ from qiskit_ionq.rewrite_rules import (
     GPI_Adjoint,
     GPI2TwiceIsGPI,
     CompactMoreThanThreeSingleQubitGates,
-    CommuteGPI2MS,
     CommuteGPIsThroughMS,
-    CancelFourMS,
 )
 
 
@@ -103,6 +101,22 @@ class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
         return custom_pass_manager
 
 
+class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
+    def pass_manager(
+        self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
+    ) -> PassManager:
+        """
+        Creates a PassManager class with added custom transformation passes.
+        This class is meant to be used in production.
+        """
+        custom_pass_manager = CustomPassManager()
+        if optimization_level == 0:
+            pass
+        if optimization_level >= 1:
+            custom_pass_manager.append(CommuteGPIsThroughMS())
+        return custom_pass_manager
+
+
 class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
     def pass_manager(
         self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
@@ -120,8 +134,6 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             custom_pass_manager.append(GPI2_Adjoint())
             custom_pass_manager.append(GPI_Adjoint())
             custom_pass_manager.append(GPI2TwiceIsGPI())
+            custom_pass_manager.append(CommuteGPIsThroughMS())
             custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
-            # custom_pass_manager.append(CommuteGPI2MS())
-            # custom_pass_manager.append(CommuteGPIsThroughMS())
-            # custom_pass_manager.append(CancelFourMS())
         return custom_pass_manager
