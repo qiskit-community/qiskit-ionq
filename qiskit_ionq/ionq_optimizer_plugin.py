@@ -24,13 +24,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+""" Optimize the transpiling of IonQ native gates using a custom
+    pass manager and a pass manager plugin TrappedIonOptimizerPlugin
+    which consolidates all the rewrite rules in one single plugin.
+    The other plugin classes are intended for testing various rewrite
+    rules in isolation.
+"""
+
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 from qiskit.converters import circuit_to_dag
 
 from qiskit_ionq.rewrite_rules import (
-    GPI2_Adjoint,
-    GPI_Adjoint,
+    CancelGPI2Adjoint,
+    CancelGPIAdjoint,
     GPI2TwiceIsGPI,
     CompactMoreThanThreeSingleQubitGates,
     CommuteGPIsThroughMS,
@@ -38,6 +45,9 @@ from qiskit_ionq.rewrite_rules import (
 
 
 class CustomPassManager(PassManager):
+    """A custom pass manager."""
+
+    # pylint: disable=arguments-differ
     def run(self, circuit):
         """
         Runs the pass manager iteratively until no further optimizations are possible.
@@ -59,8 +69,8 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
     """
     This class is no intended to be used in production, is is meant
      to test the following transformation passes in isolation:
-        - GPI2_Adjoint
-        - GPI_Adjoint
+        - CancelGPI2Adjoint
+        - CancelGPIAdjoint
         - GPI2TwiceIsGPI
     """
 
@@ -74,8 +84,8 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
         if optimization_level == 0:
             pass
         if optimization_level >= 1:
-            custom_pass_manager.append(GPI2_Adjoint())
-            custom_pass_manager.append(GPI_Adjoint())
+            custom_pass_manager.append(CancelGPI2Adjoint())
+            custom_pass_manager.append(CancelGPIAdjoint())
             custom_pass_manager.append(GPI2TwiceIsGPI())
         return custom_pass_manager
 
@@ -107,6 +117,7 @@ class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
      to test the following transformation passes in isolation:
         - CommuteGPIsThroughMS
     """
+
     def pass_manager(
         self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
     ) -> PassManager:
@@ -123,6 +134,10 @@ class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
 
 
 class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
+    """
+    This the optmizer plugin is intended to be used in production.
+    """
+
     def pass_manager(
         self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
     ) -> PassManager:
@@ -136,8 +151,8 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
         if optimization_level >= 1:
             # Note the TransformationPasses should be applied
             # in the order were added to the PassManager
-            custom_pass_manager.append(GPI2_Adjoint())
-            custom_pass_manager.append(GPI_Adjoint())
+            custom_pass_manager.append(CancelGPI2Adjoint())
+            custom_pass_manager.append(CancelGPIAdjoint())
             custom_pass_manager.append(GPI2TwiceIsGPI())
             custom_pass_manager.append(CommuteGPIsThroughMS())
             custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())

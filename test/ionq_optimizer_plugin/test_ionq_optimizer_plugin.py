@@ -32,7 +32,6 @@ import pytest
 
 from qiskit import (
     QuantumCircuit,
-    QuantumRegister,
     transpile,
 )
 from qiskit.converters import circuit_to_dag
@@ -178,7 +177,8 @@ def append_gate(circuit, gate_name, param, qubits):
             ],
             3,
         ),
-        # GPI2(phi) * MS *  GPI2(phi + 0.5) do cancel if MS applies to qubits 0 and 2 while GPIs apply to qubit 1
+        # GPI2(phi) * MS *  GPI2(phi + 0.5) do cancel if MS
+        # applies to qubits 0 and 2 while GPIs apply to qubit 1
         (
             [
                 ("GPI2Gate", [1], [1]),
@@ -308,7 +308,8 @@ def append_gate(circuit, gate_name, param, qubits):
             ],
             3,
         ),
-        # Two GPI2 with equal arguments equal GPI but with MS between an different qubits will be replaced by GPI
+        # Two GPI2 with equal arguments equal GPI but with MS
+        # between an different qubits will be replaced by GPI
         (
             [
                 ("GPI2Gate", [1.7], [0]),
@@ -390,7 +391,9 @@ def append_gate(circuit, gate_name, param, qubits):
             ],
             3,
         ),
-        # GPI * GPI2 * GPI2 * (GPI2 * GPI2-dag) -> GPI * GPI * (GPI2 * GPI2-dag) -> * (GPI2 * GPI2-dag) -> Id
+        # GPI * GPI2 * GPI2 * (GPI2 * GPI2-dag)
+        # -> GPI * GPI * (GPI2 * GPI2-dag)
+        # -> * (GPI2 * GPI2-dag) -> Id
         (
             [
                 ("GPIGate", [1.7], [0]),
@@ -412,7 +415,9 @@ def append_gate(circuit, gate_name, param, qubits):
             ],
             1,
         ),
-        # GPI2-dag * GPI * GPI2 * GPI2 * GPI2  -> GPI2-dag * GPI * GPI * GPI2 -> GPI2-dag * GPI2 -> Id
+        # GPI2-dag * GPI * GPI2 * GPI2 * GPI2
+        # -> GPI2-dag * GPI * GPI * GPI2
+        # -> GPI2-dag * GPI2 -> Id
         (
             [
                 ("GPI2Gate", [2.2], [1]),
@@ -426,13 +431,14 @@ def append_gate(circuit, gate_name, param, qubits):
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
+def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth): # pylint: disable=invalid-name
+    """Test TrappedIonOptimizerPluginSimpleRules."""
 
     ############################################################
     # First test TrappedIonOptimizerPluginSimpleRules
     # to test the following transformation passes in isolation:
-    #    - GPI2_Adjoint
-    #    - GPI_Adjoint
+    #    - CancelGPI2Adjoint
+    #    - CancelGPIAdjoint
     #    - GPI2TwiceIsGPI
     #############################################################
 
@@ -450,14 +456,10 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
 
     provider = IonQProvider()
     backend = provider.get_backend("simulator", gateset="native")
-    transpiled_circuit_unoptimized = transpile(
-        qc, backend=backend, optimization_level=3
-    )
+    transpiled_circuit_unoptimized = transpile(qc, backend=backend, optimization_level=3)
 
     # simulate the unoptimized circuit
-    statevector_unoptimized = Statevector.from_instruction(
-        transpiled_circuit_unoptimized
-    )
+    statevector_unoptimized = Statevector.from_instruction(transpiled_circuit_unoptimized)
     probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
 
     # optimized transpilation of circuit to native gates
@@ -499,14 +501,10 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
 
     provider = IonQProvider()
     backend = provider.get_backend("simulator", gateset="native")
-    transpiled_circuit_unoptimized = transpile(
-        qc, backend=backend, optimization_level=3
-    )
+    transpiled_circuit_unoptimized = transpile(qc, backend=backend, optimization_level=3)
 
     # simulate the unoptimized circuit
-    statevector_unoptimized = Statevector.from_instruction(
-        transpiled_circuit_unoptimized
-    )
+    statevector_unoptimized = Statevector.from_instruction(transpiled_circuit_unoptimized)
     probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
 
     # optimized transpilation of circuit to native gates
@@ -709,7 +707,8 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_depth):
+def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_depth): # pylint: disable=invalid-name
+    """Test TrappedIonOptimizerPluginCompactGates."""
 
     ###############################################################
     # First test TrappedIonOptimizerPluginCompactGates
@@ -731,14 +730,10 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
 
     provider = IonQProvider()
     backend = provider.get_backend("simulator", gateset="native")
-    transpiled_circuit_unoptimized = transpile(
-        qc, backend=backend, optimization_level=3
-    )
+    transpiled_circuit_unoptimized = transpile(qc, backend=backend, optimization_level=3)
 
     # simulate the unoptimized circuit
-    statevector_unoptimized = Statevector.from_instruction(
-        transpiled_circuit_unoptimized
-    )
+    statevector_unoptimized = Statevector.from_instruction(transpiled_circuit_unoptimized)
     probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
 
     # optimized transpilation of circuit to native gates
@@ -780,14 +775,10 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
 
     provider = IonQProvider()
     backend = provider.get_backend("simulator", gateset="native")
-    transpiled_circuit_unoptimized = transpile(
-        qc, backend=backend, optimization_level=3
-    )
+    transpiled_circuit_unoptimized = transpile(qc, backend=backend, optimization_level=3)
 
     # simulate the unoptimized circuit
-    statevector_unoptimized = Statevector.from_instruction(
-        transpiled_circuit_unoptimized
-    )
+    statevector_unoptimized = Statevector.from_instruction(transpiled_circuit_unoptimized)
     probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
 
     # optimized transpilation of circuit to native gates
@@ -1010,6 +1001,7 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
     ids=lambda val: f"{val}",
 )
 def test_commute_gpis_through_ms(gates, optimized_depth):
+    """Test TrappedIonOptimizerPluginCommuteGpi2ThroughMs."""
 
     ###########################################################
     # First test TrappedIonOptimizerPluginCommuteGpi2ThroughMs
@@ -1031,14 +1023,10 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
 
     provider = IonQProvider()
     backend = provider.get_backend("simulator", gateset="native")
-    transpiled_circuit_unoptimized = transpile(
-        qc, backend=backend, optimization_level=3
-    )
+    transpiled_circuit_unoptimized = transpile(qc, backend=backend, optimization_level=3)
 
     # simulate the unoptimized circuit
-    statevector_unoptimized = Statevector.from_instruction(
-        transpiled_circuit_unoptimized
-    )
+    statevector_unoptimized = Statevector.from_instruction(transpiled_circuit_unoptimized)
     probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
 
     # optimized transpilation of circuit to native gates
@@ -1081,14 +1069,10 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
 
     provider = IonQProvider()
     backend = provider.get_backend("simulator", gateset="native")
-    transpiled_circuit_unoptimized = transpile(
-        qc, backend=backend, optimization_level=3
-    )
+    transpiled_circuit_unoptimized = transpile(qc, backend=backend, optimization_level=3)
 
     # simulate the unoptimized circuit
-    statevector_unoptimized = Statevector.from_instruction(
-        transpiled_circuit_unoptimized
-    )
+    statevector_unoptimized = Statevector.from_instruction(transpiled_circuit_unoptimized)
     probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
 
     # optimized transpilation of circuit to native gates
@@ -1202,6 +1186,8 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
     ids=lambda val: f"{val}",
 )
 def test_all_rewrite_rules(gates):
+    """Test TrappedIonOptimizerPlugin."""
+
     custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
     pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
@@ -1216,14 +1202,10 @@ def test_all_rewrite_rules(gates):
 
     provider = IonQProvider()
     backend = provider.get_backend("simulator", gateset="native")
-    transpiled_circuit_unoptimized = transpile(
-        qc, backend=backend, optimization_level=1
-    )
+    transpiled_circuit_unoptimized = transpile(qc, backend=backend, optimization_level=1)
 
     # simulate the unoptimized circuit
-    statevector_unoptimized = Statevector.from_instruction(
-        transpiled_circuit_unoptimized
-    )
+    statevector_unoptimized = Statevector.from_instruction(transpiled_circuit_unoptimized)
     probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
 
     # optimized transpilation of circuit to native gates
@@ -1245,4 +1227,3 @@ def test_all_rewrite_rules(gates):
     )
 
     assert optimized_circuit != transpiled_circuit_unoptimized
-
