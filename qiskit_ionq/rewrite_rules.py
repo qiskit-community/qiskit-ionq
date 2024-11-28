@@ -44,36 +44,6 @@ class GPI2_Adjoint(TransformationPass):
         return dag
 
 
-# redundant since: GPI2 * GPI2 * GPI2 * GPI -> GPI * GPI -> Id
-# class CancelFourGPI2(TransformationPass):
-#     """Four GPI2 should cancel up to -1 factor which is ignored."""
-
-#     def run(self, dag: DAGCircuit) -> DAGCircuit:
-#         nodes_to_remove = []
-#         gpi2_streak = []
-
-#         for node in dag.topological_op_nodes():
-#             if node.op.name == "gpi2" and node not in nodes_to_remove:
-#                 if (
-#                     gpi2_streak
-#                     and node.qargs == gpi2_streak[-1].qargs
-#                     and node.op.params[0] != gpi2_streak[-1].op.params[0]
-#                 ):
-#                     gpi2_streak = []
-#                 gpi2_streak.append(node)
-
-#                 if len(gpi2_streak) == 4:
-#                     nodes_to_remove.extend(gpi2_streak)
-#                     gpi2_streak = []
-#             else:
-#                 gpi2_streak = []
-
-#         for node in nodes_to_remove:
-#             dag.remove_op_node(node)
-
-#         return dag
-
-
 class GPI_Adjoint(TransformationPass):
     """GPI times GPI should cancel."""
 

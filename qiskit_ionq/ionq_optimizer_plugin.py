@@ -102,6 +102,11 @@ class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
 
 
 class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
+    """
+    This class is no intended to be used in production, is is meant
+     to test the following transformation passes in isolation:
+        - CommuteGPIsThroughMS
+    """
     def pass_manager(
         self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
     ) -> PassManager:

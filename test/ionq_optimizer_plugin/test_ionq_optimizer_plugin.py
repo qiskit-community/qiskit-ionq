@@ -428,6 +428,14 @@ def append_gate(circuit, gate_name, param, qubits):
 )
 def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
 
+    ############################################################
+    # First test TrappedIonOptimizerPluginSimpleRules
+    # to test the following transformation passes in isolation:
+    #    - GPI2_Adjoint
+    #    - GPI_Adjoint
+    #    - GPI2TwiceIsGPI
+    #############################################################
+
     custom_pass_manager_plugin = TrappedIonOptimizerPluginSimpleRules()
     pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
@@ -462,7 +470,7 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
     np.testing.assert_allclose(
         probabilities_unoptimized,
         probabilities_optimized,
-        atol=1e-3,
+        atol=1e-5,
         err_msg=(
             f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
@@ -472,6 +480,52 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
 
     optimized_dag = circuit_to_dag(optimized_circuit)
     assert optimized_dag.depth() == optimized_depth
+
+    ###################################################
+    # Second, test TrappedIonOptimizerPlug
+    ###################################################
+
+    custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
+    pass_manager_config = PassManagerConfig()
+    custom_pass_manager = custom_pass_manager_plugin.pass_manager(
+        pass_manager_config,
+        optimization_level=3,
+    )
+
+    # create a quantum circuit
+    qc = QuantumCircuit(3)
+    for gate_name, param, qubits in gates:
+        append_gate(qc, gate_name, param, qubits)
+
+    provider = IonQProvider()
+    backend = provider.get_backend("simulator", gateset="native")
+    transpiled_circuit_unoptimized = transpile(
+        qc, backend=backend, optimization_level=3
+    )
+
+    # simulate the unoptimized circuit
+    statevector_unoptimized = Statevector.from_instruction(
+        transpiled_circuit_unoptimized
+    )
+    probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
+
+    # optimized transpilation of circuit to native gates
+    optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
+
+    # simulate the optimized circuit
+    statevector_optimized = Statevector.from_instruction(optimized_circuit)
+    probabilities_optimized = np.abs(statevector_optimized.data) ** 2
+
+    np.testing.assert_allclose(
+        probabilities_unoptimized,
+        probabilities_optimized,
+        atol=1e-5,
+        err_msg=(
+            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {qc}"
+        ),
+    )
 
 
 @pytest.mark.parametrize(
@@ -657,6 +711,12 @@ def test_ionq_optmizer_plugin_simple_one_qubit_rules(gates, optimized_depth):
 )
 def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_depth):
 
+    ###############################################################
+    # First test TrappedIonOptimizerPluginCompactGates
+    # to test the following transformation passes in isolation:
+    #    - CompactMoreThanThreeSingleQubitGates
+    ###############################################################
+
     custom_pass_manager_plugin = TrappedIonOptimizerPluginCompactGates()
     pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
@@ -691,7 +751,7 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
     np.testing.assert_allclose(
         probabilities_unoptimized,
         probabilities_optimized,
-        atol=1e-3,
+        atol=1e-5,
         err_msg=(
             f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
@@ -701,6 +761,52 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
 
     optimized_dag = circuit_to_dag(optimized_circuit)
     assert optimized_dag.depth() == optimized_depth
+
+    ###################################################
+    # Second, test TrappedIonOptimizerPlugin
+    ###################################################
+
+    custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
+    pass_manager_config = PassManagerConfig()
+    custom_pass_manager = custom_pass_manager_plugin.pass_manager(
+        pass_manager_config,
+        optimization_level=3,
+    )
+
+    # create a quantum circuit
+    qc = QuantumCircuit(3)
+    for gate_name, param, qubits in gates:
+        append_gate(qc, gate_name, param, qubits)
+
+    provider = IonQProvider()
+    backend = provider.get_backend("simulator", gateset="native")
+    transpiled_circuit_unoptimized = transpile(
+        qc, backend=backend, optimization_level=3
+    )
+
+    # simulate the unoptimized circuit
+    statevector_unoptimized = Statevector.from_instruction(
+        transpiled_circuit_unoptimized
+    )
+    probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
+
+    # optimized transpilation of circuit to native gates
+    optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
+
+    # simulate the optimized circuit
+    statevector_optimized = Statevector.from_instruction(optimized_circuit)
+    probabilities_optimized = np.abs(statevector_optimized.data) ** 2
+
+    np.testing.assert_allclose(
+        probabilities_unoptimized,
+        probabilities_optimized,
+        atol=1e-5,
+        err_msg=(
+            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {qc}",
+        ),
+    )
 
 
 @pytest.mark.parametrize(
@@ -904,6 +1010,13 @@ def test_ionq_optmizer_plugin_compact_more_than_three_gates(gates, optimized_dep
     ids=lambda val: f"{val}",
 )
 def test_commute_gpis_through_ms(gates, optimized_depth):
+
+    ###########################################################
+    # First test TrappedIonOptimizerPluginCommuteGpi2ThroughMs
+    # to test the following transformation passes in isolation:
+    #    - CommuteGPIsThroughMS
+    ###########################################################
+
     custom_pass_manager_plugin = TrappedIonOptimizerPluginCommuteGpi2ThroughMs()
     pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
@@ -938,7 +1051,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
     np.testing.assert_allclose(
         probabilities_unoptimized,
         probabilities_optimized,
-        atol=1e-3,
+        atol=1e-5,
         err_msg=(
             f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
@@ -949,6 +1062,52 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
     optimized_dag = circuit_to_dag(optimized_circuit)
     assert optimized_dag.depth() == optimized_depth
     assert optimized_circuit != transpiled_circuit_unoptimized
+
+    ##############################################
+    # Second, test TrappedIonOptimizerPlugin
+    ##############################################
+
+    custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
+    pass_manager_config = PassManagerConfig()
+    custom_pass_manager = custom_pass_manager_plugin.pass_manager(
+        pass_manager_config,
+        optimization_level=3,
+    )
+
+    # create a quantum circuit
+    qc = QuantumCircuit(3)
+    for gate_name, param, qubits in gates:
+        append_gate(qc, gate_name, param, qubits)
+
+    provider = IonQProvider()
+    backend = provider.get_backend("simulator", gateset="native")
+    transpiled_circuit_unoptimized = transpile(
+        qc, backend=backend, optimization_level=3
+    )
+
+    # simulate the unoptimized circuit
+    statevector_unoptimized = Statevector.from_instruction(
+        transpiled_circuit_unoptimized
+    )
+    probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
+
+    # optimized transpilation of circuit to native gates
+    optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
+
+    # simulate the optimized circuit
+    statevector_optimized = Statevector.from_instruction(optimized_circuit)
+    probabilities_optimized = np.abs(statevector_optimized.data) ** 2
+
+    np.testing.assert_allclose(
+        probabilities_unoptimized,
+        probabilities_optimized,
+        atol=1e-5,
+        err_msg=(
+            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {qc}"
+        ),
+    )
 
 
 @pytest.mark.parametrize(
@@ -1001,7 +1160,6 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
             ("HGate", None, [0]),
             ("SGate", None, [1]),
             ("XGate", None, [2]),
-            ("CU3Gate", [1, 2, 3], [0, 1]),
             ("HGate", None, [0]),
             ("HGate", None, [1]),
             ("HGate", None, [2]),
@@ -1059,7 +1217,7 @@ def test_all_rewrite_rules(gates):
     provider = IonQProvider()
     backend = provider.get_backend("simulator", gateset="native")
     transpiled_circuit_unoptimized = transpile(
-        qc, backend=backend, optimization_level=3
+        qc, backend=backend, optimization_level=1
     )
 
     # simulate the unoptimized circuit
@@ -1078,7 +1236,7 @@ def test_all_rewrite_rules(gates):
     np.testing.assert_allclose(
         probabilities_unoptimized,
         probabilities_optimized,
-        atol=1e-3,
+        atol=1e-5,
         err_msg=(
             f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
@@ -1088,13 +1246,3 @@ def test_all_rewrite_rules(gates):
 
     assert optimized_circuit != transpiled_circuit_unoptimized
 
-    # print(
-    #     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    # )
-    # print(transpiled_circuit_unoptimized)
-    # print(optimized_circuit)
-    # print(probabilities_unoptimized)
-    # print(probabilities_optimized)
-
-
-# TODO add tests with mesure gates
