@@ -568,6 +568,7 @@ def get_n_qubits(backend: str, _fallback=100) -> int:
         )
         return _fallback
 
+
 def retry(
     exceptions=Exception,
     tries=-1,
@@ -589,6 +590,7 @@ def retry(
             prevent thundering herd effect. may be fixed value or a callable that
             returns a value.
     """
+
     def deco_retry(func):
         @functools.wraps(func)
         def f_retry(*args, **kwargs):
@@ -596,7 +598,9 @@ def retry(
             while mtries != 0:
                 try:
                     return func(*args, **kwargs)
-                except exceptions as exception:  # pylint: disable=broad-exception-caught,unused-variable
+                except (
+                    exceptions
+                ) as exception:  # pylint: disable=broad-exception-caught,unused-variable
                     mtries -= 1
                     if not mtries:
                         raise
@@ -609,7 +613,9 @@ def retry(
                     elif callable(jitter):
                         mdelay += float(jitter())
             return None
+
         return f_retry
+
     return deco_retry
 
 
