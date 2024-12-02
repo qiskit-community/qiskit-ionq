@@ -598,9 +598,7 @@ def retry(
             while mtries != 0:
                 try:
                     return func(*args, **kwargs)
-                except (
-                    exceptions
-                ) as exception:  # pylint: disable=broad-exception-caught,unused-variable
+                except exceptions as exception:  # pylint: disable=broad-exception-caught,unused-variable
                     mtries -= 1
                     if not mtries:
                         raise
