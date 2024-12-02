@@ -38,6 +38,9 @@ import platform
 import warnings
 import os
 from typing import Literal, Any
+import functools
+import time
+import random
 import requests
 from dotenv import dotenv_values
 
@@ -53,7 +56,7 @@ from qiskit.circuit.library import standard_gates as q_gates
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
 from qiskit_ionq.constants import ErrorMitigation
-from . import exceptions
+from . import exceptions as ionq_exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
@@ -188,7 +191,7 @@ def qiskit_circ_to_ionq_circ(
 
         # Raise out for instructions we don't support.
         if instruction_name not in GATESET_MAP[gateset]:
-            raise exceptions.IonQGateError(instruction_name, gateset)
+            raise ionq_exceptions.IonQGateError(instruction_name, gateset)
 
         # Process the instruction and convert.
         rotation: dict[str, Any] = {}
@@ -274,7 +277,7 @@ def qiskit_circ_to_ionq_circ(
                 "controls", []
             )
             if any(i in meas_map for i in controls_and_targets):
-                raise exceptions.IonQMidCircuitMeasurementError(
+                raise ionq_exceptions.IonQMidCircuitMeasurementError(
                     input_circuit.qubits.index(qargs[0]), instruction_name
                 )
 
@@ -565,6 +568,50 @@ def get_n_qubits(backend: str, _fallback=100) -> int:
         )
         return _fallback
 
+def retry(
+    exceptions=Exception,
+    tries=-1,
+    delay=0,
+    max_delay=None,
+    backoff=1,
+    jitter=0,
+):  # pylint: disable=too-many-positional-arguments
+    """Retry decorator with exponential backoff.
+
+    Args:
+        exceptions (Exception or tuple): the exception(s) to check. may be a tuple of
+            exceptions to check.
+        tries (int): number of times to try (not retry) before giving up. -1 means infinite tries.
+        delay (float): initial delay between retries in seconds.
+        max_delay (float): the maximum value of delay in seconds. default is no max.
+        backoff (float): backoff multiplier e.g. value of 2 will double the delay each retry.
+        jitter (float or callable): extra seconds added to delay between retries to
+            prevent thundering herd effect. may be fixed value or a callable that
+            returns a value.
+    """
+    def deco_retry(func):
+        @functools.wraps(func)
+        def f_retry(*args, **kwargs):
+            mtries, mdelay = tries, delay
+            while mtries != 0:
+                try:
+                    return func(*args, **kwargs)
+                except exceptions as exception:  # pylint: disable=broad-exception-caught,unused-variable
+                    mtries -= 1
+                    if not mtries:
+                        raise
+                    time.sleep(mdelay)
+                    mdelay *= backoff
+                    if max_delay is not None:
+                        mdelay = min(mdelay, max_delay)
+                    if isinstance(jitter, (int, float)) and jitter > 0:
+                        mdelay += random.uniform(0, jitter)
+                    elif callable(jitter):
+                        mdelay += float(jitter())
+            return None
+        return f_retry
+    return deco_retry
+
 
 __all__ = [
     "qiskit_to_ionq",
@@ -574,4 +621,5 @@ __all__ = [
     "get_user_agent",
     "resolve_credentials",
     "get_n_qubits",
+    "retry",
 ]
