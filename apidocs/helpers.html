@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Exceptions" href="exceptions.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>Helpers - Qiskit IonQ Provider 0.5.8</title>
+        <title>Helpers - Qiskit IonQ Provider 0.5.9</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.8</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.9</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.8</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.9</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -275,11 +275,14 @@ the results object on a returned job.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.get_n_qubits">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">get_n_qubits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_fallback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#get_n_qubits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.get_n_qubits" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">get_n_qubits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#get_n_qubits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.get_n_qubits" title="Link to this definition">¶</a></dt>
 <dd><p>Get the number of qubits for a given backend.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>backend</strong> (<em>str</em>) – The name of the backend.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>backend</strong> (<em>str</em>) – The name of the backend.</p></li>
+<li><p><strong>fallback</strong> (<em>int</em>) – Fallback number of qubits if API call fails.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The number of qubits for the backend.</p>
@@ -309,7 +312,7 @@ python,libraries details.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.qiskit_circ_to_ionq_circ">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">qiskit_circ_to_ionq_circ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'qis'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#qiskit_circ_to_ionq_circ"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.qiskit_circ_to_ionq_circ" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">qiskit_circ_to_ionq_circ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'qis'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ionq_compiler_synthesis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#qiskit_circ_to_ionq_circ"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.qiskit_circ_to_ionq_circ" title="Link to this definition">¶</a></dt>
 <dd><p>Build a circuit in IonQ’s instruction format from qiskit instructions.</p>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
@@ -323,12 +326,16 @@ python,libraries details.</p>
 <li><p><strong>gateset</strong> (<em>string</em>) – Set of gates to target. It can be QIS (required transpilation pass in
 IonQ backend, which is sent standard gates) or native (only IonQ native gates are
 allowed, in the future we may provide transpilation to these gates in Qiskit).</p></li>
+<li><p><strong>ionq_compiler_synthesis</strong> (<em>bool</em>) – Whether to opt-in to IonQ compiler’s intelligent
+trotterization.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
 <li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQGateError" title="qiskit_ionq.exceptions.IonQGateError"><strong>IonQGateError</strong></a> – If an unsupported instruction is supplied.</p></li>
 <li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError" title="qiskit_ionq.exceptions.IonQMidCircuitMeasurementError"><strong>IonQMidCircuitMeasurementError</strong></a> – If a mid-circuit measurement is detected.</p></li>
+<li><p><strong>IonQPauliExponentialError</strong> – If non-commuting PauliExponentials are found without
+    the appropriate flag.</p></li>
 </ul>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -367,7 +374,7 @@ dict: The measurement map from qubit number to classical bit number.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.resolve_credentials">
-<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">resolve_credentials</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#resolve_credentials"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.resolve_credentials" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">resolve_credentials</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#resolve_credentials"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.resolve_credentials" title="Link to this definition">¶</a></dt>
 <dd><p>Resolve credentials for use in IonQ API calls.</p>
 <p>If the provided <code class="docutils literal notranslate"><span class="pre">token</span></code> and <code class="docutils literal notranslate"><span class="pre">url</span></code> are both <code class="docutils literal notranslate"><span class="pre">None</span></code>, then these values
 are loaded from the <code class="docutils literal notranslate"><span class="pre">IONQ_API_TOKEN</span></code> and <code class="docutils literal notranslate"><span class="pre">IONQ_API_URL</span></code>
@@ -385,6 +392,25 @@ environment variables, respectively.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="qiskit_ionq.helpers.retry">
+<span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">retry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exceptions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_delay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backoff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jitter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_logging</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#retry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.retry" title="Link to this definition">¶</a></dt>
+<dd><p>Retry decorator with exponential backoff.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>exceptions</strong> – The exception(s) to catch. Can be a tuple of exceptions.</p></li>
+<li><p><strong>tries</strong> – Number of attempts before giving up. -1 means infinite tries.</p></li>
+<li><p><strong>delay</strong> – Initial delay between retries in seconds.</p></li>
+<li><p><strong>max_delay</strong> – Maximum delay between retries.</p></li>
+<li><p><strong>backoff</strong> – Multiplier applied to delay after each retry.</p></li>
+<li><p><strong>jitter</strong> – Maximum random jitter added to delay.</p></li>
+<li><p><strong>enable_logging</strong> – Whether to log failures.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -445,6 +471,7 @@ environment variables, respectively.</p>
 <li><a class="reference internal" href="#qiskit_ionq.helpers.qiskit_circ_to_ionq_circ"><code class="docutils literal notranslate"><span class="pre">qiskit_circ_to_ionq_circ()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.helpers.qiskit_to_ionq"><code class="docutils literal notranslate"><span class="pre">qiskit_to_ionq()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.helpers.resolve_credentials"><code class="docutils literal notranslate"><span class="pre">resolve_credentials()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.helpers.retry"><code class="docutils literal notranslate"><span class="pre">retry()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -458,7 +485,7 @@ environment variables, respectively.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=3e445e0d"></script>
+    <script src="../_static/documentation_options.js?v=9a3cda14"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
