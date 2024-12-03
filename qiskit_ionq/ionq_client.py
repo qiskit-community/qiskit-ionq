@@ -34,10 +34,8 @@ from typing import Optional, TYPE_CHECKING
 from warnings import warn
 import requests
 
-from retry import retry
-
 from . import exceptions
-from .helpers import qiskit_to_ionq, get_user_agent
+from .helpers import qiskit_to_ionq, get_user_agent, retry
 from .exceptions import IonQRetriableError
 
 if TYPE_CHECKING:

@@ -29,7 +29,7 @@
 import re
 from unittest.mock import patch, MagicMock
 from qiskit_ionq.ionq_client import IonQClient
-from qiskit_ionq.helpers import get_n_qubits
+from qiskit_ionq.helpers import get_n_qubits, retry
 
 
 def test_user_agent_header():
@@ -99,3 +99,60 @@ def test_get_n_qubits_fallback():
         ), f"Expected URL {expected_url}, but got {kwargs['url']}"
 
         assert result == 100, f"Expected fallback of 100 qubits, but got {result}"
+
+
+def test_retry():
+    """Test the retry decorator with both success and failure cases."""
+    # Test case where the function eventually succeeds
+    attempt_success = {"count": 0}
+
+    @retry(exceptions=ValueError, tries=3, delay=0)
+    def func_success():
+        if attempt_success["count"] < 2:
+            attempt_success["count"] += 1
+            raise ValueError("Intentional Error")
+        return "Success"
+
+    result = func_success()
+    assert (
+        attempt_success["count"] == 2
+    ), f"Expected 2 retries, got {attempt_success['count']}"
+    assert result == "Success", f"Expected 'Success', got {result}"
+
+    # Test case where the function keeps failing and eventually raises the exception
+    attempt_fail = {"count": 0}
+
+    @retry(exceptions=ValueError, tries=3, delay=0)
+    def func_fail():
+        attempt_fail["count"] += 1
+        raise ValueError("Intentional Error")
+
+    try:
+        func_fail()
+    except ValueError:
+        pass
+    else:
+        assert False, "Expected ValueError was not raised"
+
+    assert (
+        attempt_fail["count"] == 3
+    ), f"Expected 3 retries, got {attempt_fail['count']}"
+
+    # Test case where a different exception is raised and should not be retried
+    attempt_wrong_exception = {"count": 0}
+
+    @retry(exceptions=ValueError, tries=3, delay=0)
+    def func_wrong_exception():
+        attempt_wrong_exception["count"] += 1
+        raise TypeError("Wrong Exception Type")
+
+    try:
+        func_wrong_exception()
+    except TypeError:
+        pass
+    else:
+        assert False, "Expected TypeError was not raised"
+
+    assert (
+        attempt_wrong_exception["count"] == 1
+    ), f"Expected 1 attempt, got {attempt_wrong_exception['count']}"
