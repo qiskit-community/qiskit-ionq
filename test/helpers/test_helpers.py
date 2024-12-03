@@ -153,3 +153,22 @@ def test_retry():
     assert (
         attempt_fail["count"] == 3
     ), f"Expected 3 retries, got {attempt_fail['count']}"
+
+    # Test case where a different exception is raised and should not be retried
+    attempt_wrong_exception = {"count": 0}
+
+    @retry(exceptions=ValueError, tries=3, delay=0)
+    def func_wrong_exception():
+        attempt_wrong_exception["count"] += 1
+        raise TypeError("Wrong Exception Type")
+
+    try:
+        func_wrong_exception()
+    except TypeError:
+        pass
+    else:
+        assert False, "Expected TypeError was not raised"
+
+    assert (
+        attempt_wrong_exception["count"] == 1
+    ), f"Expected 1 attempt, got {attempt_wrong_exception['count']}"
