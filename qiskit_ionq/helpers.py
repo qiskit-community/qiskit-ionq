@@ -576,7 +576,7 @@ def retry(
     max_delay: float = float("inf"),
     backoff: float = 1,
     jitter: float = 0,
-    logging: bool = True,
+    enable_logging: bool = True,
 ):  # pylint: disable=too-many-positional-arguments
     """Retry decorator with exponential backoff.
 
@@ -587,7 +587,7 @@ def retry(
         max_delay: Maximum delay between retries.
         backoff: Multiplier applied to delay after each retry.
         jitter: Maximum random jitter added to delay.
-        logging: Whether to log failures.
+        enable_logging: Whether to log failures.
     """
 
     def deco_retry(func):
@@ -598,20 +598,20 @@ def retry(
                 try:
                     return func(*args, **kwargs)
                 except exceptions as exception:
-                    if logging:
-                        warnings.warn(
-                            f"Retrying {func.__name__} {_tries} more time(s) after {exception}"
-                        )
                     _tries -= 1
                     if _tries == 0:
                         raise
+                    if enable_logging:
+                        warnings.warn(
+                            f"Retrying {func.__name__} {_tries} more time(s) after {exception}"
+                        )
                     sleep = _delay + (random.uniform(0, jitter) if jitter else 0)
                     time.sleep(sleep)
                     _delay *= backoff
                     if max_delay is not None:
                         _delay = min(_delay, max_delay)
 
-            return func(*args, **kwargs)
+            return None
 
         return f_retry
 
