@@ -602,7 +602,7 @@ def retry(
                         raise
                     if enable_logging:
                         warnings.warn(
-                            f"Retrying {func.__name__} {_tries} more time(s) after {exception}"
+                            f"Retrying {func.__name__} {_tries if _tries > 0 else 'infinitely'} more time(s) after {exception}"
                         )
                     sleep = _delay + (random.uniform(0, jitter) if jitter else 0)
                     time.sleep(sleep)
