@@ -288,7 +288,7 @@ def qiskit_circ_to_ionq_circ(
             )
             terms = [term[0] for term in instruction.operator.to_list()]
             if not ionq_compiler_synthesis and not paulis_commute(terms):
-                raise exceptions.IonQPauliExponentialError(
+                raise ionq_exceptions.IonQPauliExponentialError(
                     f"You have included a PauliEvolutionGate with non-commuting terms: {terms}."
                     "To decompose it with IonQ hardware-aware synthesis, resubmit with the "
                     "IONQ_COMPILER_SYNTHESIS flag."
