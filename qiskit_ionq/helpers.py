@@ -570,14 +570,14 @@ def get_n_qubits(backend: str, _fallback=100) -> int:
 
 
 def retry(
-    exceptions: Exception,
+    exceptions: Any,
     tries: int = -1,
     delay: float = 0,
     max_delay: float = float("inf"),
     backoff: float = 1,
     jitter: float = 0,
     logging: bool = True,
-) -> function:  # pylint: disable=too-many-positional-arguments
+):  # pylint: disable=too-many-positional-arguments
     """Retry decorator with exponential backoff.
 
     Args:
