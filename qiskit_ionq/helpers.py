@@ -499,7 +499,7 @@ class SafeEncoder(json.JSONEncoder):
         return "unknown"
 
 
-def resolve_credentials(token: str | None = None, url: str | None = None):
+def resolve_credentials(token: str | None = None, url: str | None = None) -> dict:
     """Resolve credentials for use in IonQ API calls.
 
     If the provided ``token`` and ``url`` are both ``None``, then these values
@@ -515,17 +515,18 @@ def resolve_credentials(token: str | None = None, url: str | None = None):
     Returns:
         dict[str]: A dict with "token" and "url" keys, for use by a client.
     """
+    env_values = dotenv_values()
     env_token = (
-        dotenv_values().get("QISKIT_IONQ_API_TOKEN")  # first check for dotenv values
-        or dotenv_values().get("IONQ_API_KEY")
-        or dotenv_values().get("IONQ_API_TOKEN")
-        or os.getenv("QISKIT_IONQ_API_TOKEN")  # then check for global env values
+        env_values.get("QISKIT_IONQ_API_TOKEN")
+        or env_values.get("IONQ_API_KEY")
+        or env_values.get("IONQ_API_TOKEN")
+        or os.getenv("QISKIT_IONQ_API_TOKEN")
         or os.getenv("IONQ_API_KEY")
         or os.getenv("IONQ_API_TOKEN")
     )
     env_url = (
-        dotenv_values().get("QISKIT_IONQ_API_URL")
-        or dotenv_values().get("IONQ_API_URL")
+        env_values.get("QISKIT_IONQ_API_URL")
+        or env_values.get("IONQ_API_URL")
         or os.getenv("QISKIT_IONQ_API_URL")
         or os.getenv("IONQ_API_URL")
     )
@@ -535,35 +536,33 @@ def resolve_credentials(token: str | None = None, url: str | None = None):
     }
 
 
-def get_n_qubits(backend: str, _fallback=100) -> int:
+def get_n_qubits(backend: str, fallback: int = 100) -> int:
     """Get the number of qubits for a given backend.
 
     Args:
         backend (str): The name of the backend.
+        fallback (int): Fallback number of qubits if API call fails.
 
     Returns:
         int: The number of qubits for the backend.
     """
     creds = resolve_credentials()
     url = creds.get("url")
-    token = creds.get("token")
-    # could use provider.get_calibration_data().get("qubits", 36)
+
+    target = backend.split("ionq_")[-1] if backend.startswith("ionq_qpu.") else backend
+
     try:
-        target = (
-            backend.split("ionq_qpu.")[1]
-            if backend.startswith("ionq_qpu.")
-            else backend
-        )
-        return requests.get(
-            url=f"{url}/characterizations/backends/{target}/current",
-            headers={"Authorization": f"apiKey {token}"},
-            timeout=5,
-        ).json()["qubits"]
+        response = requests.get(url=f"{url}/backends", timeout=5)
+        response.raise_for_status()  # Ensure we catch any HTTP errors
+        return next(
+            (item["qubits"] for item in response.json() if item["backend"] == target),
+            fallback,
+        )  # Default to fallback if no backend found
     except Exception as exception:  # pylint: disable=broad-except
         warnings.warn(
-            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {_fallback}."
+            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {fallback}."
         )
-        return _fallback
+        return fallback
 
 
 __all__ = [
