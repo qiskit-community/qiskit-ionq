@@ -608,7 +608,7 @@ def retry(
                     sleep = _delay + (random.uniform(0, jitter) if jitter else 0)
                     time.sleep(sleep)
                     _delay *= backoff
-                    if max_delay is not None:
+                    if _delay > max_delay:
                         _delay = min(_delay, max_delay)
 
             return None
