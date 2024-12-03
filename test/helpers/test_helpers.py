@@ -29,7 +29,7 @@
 import re
 from unittest.mock import patch, MagicMock
 from qiskit_ionq.ionq_client import IonQClient
-from qiskit_ionq.helpers import get_n_qubits
+from qiskit_ionq.helpers import get_n_qubits, retry
 
 
 def test_user_agent_header():
@@ -115,3 +115,41 @@ def test_get_n_qubits_fallback():
         )
 
         assert result == 100, f"Expected fallback of 100 qubits, but got {result}"
+
+
+def test_retry():
+    """Test the retry decorator with both success and failure cases."""
+    # Test case where the function eventually succeeds
+    attempt_success = {"count": 0}
+
+    @retry(exceptions=ValueError, tries=3, delay=0)
+    def func_success():
+        if attempt_success["count"] < 2:
+            attempt_success["count"] += 1
+            raise ValueError("Intentional Error")
+        return "Success"
+
+    result = func_success()
+    assert (
+        attempt_success["count"] == 2
+    ), f"Expected 2 retries, got {attempt_success['count']}"
+    assert result == "Success", f"Expected 'Success', got {result}"
+
+    # Test case where the function keeps failing and eventually raises the exception
+    attempt_fail = {"count": 0}
+
+    @retry(exceptions=ValueError, tries=3, delay=0)
+    def func_fail():
+        attempt_fail["count"] += 1
+        raise ValueError("Intentional Error")
+
+    try:
+        func_fail()
+    except ValueError:
+        pass
+    else:
+        assert False, "Expected ValueError was not raised"
+
+    assert (
+        attempt_fail["count"] == 3
+    ), f"Expected 3 retries, got {attempt_fail['count']}"
