@@ -38,7 +38,6 @@ import platform
 import warnings
 import os
 from typing import Literal, Any
-from functools import lru_cache
 import requests
 from dotenv import dotenv_values
 
@@ -500,7 +499,6 @@ class SafeEncoder(json.JSONEncoder):
         return "unknown"
 
 
-@lru_cache(maxsize=1)
 def resolve_credentials(token: str | None = None, url: str | None = None) -> dict:
     """Resolve credentials for use in IonQ API calls.
 
@@ -517,7 +515,6 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     Returns:
         dict[str]: A dict with "token" and "url" keys, for use by a client.
     """
-    # Cache dotenv and environment variable lookups
     env_values = dotenv_values()
     env_token = (
         env_values.get("QISKIT_IONQ_API_TOKEN")
