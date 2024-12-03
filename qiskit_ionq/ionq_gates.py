@@ -27,9 +27,8 @@
 """Native gateset for IonQ hardware."""
 
 from typing import Optional
-import cmath
 import math
-import numpy
+import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 
@@ -57,10 +56,10 @@ class GPIGate(Gate):
         super().__init__("gpi", 1, [phi], label=label)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the GPI gate."""
-        top = cmath.exp(-self.params[0] * 2 * math.pi * 1j)
-        bot = cmath.exp(self.params[0] * 2 * math.pi * 1j)
-        return numpy.array([[0, top], [bot, 0]], dtype=dtype)
+        """Return a numpy array for the GPI gate."""
+        top = np.exp(-1j * 2 * math.pi * self.params[0])
+        bottom = np.exp(1j * 2 * math.pi * self.params[0])
+        return np.array([[0, top], [bottom, 0]], dtype=dtype)
 
 
 class GPI2Gate(Gate):
@@ -75,6 +74,7 @@ class GPI2Gate(Gate):
     .. math::
 
         GPI2(\phi) =
+            \frac{1}{\sqrt{2}}
             \begin{pmatrix}
                 1 & -i*e^{-i*2*\pi*\phi} \\
                 -i*e^{i*2*\pi*\phi} & 1
@@ -86,10 +86,10 @@ class GPI2Gate(Gate):
         super().__init__("gpi2", 1, [phi], label=label)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the GPI2 gate."""
-        top = -1j * cmath.exp(self.params[0] * 2 * math.pi * -1j)
-        bot = -1j * cmath.exp(self.params[0] * 2 * math.pi * 1j)
-        return numpy.array([[1, top], [bot, 1]], dtype=dtype) / math.sqrt(2)
+        """Return a numpy array for the GPI2 gate."""
+        top = -1j * np.exp(-1j * self.params[0] * 2 * math.pi)
+        bottom = -1j * np.exp(1j * self.params[0] * 2 * math.pi)
+        return 1 / np.sqrt(2) * np.array([[1, top], [bottom, 1]], dtype=dtype)
 
 
 class MSGate(Gate):
@@ -130,19 +130,19 @@ class MSGate(Gate):
         )
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the MS gate."""
+        """Return a numpy array for the MS gate."""
         phi0 = self.params[0]
         phi1 = self.params[1]
         theta = self.params[2]
-        diag = numpy.cos(math.pi * theta)
-        sin = numpy.sin(math.pi * theta)
+        diag = np.cos(math.pi * theta)
+        sin = np.sin(math.pi * theta)
 
-        return numpy.array(
+        return np.array(
             [
-                [diag, 0, 0, sin * -1j * cmath.exp(-1j * 2 * math.pi * (phi0 + phi1))],
-                [0, diag, sin * -1j * cmath.exp(1j * 2 * math.pi * (phi0 - phi1)), 0],
-                [0, sin * -1j * cmath.exp(-1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
-                [sin * -1j * cmath.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
+                [diag, 0, 0, sin * -1j * np.exp(-1j * 2 * math.pi * (phi0 + phi1))],
+                [0, diag, sin * -1j * np.exp(1j * 2 * math.pi * (phi0 - phi1)), 0],
+                [0, sin * -1j * np.exp(-1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
+                [sin * -1j * np.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
             ],
             dtype=dtype,
         )
@@ -172,15 +172,15 @@ class ZZGate(Gate):
         """Create new ZZ gate."""
         super().__init__("zz", 2, [theta], label=label)
 
-    def __array__(self, dtype=None) -> numpy.ndarray:
-        """Return a numpy.array for the ZZ gate."""
+    def __array__(self, dtype=None) -> np.ndarray:
+        """Return a numpy array for the ZZ gate."""
         itheta2 = 1j * float(self.params[0]) * math.pi
-        return numpy.array(
+        return np.array(
             [
-                [cmath.exp(-itheta2), 0, 0, 0],
-                [0, cmath.exp(itheta2), 0, 0],
-                [0, 0, cmath.exp(itheta2), 0],
-                [0, 0, 0, cmath.exp(-itheta2)],
+                [np.exp(-itheta2), 0, 0, 0],
+                [0, np.exp(itheta2), 0, 0],
+                [0, 0, np.exp(itheta2), 0],
+                [0, 0, 0, np.exp(-itheta2)],
             ],
             dtype=dtype,
         )

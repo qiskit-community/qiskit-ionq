@@ -238,6 +238,10 @@ class IonQJobTimeoutError(IonQError, JobTimeoutError):
     """Errors generated from job timeouts"""
 
 
+class IonQPauliExponentialError(IonQError):
+    """Errors generated from improper usage of Pauli exponentials."""
+
+
 __all__ = [
     "IonQError",
     "IonQCredentialsError",
