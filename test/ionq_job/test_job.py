@@ -674,7 +674,7 @@ def test_result__cancelled(mock_backend, requests_mock):
     with pytest.raises(exceptions.IonQJobStateError) as exc:
         job.result()
     # assert fails
-    assert 'Cannot retrieve result for canceled job' in str(exc.value)
+    assert "Cannot retrieve result for canceled job" in str(exc.value)
 
 
 def test_status__no_job_id(mock_backend):
