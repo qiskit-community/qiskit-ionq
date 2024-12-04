@@ -276,6 +276,7 @@ class IonQJob(JobV1):
             IonQJobError: If the job has reached a final state but
                 the job itself was never converted to a
                 :class:`Result <qiskit.result.Result>`.
+            IonQJobStateError: If the job was cancelled before this method fetches it.
 
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
@@ -292,6 +293,12 @@ class IonQJob(JobV1):
             raise exceptions.IonQJobTimeoutError(
                 "Timed out waiting for job to complete."
             ) from ex
+
+        if self._status is jobstatus.JobStatus.CANCELLED:
+            assert self._job_id is not None
+            raise exceptions.IonQJobStateError(
+                f"Cannot retrieve result for canceled job {self._job_id}"
+            )
 
         if self._status is jobstatus.JobStatus.DONE:
             assert self._job_id is not None
@@ -385,16 +392,16 @@ class IonQJob(JobV1):
             failure_type = failure.get("code", "")
             failure_message = failure.get("error", "")
             error_message = (
-                f"Unable to retreive result for job {self.job_id()}. "
+                f"Unable to retreive result for job {self._job_id}. "
                 f'Failure from IonQ API "{failure_type}: {failure_message}"'
             )
             raise exceptions.IonQJobFailureError(error_message)
 
         if self._status == jobstatus.JobStatus.CANCELLED:
-            error_message = (
-                f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'
+            warning_message = (
+                f'Unable to retreive result for job {self._job_id}. Job was cancelled"'
             )
-            raise exceptions.IonQJobStateError(error_message)
+            warnings.warn(warning_message)
 
         if "warning" in response and "messages" in response["warning"]:
             for warning in response["warning"]["messages"]:

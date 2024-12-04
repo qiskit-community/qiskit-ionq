@@ -34,7 +34,7 @@ from typing import List
 pkg_parent = pathlib.Path(__file__).parent.parent.absolute()
 
 # major, minor, patch
-VERSION_INFO = ".".join(map(str, (0, 5, 10)))
+VERSION_INFO = ".".join(map(str, (0, 5, 11)))
 
 
 def _minimal_ext_cmd(cmd: List[str]) -> bytes:
