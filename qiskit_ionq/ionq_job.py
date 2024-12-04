@@ -392,14 +392,14 @@ class IonQJob(JobV1):
             failure_type = failure.get("code", "")
             failure_message = failure.get("error", "")
             error_message = (
-                f"Unable to retreive result for job {self.job_id()}. "
+                f"Unable to retreive result for job {self._job_id}. "
                 f'Failure from IonQ API "{failure_type}: {failure_message}"'
             )
             raise exceptions.IonQJobFailureError(error_message)
 
         if self._status == jobstatus.JobStatus.CANCELLED:
             warning_message = (
-                f'Unable to retreive result for job {self.job_id()}. Job was cancelled"'
+                f'Unable to retreive result for job {self._job_id}. Job was cancelled"'
             )
             warnings.warn(warning_message)
 
