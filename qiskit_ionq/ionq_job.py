@@ -295,8 +295,9 @@ class IonQJob(JobV1):
             ) from ex
 
         if self._status is jobstatus.JobStatus.CANCELLED:
+            assert self._job_id is not None
             raise exceptions.IonQJobStateError(
-                f"Cannot retrieve result for canceled job {self.job_id()}"
+                f"Cannot retrieve result for canceled job {self._job_id}"
             )
 
         if self._status is jobstatus.JobStatus.DONE:
