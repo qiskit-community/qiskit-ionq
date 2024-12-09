@@ -11,14 +11,14 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: "v0.6.4"
     hooks:
-      # - id: ruff
-      #   exclude: docs/source/conf.py|tools/verify_headers.py
-      #   args: ["--fix"]
+      - id: ruff
+        exclude: docs/conf.py|tools/verify_headers.py
+        args: ["--fix"]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v1.11.2"
     hooks:
       - id: mypy
-        exclude: ipynb_filter.py|docs/source/conf.py
+        exclude: docs/conf.py
         additional_dependencies:
           - types-requests
