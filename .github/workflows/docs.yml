@@ -6,13 +6,18 @@ on:
     tags:
       - "*"
 
+
 jobs:
   deploy:
+    permissions:
+      contents: read
+      pages: write
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        persist-credentials: false
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
