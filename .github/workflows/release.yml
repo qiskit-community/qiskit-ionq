@@ -3,12 +3,16 @@ on:
   push:
     tags:
       - "*"
+permissions:
+  contents: read
 jobs:
   publish-to-pypi:
     name: publish-to-pypi
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         name: install-python
         with:
