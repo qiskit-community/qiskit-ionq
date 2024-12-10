@@ -17,12 +17,11 @@ jobs:
           python-version: 3.13
       - name: install-deps
         run: |
-          pip install -U setuptools twine wheel
+          pip install -U setuptools wheel build
       - name: build
         shell: bash
         run: |
-          python setup.py sdist
-          python setup.py bdist_wheel
+          python -m build
       - uses: actions/upload-artifact@v4
         with:
           path: ./dist/qiskit*
