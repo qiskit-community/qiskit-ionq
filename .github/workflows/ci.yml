@@ -1,8 +1,11 @@
-name: main
+name: pr
 on:
+  pull_request: {}
   push:
     branches:
-      - "main"
+      - main
+permissions:
+  contents: read
 jobs:
   tests:
     name: python-${{ matrix.python-version }}-${{ matrix.os }}
@@ -13,6 +16,8 @@ jobs:
         os: ["macOS-latest", "ubuntu-latest", "windows-latest"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: setup-python-${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -28,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: setup-python-3.12
         uses: actions/setup-python@v5
         with:
@@ -43,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: setup-python-3.13
         uses: actions/setup-python@v5
         with:
@@ -53,3 +62,8 @@ jobs:
           python -m pip install -e .
       - name: docs
         run: tox -e docs
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          name: html_docs
+          path: build/html
