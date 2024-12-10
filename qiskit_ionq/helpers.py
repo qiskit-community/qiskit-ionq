@@ -51,7 +51,6 @@ from qiskit.circuit import (
     QuantumRegister,
     ClassicalRegister,
 )
-from qiskit.circuit.library import standard_gates as q_gates
 
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
@@ -123,13 +122,6 @@ ionq_api_aliases = {  # todo fix alias bug
     "sx": "v",
     "sxdg": "vi",
 }
-
-multi_target_uncontrolled_gates = (
-    q_gates.SwapGate,
-    q_gates.RXXGate,
-    q_gates.RYYGate,
-    q_gates.RZZGate,
-)
 
 # https://ionq.com/docs/getting-started-with-native-gates
 ionq_native_basis_gates = [
@@ -244,7 +236,7 @@ def qiskit_circ_to_ionq_circ(
             converted["gate"] = instruction_name
 
         # Make sure uncontrolled multi-targets use all qargs.
-        if isinstance(instruction, multi_target_uncontrolled_gates):
+        if instruction.num_qubits > 1 and not hasattr(instruction, "num_ctrl_qubits"):
             converted["targets"] = [
                 input_circuit.qubits.index(qargs[0]),
                 input_circuit.qubits.index(qargs[1]),
