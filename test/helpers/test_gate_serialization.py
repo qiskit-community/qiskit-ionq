@@ -342,12 +342,10 @@ def test_circuit_with_multiple_registers():
 
 def test_uncontrolled_multi_target_gates():
     """Test that multi-target gates without controls are properly serialized."""
-    theta = Parameter("theta")
-
     mtu = QuantumCircuit(2, name="rxx")
     mtu.h([0, 1])
     mtu.cx(0, 1)
-    mtu.rz(theta, 1)
+    mtu.rz(Parameter("theta"), 1)
     mtu.cx(0, 1)
     mtu.h([0, 1])
     mtu_gate = mtu.to_gate(parameter_map={mtu.parameters[0]: np.pi / 2})
