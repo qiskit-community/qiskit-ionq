@@ -27,11 +27,13 @@
 """Test the qobj_to_ionq function."""
 
 import pytest
+import numpy as np
 from qiskit.circuit import (
     QuantumCircuit,
     QuantumRegister,
     ClassicalRegister,
     instruction,
+    Parameter,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp
@@ -333,6 +335,28 @@ def test_circuit_with_multiple_registers():
         {"gate": "y", "targets": [2]},
         {"gate": "z", "targets": [3]},
         {"gate": "x", "controls": [0], "targets": [2]},
+    ]
+    built, _, _ = qiskit_circ_to_ionq_circ(qc)
+    assert built == expected
+
+
+def test_uncontrolled_multi_target_gates():
+    """Test that multi-target gates without controls are properly serialized."""
+    theta = Parameter("theta")
+
+    mtu = QuantumCircuit(2, name="rxx")
+    mtu.h([0, 1])
+    mtu.cx(0, 1)
+    mtu.rz(theta, 1)
+    mtu.cx(0, 1)
+    mtu.h([0, 1])
+    mtu_gate = mtu.to_gate(parameter_map={mtu.parameters[0]: np.pi / 2})
+
+    qc = QuantumCircuit(2)
+    qc.append(mtu_gate, [0, 1])
+
+    expected = [
+        {"gate": "xx", "targets": [0, 1], "rotation": np.pi / 2},
     ]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected

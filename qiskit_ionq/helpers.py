@@ -236,9 +236,9 @@ def qiskit_circ_to_ionq_circ(
             converted["gate"] = instruction_name
 
         # Make sure uncontrolled multi-targets use all qargs.
-        if len(qargs) > 1 and not hasattr(instruction, "num_ctrl_qubits"):
+        if instruction.num_qubits > 1 and not hasattr(instruction, "num_ctrl_qubits"):
             converted["targets"] = [
-                input_circuit.qubits.index(qargs[i]) for i in range(len(qargs))
+                input_circuit.qubits.index(qargs[i]) for i in range(instruction.num_qubits)
             ]
 
         # If this is a controlled gate, make sure to set control qubits.
