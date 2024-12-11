@@ -35,6 +35,12 @@ except ImportError as exc:
     ) from exc
 
 from .ionq_provider import IonQProvider
+from .ionq_optimizer_plugin import (
+    TrappedIonOptimizerPlugin,
+    TrappedIonOptimizerPluginSimpleRules,
+    TrappedIonOptimizerPluginCompactGates,
+    TrappedIonOptimizerPluginCommuteGpi2ThroughMs,
+)
 from .version import __version__
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from .constants import ErrorMitigation
@@ -43,6 +49,10 @@ from .ionq_equivalence_library import add_equivalences
 __all__ = [
     "__version__",
     "IonQProvider",
+    "TrappedIonOptimizerPlugin",
+    "TrappedIonOptimizerPluginSimpleRules",
+    "TrappedIonOptimizerPluginCompactGates",
+    "TrappedIonOptimizerPluginCommuteGpi2ThroughMs",
     "GPIGate",
     "GPI2Gate",
     "MSGate",
