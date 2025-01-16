@@ -36,7 +36,6 @@ from qiskit import (
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Statevector
-from qiskit.transpiler import PassManagerConfig
 from qiskit.circuit.library import (
     HGate,
     IGate,
@@ -443,9 +442,7 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth): #
     #############################################################
 
     custom_pass_manager_plugin = TrappedIonOptimizerPluginSimpleRules()
-    pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
-        pass_manager_config,
         optimization_level=3,
     )
 
@@ -488,9 +485,7 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth): #
     ###################################################
 
     custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
-    pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
-        pass_manager_config,
         optimization_level=3,
     )
 
@@ -717,9 +712,7 @@ def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_de
     ###############################################################
 
     custom_pass_manager_plugin = TrappedIonOptimizerPluginCompactGates()
-    pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
-        pass_manager_config,
         optimization_level=3,
     )
 
@@ -762,9 +755,7 @@ def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_de
     ###################################################
 
     custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
-    pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
-        pass_manager_config,
         optimization_level=3,
     )
 
@@ -1010,9 +1001,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
     ###########################################################
 
     custom_pass_manager_plugin = TrappedIonOptimizerPluginCommuteGpi2ThroughMs()
-    pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
-        pass_manager_config,
         optimization_level=3,
     )
 
@@ -1056,9 +1045,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
     ##############################################
 
     custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
-    pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
-        pass_manager_config,
         optimization_level=3,
     )
 
@@ -1189,9 +1176,7 @@ def test_all_rewrite_rules(gates):
     """Test TrappedIonOptimizerPlugin."""
 
     custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
-    pass_manager_config = PassManagerConfig()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
-        pass_manager_config,
         optimization_level=3,
     )
 

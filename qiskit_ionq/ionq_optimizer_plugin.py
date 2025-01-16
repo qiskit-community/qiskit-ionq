@@ -31,7 +31,7 @@
     rules in isolation.
 """
 
-from qiskit.transpiler import PassManager, PassManagerConfig
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 from qiskit.converters import circuit_to_dag
 
@@ -75,7 +75,7 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
     """
 
     def pass_manager(
-        self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
+        self, optimization_level: int = 0
     ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
@@ -98,7 +98,7 @@ class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
     """
 
     def pass_manager(
-        self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
+        self, optimization_level: int = 0
     ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
@@ -119,7 +119,7 @@ class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
     """
 
     def pass_manager(
-        self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
+        self, optimization_level: int = 0
     ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
@@ -139,7 +139,7 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
     """
 
     def pass_manager(
-        self, pass_manager_config: PassManagerConfig, optimization_level: int = 0
+        self, optimization_level: int = 0
     ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
