@@ -98,7 +98,9 @@ class IonQAPIError(IonQError):
         error_type(str): An error type string from the IonQ REST API.
     """
 
-    def __init__(self, message, status_code, headers, body, error_type):  # pylint: disable=too-many-positional-arguments
+    def __init__(
+        self, message, status_code, headers, body, error_type
+    ):  # pylint: disable=too-many-positional-arguments
         super().__init__(message)
         self.status_code = status_code
         self.headers = headers
@@ -179,6 +181,10 @@ class IonQBackendError(IonQError):
     """Errors generated from improper usage of IonQBackend objects."""
 
 
+class IonQBackendNotSupportedError(IonQError):
+    """The requested backend is not supported."""
+
+
 class IonQJobError(IonQError, JobError):
     """Errors generated from improper usage of IonQJob objects."""
 
@@ -248,6 +254,7 @@ __all__ = [
     "IonQClientError",
     "IonQAPIError",
     "IonQBackendError",
+    "IonQBackendNotSupportedError",
     "IonQJobError",
     "IonQGateError",
     "IonQMidCircuitMeasurementError",

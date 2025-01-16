@@ -140,9 +140,8 @@ class IonQBackend(Backend):
     _client = None
 
     def __init__(self, *args, **kwargs) -> None:
-        # Add IonQ equivalences
-        ionq_equivalence_library.add_equivalences()
         super().__init__(*args, **kwargs)
+        ionq_equivalence_library.add_equivalences(super().name())
 
     @classmethod
     def _default_options(cls) -> Options:
