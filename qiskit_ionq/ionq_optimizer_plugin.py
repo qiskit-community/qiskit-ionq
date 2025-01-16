@@ -149,8 +149,8 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
         if optimization_level == 0:
             pass
         if optimization_level >= 1:
-            # Note the TransformationPasses should be applied
-            # in the order were added to the PassManager
+            # Note that the TransformationPasses will be applied
+            # in the order they have been added to the pass manager
             custom_pass_manager.append(CancelGPI2Adjoint())
             custom_pass_manager.append(CancelGPIAdjoint())
             custom_pass_manager.append(GPI2TwiceIsGPI())
