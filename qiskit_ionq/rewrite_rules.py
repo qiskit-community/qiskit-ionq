@@ -1,4 +1,4 @@
-""" Rewrite rules for optimizing the transpilatiom to IonQ native gates."""
+"""Rewrite rules for optimizing the transpilatiom to IonQ native gates."""
 
 import math
 from sympy import Matrix, exp, sqrt
@@ -205,7 +205,6 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
 class CommuteGPIsThroughMS(TransformationPass):
     """GPI(0), GPI(π), GPI(-π), GPI2(0), GPI2(π), GPI2(-π)
     on either qubit commute with MS"""
-
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         nodes_to_remove = set()
 
