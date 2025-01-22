@@ -34,6 +34,8 @@ from typing import Callable, Literal, Optional
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
+
+from qiskit_ionq import ionq_equivalence_library
 from .helpers import resolve_credentials
 
 from . import ionq_backend
@@ -92,6 +94,8 @@ class IonQProvider:
             raise QiskitBackendNotFoundError("More than one backend matches criteria.")
         if not backends:
             raise QiskitBackendNotFoundError("No backend matches criteria.")
+
+        ionq_equivalence_library.add_equivalences(name)
 
         return backends[0].with_name(name, gateset=gateset)
 

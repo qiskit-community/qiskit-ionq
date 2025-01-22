@@ -141,7 +141,6 @@ class IonQBackend(Backend):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        ionq_equivalence_library.add_equivalences(super().name())
 
     @classmethod
     def _default_options(cls) -> Options:

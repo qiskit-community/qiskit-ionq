@@ -300,23 +300,6 @@ def test_native_circuit_incorrect(simulator_backend):
     assert exc_info.value.gate_name == "gpi"
 
 
-def test_native_circuit_transpile(simulator_backend):
-    """Test a full native circuit on a QIS backend via transpilation
-
-    Args:
-        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
-    """
-    circ = QuantumCircuit(3, name="blame_test")
-    circ.append(GPIGate(0.1), [0])
-    circ.append(GPI2Gate(0.2), [1])
-    circ.append(MSGate(0.2, 0.3, 0.25), [1, 2])
-    circ.append(ZZGate(0.4), [0, 2])
-
-    with pytest.raises(TranspilerError) as exc_info:
-        transpile(circ, backend=simulator_backend)
-    assert "unable to synthesize" in exc_info.value.message
-
-
 def test_full_native_circuit(simulator_backend):
     """Test a full native circuit
 

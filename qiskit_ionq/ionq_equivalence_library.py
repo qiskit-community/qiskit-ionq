@@ -67,7 +67,10 @@ def cx_gate_equivalence_ms() -> None:
     cx_gate.append(GPI2Gate(1 / 2), [0])
     cx_gate.append(GPI2Gate(1 / 2), [1])
     cx_gate.append(GPI2Gate(-1 / 4), [0])
-    SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_gate)
+    if SessionEquivalenceLibrary.has_entry(CXGate()):
+        SessionEquivalenceLibrary.set_entry(CXGate(), [cx_gate])
+    else:
+        SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_gate)
 
 
 def cx_gate_equivalence_zz() -> None:
@@ -80,20 +83,22 @@ def cx_gate_equivalence_zz() -> None:
     cx_gate = QuantumCircuit(q)
     # H
     cx_gate.append(GPI2Gate(0), [1])
-    cx_gate.append(GPI2Gate(-0.125), [1])
+    cx_gate.append(GPIGate(-0.125), [1])
     cx_gate.append(GPI2Gate(0.5), [1])
     # ZZ
     cx_gate.append(ZZGate(), [0, 1])
     # Sdag
     cx_gate.append(GPI2Gate(0.75), [0])
-    cx_gate.append(GPI2Gate(0.125), [0])
+    cx_gate.append(GPIGate(0.125), [0])
     cx_gate.append(GPI2Gate(0.5), [0])
     #  H * Sdag
     cx_gate.append(GPI2Gate(1.25), [1])
+    cx_gate.append(GPIGate(0.5), [1])
     cx_gate.append(GPI2Gate(0.5), [1])
-    cx_gate.append(GPI2Gate(0.5), [1])
-
-    SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_gate)
+    if SessionEquivalenceLibrary.has_entry(CXGate()):
+        SessionEquivalenceLibrary.set_entry(CXGate(), [cx_gate])
+    else:
+        SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_gate)
 
 
 # Below are the rules needed for Aer simulator to simulate circuits containing IonQ native gates
@@ -153,20 +158,34 @@ def ms_gate_equivalence() -> None:
         MSGate(phi0_param, phi1_param, theta_param), ms_gate
     )
 
+def zz_gate_equivalence() -> None:
+    """Add ZZ gate equivalence to the SessionEquivalenceLibrary."""
+    q = QuantumRegister(2, "q")
+    zz_gate = QuantumCircuit(q)
+    zz_gate.h(1)
+    zz_gate.append(CXGate(), [0, 1])
+    zz_gate.s(0)
+    zz_gate.h(1)
+    zz_gate.s(1)
+    SessionEquivalenceLibrary.add_equivalence(
+        ZZGate(), zz_gate
+    )
 
 def add_equivalences(backend_name) -> None:
     """Add IonQ gate equivalences to the SessionEquivalenceLibrary."""
     u_gate_equivalence()
     if (
         backend_name == "ionq_simulator"
-        or backend_name == "ionq_qpu" #TODO: needed for testing? must verify
+        or backend_name == "ionq_mock_backend"
+        or backend_name == "ionq_qpu"
         or backend_name == "ionq_qpu.harmony"
         or backend_name == "ionq_qpu.aria-1"
         or backend_name == "ionq_qpu.aria-2"
     ):
         cx_gate_equivalence_ms()
     elif (
-        backend_name == "ionq_qpu.forte-1"
+        backend_name == "ionq_simulator_forte"
+        or backend_name == "ionq_qpu.forte-1"
         or backend_name == "ionq_qpu.forte-enterprise-1"
         or backend_name == "ionq_qpu.forte-enterprise-2"
     ):
@@ -175,7 +194,7 @@ def add_equivalences(backend_name) -> None:
         raise IonQBackendNotSupportedError(
             f"The backend with name {backend_name} is not supported. "
             "The following backends names are supported: simulator (or ionq_simulator), "
-            #"forte_simulator (or ionq_forte_simulator), " TODO: add simulator target for forte
+            "simulator_forte (or ionq_simulator_forte), "
             "qpu.aria-1 (or ionq_qpu.aria-1), qpu.aria-2 (or ionq_qpu.aria-2), "
             "qpu.forte-1 (or ionq_qpu.forte-1), "
             "qpu.forte-enterprise-1 (or ionq_qpu.forte-enterprise-1), "
@@ -184,3 +203,4 @@ def add_equivalences(backend_name) -> None:
     gpi_gate_equivalence()
     gpi2_gate_equivalence()
     ms_gate_equivalence()
+    zz_gate_equivalence()
