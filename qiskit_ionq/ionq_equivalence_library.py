@@ -158,6 +158,7 @@ def ms_gate_equivalence() -> None:
         MSGate(phi0_param, phi1_param, theta_param), ms_gate
     )
 
+
 def zz_gate_equivalence() -> None:
     """Add ZZ gate equivalence to the SessionEquivalenceLibrary."""
     q = QuantumRegister(2, "q")
@@ -167,9 +168,8 @@ def zz_gate_equivalence() -> None:
     zz_gate.s(0)
     zz_gate.h(1)
     zz_gate.s(1)
-    SessionEquivalenceLibrary.add_equivalence(
-        ZZGate(), zz_gate
-    )
+    SessionEquivalenceLibrary.add_equivalence(ZZGate(), zz_gate)
+
 
 def add_equivalences(backend_name) -> None:
     """Add IonQ gate equivalences to the SessionEquivalenceLibrary."""
