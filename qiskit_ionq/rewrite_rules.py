@@ -205,6 +205,7 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
 class CommuteGPIsThroughMS(TransformationPass):
     """GPI(0), GPI(π), GPI(-π), GPI2(0), GPI2(π), GPI2(-π)
     on either qubit commute with MS"""
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         nodes_to_remove = set()
 
@@ -228,7 +229,6 @@ class CommuteGPIsThroughMS(TransformationPass):
                         and math.isclose(next_node.op.params[2], 0.25)
                         and node.qargs[0] in next_node.qargs
                     ):
-
                         sub_dag = DAGCircuit()
                         for qreg in dag.qregs.values():
                             sub_dag.add_qreg(qreg)
