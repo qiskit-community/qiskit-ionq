@@ -24,7 +24,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" Optimize the transpiling of IonQ native gates using a custom
+"""Optimize the transpiling of IonQ native gates using a custom
 pass manager and a pass manager plugin TrappedIonOptimizerPlugin
 which consolidates all the rewrite rules in one single plugin.
 The other plugin classes are intended for testing various rewrite
