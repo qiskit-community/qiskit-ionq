@@ -75,7 +75,11 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
         - GPI2TwiceIsGPI
     """
 
-    def pass_manager(self, pass_manager_config: PassManagerConfig, optimization_level: Optional[int] = None) -> PassManager:
+    def pass_manager(
+        self,
+        pass_manager_config: PassManagerConfig,
+        optimization_level: Optional[int] = None,
+    ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
         """
@@ -96,7 +100,11 @@ class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
         - CompactMoreThanThreeSingleQubitGates
     """
 
-    def pass_manager(self, pass_manager_config: PassManagerConfig, optimization_level: Optional[int] = None) -> PassManager:
+    def pass_manager(
+        self,
+        pass_manager_config: PassManagerConfig,  # pylint: disable=unused-argument
+        optimization_level: Optional[int] = None,
+    ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
         """
@@ -115,7 +123,11 @@ class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
         - CommuteGPIsThroughMS
     """
 
-    def pass_manager(self, pass_manager_config: PassManagerConfig, optimization_level: Optional[int] = None) -> PassManager:
+    def pass_manager(
+        self,
+        pass_manager_config: PassManagerConfig,  # pylint: disable=unused-argument
+        optimization_level: Optional[int] = None,
+    ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
         This class is meant to be used in production.
@@ -133,7 +145,11 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
     This the optmizer plugin is intended to be used in production.
     """
 
-    def pass_manager(self, pass_manager_config: PassManagerConfig, optimization_level: Optional[int] = None) -> PassManager:
+    def pass_manager(
+        self,
+        pass_manager_config: PassManagerConfig,  # pylint: disable=unused-argument
+        optimization_level: Optional[int] = None,
+    ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
         This class is meant to be used in production.
