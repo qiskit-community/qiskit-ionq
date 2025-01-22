@@ -25,10 +25,10 @@
 # limitations under the License.
 
 """ Optimize the transpiling of IonQ native gates using a custom
-    pass manager and a pass manager plugin TrappedIonOptimizerPlugin
-    which consolidates all the rewrite rules in one single plugin.
-    The other plugin classes are intended for testing various rewrite
-    rules in isolation.
+pass manager and a pass manager plugin TrappedIonOptimizerPlugin
+which consolidates all the rewrite rules in one single plugin.
+The other plugin classes are intended for testing various rewrite
+rules in isolation.
 """
 
 from qiskit.transpiler import PassManager
@@ -74,9 +74,7 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
         - GPI2TwiceIsGPI
     """
 
-    def pass_manager(
-        self, optimization_level: int = 0
-    ) -> PassManager:
+    def pass_manager(self, optimization_level: int = 0) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
         """
@@ -97,9 +95,7 @@ class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
         - CompactMoreThanThreeSingleQubitGates
     """
 
-    def pass_manager(
-        self, optimization_level: int = 0
-    ) -> PassManager:
+    def pass_manager(self, optimization_level: int = 0) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
         """
@@ -118,9 +114,7 @@ class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
         - CommuteGPIsThroughMS
     """
 
-    def pass_manager(
-        self, optimization_level: int = 0
-    ) -> PassManager:
+    def pass_manager(self, optimization_level: int = 0) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
         This class is meant to be used in production.
@@ -138,9 +132,7 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
     This the optmizer plugin is intended to be used in production.
     """
 
-    def pass_manager(
-        self, optimization_level: int = 0
-    ) -> PassManager:
+    def pass_manager(self, optimization_level: int = 0) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
         This class is meant to be used in production.
