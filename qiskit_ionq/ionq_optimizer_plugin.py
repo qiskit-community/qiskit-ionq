@@ -31,7 +31,6 @@ The other plugin classes are intended for testing various rewrite
 rules in isolation.
 """
 
-from typing import Optional
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 from qiskit.transpiler.passmanager_config import PassManagerConfig
