@@ -103,7 +103,7 @@ class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
     def pass_manager(
         self,
         pass_manager_config: PassManagerConfig,  # pylint: disable=unused-argument
-        optimization_level: Optional[int] = None,
+        optimization_level: Optional[int] = 0,
     ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
@@ -126,7 +126,7 @@ class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
     def pass_manager(
         self,
         pass_manager_config: PassManagerConfig,  # pylint: disable=unused-argument
-        optimization_level: Optional[int] = None,
+        optimization_level: Optional[int] = 0,
     ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
@@ -148,7 +148,7 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
     def pass_manager(
         self,
         pass_manager_config: PassManagerConfig,  # pylint: disable=unused-argument
-        optimization_level: Optional[int] = None,
+        optimization_level: Optional[int] = 0,
     ) -> PassManager:
         """
         Creates a PassManager class with added custom transformation passes.
