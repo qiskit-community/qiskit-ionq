@@ -225,6 +225,26 @@ def test_single_qubit_transpilation(ideal_results, gates):
         ),
     )
 
+    # Transpile circuit to native gates. Transpiling to one qubit gates using
+    # forte should make no difference, we test this scenario nevertheless.
+    provider = ionq_provider.IonQProvider()
+    backend = provider.get_backend("ionq_simulator_forte", gateset="native")
+    transpiled_circuit = transpile(circuit, backend)
+
+    # simulate the circuit
+    statevector = Statevector(transpiled_circuit)
+    probabilities = np.abs(statevector) ** 2
+    np.testing.assert_allclose(
+        probabilities,
+        ideal_results,
+        atol=1e-3,
+        err_msg=(
+            f"Ideal: {np.round(ideal_results, 3)},\n"
+            f"Actual: {np.round(probabilities, 3)},\n"
+            f"Circuit: {circuit}"
+        ),
+    )
+
 
 @pytest.mark.parametrize(
     "ideal_results, gates",
@@ -369,7 +389,7 @@ def test_two_qubit_transpilation(ideal_results, gates):
     for gate_name, param, qubits in gates:
         append_gate(circuit, gate_name, param, qubits)
 
-    # transpile circuit to native gates
+    # Transpile circuit to native gates using default simulator
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
     # Using optmization level 0 below is important here because ElidePermutations transpiler pass
@@ -390,7 +410,7 @@ def test_two_qubit_transpilation(ideal_results, gates):
             f"Circuit: {circuit}"
         ),
     )
-
+    # Transpile circuit to native gates using forte
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator_forte", gateset="native")
     # Using optmization level 0 below is important here because ElidePermutations transpiler pass
