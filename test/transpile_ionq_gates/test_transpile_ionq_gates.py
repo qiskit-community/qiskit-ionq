@@ -206,7 +206,7 @@ def test_single_qubit_transpilation(ideal_results, gates):
     for gate_name, param in gates:
         append_gate(circuit, gate_name, param, [0])
 
-    # transpile circuit to native gates
+    # Transpile circuit to native gates using default simulator
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
     transpiled_circuit = transpile(circuit, backend)
