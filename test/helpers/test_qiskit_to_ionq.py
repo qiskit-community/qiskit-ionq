@@ -224,23 +224,25 @@ def test_multicircuit_mapping(simulator_backend):
     ionq_json = qiskit_to_ionq(
         [no_reg_map, no_reg_no_map],
         simulator_backend,
-        passed_args={"shots": 1024},
+        passed_args={"name": "multicircuit_mapping", "shots": 1024},
     )
 
     expected_payload = {
         "target": "simulator",
         "shots": 1024,
-        "name": "no_reg_map, no_reg_no_map",
+        "name": "multicircuit_mapping",
         "input": {
             "format": "ionq.circuit.v0",
             "gateset": "qis",
             "qubits": 2,
             "circuits": [
                 {
+                    "name": "no_reg_map",
                     "circuit": [{"gate": "x", "targets": [0]}],
                     "registers": {"meas_mapped": [1, 0]},
                 },
                 {
+                    "name": "no_reg_no_map",
                     "circuit": [{"gate": "x", "targets": [0]}],
                     "registers": {"meas_mapped": [0, 1]},
                 },

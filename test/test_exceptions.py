@@ -26,10 +26,11 @@
 
 """Test basic exceptions behavior"""
 
+import pickle
 from unittest import mock
-import requests
 
 import pytest
+import requests
 
 from qiskit_ionq import exceptions
 from qiskit_ionq.exceptions import IonQRetriableError
@@ -287,3 +288,21 @@ def test_error_format__default():
     assert err.headers == {"Content-Type": "text/html"}
     assert err.body == "<!doctype html><html><body>Hello IonQ!</body></html>"
     assert err.error_type == "internal_error"
+
+
+def test_serializing_error():
+    """Test that an error can be serialized and deserialized."""
+
+    err = exceptions.IonQAPIError(
+        message="message",
+        status_code=400,
+        headers="headers",
+        body="body",
+        error_type="error_type",
+    )
+    err2 = pickle.loads(pickle.dumps(err))
+    assert err.message == err2.message
+    assert err.status_code == err2.status_code
+    assert err.headers == err2.headers
+    assert err.body == err2.body
+    assert err.error_type == err2.error_type

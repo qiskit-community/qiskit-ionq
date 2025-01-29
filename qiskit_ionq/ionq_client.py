@@ -34,10 +34,8 @@ from typing import Optional, TYPE_CHECKING
 from warnings import warn
 import requests
 
-from retry import retry
-
 from . import exceptions
-from .helpers import qiskit_to_ionq, get_user_agent
+from .helpers import qiskit_to_ionq, get_user_agent, retry
 from .exceptions import IonQRetriableError
 
 if TYPE_CHECKING:
@@ -55,9 +53,9 @@ class IonQClient:
 
     def __init__(
         self,
-        token: str | None = None,
-        url: str | None = None,
-        custom_headers: dict | None = None,
+        token: Optional[str] = None,
+        url: Optional[str] = None,
+        custom_headers: Optional[dict] = None,
     ):
         self._token = token
         self._custom_headers = custom_headers or {}

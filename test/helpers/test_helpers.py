@@ -27,7 +27,9 @@
 """Test the helper functions."""
 
 import re
+from unittest.mock import patch, MagicMock
 from qiskit_ionq.ionq_client import IonQClient
+from qiskit_ionq.helpers import get_n_qubits, retry
 
 
 def test_user_agent_header():
@@ -47,3 +49,110 @@ def test_user_agent_header():
     # Checks whether there is at-least 3 version strings from qiskit-ionq, qiskit-terra, python.
     has_all_version_strings = len(re.findall(r"\s*([\d.]+)", generated_user_agent)) >= 3
     assert all_user_agent_keywords_avail and has_all_version_strings
+
+
+def test_get_n_qubits_success():
+    """Test get_n_qubits returns correct number of qubits and checks correct URL."""
+    with patch("requests.get") as mock_get:
+        mock_response = MagicMock()
+        mock_response.json.return_value = [
+            {
+                "backend": "qpu.aria-1",
+                "status": "unavailable",
+                "qubits": 25,
+                "average_queue_time": 722980302,
+                "last_updated": 1729699872,
+                "characterization_url": "/characterizations/9d699f61-d894-49b3-94c0-fd8173b32c27",
+                "degraded": False,
+            }
+        ]
+        mock_get.return_value = mock_response
+
+        backend = "ionq_qpu.aria-1"
+        result = get_n_qubits(backend)
+
+        expected_url = "https://api.ionq.co/v0.3/backends"
+
+        # Check the arguments of the last call to `requests.get`
+        mock_get.assert_called()
+        _, kwargs = mock_get.call_args
+        assert (
+            kwargs["url"] == expected_url
+        ), f"Expected URL {expected_url}, but got {kwargs['url']}"
+
+        assert result == 25, f"Expected 25 qubits, but got {result}"
+
+
+def test_get_n_qubits_fallback():
+    """Test get_n_qubits returns fallback number of qubits and checks correct URL on failure."""
+    with patch("requests.get", side_effect=Exception("Network error")) as mock_get:
+        backend = "aria-1"
+        result = get_n_qubits(backend)
+
+        expected_url = "https://api.ionq.co/v0.3/backends"
+
+        # Check the arguments of the last call to `requests.get`
+        mock_get.assert_called()
+        _, kwargs = mock_get.call_args
+        assert (
+            kwargs["url"] == expected_url
+        ), f"Expected URL {expected_url}, but got {kwargs['url']}"
+
+        assert result == 100, f"Expected fallback of 100 qubits, but got {result}"
+
+
+def test_retry():
+    """Test the retry decorator with both success and failure cases."""
+    # Test case where the function eventually succeeds
+    attempt_success = {"count": 0}
+
+    @retry(exceptions=ValueError, tries=3, delay=0)
+    def func_success():
+        if attempt_success["count"] < 2:
+            attempt_success["count"] += 1
+            raise ValueError("Intentional Error")
+        return "Success"
+
+    result = func_success()
+    assert (
+        attempt_success["count"] == 2
+    ), f"Expected 2 retries, got {attempt_success['count']}"
+    assert result == "Success", f"Expected 'Success', got {result}"
+
+    # Test case where the function keeps failing and eventually raises the exception
+    attempt_fail = {"count": 0}
+
+    @retry(exceptions=ValueError, tries=3, delay=0)
+    def func_fail():
+        attempt_fail["count"] += 1
+        raise ValueError("Intentional Error")
+
+    try:
+        func_fail()
+    except ValueError:
+        pass
+    else:
+        assert False, "Expected ValueError was not raised"
+
+    assert (
+        attempt_fail["count"] == 3
+    ), f"Expected 3 retries, got {attempt_fail['count']}"
+
+    # Test case where a different exception is raised and should not be retried
+    attempt_wrong_exception = {"count": 0}
+
+    @retry(exceptions=ValueError, tries=3, delay=0)
+    def func_wrong_exception():
+        attempt_wrong_exception["count"] += 1
+        raise TypeError("Wrong Exception Type")
+
+    try:
+        func_wrong_exception()
+    except TypeError:
+        pass
+    else:
+        assert False, "Expected TypeError was not raised"
+
+    assert (
+        attempt_wrong_exception["count"] == 1
+    ), f"Expected 1 attempt, got {attempt_wrong_exception['count']}"

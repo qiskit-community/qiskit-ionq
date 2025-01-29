@@ -27,12 +27,16 @@
 """Test the qobj_to_ionq function."""
 
 import pytest
+import numpy as np
 from qiskit.circuit import (
     QuantumCircuit,
     QuantumRegister,
     ClassicalRegister,
     instruction,
+    Parameter,
 )
+from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.quantum_info import SparsePauliOp
 
 from qiskit_ionq import exceptions
 from qiskit_ionq.helpers import qiskit_circ_to_ionq_circ
@@ -218,6 +222,47 @@ def test_circuit_with_entangling_ops():
     assert built == expected
 
 
+def test_pauliexp_circuit():
+    """Test structure of circuits with a Pauli evolution gate."""
+    # build the evolution gate
+    operator = SparsePauliOp(["XX", "YY", "ZZ"], coeffs=[0.1, 0.2, 0.3])
+    evo = PauliEvolutionGate(operator, time=0.4)
+    # append it to a circuit
+    circuit = QuantumCircuit(3)
+    circuit.append(evo, [1, 2])
+    expected = [
+        {
+            "gate": "pauliexp",
+            "targets": [1, 2],
+            "terms": ["XX", "YY", "ZZ"],
+            "coefficients": [0.1, 0.2, 0.3],
+            "time": 0.4,
+        }
+    ]
+    built, _, _ = qiskit_circ_to_ionq_circ(circuit)
+    assert built == expected
+
+
+@pytest.mark.parametrize("ionq_compiler_synthesis", [True, False])
+def test_non_commuting_pauliexp_circuit(ionq_compiler_synthesis):
+    """Test that non-commuting Pauli evolution gates raise an error."""
+    # build the evolution gate
+    operator = SparsePauliOp(["XX", "XY"], coeffs=[0.1, 0.2])
+    evo = PauliEvolutionGate(operator, time=0.3)
+    # append it to a circuit
+    circuit = QuantumCircuit(2)
+    circuit.append(evo, [0, 1])
+    if ionq_compiler_synthesis:
+        qiskit_circ_to_ionq_circ(
+            circuit, ionq_compiler_synthesis=ionq_compiler_synthesis
+        )
+    else:
+        with pytest.raises(exceptions.IonQPauliExponentialError) as _:
+            qiskit_circ_to_ionq_circ(
+                circuit, ionq_compiler_synthesis=ionq_compiler_synthesis
+            )
+
+
 def test_multi_control():
     """Test structure of circuits with multiple controls"""
     qc = QuantumCircuit(3, 3)
@@ -290,6 +335,26 @@ def test_circuit_with_multiple_registers():
         {"gate": "y", "targets": [2]},
         {"gate": "z", "targets": [3]},
         {"gate": "x", "controls": [0], "targets": [2]},
+    ]
+    built, _, _ = qiskit_circ_to_ionq_circ(qc)
+    assert built == expected
+
+
+def test_uncontrolled_multi_target_gates():
+    """Test that multi-target gates without controls are properly serialized."""
+    mtu = QuantumCircuit(2, name="rxx")
+    mtu.h([0, 1])
+    mtu.cx(0, 1)
+    mtu.rz(Parameter("theta"), 1)
+    mtu.cx(0, 1)
+    mtu.h([0, 1])
+    mtu_gate = mtu.to_gate(parameter_map={mtu.parameters[0]: np.pi / 2})
+
+    qc = QuantumCircuit(2)
+    qc.append(mtu_gate, [0, 1])
+
+    expected = [
+        {"gate": "xx", "targets": [0, 1], "rotation": np.pi / 2},
     ]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected

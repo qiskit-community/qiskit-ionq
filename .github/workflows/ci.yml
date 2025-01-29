@@ -1,17 +1,25 @@
 name: pr
-on: pull_request
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
 jobs:
   tests:
     name: python-${{ matrix.python-version }}-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         os: ["macOS-latest", "ubuntu-latest", "windows-latest"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: setup-python-${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: install-requirements
@@ -24,9 +32,11 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: setup-python-3.12
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.12
       - name: install-requirements
@@ -39,18 +49,21 @@ jobs:
     name: docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: setup-python-3.12
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
         with:
-          python-version: 3.12
+          persist-credentials: false
+      - name: setup-python-3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
       - name: install-requirements
         run: |
           python -m pip install --upgrade pip tox tox-gh-actions
           python -m pip install -e .
       - name: docs
         run: tox -e docs
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'pull_request' }}
         with:
           name: html_docs
           path: build/html

@@ -383,9 +383,11 @@ def test_result__timeout(mock_backend, requests_mock):
     )
 
     # Use the patch, then expect `result` to raise out.
-    with exc_patch, pytest.raises(
-        exceptions.IonQJobTimeoutError
-    ) as exc_info, warnings.catch_warnings(record=True) as w:
+    with (
+        exc_patch,
+        pytest.raises(exceptions.IonQJobTimeoutError) as exc_info,
+        warnings.catch_warnings(record=True) as w,
+    ):
         job.result()
         assert len(w) == 1
         assert "TimedOut" in str(w[0].message)
@@ -646,7 +648,7 @@ def test_result__failed_from_api(mock_backend, requests_mock):
 
 
 def test_result__cancelled(mock_backend, requests_mock):
-    """Test result fetching when the job fails on the API side (e.g. due to bad input)
+    """Test result fetching when the job is canceled on the API side.
 
     Args:
         mock_backend (MockBackend): A mock IonQBackend.
@@ -674,7 +676,7 @@ def test_result__cancelled(mock_backend, requests_mock):
     with pytest.raises(exceptions.IonQJobStateError) as exc:
         job.result()
     # assert fails
-    assert 'Job was cancelled"' in str(exc.value)
+    assert "Cannot retrieve result for canceled job" in str(exc.value)
 
 
 def test_status__no_job_id(mock_backend):
