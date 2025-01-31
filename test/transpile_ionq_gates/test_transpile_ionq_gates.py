@@ -225,8 +225,8 @@ def test_single_qubit_transpilation(ideal_results, gates):
         ),
     )
 
-    # Transpile circuit to native gates. Transpiling to one qubit gates using
-    # forte should make no difference, we test this scenario nevertheless.
+    # Transpile circuit to native gates. Transpiling to one qubit gates using forte should
+    # make no difference w.r.t using default simulator, we test this scenario nevertheless.
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator_forte", gateset="native")
     transpiled_circuit = transpile(circuit, backend)
