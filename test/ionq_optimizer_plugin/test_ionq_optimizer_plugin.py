@@ -81,7 +81,7 @@ from qiskit.circuit.library import (
     CYGate,
     CZGate,
 )
-from qiskit_ionq import GPIGate, GPI2Gate, MSGate
+from qiskit_ionq import GPIGate, GPI2Gate, MSGate, ZZGate
 from qiskit_ionq import (
     IonQProvider,
     TrappedIonOptimizerPlugin,
@@ -96,6 +96,7 @@ gate_map = {
     "GPIGate": GPIGate,
     "GPI2Gate": GPI2Gate,
     "MSGate": MSGate,
+    "ZZGate": ZZGate,
     # single-qubit gates
     "HGate": HGate,
     "IGate": IGate,
@@ -430,7 +431,9 @@ def append_gate(circuit, gate_name, param, qubits):
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  # pylint: disable=invalid-name
+def test_ionq_optimizer_plugin_simple_one_qubit_rules(
+    gates, optimized_depth
+):  # pylint: disable=invalid-name
     """Test TrappedIonOptimizerPluginSimpleRules."""
 
     ############################################################
@@ -452,7 +455,7 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
+    backend = provider.get_backend("ionq_simulator", gateset="native")
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=3
     )
@@ -499,7 +502,7 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
+    backend = provider.get_backend("ionq_simulator", gateset="native")
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=3
     )
@@ -710,7 +713,9 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_depth):  # pylint: disable=invalid-name
+def test_ionq_optimizer_plugin_compact_more_than_three_gates(
+    gates, optimized_depth
+):  # pylint: disable=invalid-name
     """Test TrappedIonOptimizerPluginCompactGates."""
 
     ###############################################################
@@ -730,7 +735,7 @@ def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_de
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
+    backend = provider.get_backend("ionq_simulator", gateset="native")
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=3
     )
@@ -777,7 +782,7 @@ def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_de
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
+    backend = provider.get_backend("ionq_simulator", gateset="native")
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=3
     )
@@ -1027,7 +1032,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
+    backend = provider.get_backend("ionq_simulator", gateset="native")
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=3
     )
@@ -1075,7 +1080,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
+    backend = provider.get_backend("ionq_simulator", gateset="native")
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=3
     )
@@ -1103,6 +1108,117 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
             f"Circuit: {qc}"
         ),
     )
+
+
+@pytest.mark.parametrize(
+    "gates, should_commute",
+    [
+        (
+            [
+                ("GPIGate", [0.5], [0]),
+                ("GPIGate", [0.7], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            True,
+        ),
+        (
+            [
+                ("GPIGate", [0.5], [1]),
+                ("GPIGate", [0.7], [1]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            True,
+        ),
+        (
+            [
+                ("GPIGate", [0.5], [0]),
+                ("GPIGate", [0.7], [1]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            False,
+        ),
+        (
+            [
+                ("GPIGate", [0.5], [1]),
+                ("GPIGate", [0.7], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            False,
+        ),
+        (
+            [
+                ("GPIGate", [0.5], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            False,
+        ),
+        (
+            [
+                ("GPI2Gate", [0.5], [0]),
+                ("GPIGate", [0.7], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            False,
+        ),
+        (
+            [
+                ("GPI2Gate", [0.5], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            False,
+        ),
+    ],
+    ids=lambda val: f"{val}",
+)
+def test_commute_two_gpi_through_zz(gates, should_commute):
+    """Test TrappedIonOptimizerPluginCommuteGpi2ThroughMs."""
+
+    custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
+    custom_pass_manager = custom_pass_manager_plugin.pass_manager(
+        optimization_level=3,
+    )
+
+    # create a quantum circuit
+    qc = QuantumCircuit(2)
+    for gate_name, param, qubits in gates:
+        append_gate(qc, gate_name, param, qubits)
+
+    provider = IonQProvider()
+    backend = provider.get_backend("ionq_simulator_forte", gateset="native")
+    transpiled_circuit_unoptimized = transpile(
+        qc, backend=backend, optimization_level=3
+    )
+
+    # simulate the unoptimized circuit
+    statevector_unoptimized = Statevector.from_instruction(
+        transpiled_circuit_unoptimized
+    )
+    probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
+
+    # optimized transpilation of circuit to native gates
+    optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
+
+    # simulate the optimized circuit
+    statevector_optimized = Statevector.from_instruction(optimized_circuit)
+    probabilities_optimized = np.abs(statevector_optimized.data) ** 2
+
+    np.testing.assert_allclose(
+        probabilities_unoptimized,
+        probabilities_optimized,
+        atol=1e-5,
+        err_msg=(
+            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {qc}"
+        ),
+    )
+
+    if should_commute:
+        assert optimized_circuit != transpiled_circuit_unoptimized
+    else:
+        assert optimized_circuit == transpiled_circuit_unoptimized
 
 
 @pytest.mark.parametrize(
@@ -1209,8 +1325,50 @@ def test_all_rewrite_rules(gates):
     for gate_name, param, qubits in gates:
         append_gate(qc, gate_name, param, qubits)
 
+    ######################################
+    # Testing Aria type devices which
+    # transpile native gates using MS gate
+    ######################################
+
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
+    backend = provider.get_backend("ionq_simulator", gateset="native")
+    transpiled_circuit_unoptimized = transpile(
+        qc, backend=backend, optimization_level=1
+    )
+
+    # simulate the unoptimized circuit
+    statevector_unoptimized = Statevector.from_instruction(
+        transpiled_circuit_unoptimized
+    )
+    probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
+
+    # optimized transpilation of circuit to native gates
+    optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
+
+    # simulate the optimized circuit
+    statevector_optimized = Statevector.from_instruction(optimized_circuit)
+    probabilities_optimized = np.abs(statevector_optimized.data) ** 2
+
+    np.testing.assert_allclose(
+        probabilities_unoptimized,
+        probabilities_optimized,
+        atol=1e-5,
+        err_msg=(
+            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {qc}"
+        ),
+    )
+
+    assert optimized_circuit != transpiled_circuit_unoptimized
+
+    ######################################
+    # Testing Forte type devices which
+    # transpile native gates using ZZ gate
+    ######################################
+
+    provider = IonQProvider()
+    backend = provider.get_backend("ionq_simulator_forte", gateset="native")
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=1
     )

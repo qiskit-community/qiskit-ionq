@@ -175,20 +175,20 @@ def zz_gate_equivalence() -> None:
 def add_equivalences(backend_name) -> None:
     """Add IonQ gate equivalences to the SessionEquivalenceLibrary."""
     u_gate_equivalence()
-    if (
-        backend_name == "ionq_simulator"
-        or backend_name == "ionq_mock_backend"
-        or backend_name == "ionq_qpu"
-        or backend_name == "ionq_qpu.harmony"
-        or backend_name == "ionq_qpu.aria-1"
-        or backend_name == "ionq_qpu.aria-2"
+    if backend_name in (
+        "ionq_simulator",
+        "ionq_mock_backend",
+        "ionq_qpu",
+        "ionq_qpu.harmony",
+        "ionq_qpu.aria-1",
+        "ionq_qpu.aria-2",
     ):
         cx_gate_equivalence_ms()
-    elif (
-        backend_name == "ionq_simulator_forte"
-        or backend_name == "ionq_qpu.forte-1"
-        or backend_name == "ionq_qpu.forte-enterprise-1"
-        or backend_name == "ionq_qpu.forte-enterprise-2"
+    elif backend_name in (
+        "ionq_simulator_forte",
+        "ionq_qpu.forte-1",
+        "ionq_qpu.forte-enterprise-1",
+        "ionq_qpu.forte-enterprise-2",
     ):
         cx_gate_equivalence_zz()
     else:

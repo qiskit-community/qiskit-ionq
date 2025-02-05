@@ -41,6 +41,7 @@ from qiskit_ionq.rewrite_rules import (
     GPI2TwiceIsGPI,
     CompactMoreThanThreeSingleQubitGates,
     CommuteGPIsThroughMS,
+    CommuteGPITimesGPIThroughZZ,
 )
 
 
@@ -163,5 +164,6 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             custom_pass_manager.append(CancelGPIAdjoint())
             custom_pass_manager.append(GPI2TwiceIsGPI())
             custom_pass_manager.append(CommuteGPIsThroughMS())
+            custom_pass_manager.append(CommuteGPITimesGPIThroughZZ())
             custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
         return custom_pass_manager

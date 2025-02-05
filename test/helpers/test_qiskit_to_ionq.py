@@ -30,8 +30,6 @@ import json
 import pytest
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.compiler import transpile
-from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit_ionq.exceptions import IonQGateError
 from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string
