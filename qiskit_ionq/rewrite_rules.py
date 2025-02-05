@@ -283,7 +283,6 @@ class CommuteGPITimesGPIThroughZZ(TransformationPass):
         nodes_to_remove = set()
 
         for node in dag.topological_op_nodes():
-
             if node in nodes_to_remove or node.op.name != "gpi":
                 continue
             successors = [
@@ -292,7 +291,6 @@ class CommuteGPITimesGPIThroughZZ(TransformationPass):
 
             gate_pattern_found = False
             for next_node in successors:
-
                 if gate_pattern_found:
                     break
                 if next_node in nodes_to_remove or next_node.op.name != "gpi":
@@ -305,7 +303,6 @@ class CommuteGPITimesGPIThroughZZ(TransformationPass):
                         if isinstance(succ, DAGOpNode)
                     ]
                     for next_next_node in next_node_successors:
-
                         if (
                             next_next_node.op.name == "zz"
                             and next_node.qargs[0] in next_next_node.qargs

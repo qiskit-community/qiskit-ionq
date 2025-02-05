@@ -98,9 +98,7 @@ class IonQAPIError(IonQError):
         error_type(str): An error type string from the IonQ REST API.
     """
 
-    def __init__(
-        self, message, status_code, headers, body, error_type
-    ):  # pylint: disable=too-many-positional-arguments
+    def __init__(self, message, status_code, headers, body, error_type):  # pylint: disable=too-many-positional-arguments
         super().__init__(message)
         self.status_code = status_code
         self.headers = headers
