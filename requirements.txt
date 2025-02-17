@@ -2,4 +2,4 @@ decorator>=5.1.0
 requests>=2.24.0
 importlib-metadata>=4.11.4
 python-dotenv>=1.0.1
-qiskit
+qiskit<=1.0.2
