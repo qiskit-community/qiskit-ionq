@@ -431,7 +431,9 @@ def append_gate(circuit, gate_name, param, qubits):
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  # pylint: disable=invalid-name
+def test_ionq_optimizer_plugin_simple_one_qubit_rules(
+    gates, optimized_depth
+):  # pylint: disable=invalid-name
     """Test TrappedIonOptimizerPluginSimpleRules."""
 
     ############################################################
@@ -711,7 +713,9 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_depth):  # pylint: disable=invalid-name
+def test_ionq_optimizer_plugin_compact_more_than_three_gates(
+    gates, optimized_depth
+):  # pylint: disable=invalid-name
     """Test TrappedIonOptimizerPluginCompactGates."""
 
     ###############################################################
@@ -1182,7 +1186,9 @@ def test_commute_two_gpi_through_zz(gates, should_commute):
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("ionq_simulator_forte", gateset="native")
+    backend = provider.get_backend(
+        "ionq_simulator", gateset="native", noise_model="forte-1"
+    )
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=3
     )
@@ -1364,7 +1370,9 @@ def test_all_rewrite_rules(gates):
     ######################################
 
     provider = IonQProvider()
-    backend = provider.get_backend("ionq_simulator_forte", gateset="native")
+    backend = provider.get_backend(
+        "ionq_simulator", gateset="native", noise_model="forte-1"
+    )
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=1
     )

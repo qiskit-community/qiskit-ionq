@@ -228,7 +228,9 @@ def test_single_qubit_transpilation(ideal_results, gates):
     # Transpile circuit to native gates. Transpiling to one qubit gates using forte should
     # make no difference w.r.t using default simulator, we test this scenario nevertheless.
     provider = ionq_provider.IonQProvider()
-    backend = provider.get_backend("ionq_simulator_forte", gateset="native")
+    backend = provider.get_backend(
+        "ionq_simulator", gateset="native", noise_model="forte-1"
+    )
     transpiled_circuit = transpile(circuit, backend)
 
     # simulate the circuit
@@ -412,7 +414,9 @@ def test_two_qubit_transpilation(ideal_results, gates):
     )
     # Transpile circuit to native gates using forte
     provider = ionq_provider.IonQProvider()
-    backend = provider.get_backend("ionq_simulator_forte", gateset="native")
+    backend = provider.get_backend(
+        "ionq_simulator", gateset="native", noise_model="forte-1"
+    )
     # Using optmization level 0 below is important here because ElidePermutations transpiler pass
     # in Qiskit will remove swap gates and instead premute qubits if optimization level is 2 or 3.
     # In the future this feature could be extended to optimization level 1 as well.

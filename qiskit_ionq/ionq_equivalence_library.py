@@ -172,11 +172,10 @@ def zz_gate_equivalence() -> None:
     SessionEquivalenceLibrary.add_equivalence(ZZGate(), zz_gate)
 
 
-def add_equivalences(backend_name) -> None:
+def add_equivalences(backend_name, noise_model=None) -> None:
     """Add IonQ gate equivalences to the SessionEquivalenceLibrary."""
     u_gate_equivalence()
     if backend_name in (
-        "ionq_simulator",
         "ionq_mock_backend",
         "ionq_qpu",
         "ionq_qpu.harmony",
@@ -185,21 +184,25 @@ def add_equivalences(backend_name) -> None:
     ):
         cx_gate_equivalence_ms()
     elif backend_name in (
-        "ionq_simulator_forte",
         "ionq_qpu.forte-1",
         "ionq_qpu.forte-enterprise-1",
         "ionq_qpu.forte-enterprise-2",
     ):
         cx_gate_equivalence_zz()
+    elif backend_name == "ionq_simulator":
+        if noise_model is None or noise_model == "aria-1":
+            cx_gate_equivalence_ms()
+        elif noise_model in ["forte-1", "forte-enterprise-1", "forte-enterprise-2"]:
+            cx_gate_equivalence_zz()
     else:
         raise IonQBackendNotSupportedError(
             f"The backend with name {backend_name} is not supported. "
-            "The following backends names are supported: simulator (or ionq_simulator), "
-            "simulator_forte (or ionq_simulator_forte), "
-            "qpu.aria-1 (or ionq_qpu.aria-1), qpu.aria-2 (or ionq_qpu.aria-2), "
-            "qpu.forte-1 (or ionq_qpu.forte-1), "
-            "qpu.forte-enterprise-1 (or ionq_qpu.forte-enterprise-1), "
-            "qpu.forte-enterprise-2 (or ionq_qpu.forte-enterprise-2)."
+            "The following backends names are supported: simulator or ionq_simulator "
+            "(with noise models aria-1 as default, forte-1, forte-enterprise-1 or forte-enterprise-2), "
+            "qpu.aria-1 or ionq_qpu.aria-1, qpu.aria-2 or ionq_qpu.aria-2, "
+            "qpu.forte-1 or ionq_qpu.forte-1, "
+            "qpu.forte-enterprise-1 or ionq_qpu.forte-enterprise-1, "
+            "qpu.forte-enterprise-2 or ionq_qpu.forte-enterprise-2."
         )
     gpi_gate_equivalence()
     gpi2_gate_equivalence()

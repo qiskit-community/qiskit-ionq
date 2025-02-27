@@ -89,13 +89,21 @@ class IonQProvider:
                 more than one backend matches the filtering criteria.
         """
         name = "ionq_" + name if not name.startswith("ionq_") else name
+
+        noise_model = None
+        if "noise_model" in kwargs.keys():
+            noise_model = kwargs.pop("noise_model", None)
+
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
             raise QiskitBackendNotFoundError("More than one backend matches criteria.")
         if not backends:
             raise QiskitBackendNotFoundError("No backend matches criteria.")
 
-        ionq_equivalence_library.add_equivalences(name)
+        if noise_model:
+            ionq_equivalence_library.add_equivalences(name, noise_model=noise_model)
+        else:
+            ionq_equivalence_library.add_equivalences(name)
 
         return backends[0].with_name(name, gateset=gateset)
 
