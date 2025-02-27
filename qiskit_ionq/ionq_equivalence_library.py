@@ -190,7 +190,7 @@ def add_equivalences(backend_name, noise_model=None) -> None:
     ):
         cx_gate_equivalence_zz()
     elif backend_name == "ionq_simulator":
-        if noise_model is None or noise_model == "aria-1":
+        if noise_model is None or noise_model in ["aria-1", "aria-2"]:
             cx_gate_equivalence_ms()
         elif noise_model in ["forte-1", "forte-enterprise-1", "forte-enterprise-2"]:
             cx_gate_equivalence_zz()
