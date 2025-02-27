@@ -198,7 +198,7 @@ def add_equivalences(backend_name, noise_model=None) -> None:
         raise IonQBackendNotSupportedError(
             f"The backend with name {backend_name} is not supported. "
             "The following backends names are supported: simulator or ionq_simulator "
-            "(with noise models aria-1 as default, forte-1, forte-enterprise-1 or forte-enterprise-2), "
+            "(with noise models aria-1 as default, aria-2, forte-1, forte-enterprise-1 or forte-enterprise-2), "
             "qpu.aria-1 or ionq_qpu.aria-1, qpu.aria-2 or ionq_qpu.aria-2, "
             "qpu.forte-1 or ionq_qpu.forte-1, "
             "qpu.forte-enterprise-1 or ionq_qpu.forte-enterprise-1, "
