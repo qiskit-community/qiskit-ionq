@@ -105,7 +105,13 @@ class IonQProvider:
         else:
             ionq_equivalence_library.add_equivalences(name)
 
-        return backends[0].with_name(name, gateset=gateset)
+        if noise_model:
+            backend = backends[0].with_name(
+                name, gateset=gateset, noise_model=noise_model
+            )
+        else:
+            backend = backends[0].with_name(name, gateset=gateset)
+        return backend
 
 
 class BackendService:

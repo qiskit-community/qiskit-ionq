@@ -190,7 +190,15 @@ def add_equivalences(backend_name, noise_model=None) -> None:
     ):
         cx_gate_equivalence_zz()
     elif backend_name == "ionq_simulator":
-        if noise_model is None or noise_model in ["aria-1", "aria-2"]:
+        if noise_model is None or noise_model in [
+            "harmony",
+            "harmony-1",
+            "harmony-2",
+            "aria-1",
+            "aria-2",
+            "ideal",
+            "ideal-sampled",
+        ]:
             cx_gate_equivalence_ms()
         elif noise_model in ["forte-1", "forte-enterprise-1", "forte-enterprise-2"]:
             cx_gate_equivalence_zz()
@@ -198,7 +206,8 @@ def add_equivalences(backend_name, noise_model=None) -> None:
         raise IonQBackendNotSupportedError(
             f"The backend with name {backend_name} is not supported. "
             "The following backends names are supported: simulator or ionq_simulator "
-            "(with noise models aria-1 as default, aria-2, forte-1, forte-enterprise-1 or forte-enterprise-2), "
+            "(with noise models aria-1 as default, aria-2, forte-1, forte-enterprise-1, "
+            "forte-enterprise-2, ideal, ideal-sampled and legacy harmony, harmony-1, harmony-2) "
             "qpu.aria-1 or ionq_qpu.aria-1, qpu.aria-2 or ionq_qpu.aria-2, "
             "qpu.forte-1 or ionq_qpu.forte-1, "
             "qpu.forte-enterprise-1 or ionq_qpu.forte-enterprise-1, "
