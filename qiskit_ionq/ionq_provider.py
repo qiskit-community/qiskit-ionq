@@ -91,7 +91,7 @@ class IonQProvider:
         name = "ionq_" + name if not name.startswith("ionq_") else name
 
         noise_model = None
-        if "noise_model" in kwargs.keys():
+        if "noise_model" in kwargs:
             noise_model = kwargs.pop("noise_model", None)
 
         backends = self.backends(name, **kwargs)
