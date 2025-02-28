@@ -431,9 +431,7 @@ def append_gate(circuit, gate_name, param, qubits):
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optimizer_plugin_simple_one_qubit_rules(
-    gates, optimized_depth
-):  # pylint: disable=invalid-name
+def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  # pylint: disable=invalid-name
     """Test TrappedIonOptimizerPluginSimpleRules."""
 
     ############################################################
@@ -713,9 +711,7 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(
     ],
     ids=lambda val: f"{val}",
 )
-def test_ionq_optimizer_plugin_compact_more_than_three_gates(
-    gates, optimized_depth
-):  # pylint: disable=invalid-name
+def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_depth):  # pylint: disable=invalid-name
     """Test TrappedIonOptimizerPluginCompactGates."""
 
     ###############################################################
