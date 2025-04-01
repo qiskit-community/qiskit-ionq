@@ -5,9 +5,9 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_provider - Qiskit IonQ Provider 0.5.11</title>
+        <title>qiskit_ionq.ionq_provider - Qiskit IonQ Provider 0.5.13</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.11</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.13</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.11</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.13</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -259,17 +259,17 @@
 
 <span class="sd">&quot;&quot;&quot;Provider for interacting with IonQ backends&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">qiskit.providers.exceptions</span> <span class="kn">import</span> <span class="n">QiskitBackendNotFoundError</span>
-<span class="kn">from</span> <span class="nn">qiskit.providers.providerutils</span> <span class="kn">import</span> <span class="n">filter_backends</span>
-<span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">resolve_credentials</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.providers.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">QiskitBackendNotFoundError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.providers.providerutils</span><span class="w"> </span><span class="kn">import</span> <span class="n">filter_backends</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_credentials</span>
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ionq_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">ionq_backend</span>
 
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -277,7 +277,7 @@
 
 <div class="viewcode-block" id="IonQProvider">
 <a class="viewcode-back" href="../../apidocs/provider.html#qiskit_ionq.ionq_provider.IonQProvider">[docs]</a>
-<span class="k">class</span> <span class="nc">IonQProvider</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">IonQProvider</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provider for interacting with IonQ backends</span>
 
 <span class="sd">    Attributes:</span>
@@ -288,7 +288,7 @@
 
     <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ionq_provider&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -306,7 +306,7 @@
 
 <div class="viewcode-block" id="IonQProvider.get_backend">
 <a class="viewcode-back" href="../../apidocs/provider.html#qiskit_ionq.ionq_provider.IonQProvider.get_backend">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_backend</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_backend</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">gateset</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;qis&quot;</span><span class="p">,</span> <span class="s2">&quot;native&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;qis&quot;</span><span class="p">,</span>
@@ -337,12 +337,12 @@
 
 <div class="viewcode-block" id="BackendService">
 <a class="viewcode-back" href="../../apidocs/provider.html#qiskit_ionq.ionq_provider.BackendService">[docs]</a>
-<span class="k">class</span> <span class="nc">BackendService</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BackendService</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A service class that allows for autocompletion</span>
 <span class="sd">    of backends from provider.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backends</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ionq_backend</span><span class="o">.</span><span class="n">Backend</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backends</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ionq_backend</span><span class="o">.</span><span class="n">Backend</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize service</span>
 
 <span class="sd">        Parameters:</span>
@@ -352,7 +352,7 @@
         <span class="k">for</span> <span class="n">backend</span> <span class="ow">in</span> <span class="n">backends</span><span class="p">:</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="n">backend</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ionq_backend</span><span class="o">.</span><span class="n">Backend</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;A listing of all backends from this provider.</span>
@@ -414,7 +414,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=559aaa41"></script>
+    <script src="../../_static/documentation_options.js?v=c61aa432"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>

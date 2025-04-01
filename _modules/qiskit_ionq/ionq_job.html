@@ -5,9 +5,9 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 0.5.11</title>
+        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 0.5.13</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.11</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.13</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.11</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.13</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -268,26 +268,26 @@
 <span class="sd">   :class:`BaseJob &lt;qiskit.providers.BaseJob&gt;`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">qiskit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
-<span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">JobV1</span><span class="p">,</span> <span class="n">jobstatus</span>
-<span class="kn">from</span> <span class="nn">qiskit.providers.exceptions</span> <span class="kn">import</span> <span class="n">JobTimeoutError</span>
-<span class="kn">from</span> <span class="nn">.ionq_result</span> <span class="kn">import</span> <span class="n">IonQResult</span> <span class="k">as</span> <span class="n">Result</span>
-<span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">decompress_metadata_string</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuantumCircuit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">JobV1</span><span class="p">,</span> <span class="n">jobstatus</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.providers.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">JobTimeoutError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.ionq_result</span><span class="w"> </span><span class="kn">import</span> <span class="n">IonQResult</span> <span class="k">as</span> <span class="n">Result</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">decompress_metadata_string</span>
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">constants</span><span class="p">,</span> <span class="n">exceptions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">constants</span><span class="p">,</span> <span class="n">exceptions</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ionq_backend</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ionq_client</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">ionq_backend</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">ionq_client</span>
 
 
-<span class="k">def</span> <span class="nf">map_output</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">clbits</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">map_output</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">clbits</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Map histogram according to measured bits&quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">clbits</span><span class="p">:</span>
@@ -295,7 +295,7 @@
 
     <span class="n">mapped_output</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">def</span> <span class="nf">get_bitvalue</span><span class="p">(</span><span class="n">bitstring</span><span class="p">,</span> <span class="n">bit</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_bitvalue</span><span class="p">(</span><span class="n">bitstring</span><span class="p">,</span> <span class="n">bit</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">bit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">bit</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">bitstring</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">bitstring</span><span class="p">[</span><span class="n">bit</span><span class="p">]</span>
         <span class="k">return</span> <span class="s2">&quot;0&quot;</span>
@@ -312,7 +312,7 @@
     <span class="k">return</span> <span class="n">mapped_output</span>
 
 
-<span class="k">def</span> <span class="nf">_build_counts</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_counts</span><span class="p">(</span>
     <span class="n">data</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">,</span> <span class="n">clbits</span><span class="p">,</span> <span class="n">shots</span><span class="p">,</span> <span class="n">use_sampler</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sampler_seed</span><span class="o">=</span><span class="kc">None</span>
 <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-positional-arguments</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Map IonQ&#39;s ``counts`` onto qiskit&#39;s ``counts`` model.</span>
@@ -380,7 +380,7 @@
 
 <div class="viewcode-block" id="IonQJob">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob">[docs]</a>
-<span class="k">class</span> <span class="nc">IonQJob</span><span class="p">(</span><span class="n">JobV1</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">IonQJob</span><span class="p">(</span><span class="n">JobV1</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Representation of a Job that will run on an IonQ backend.</span>
 
 <span class="sd">    It is not recommended to create Job instances directly, but rather use the</span>
@@ -395,7 +395,7 @@
 <span class="sd">            The actual Qiskit Result of this job when done.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">backend</span><span class="p">:</span> <span class="n">ionq_backend</span><span class="o">.</span><span class="n">IonQBackend</span><span class="p">,</span>
         <span class="n">job_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -434,7 +434,7 @@
 
 <div class="viewcode-block" id="IonQJob.cancel">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.cancel">[docs]</a>
-    <span class="k">def</span> <span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Cancel this job.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Cannot cancel a job without a job_id.&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">cancel_job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="p">)</span></div>
@@ -442,7 +442,7 @@
 
 <div class="viewcode-block" id="IonQJob.submit">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.submit">[docs]</a>
-    <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Submit a job to the IonQ API.</span>
 
 <span class="sd">        Raises:</span>
@@ -460,7 +460,7 @@
 
 <div class="viewcode-block" id="IonQJob.get_counts">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.get_counts">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_counts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_counts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the counts for the job.</span>
 
 <span class="sd">        .. ATTENTION::</span>
@@ -484,7 +484,7 @@
 
 <div class="viewcode-block" id="IonQJob.get_probabilities">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.get_probabilities">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_probabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="c1"># pylint: disable=unused-argument</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_probabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="c1"># pylint: disable=unused-argument</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return the probabilities for the job.</span>
 
@@ -502,7 +502,7 @@
 
 <div class="viewcode-block" id="IonQJob.result">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.result">[docs]</a>
-    <span class="k">def</span> <span class="nf">result</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">result</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">sharpen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">extra_query_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -541,7 +541,7 @@
         <span class="k">except</span> <span class="n">JobTimeoutError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobTimeoutError</span><span class="p">(</span>
                 <span class="s2">&quot;Timed out waiting for job to complete.&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="ow">is</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">CANCELLED</span><span class="p">:</span>
             <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -563,7 +563,7 @@
 
 <div class="viewcode-block" id="IonQJob.status">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.status">[docs]</a>
-    <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detailed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detailed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve the status of a job</span>
 
 <span class="sd">        Args:</span>
@@ -601,7 +601,7 @@
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Unknown job status </span><span class="si">{</span><span class="n">api_response_status</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span>
 
         <span class="c1"># Map it to a qiskit JobStatus key</span>
         <span class="k">try</span><span class="p">:</span>
@@ -609,7 +609,7 @@
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Job status </span><span class="si">{</span><span class="n">status_enum</span><span class="si">}</span><span class="s2"> has no qiskit status mapping!&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span>
 
         <span class="c1"># Get a qiskit status enum.</span>
         <span class="k">try</span><span class="p">:</span>
@@ -617,7 +617,7 @@
         <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Qiskit has no JobStatus named &#39;</span><span class="si">{</span><span class="n">status_enum</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="ow">in</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JOB_FINAL_STATES</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_save_metadata</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
@@ -665,7 +665,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_children_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_children_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve the status of the children</span>
 
 <span class="sd">        Raises:</span>
@@ -691,21 +691,21 @@
             <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Unknown job status </span><span class="si">{</span><span class="n">api_response_status</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span>
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">status_enum</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">JobStatusMap</span><span class="p">[</span><span class="n">status_enum</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
             <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Job status </span><span class="si">{</span><span class="n">status_enum</span><span class="si">}</span><span class="s2"> has no qiskit status mapping!&quot;</span>
-                <span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span>
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">qiskit_status</span> <span class="o">=</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="p">[</span><span class="n">status_enum</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
             <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Qiskit has no JobStatus named &#39;</span><span class="si">{</span><span class="n">status_enum</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
-                <span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span>
 
             <span class="n">child_statuses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">qiskit_status</span><span class="p">)</span>
 
@@ -724,7 +724,7 @@
 
         <span class="k">return</span> <span class="n">status_summary</span>
 
-    <span class="k">def</span> <span class="nf">_format_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_format_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Translate IonQ&#39;s result format into a qiskit Result instance.</span>
 
 <span class="sd">        TODO: If result is (failure, cancelled), this method may fail.</span>
@@ -810,7 +810,7 @@
             <span class="p">}</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_save_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Save metadata from the response to the job instance.</span>
 
 <span class="sd">        Args:</span>
@@ -854,7 +854,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=559aaa41"></script>
+    <script src="../../_static/documentation_options.js?v=c61aa432"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>
