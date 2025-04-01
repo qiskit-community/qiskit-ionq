@@ -259,21 +259,75 @@ class CommuteGPIsThroughMS(TransformationPass):
                         for qreg in dag.qregs.values():
                             sub_dag.add_qreg(qreg)
 
-                        # map the ops to the qubits in the sub-DAG
-                        ms_qubits = [next_node.qargs[0], next_node.qargs[1]]
-                        gpis_qubit = [node.qargs[0]]
+                        sub_dag.apply_operation_back(next_node.op, next_node.qargs)
+                        sub_dag.apply_operation_back(node.op, node.qargs)
 
-                        sub_dag.apply_operation_back(next_node.op, ms_qubits)
-                        sub_dag.apply_operation_back(node.op, gpis_qubit)
-
-                        wire_mapping = {qubit: qubit for qubit in ms_qubits}
-                        wire_mapping[node.qargs[0]] = node.qargs[0]
+                        wire_mapping = {qubit: qubit for qubit in next_node.qargs}
 
                         dag.substitute_node_with_dag(
                             next_node, sub_dag, wires=wire_mapping
                         )
                         nodes_to_remove.add(node)
                         break
+
+        for node in nodes_to_remove:
+            dag.remove_op_node(node)
+
+        return dag
+
+
+class CommuteGPITimesGPIThroughZZ(TransformationPass):
+    """GPI(theta) * GPI(theta') on either qubit commutes with ZZ"""
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        nodes_to_remove = set()
+
+        for node in dag.topological_op_nodes():
+            if node in nodes_to_remove or node.op.name != "gpi":
+                continue
+            successors = [
+                succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)
+            ]
+
+            gate_pattern_found = False
+            for next_node in successors:
+                if gate_pattern_found:
+                    break
+                if next_node in nodes_to_remove or next_node.op.name != "gpi":
+                    continue
+
+                if node.qargs[0] == next_node.qargs[0]:
+                    next_node_successors = [
+                        succ
+                        for succ in dag.successors(next_node)
+                        if isinstance(succ, DAGOpNode)
+                    ]
+                    for next_next_node in next_node_successors:
+                        if (
+                            next_next_node.op.name == "zz"
+                            and next_node.qargs[0] in next_next_node.qargs
+                        ):
+                            sub_dag = DAGCircuit()
+                            for qreg in dag.qregs.values():
+                                sub_dag.add_qreg(qreg)
+
+                            sub_dag.apply_operation_back(
+                                next_next_node.op, next_next_node.qargs
+                            )
+                            sub_dag.apply_operation_back(node.op, node.qargs)
+                            sub_dag.apply_operation_back(next_node.op, next_node.qargs)
+
+                            wire_mapping = {
+                                qubit: qubit for qubit in next_next_node.qargs
+                            }
+
+                            dag.substitute_node_with_dag(
+                                next_next_node, sub_dag, wires=wire_mapping
+                            )
+                            nodes_to_remove.add(node)
+                            nodes_to_remove.add(next_node)
+                            gate_pattern_found = True
+                            break
 
         for node in nodes_to_remove:
             dag.remove_op_node(node)

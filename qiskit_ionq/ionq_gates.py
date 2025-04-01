@@ -168,19 +168,21 @@ class ZZGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, theta: Optional[ParameterValueType] = 0.25, label: Optional[str] = None
+    ):
         """Create new ZZ gate."""
         super().__init__("zz", 2, [theta], label=label)
 
     def __array__(self, dtype=None) -> np.ndarray:
         """Return a numpy array for the ZZ gate."""
-        itheta2 = 1j * float(self.params[0]) * math.pi
+        i_theta_over_2 = 1j * float(self.params[0]) * math.pi
         return np.array(
             [
-                [np.exp(-itheta2), 0, 0, 0],
-                [0, np.exp(itheta2), 0, 0],
-                [0, 0, np.exp(itheta2), 0],
-                [0, 0, 0, np.exp(-itheta2)],
+                [np.exp(-i_theta_over_2), 0, 0, 0],
+                [0, np.exp(i_theta_over_2), 0, 0],
+                [0, 0, np.exp(i_theta_over_2), 0],
+                [0, 0, 0, np.exp(-i_theta_over_2)],
             ],
             dtype=dtype,
         )

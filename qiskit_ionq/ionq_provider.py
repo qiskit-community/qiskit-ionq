@@ -34,6 +34,8 @@ from typing import Callable, Literal, Optional
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
+
+from qiskit_ionq import ionq_equivalence_library
 from .helpers import resolve_credentials
 
 from . import ionq_backend
@@ -87,13 +89,29 @@ class IonQProvider:
                 more than one backend matches the filtering criteria.
         """
         name = "ionq_" + name if not name.startswith("ionq_") else name
+
+        noise_model = None
+        if "noise_model" in kwargs:
+            noise_model = kwargs.pop("noise_model", None)
+
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
             raise QiskitBackendNotFoundError("More than one backend matches criteria.")
         if not backends:
             raise QiskitBackendNotFoundError("No backend matches criteria.")
 
-        return backends[0].with_name(name, gateset=gateset)
+        if noise_model:
+            ionq_equivalence_library.add_equivalences(name, noise_model=noise_model)
+        else:
+            ionq_equivalence_library.add_equivalences(name)
+
+        if noise_model:
+            backend = backends[0].with_name(
+                name, gateset=gateset, noise_model=noise_model
+            )
+        else:
+            backend = backends[0].with_name(name, gateset=gateset)
+        return backend
 
 
 class BackendService:
