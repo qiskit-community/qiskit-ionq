@@ -171,7 +171,8 @@ class IonQJob(Job):
         assert (
             job_id is not None or circuit is not None
         ), "Job must have a job_id or circuit"
-        super().__init__(backend, job_id)
+        self._backend = backend
+        self._job_id = job_id
         self._client = client or backend.client
         self._result = None
         self._status = None
@@ -196,6 +197,14 @@ class IonQJob(Job):
             self._status = jobstatus.JobStatus.INITIALIZING
             self._job_id = job_id
             self.status()
+    
+    def backend(self) -> ionq_backend.IonQBackend:
+        """Return the backend this job was submitted to."""
+        return self._backend
+    
+    def job_id(self) -> str:
+        """Return the job ID of this job."""
+        return self._job_id
 
     def cancel(self) -> None:
         """Cancel this job."""

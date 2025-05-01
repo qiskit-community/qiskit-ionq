@@ -37,9 +37,6 @@ from qiskit_ionq.helpers import compress_to_metadata_string
 class MockBackend(ionq_backend.IonQBackend):
     """A mock backend for testing super-class behavior in isolation."""
 
-    def gateset(self):
-        return "qis"
-
     def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
         super().__init__(
             provider=provider,

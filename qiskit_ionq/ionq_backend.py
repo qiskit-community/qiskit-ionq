@@ -170,7 +170,7 @@ class IonQBackend(Backend):
             instr = Instruction(name=gate_name, num_qubits=_arity[gate_name], num_clbits=0, params=[])
             self._target.add_instruction(instr, properties={None: None})
 
-        self._gateset = gateset
+        self.gateset = gateset
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -335,10 +335,6 @@ class IonQBackend(Backend):
         """Helper method that returns this backend with a more specific target system."""
         pass
 
-    @abc.abstractmethod
-    def gateset(self) -> Literal["qis", "native"]:
-        """Helper method returning the gateset this backend is targeting."""
-
     def has_valid_mapping(self, circuit: QuantumCircuit) -> bool:
         """checks if the circuit has at least one valid qubit -> bit measurement."""
         for instruction, _, cargs in circuit.data:
@@ -348,9 +344,8 @@ class IonQBackend(Backend):
 
     def __eq__(self, other) -> bool:
         if isinstance(other, self.__class__):
-            return self.name() == other.name() and self.gateset() == other.gateset()
-        else:
-            return False
+            return self.name == other.name and self.gateset == other.gateset
+        return NotImplemented
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
@@ -426,9 +421,6 @@ class IonQSimulatorBackend(IonQBackend):
         """Simulators have no calibration data."""
         return None
 
-    def gateset(self) -> Literal["qis", "native"]:
-        return self._gateset
-
     def with_name(self, name, **kwargs) -> "IonQSimulatorBackend":
         """Helper method that returns this backend with a more specific target system."""
         return IonQSimulatorBackend(self._provider, name, **kwargs)
@@ -451,9 +443,6 @@ class IonQQPUBackend(IonQBackend):
             gateset=gateset,
             simulator=False,
         )
-
-    def gateset(self) -> Literal["qis", "native"]:
-        return self._gateset
 
     def with_name(self, name: str, **kwargs) -> "IonQQPUBackend":
         """Helper method that returns this backend with a more specific target system."""
