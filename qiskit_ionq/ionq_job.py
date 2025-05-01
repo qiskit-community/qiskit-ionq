@@ -42,7 +42,7 @@ from typing import TYPE_CHECKING, Any, Union, Optional
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.providers import JobV1, jobstatus
+from qiskit.providers import Job, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
 from .helpers import decompress_metadata_string
@@ -145,7 +145,7 @@ def _build_counts(
     return counts, probabilities
 
 
-class IonQJob(JobV1):
+class IonQJob(Job):
     """Representation of a Job that will run on an IonQ backend.
 
     It is not recommended to create Job instances directly, but rather use the
@@ -489,7 +489,7 @@ class IonQJob(JobV1):
 
         # Different backends can have differing result data:
         backend = self.backend()
-        backend_name = backend.name()
+        backend_name = backend.name
         backend_version = backend.configuration().backend_version
         is_ideal_simulator = (
             backend_name == "ionq_simulator" and backend.options.noise_model == "ideal"

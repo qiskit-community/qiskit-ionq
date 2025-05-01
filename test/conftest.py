@@ -28,7 +28,6 @@
 
 import pytest
 import requests_mock as _requests_mock
-from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from requests_mock import adapter as rm_adapter
 
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
@@ -42,30 +41,14 @@ class MockBackend(ionq_backend.IonQBackend):
         return "qis"
 
     def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
-        config = BackendConfiguration.from_dict(
-            {
-                "backend_name": name,
-                "backend_version": "0.0.1",
-                "simulator": True,
-                "local": True,
-                "coupling_map": None,
-                "description": "IonQ Mock Backend",
-                "n_qubits": 29,
-                "conditional": False,
-                "open_pulse": False,
-                "memory": False,
-                "max_shots": 0,
-                "basis_gates": [],
-                "gates": [
-                    {
-                        "name": "TODO",
-                        "parameters": [],
-                        "qasm_def": "TODO",
-                    }
-                ],
-            }
+        super().__init__(
+            provider=provider,
+            name=name,
+            description="IonQ Mock Backend",
+            backend_version="0.0.1",
+            gateset="qis",
+            simulator=True,
         )
-        super().__init__(config, provider=provider)
 
     def with_name(self, name, **kwargs):
         """Helper method that returns this backend with a more specific target system."""

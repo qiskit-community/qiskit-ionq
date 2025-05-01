@@ -470,7 +470,7 @@ def qiskit_to_ionq(
         metadata_list if multi_circuit else metadata_list[0]
     )
 
-    target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
+    target = backend.name[5:] if backend.name.startswith("ionq") else backend.name
     name = passed_args.get("name") or (
         f"{len(circuit)} circuits" if multi_circuit else circuit[0].name
     )

@@ -34,7 +34,6 @@ from qiskit import QuantumCircuit
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
 
-from qiskit.qobj.utils import MeasLevel
 from qiskit_ionq import exceptions, ionq_job
 
 from .. import conftest
@@ -425,7 +424,7 @@ expected_result = {
                 "qreg_sizes": [["q", 2]],
                 "qubit_labels": [["q", 0], ["q", 1]],
             },
-            "meas_level": MeasLevel.CLASSIFIED,
+            "meas_level": 2,  # MeasLevel.CLASSIFIED,
             "shots": 1234,
             "success": True,
         }
@@ -699,7 +698,9 @@ def test_status__no_job_id(mock_backend):
     assert actual_status is job._status is jobstatus.JobStatus.INITIALIZING
 
 
-def test_status__already_final_state(mock_backend, requests_mock):  # pylint: disable=invalid-name
+def test_status__already_final_state(
+    mock_backend, requests_mock
+):  # pylint: disable=invalid-name
     """Test status() returns early when the job is already completed.
 
     Args:
