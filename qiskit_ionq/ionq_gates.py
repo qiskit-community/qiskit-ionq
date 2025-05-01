@@ -174,7 +174,7 @@ class ZZGate(Gate):
 
     def __array__(self, dtype=None) -> np.ndarray:
         """Return a numpy array for the ZZ gate."""
-        itheta2 = 1j * float(self.params[0]) * math.pi
+        itheta2 = 1j * float(self.params[0]) * math.pi  # * 2 (when using turns)
         return np.array(
             [
                 [np.exp(-itheta2), 0, 0, 0],

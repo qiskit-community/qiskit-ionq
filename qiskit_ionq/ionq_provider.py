@@ -109,7 +109,7 @@ class BackendService:
         """
         self._backends = backends
         for backend in backends:
-            setattr(self, backend.name(), backend)
+            setattr(self, backend.name, backend)
 
     def __call__(
         self, name: Optional[str] = None, filters: Optional[Callable] = None, **kwargs
@@ -137,5 +137,5 @@ class BackendService:
         # pylint: disable=arguments-differ
         backends = self._backends
         if name:
-            backends = [b for b in self._backends if name.startswith(b.name())]
+            backends = [b for b in self._backends if name.startswith(b.name)]
         return filter_backends(backends, filters, **kwargs)

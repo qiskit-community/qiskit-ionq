@@ -28,10 +28,10 @@
 # pylint: disable=redefined-outer-name
 
 from unittest import mock
+from typing import Mapping
 
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.providers.models.backendstatus import BackendStatus
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
 
@@ -45,8 +45,8 @@ def test_status_dummy_response(mock_backend):
         mock_backend (MockBackend): A fake/mock IonQBackend.
     """
     status = mock_backend.status()
-    assert isinstance(status, BackendStatus)
-    assert status.operational is True
+    assert isinstance(status, Mapping)
+    assert status["operational"] is True
 
 
 def test_client_property(mock_backend):
