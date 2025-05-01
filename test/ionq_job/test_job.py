@@ -424,7 +424,7 @@ expected_result = {
                 "qreg_sizes": [["q", 2]],
                 "qubit_labels": [["q", 0], ["q", 1]],
             },
-            "meas_level": 2,  # MeasLevel.CLASSIFIED,
+            "meas_level": "classified",
             "shots": 1234,
             "success": True,
         }
