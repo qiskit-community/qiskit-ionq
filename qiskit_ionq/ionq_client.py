@@ -46,7 +46,7 @@ class IonQClient:
     """IonQ API Client
 
     Attributes:
-        _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.3"``
+        _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.4"``
         _token(str): An API Access Token to use with the IonQ API.
         _custom_headers(dict): Extra headers to add to the request.
     """
@@ -137,6 +137,13 @@ class IonQClient:
             job.extra_metadata,
         )
         req_path = self.make_path("jobs")
+        print(
+            f"{req_path=}",
+            f"as_json={json.dumps(json.loads(as_json), indent=2)}",
+            f"{self.api_headers=}",
+            sep="\n",
+            end="\n\n",
+        )
         res = requests.post(
             req_path,
             data=as_json,
