@@ -483,8 +483,12 @@ def qiskit_to_ionq(
     settings = {
         "compilation": {
             "opt": extra_metadata.get("compilation", {}).get("opt", "0"),
-            "precision": extra_metadata.get("compilation", {}).get("precision", "1E-3"),
-            "gate_basis": extra_metadata.get("compilation", {}).get("gate_basis", "ZZ"),
+            "precision": extra_metadata.get("compilation", {}).get(
+                "precision", "1E-3"
+            ),
+            "gate_basis": extra_metadata.get("compilation", {}).get(
+                "gate_basis", "ZZ"
+            ),
         },
         "error_mitigation": {
             "debiasing": {
@@ -530,24 +534,31 @@ def qiskit_to_ionq(
         return insts
 
     # Input block
-    input_block = {"qubits": max(c.num_qubits for c in circuit), "circuits": []}
+    input_block = {
+        "format": "ionq.circuit.v0",
+        "gateset": backend.gateset(),
+        "qubits": max(c.num_qubits for c in circuit),
+        "circuits": [{"circuit": []}],
+    }
     if multi_circuit:
         for ionq_circ, _, name in ionq_circs:
-            input_block["circuits"].append(serialize_instructions(ionq_circ))
+            input_block["circuits"][0]["circuit"].append(serialize_instructions(ionq_circ))
     else:
-        input_block["circuits"] = serialize_instructions(ionq_circs)
+        input_block["circuits"][0]["circuit"] = serialize_instructions(ionq_circs)
 
     # Final MVP payload
     job_payload = {
         "type": "ionq.circuit.v1",
-        "metadata": extra_metadata.get("metadata", []),
         "name": name,
-        "backend": target,
         "shots": passed_args.get("shots", None),
-        "is_dry_run": passed_args.get("dry_run", False),
-        "settings": settings,
+        "dry_run": passed_args.get("dry_run", False),
         "input": input_block,
+        "backend": target,
     }
+    if extra_query_params.get("metadata") is not None:
+        job_payload["metadata"] = extra_query_params.get("metadata")
+    if extra_metadata.get("compilation") is None:
+        del settings["compilation"]
 
     return json.dumps(job_payload, cls=SafeEncoder)
 
