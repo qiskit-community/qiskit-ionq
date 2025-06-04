@@ -483,12 +483,8 @@ def qiskit_to_ionq(
     settings = {
         "compilation": {
             "opt": extra_metadata.get("compilation", {}).get("opt", "0"),
-            "precision": extra_metadata.get("compilation", {}).get(
-                "precision", "1E-3"
-            ),
-            "gate_basis": extra_metadata.get("compilation", {}).get(
-                "gate_basis", "ZZ"
-            ),
+            "precision": extra_metadata.get("compilation", {}).get("precision", "1E-3"),
+            "gate_basis": extra_metadata.get("compilation", {}).get("gate_basis", "ZZ"),
         },
         "error_mitigation": {
             "debiasing": {
@@ -542,7 +538,9 @@ def qiskit_to_ionq(
     }
     if multi_circuit:
         for ionq_circ, _, name in ionq_circs:
-            input_block["circuits"][0]["circuit"].append(serialize_instructions(ionq_circ))
+            input_block["circuits"][0]["circuit"].append(
+                serialize_instructions(ionq_circ)
+            )
     else:
         input_block["circuits"][0]["circuit"] = serialize_instructions(ionq_circs)
 
@@ -550,6 +548,7 @@ def qiskit_to_ionq(
     job_payload = {
         "type": "ionq.circuit.v1",
         "name": name,
+        "metadata": {"qiskit_header": qiskit_header},
         "shots": passed_args.get("shots", None),
         "dry_run": passed_args.get("dry_run", False),
         "input": input_block,
