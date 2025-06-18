@@ -46,7 +46,7 @@ class IonQClient:
     """IonQ API Client
 
     Attributes:
-        _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.3"``
+        _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.4"``
         _token(str): An API Access Token to use with the IonQ API.
         _custom_headers(dict): Extra headers to add to the request.
     """
@@ -137,6 +137,12 @@ class IonQClient:
             job.extra_metadata,
         )
         req_path = self.make_path("jobs")
+        print(
+            f"{req_path=}",
+            f"as_json={json.dumps(json.loads(as_json), indent=2)}",
+            f"{self.api_headers=}",
+            sep="\n",
+        )
         res = requests.post(
             req_path,
             data=as_json,
@@ -276,7 +282,7 @@ class IonQClient:
             )
             params.update(extra_query_params)
 
-        req_path = self.make_path("jobs", job_id, "results")
+        req_path = self.make_path("jobs", job_id, "results", "histogram")
         res = self._get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys

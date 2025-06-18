@@ -197,6 +197,14 @@ class IonQJob(JobV1):
             self._job_id = job_id
             self.status()
 
+    @staticmethod
+    def _first_of(mapping: dict, *keys, default=None):
+        """Return the first present key in `keys` or `default` if none exist."""
+        for k in keys:
+            if k in mapping and mapping[k] is not None:
+                return mapping[k]
+        return default
+
     def cancel(self) -> None:
         """Cancel this job."""
         assert self._job_id is not None, "Cannot cancel a job without a job_id."
@@ -371,9 +379,14 @@ class IonQJob(JobV1):
             self._save_metadata(response)
 
         if self._status == jobstatus.JobStatus.DONE:
-            self._num_circuits = response.get("circuits", 1)
-            self._children = response.get("children", [])
-            self._num_qubits = response.get("qubits", 0)
+            stats = response.get("stats", {})
+            self._num_circuits = self._first_of(
+                stats, "circuits", response.get("circuits"), 1
+            )
+            self._num_qubits = self._first_of(
+                stats, "qubits", response.get("qubits"), 0
+            )
+            self._children = self._first_of(response, "child_job_ids", "children", None)
             default_map = list(range(self._num_qubits))
             self._clbits = (
                 [
@@ -385,7 +398,12 @@ class IonQJob(JobV1):
                 if self._children
                 else [response.get("registers", {}).get("meas_mapped", default_map)]
             )
-            self._execution_time = response["execution_time"] / 1000
+            self._execution_time = (
+                self._first_of(
+                    response, "execution_duration_ms", "execution_time", float("inf")
+                )
+                / 1000
+            )
 
         if self._status == jobstatus.JobStatus.ERROR:
             failure = response.get("failure") or {}
@@ -407,10 +425,7 @@ class IonQJob(JobV1):
             for warning in response["warning"]["messages"]:
                 warnings.warn(warning)
 
-        if detailed:
-            return self._children_status()
-
-        return self._status
+        return self._children_status() if detailed else self._status
 
     def _children_status(self):
         """Retrieve the status of the children
@@ -425,7 +440,7 @@ class IonQJob(JobV1):
             dict: A dictionary containing the detailed status of the children.
         """
         response = self._client.retrieve_job(self._job_id)
-        child_ids = response.get("children", [])
+        child_ids = self._first_of(response, "child_job_ids", "children", [])
         child_statuses = []
 
         for child_id in child_ids:
@@ -497,7 +512,7 @@ class IonQJob(JobV1):
 
         # Format the inner result payload.
         success = self._status == jobstatus.JobStatus.DONE
-        metadata = self._metadata.get("metadata", {})
+        metadata = self._metadata.get("metadata") or {}
         sampler_seed = (
             int(metadata.get("sampler_seed", ""))
             if metadata.get("sampler_seed", "").isdigit()
