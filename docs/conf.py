@@ -97,6 +97,6 @@ autoclass_content = "both"
 #
 # Sphinx doc mappings
 intersphinx_mapping = {
-    "qiskit-terra": ("https://docs.quantum.ibm.com/api/qiskit/", None),
+    "qiskit-terra": ("https://quantum.cloud.ibm.com/docs/api/qiskit/", None),
     "requests": ("https://requests.readthedocs.io/en/master/", None),
 }
