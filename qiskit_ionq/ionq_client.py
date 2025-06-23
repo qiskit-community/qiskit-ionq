@@ -223,23 +223,20 @@ class IonQClient:
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
-    def get_calibration_data(self, backend_name: str) -> dict:
-        """Retrieve calibration data for a specified backend.
+    def get_characterizations(
+        self, backend_name: str, *, limit: int | None = None
+    ) -> list[dict]:
+        """List all characterizations for a backend."""
+        params = {"limit": limit} if limit else None
+        url = self.make_path("backends", backend_name, "characterizations")
+        res = self.get_with_retry(url, headers=self.api_headers, params=params)
+        exceptions.IonQAPIError.raise_for_status(res)
+        return res.json().get("characterizations", [])
 
-        Args:
-            backend_name (str): The IonQ backend to fetch data for.
-
-        Raises:
-            IonQAPIError: When the API returns a non-200 status code.
-            IonQRetriableError: When a retriable error occurs during the request.
-
-        Returns:
-            dict: A dictionary of an IonQ backend's calibration data.
-        """
-        req_path = self.make_path(
-            "/".join(["characterizations/backends", backend_name[5:], "current"])
-        )
-        res = self.get_with_retry(req_path, headers=self.api_headers)
+    def get_characterization(self, backend_name: str, char_id: str) -> dict:
+        """Fetch a specific characterization by UUID."""
+        url = self.make_path("backends", backend_name, "characterizations", char_id)
+        res = self.get_with_retry(url, headers=self.api_headers)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -287,6 +284,34 @@ class IonQClient:
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
         return json.loads(res.text, object_pairs_hook=OrderedDict)
+
+    def estimate_job(
+        self,
+        *,
+        backend: str,
+        oneq_gates: int,
+        twoq_gates: int,
+        qubits: int,
+        shots: int,
+        error_mitigation: bool = False,
+        session: bool = False,
+        job_type: str = "ionq.circuit.v1",
+    ) -> dict:
+        """Call GET /jobs/estimate … returns a cost/time prediction."""
+        params = {
+            "type": job_type,
+            "backend": backend,
+            "1q_gates": oneq_gates,
+            "2q_gates": twoq_gates,
+            "qubits": qubits,
+            "shots": shots,
+            "error_mitigation": str(error_mitigation).lower(),
+            "session": str(session).lower(),
+        }
+        url = self.make_path("jobs", "estimate")
+        res = self.get_with_retry(url, headers=self.api_headers, params=params)
+        exceptions.IonQAPIError.raise_for_status(res)
+        return res.json()
 
     @retry(exceptions=IonQRetriableError, tries=5)
     def post(self, *path_parts: str, json_body: dict | None = None) -> dict:

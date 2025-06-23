@@ -380,12 +380,8 @@ class IonQJob(JobV1):
 
         if self._status == jobstatus.JobStatus.DONE:
             stats = response.get("stats", {})
-            self._num_circuits = self._first_of(
-                stats, "circuits", response.get("circuits"), 1
-            )
-            self._num_qubits = self._first_of(
-                stats, "qubits", response.get("qubits"), 0
-            )
+            self._num_circuits = self._first_of(stats, "circuits", default=1)
+            self._num_qubits = self._first_of(stats, "qubits", default=0)
             self._children = self._first_of(response, "child_job_ids", "children", None)
             default_map = list(range(self._num_qubits))
             self._clbits = (

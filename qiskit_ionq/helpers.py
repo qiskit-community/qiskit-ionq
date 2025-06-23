@@ -537,27 +537,48 @@ def qiskit_to_ionq(
         "circuits": [{"circuit": []}],
     }
     if multi_circuit:
-        for ionq_circ, _, name in ionq_circs:
-            input_block["circuits"][0]["circuit"].append(
-                serialize_instructions(ionq_circ)
+        for ionq_circ, meas_map, name in ionq_circs:
+            input_block["circuits"].append(
+                {
+                    "name": name,
+                    "circuit": serialize_instructions(ionq_circ),
+                    "registers": {"meas_mapped": meas_map} if meas_map else {},
+                }
             )
     else:
-        input_block["circuits"][0]["circuit"] = serialize_instructions(ionq_circs)
+        # ionq_circs holds the *single* circuit’s instruction list
+        input_block["circuits"].append(
+            {
+                "circuit": serialize_instructions(ionq_circs),
+            }
+        )
 
-    # Final MVP payload
+    # v0.4 job payload
     job_payload = {
         "type": "ionq.circuit.v1",
         "name": name,
-        "metadata": {"qiskit_header": qiskit_header},
-        "shots": passed_args.get("shots", None),
+        "metadata": extra_metadata.get("metadata", {"qiskit_header": qiskit_header}),
+        "shots": passed_args.get("shots"),
         "dry_run": passed_args.get("dry_run", False),
-        "input": input_block,
         "backend": target,
+        "input": input_block,
     }
-    if extra_query_params.get("metadata") is not None:
-        job_payload["metadata"] = extra_query_params.get("metadata")
-    if extra_metadata.get("compilation") is None:
-        del settings["compilation"]
+
+    # Optional blocks
+    if passed_args.get("session_id"):
+        job_payload["session_id"] = passed_args["session_id"]
+
+    if settings:
+        job_payload["settings"] = settings
+
+    if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
+        job_payload.setdefault("settings", {})["error_mitigation"] = {
+            "debiasing": {"method": error_mitigation.value}
+        }
+
+    # Any user-supplied overrides (kept for parity with v0.3 helpers)
+    if extra_query_params:
+        job_payload.update(extra_query_params)
 
     return json.dumps(job_payload, cls=SafeEncoder)
 
