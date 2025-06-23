@@ -125,7 +125,7 @@ ionq_api_aliases = {  # todo fix alias bug
 
 # https://ionq.com/docs/getting-started-with-native-gates
 ionq_native_basis_gates = [
-    "gpi",  # TODO All single qubit gates can transpile into GPI/GPI2
+    "gpi",
     "gpi2",
     "ms",  # Pairwise MS gate
     "zz",  # ZZ gate
