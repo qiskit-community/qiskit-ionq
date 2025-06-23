@@ -35,6 +35,7 @@ except ImportError as exc:
     ) from exc
 
 from .ionq_provider import IonQProvider
+from .ionq_session import Session
 from .ionq_optimizer_plugin import (
     TrappedIonOptimizerPlugin,
     TrappedIonOptimizerPluginSimpleRules,
@@ -49,6 +50,7 @@ from .ionq_equivalence_library import add_equivalences
 __all__ = [
     "__version__",
     "IonQProvider",
+    "Session",
     "TrappedIonOptimizerPlugin",
     "TrappedIonOptimizerPluginSimpleRules",
     "TrappedIonOptimizerPluginCompactGates",

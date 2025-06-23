@@ -125,7 +125,7 @@ ionq_api_aliases = {  # todo fix alias bug
 
 # https://ionq.com/docs/getting-started-with-native-gates
 ionq_native_basis_gates = [
-    "gpi",  # TODO All single qubit gates can transpile into GPI/GPI2
+    "gpi",
     "gpi2",
     "ms",  # Pairwise MS gate
     "zz",  # ZZ gate
@@ -470,51 +470,112 @@ def qiskit_to_ionq(
         metadata_list if multi_circuit else metadata_list[0]
     )
 
+    # Common fields
     target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
     name = passed_args.get("name") or (
         f"{len(circuit)} circuits" if multi_circuit else circuit[0].name
     )
-    ionq_json = {
-        "target": target,
-        "shots": passed_args.get("shots"),
-        "name": name,
-        "input": {
-            "format": "ionq.circuit.v0",
-            "gateset": backend.gateset(),
-            "qubits": max(c.num_qubits for c in circuit),
-        },
-        # store a couple of things we'll need later for result formatting
-        "metadata": {
-            "shots": str(passed_args.get("shots")),
-            "sampler_seed": str(passed_args.get("sampler_seed")),
-            "qiskit_header": qiskit_header,
-        },
-    }
-    if multi_circuit:
-        ionq_json["input"]["circuits"] = [
-            {"name": n, "circuit": c, "registers": {"meas_mapped": m}}
-            for c, m, n in ionq_circs
-        ]
-    else:
-        ionq_json["input"]["circuit"] = ionq_circs
-        ionq_json["registers"] = {"meas_mapped": meas_map} if meas_map else {}
-    if target == "simulator":
-        ionq_json["noise"] = {
-            "model": passed_args.get("noise_model") or backend.options.noise_model,
-            "seed": backend.options.sampler_seed,
-        }
-    ionq_json.update(extra_query_params)
-    # merge circuit and extra metadata
-    ionq_json["metadata"].update(extra_metadata)
-    settings = passed_args.get("job_settings") or None
-    if settings is not None:
-        ionq_json["settings"] = settings
     error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
         "error_mitigation"
     )
+
+    # Settings block
+    settings = {
+        "compilation": {
+            "opt": extra_metadata.get("compilation", {}).get("opt", "0"),
+            "precision": extra_metadata.get("compilation", {}).get("precision", "1E-3"),
+            "gate_basis": extra_metadata.get("compilation", {}).get("gate_basis", "ZZ"),
+        },
+        "error_mitigation": {
+            "debiasing": {
+                "method": (
+                    error_mitigation.value
+                    if isinstance(error_mitigation, ErrorMitigation)
+                    else (error_mitigation or "none")
+                )
+            }
+        },
+    }
+
+    # Flatten IonQ circuit instructions into MVP‐style list of dicts
+    def serialize_instructions(ionq_circ):
+        insts = []
+        for op in ionq_circ:
+            gate = op.get("gate")
+            # figure out the single target
+            if "target" in op:
+                tgt = op["target"]
+            elif "targets" in op and op["targets"]:
+                tgt = op["targets"][0]
+            elif "qubits" in op and op["qubits"]:
+                tgt = op["qubits"][0]
+            else:
+                raise KeyError(f"No target found in operation {op}")
+
+            inst = {"gate": gate, "target": tgt}
+
+            # optional control
+            if "control" in op:
+                inst["control"] = op["control"]
+            elif "controls" in op and op["controls"]:
+                inst["control"] = op["controls"][0]
+
+            # optional rotation/angle
+            if "rotation" in op:
+                inst["rotation"] = op["rotation"]
+            elif "angle" in op:
+                inst["rotation"] = op["angle"]
+
+            insts.append(inst)
+        return insts
+
+    # Input block
+    input_block: dict[str, Any] = {
+        "format": "ionq.circuit.v0",
+        "gateset": backend.gateset(),
+        "qubits": max(c.num_qubits for c in circuit),
+    }
+    if multi_circuit:
+        input_block["circuits"] = [
+            {
+                "circuit": serialize_instructions(c),
+                **({"registers": {"meas_mapped": m}} if m else {}),
+            }
+            for c, m, _ in ionq_circs
+        ]
+    else:
+        input_block["circuit"] = serialize_instructions(ionq_circs)
+        # if meas_map:
+        #     input_block["registers"] = {"meas_mapped": meas_map}
+
+    # v0.4 job payload
+    job_payload = {
+        "type": "ionq.circuit.v1",
+        "name": name,
+        "metadata": extra_metadata.get("metadata", {"qiskit_header": qiskit_header}),
+        "shots": passed_args.get("shots"),
+        "dry_run": passed_args.get("dry_run", False),
+        "backend": target,
+        "input": input_block,
+    }
+
+    # Optional blocks
+    if passed_args.get("session_id"):
+        job_payload["session_id"] = passed_args["session_id"]
+
+    if settings:
+        job_payload["settings"] = settings
+
     if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
-        ionq_json["error_mitigation"] = error_mitigation.value
-    return json.dumps(ionq_json, cls=SafeEncoder)
+        job_payload.setdefault("settings", {})["error_mitigation"] = {
+            "debiasing": {"method": error_mitigation.value}
+        }
+
+    # Any user-supplied overrides (kept for parity with v0.3 helpers)
+    if extra_query_params:
+        job_payload.update(extra_query_params)
+
+    return json.dumps(job_payload, cls=SafeEncoder)
 
 
 def get_user_agent():
@@ -569,7 +630,7 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     are loaded from the ``IONQ_API_TOKEN`` and ``IONQ_API_URL``
     environment variables, respectively.
 
-    If no url is discovered, then ``https://api.ionq.co/v0.3`` is used.
+    If no url is discovered, then ``https://api.ionq.co/v0.4`` is used.
 
     Args:
         token (str): IonQ API access token.
@@ -595,7 +656,7 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     )
     return {
         "token": token or env_token,
-        "url": url or env_url or "https://api.ionq.co/v0.3",
+        "url": url or env_url or "https://api.ionq.co/v0.4",
     }
 
 

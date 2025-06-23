@@ -115,7 +115,9 @@ class IonQAPIError(IonQError):
             IonQAPIError: instance of `cls` with error detail from `response`.
             IonQRetriableError:  instance of `cls` with error detail from `response`."""
         status_code = response.status_code
-        if status_code == 200:
+        print(status_code, type(status_code))
+        if status_code < 400:
+            # No error, return None
             return None
         res = cls.from_response(response)
         if _is_retriable(response.request.method, status_code):
