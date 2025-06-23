@@ -87,7 +87,7 @@ class IonQClient:
         """
         return f"{self._url}/{'/'.join(parts)}"
 
-    def _get_with_retry(self, req_path, params=None, headers=None, timeout=30):
+    def get_with_retry(self, req_path, params=None, headers=None, timeout=30):
         """Make a GET request with retry logic and exception handling.
 
         Args:
@@ -169,7 +169,7 @@ class IonQClient:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         req_path = self.make_path("jobs", job_id)
-        res = self._get_with_retry(req_path, headers=self.api_headers)
+        res = self.get_with_retry(req_path, headers=self.api_headers)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -239,7 +239,7 @@ class IonQClient:
         req_path = self.make_path(
             "/".join(["characterizations/backends", backend_name[5:], "current"])
         )
-        res = self._get_with_retry(req_path, headers=self.api_headers)
+        res = self.get_with_retry(req_path, headers=self.api_headers)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -283,10 +283,50 @@ class IonQClient:
             params.update(extra_query_params)
 
         req_path = self.make_path("jobs", job_id, "results", "histogram")
-        res = self._get_with_retry(req_path, headers=self.api_headers, params=params)
+        res = self.get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
         return json.loads(res.text, object_pairs_hook=OrderedDict)
+
+    @retry(exceptions=IonQRetriableError, tries=5)
+    def post(self, *path_parts: str, json_body: dict | None = None) -> dict:
+        """POST helper with IonQ headers + retry.
+
+        Args:
+            *path_parts (str): Path parts to append to the base URL.
+            json_body (dict, optional): JSON body to send in the POST request.
+
+        Raises:
+            IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
+
+        Returns:
+            dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
+        """
+        url = self.make_path(*path_parts)
+        res = requests.post(url, json=json_body, headers=self.api_headers, timeout=30)
+        exceptions.IonQAPIError.raise_for_status(res)
+        return res.json()
+
+    @retry(exceptions=IonQRetriableError, tries=3)
+    def put(self, *path_parts: str, json_body: dict | None = None) -> dict:
+        """PUT helper with IonQ headers + retry.
+
+        Args:
+            *path_parts (str): Path parts to append to the base URL.
+            json_body (dict, optional): JSON body to send in the PUT request.
+
+        Raises:
+            IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
+
+        Returns:
+            dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
+        """
+        url = self.make_path(*path_parts)
+        res = requests.put(url, json=json_body, headers=self.api_headers, timeout=30)
+        exceptions.IonQAPIError.raise_for_status(res)
+        return res.json()
 
 
 __all__ = ["IonQClient"]
