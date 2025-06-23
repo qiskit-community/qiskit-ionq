@@ -279,7 +279,9 @@ class IonQClient:
             )
             params.update(extra_query_params)
 
-        req_path = self.make_path("jobs", job_id, "results", "histogram")
+        req_path = self.make_path("jobs", job_id, "results")  # , "histogram")
+        # temporarily use the v0.3 API endpoint for results
+        req_path = req_path.replace("/v0.4/", "/v0.3/")
         res = self.get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys

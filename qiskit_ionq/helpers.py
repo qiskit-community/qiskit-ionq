@@ -530,28 +530,23 @@ def qiskit_to_ionq(
         return insts
 
     # Input block
-    input_block = {
+    input_block: dict[str, Any] = {
         "format": "ionq.circuit.v0",
         "gateset": backend.gateset(),
         "qubits": max(c.num_qubits for c in circuit),
-        "circuits": [{"circuit": []}],
     }
     if multi_circuit:
-        for ionq_circ, meas_map, name in ionq_circs:
-            input_block["circuits"].append(
-                {
-                    "name": name,
-                    "circuit": serialize_instructions(ionq_circ),
-                    "registers": {"meas_mapped": meas_map} if meas_map else {},
-                }
-            )
-    else:
-        # ionq_circs holds the *single* circuit’s instruction list
-        input_block["circuits"].append(
+        input_block["circuits"] = [
             {
-                "circuit": serialize_instructions(ionq_circs),
+                "circuit": serialize_instructions(c),
+                **({"registers": {"meas_mapped": m}} if m else {}),
             }
-        )
+            for c, m, _ in ionq_circs
+        ]
+    else:
+        input_block["circuit"] = serialize_instructions(ionq_circs)
+        # if meas_map:
+        #     input_block["registers"] = {"meas_mapped": meas_map}
 
     # v0.4 job payload
     job_payload = {
