@@ -71,7 +71,7 @@ def test_get_n_qubits_success():
         backend = "ionq_qpu.aria-1"
         result = get_n_qubits(backend)
 
-        expected_url = "https://api.ionq.co/v0.3/backends"
+        expected_url = "https://api.ionq.co/v0.4/backends"
 
         # Check the arguments of the last call to `requests.get`
         mock_get.assert_called()
@@ -89,7 +89,7 @@ def test_get_n_qubits_fallback():
         backend = "aria-1"
         result = get_n_qubits(backend)
 
-        expected_url = "https://api.ionq.co/v0.3/backends"
+        expected_url = "https://api.ionq.co/v0.4/backends"
 
         # Check the arguments of the last call to `requests.get`
         mock_get.assert_called()
