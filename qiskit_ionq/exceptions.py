@@ -179,6 +179,10 @@ class IonQBackendError(IonQError):
     """Errors generated from improper usage of IonQBackend objects."""
 
 
+class IonQBackendNotSupportedError(IonQError):
+    """The requested backend is not supported."""
+
+
 class IonQJobError(IonQError, JobError):
     """Errors generated from improper usage of IonQJob objects."""
 
@@ -248,6 +252,7 @@ __all__ = [
     "IonQClientError",
     "IonQAPIError",
     "IonQBackendError",
+    "IonQBackendNotSupportedError",
     "IonQJobError",
     "IonQGateError",
     "IonQMidCircuitMeasurementError",

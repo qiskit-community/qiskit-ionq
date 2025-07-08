@@ -206,9 +206,31 @@ def test_single_qubit_transpilation(ideal_results, gates):
     for gate_name, param in gates:
         append_gate(circuit, gate_name, param, [0])
 
-    # transpile circuit to native gates
+    # Transpile circuit to native gates using default simulator
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
+    transpiled_circuit = transpile(circuit, backend)
+
+    # simulate the circuit
+    statevector = Statevector(transpiled_circuit)
+    probabilities = np.abs(statevector) ** 2
+    np.testing.assert_allclose(
+        probabilities,
+        ideal_results,
+        atol=1e-3,
+        err_msg=(
+            f"Ideal: {np.round(ideal_results, 3)},\n"
+            f"Actual: {np.round(probabilities, 3)},\n"
+            f"Circuit: {circuit}"
+        ),
+    )
+
+    # Transpile circuit to native gates. Transpiling to one qubit gates using forte should
+    # make no difference w.r.t using default simulator, we test this scenario nevertheless.
+    provider = ionq_provider.IonQProvider()
+    backend = provider.get_backend(
+        "ionq_simulator", gateset="native", noise_model="forte-1"
+    )
     transpiled_circuit = transpile(circuit, backend)
 
     # simulate the circuit
@@ -361,20 +383,43 @@ def test_single_qubit_transpilation(ideal_results, gates):
     ],
     ids=lambda val: f"{val}",
 )
-def test_multi_qubit_transpilation(ideal_results, gates):
-    """Test transpiling multi-qubit circuits to native gates."""
+def test_two_qubit_transpilation(ideal_results, gates):
+    """Test transpiling two-qubit circuits to native gates."""
     # create a quantum circuit
     qr = QuantumRegister(2)
     circuit = QuantumCircuit(qr)
     for gate_name, param, qubits in gates:
         append_gate(circuit, gate_name, param, qubits)
 
-    # transpile circuit to native gates
+    # Transpile circuit to native gates using default simulator
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
     # Using optmization level 0 below is important here because ElidePermutations transpiler pass
     # in Qiskit will remove swap gates and instead premute qubits if optimization level is 2 or 3.
-    # In the future this feature could be extended to optmization level 1 as well.
+    # In the future this feature could be extended to optimization level 1 as well.
+    transpiled_circuit = transpile(circuit, backend, optimization_level=0)
+
+    # simulate the circuit
+    statevector = Statevector(transpiled_circuit)
+    probabilities = np.abs(statevector) ** 2
+    np.testing.assert_allclose(
+        probabilities,
+        ideal_results,
+        atol=1e-3,
+        err_msg=(
+            f"Ideal: {np.round(ideal_results, 3)},\n"
+            f"Actual: {np.round(probabilities, 3)},\n"
+            f"Circuit: {circuit}"
+        ),
+    )
+    # Transpile circuit to native gates using forte
+    provider = ionq_provider.IonQProvider()
+    backend = provider.get_backend(
+        "ionq_simulator", gateset="native", noise_model="forte-1"
+    )
+    # Using optmization level 0 below is important here because ElidePermutations transpiler pass
+    # in Qiskit will remove swap gates and instead premute qubits if optimization level is 2 or 3.
+    # In the future this feature could be extended to optimization level 1 as well.
     transpiled_circuit = transpile(circuit, backend, optimization_level=0)
 
     # simulate the circuit

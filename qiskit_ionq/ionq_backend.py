@@ -39,7 +39,7 @@ from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers import Options
 
-from . import exceptions, ionq_client, ionq_job, ionq_equivalence_library
+from . import exceptions, ionq_client, ionq_job
 from .helpers import GATESET_MAP, get_n_qubits
 
 if TYPE_CHECKING:
@@ -140,8 +140,6 @@ class IonQBackend(Backend):
     _client = None
 
     def __init__(self, *args, **kwargs) -> None:
-        # Add IonQ equivalences
-        ionq_equivalence_library.add_equivalences()
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -342,19 +340,6 @@ class IonQBackend(Backend):
 class IonQSimulatorBackend(IonQBackend):
     """
     IonQ Backend for running simulated jobs.
-
-
-    .. ATTENTION::
-
-        When noise_model ideal is specified, the maximum shot-count for a state vector sim is
-        always ``1``.
-
-    .. ATTENTION::
-
-        When noise_model ideal is specified, calling
-        :meth:`get_counts <qiskit_ionq.ionq_job.IonQJob.get_counts>`
-        on a job processed by this backend will return counts expressed as
-        probabilites, rather than a multiple of shots.
     """
 
     @classmethod
@@ -372,11 +357,6 @@ class IonQSimulatorBackend(IonQBackend):
     def run(self, circuit: QuantumCircuit, **kwargs) -> ionq_job.IonQJob:
         """Create and run a job on IonQ's Simulator Backend.
 
-        .. WARNING:
-
-            The maximum shot-count for a state vector sim is always ``1``.
-            As a result, the ``shots`` keyword argument in this method is ignored.
-
         Args:
             circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
                 A Qiskit QuantumCircuit object.
@@ -384,6 +364,8 @@ class IonQSimulatorBackend(IonQBackend):
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
+        if "noise_model" not in kwargs:
+            kwargs["noise_model"] = self.options.noise_model
         return super().run(circuit, **kwargs)
 
     def calibration(self) -> None:
@@ -402,6 +384,7 @@ class IonQSimulatorBackend(IonQBackend):
         provider,
         name: str = "simulator",
         gateset: Literal["qis", "native"] = "qis",
+        noise_model="ideal",
     ):
         """Base class for interfacing with an IonQ backend"""
         self._gateset = gateset
@@ -466,6 +449,10 @@ class IonQSimulatorBackend(IonQBackend):
             }
         )
         super().__init__(configuration=config, provider=provider)
+        # TODO: passing 'noise_model' to super().__init__ method is the
+        # proper method to handle this but it fails because Options has
+        # no field named data, perhaps this will be fixed in BackendV2
+        self._options.update_options(noise_model=noise_model)
 
     def with_name(self, name, **kwargs) -> IonQSimulatorBackend:
         """Helper method that returns this backend with a more specific target system."""
