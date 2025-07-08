@@ -356,7 +356,6 @@ class IonQClient:
 
 class JobEstimate:
     """A class to hold job estimate information.
-    {'input_values': {'type': 'ionq.circuit.v1', 'backend': 'qpu.forte-enterprise-1', '1q_gates': 1, '2q_gates': 1, 'qubits': 2, 'shots': 100, 'error_mitigation': True, 'session': True}, 'estimated_at': '2025-07-01T18:54:56.210Z', 'cost_unit': 'usd', 'rate_information': {'organization': 'com.ionq.spencer', 'cost_1q_gate': 0.000197, 'cost_2q_gate': 0.001345, 'job_cost_minimum': 168.195}, 'estimated_cost': 168.2, 'estimated_execution_time': 1930, 'current_predicted_queue_time': 0}
     """
     def __init__(self, estimate: dict):
         """Initialize the JobEstimate with a dictionary."""
