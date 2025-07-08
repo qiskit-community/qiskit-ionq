@@ -434,14 +434,14 @@ def qiskit_to_ionq(
         for circ in circuit:
             ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(
                 circ,
-                backend.gateset(),
+                backend.gateset,
                 extra_metadata.get("ionq_compiler_synthesis", False),
             )
             ionq_circs.append((ionq_circ, meas_map, circ.name))
     else:
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(
             circuit,
-            backend.gateset(),
+            backend.gateset,
             extra_metadata.get("ionq_compiler_synthesis", False),
         )
         circuit = [circuit]
@@ -470,7 +470,7 @@ def qiskit_to_ionq(
         metadata_list if multi_circuit else metadata_list[0]
     )
 
-    target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
+    target = backend.name[5:] if backend.name.startswith("ionq") else backend.name
     name = passed_args.get("name") or (
         f"{len(circuit)} circuits" if multi_circuit else circuit[0].name
     )
@@ -480,7 +480,7 @@ def qiskit_to_ionq(
         "name": name,
         "input": {
             "format": "ionq.circuit.v0",
-            "gateset": backend.gateset(),
+            "gateset": backend.gateset,
             "qubits": max(c.num_qubits for c in circuit),
         },
         # store a couple of things we'll need later for result formatting
