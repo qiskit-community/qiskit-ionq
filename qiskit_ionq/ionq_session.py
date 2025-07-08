@@ -46,6 +46,9 @@ class Session:
         self._client = client
 
         # Re-connect or create
+        # TODO check if there's an open session for this backend
+        # < 2 active
+        # and the benefit of using a session
         if create_new and not session_id:
             self._create_session(max_time, max_cost, max_jobs)
         elif session_id:
@@ -108,7 +111,7 @@ class Session:
         max_jobs: int | None,
     ) -> None:
         payload = {
-            "backend": self._backend.name(),
+            "backend": self._backend.name().replace("ionq_qpu", "qpu"),
             "settings": {},
         }
         if max_jobs is not None:
@@ -117,8 +120,6 @@ class Session:
             payload["settings"]["duration_limit_sec"] = max_time
         if max_cost is not None:
             payload["settings"]["cost_limit"] = {"unit": "usd", "value": max_cost}
-
-        print(f"{self._client.api_headers=}\n{payload=}")
 
         resp = self._client.post("sessions", json_body=payload)
         self._session_id = resp["id"]

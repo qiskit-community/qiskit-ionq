@@ -137,12 +137,12 @@ class IonQClient:
             job.extra_metadata,
         )
         req_path = self.make_path("jobs")
-        print(
-            f"{req_path=}",
-            f"as_json={json.dumps(json.loads(as_json), indent=2)}",
-            f"{self.api_headers=}",
-            sep="\n",
-        )
+        # print(
+        #     f"{req_path=}",
+        #     f"as_json={json.dumps(json.loads(as_json), indent=2)}",
+        #     f"{self.api_headers=}",
+        #     sep="\n",
+        # )
         res = requests.post(
             req_path,
             data=as_json,
@@ -279,9 +279,7 @@ class IonQClient:
             )
             params.update(extra_query_params)
 
-        req_path = self.make_path("jobs", job_id, "results")  # , "histogram")
-        # temporarily use the v0.3 API endpoint for results
-        req_path = req_path.replace("/v0.4/", "/v0.3/")
+        req_path = self.make_path("jobs", job_id, "results", "probabilities")
         res = self.get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
@@ -298,11 +296,11 @@ class IonQClient:
         error_mitigation: bool = False,
         session: bool = False,
         job_type: str = "ionq.circuit.v1",
-    ) -> dict:
+    ) -> JobEstimate:
         """Call GET /jobs/estimate … returns a cost/time prediction."""
         params = {
             "type": job_type,
-            "backend": backend,
+            "backend": backend.replace("ionq_qpu", "qpu"),
             "1q_gates": oneq_gates,
             "2q_gates": twoq_gates,
             "qubits": qubits,
@@ -313,10 +311,10 @@ class IonQClient:
         url = self.make_path("jobs", "estimate")
         res = self.get_with_retry(url, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
-        return res.json()
+        return JobEstimate(res.json())
 
     @retry(exceptions=IonQRetriableError, tries=5)
-    def post(self, *path_parts: str, json_body: dict | None = None) -> dict:
+    def post(self, *path_parts: str, json_body: dict = {}) -> dict:
         """POST helper with IonQ headers + retry.
 
         Args:
@@ -356,4 +354,32 @@ class IonQClient:
         return res.json()
 
 
-__all__ = ["IonQClient"]
+class JobEstimate:
+    """A class to hold job estimate information.
+    {'input_values': {'type': 'ionq.circuit.v1', 'backend': 'qpu.forte-enterprise-1', '1q_gates': 1, '2q_gates': 1, 'qubits': 2, 'shots': 100, 'error_mitigation': True, 'session': True}, 'estimated_at': '2025-07-01T18:54:56.210Z', 'cost_unit': 'usd', 'rate_information': {'organization': 'com.ionq.spencer', 'cost_1q_gate': 0.000197, 'cost_2q_gate': 0.001345, 'job_cost_minimum': 168.195}, 'estimated_cost': 168.2, 'estimated_execution_time': 1930, 'current_predicted_queue_time': 0}
+    """
+    def __init__(self, estimate: dict):
+        """Initialize the JobEstimate with a dictionary."""
+        self.input_values = estimate.get("input_values", {})
+        self.estimated_at = estimate.get("estimated_at")
+        self.cost_unit = estimate.get("cost_unit")
+        self.rate_information = estimate.get("rate_information", {})
+        self.estimated_cost = estimate.get("estimated_cost")
+        self.estimated_execution_time = estimate.get("estimated_execution_time")
+        self.current_predicted_queue_time = estimate.get("current_predicted_queue_time", 0)
+    
+    def __repr__(self) -> str:
+        """Return a string representation of the JobEstimate."""
+        return (
+            "JobEstimate(\n"
+            f"\tinput_values={self.input_values},\n"
+            f"\testimated_at={self.estimated_at},\n"
+            f"\tcost_unit={self.cost_unit},\n"
+            f"\trate_information={self.rate_information},\n"
+            f"\testimated_cost={self.estimated_cost},\n"
+            f"\testimated_execution_time={self.estimated_execution_time},\n"
+            f"\tcurrent_predicted_queue_time={self.current_predicted_queue_time},\n"
+            ")"
+        )
+
+__all__ = ["IonQClient", "JobEstimate"]

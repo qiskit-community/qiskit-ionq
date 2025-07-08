@@ -672,16 +672,12 @@ def get_n_qubits(backend: str, fallback: int = 100) -> int:
     """
     creds = resolve_credentials()
     url = creds.get("url")
-
-    target = backend.split("ionq_")[-1] if backend.startswith("ionq_qpu.") else backend
+    target = backend.split("ionq_")[-1]
 
     try:
-        response = requests.get(url=f"{url}/backends", timeout=5)
+        response = requests.get(url=f"{url}/backends/{target}", timeout=5)
         response.raise_for_status()  # Ensure we catch any HTTP errors
-        return next(
-            (item["qubits"] for item in response.json() if item["backend"] == target),
-            fallback,
-        )  # Default to fallback if no backend found
+        return response.json().get("qubits", fallback)
     except Exception as exception:  # pylint: disable=broad-except
         warnings.warn(
             f"Unable to get qubit count for {backend}: {exception}. Defaulting to {fallback}."

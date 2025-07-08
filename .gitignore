@@ -112,3 +112,6 @@ ENV/
 
 # editor ignores
 .vscode/
+
+# jupyter notebooks
+/*.ipynb
