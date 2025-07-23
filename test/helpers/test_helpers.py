@@ -73,10 +73,11 @@ def test_get_n_qubits_success():
 
         # Check the arguments of the last call to `requests.get`
         mock_get.assert_called()
-        _, kwargs = mock_get.call_args
+        args, kwargs = mock_get.call_args
+        actual_url = kwargs.get("url", args[0] if args else None)
         assert (
-            kwargs["url"] == expected_url
-        ), f"Expected URL {expected_url}, but got {kwargs['url']}"
+            actual_url == expected_url
+        ), f"Expected URL {expected_url}, but got {actual_url}"
 
         assert result == 25, f"Expected 25 qubits, but got {result}"
 
@@ -91,10 +92,11 @@ def test_get_n_qubits_fallback():
 
         # Check the arguments of the last call to `requests.get`
         mock_get.assert_called()
-        _, kwargs = mock_get.call_args
+        args, kwargs = mock_get.call_args
+        actual_url = kwargs.get("url", args[0] if args else None)
         assert (
-            kwargs["url"] == expected_url
-        ), f"Expected URL {expected_url}, but got {kwargs['url']}"
+            actual_url == expected_url
+        ), f"Expected URL {expected_url}, but got {actual_url}"
 
         assert result == 100, f"Expected fallback of 100 qubits, but got {result}"
 

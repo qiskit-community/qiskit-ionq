@@ -401,6 +401,18 @@ def test__error_mitigation_settings(simulator_backend, error_mitigation, expecte
     args = {"shots": 123, "sampler_seed": 42, "error_mitigation": error_mitigation}
     ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
     actual = json.loads(ionq_json)
-    actual_error_mitigation = actual.pop("error_mitigation")
+    method = (
+        actual["settings"]
+        .get("error_mitigation", {})
+        .get("debiasing", {})
+        .get("method")
+    )
+    if isinstance(method, dict):
+        actual_error_mitigation = method
+    else:
+        actual_error_mitigation = {
+            "debias": bool(method)
+            and str(method).lower() not in ("none", "off", "false")
+        }
 
-    assert actual_error_mitigation == expected
+    assert actual_error_mitigation == expected  # TODO check for other settings
