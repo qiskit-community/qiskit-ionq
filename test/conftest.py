@@ -152,6 +152,7 @@ def dummy_mapped_job_response(
             "creg_sizes": [["c", 2]],
             "name": job_id,
             "global_phase": 0,
+            "meas_mapped": [1, 0],
         }
     )
     response = {
