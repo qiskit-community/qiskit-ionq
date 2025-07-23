@@ -102,6 +102,14 @@ class Session:
         self._client.post("sessions", self._session_id, "end")
 
     def __enter__(self):
+        # inject the session_id into any backend.run call
+        self._orig_run = self._backend.run
+
+        def _run_with_session(*args, **kwargs):
+            kwargs.setdefault("session_id", self._session_id)
+            return self._orig_run(*args, **kwargs)
+
+        self._backend.run = _run_with_session  # monkey‑patch for life of the context
         return self
 
     def __exit__(self, exc_type, *_):
@@ -109,6 +117,10 @@ class Session:
         if exc_type is not None:
             self.cancel()
         self.close()
+
+        # restore the backend.run we overwrote in __enter__
+        self._backend.run = self._orig_run
+
         # propagate exceptions
         return False
 

@@ -458,9 +458,7 @@ def qiskit_to_ionq(
     metadata_list = []
     for idx, circ in enumerate(circuit):
         # measurement map for this circuit
-        m_map = (
-            ionq_circs[idx][1] if multi_circuit else meas_map  # may be None
-        )
+        m_map = ionq_circs[idx][1] if multi_circuit else meas_map  # may be None
         entry = {
             "memory_slots": circ.num_clbits,
             "global_phase": circ.global_phase,
@@ -507,6 +505,11 @@ def qiskit_to_ionq(
         "name": passed_args.get("name")
         or (f"{len(circuit)} circuits" if multi_circuit else circuit[0].name),
         "input": input_block,
+        **(
+            {"session_id": passed_args["session_id"]}
+            if passed_args.get("session_id") is not None
+            else {}
+        ),
         "metadata": {
             "shots": str(passed_args.get("shots")),
             "sampler_seed": str(passed_args.get("sampler_seed")),
