@@ -707,9 +707,7 @@ def test_status__no_job_id(mock_backend):
     assert actual_status is job._status is jobstatus.JobStatus.INITIALIZING
 
 
-def test_status__already_final_state(
-    mock_backend, requests_mock
-):  # pylint: disable=invalid-name
+def test_status__already_final_state(mock_backend, requests_mock):
     """Test status() returns early when the job is already completed.
 
     Args:
