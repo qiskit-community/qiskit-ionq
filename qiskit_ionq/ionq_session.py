@@ -36,6 +36,7 @@ from .ionq_client import IonQClient
 
 class Session:
     """Session object to manage IonQ sessions."""
+
     def __init__(
         self,
         backend: Backend,

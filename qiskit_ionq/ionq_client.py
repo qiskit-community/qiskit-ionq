@@ -362,8 +362,8 @@ class IonQClient:
 
 
 class JobEstimate:
-    """A class to hold job estimate information.
-    """
+    """A class to hold job estimate information."""
+
     def __init__(self, estimate: dict):
         """Initialize the JobEstimate with a dictionary."""
         self.input_values = estimate.get("input_values", {})
@@ -372,7 +372,9 @@ class JobEstimate:
         self.rate_information = estimate.get("rate_information", {})
         self.estimated_cost = estimate.get("estimated_cost")
         self.estimated_execution_time = estimate.get("estimated_execution_time")
-        self.current_predicted_queue_time = estimate.get("current_predicted_queue_time", 0)
+        self.current_predicted_queue_time = estimate.get(
+            "current_predicted_queue_time", 0
+        )
 
     def __repr__(self) -> str:
         """Return a string representation of the JobEstimate."""
@@ -387,5 +389,6 @@ class JobEstimate:
             f"\tcurrent_predicted_queue_time={self.current_predicted_queue_time},\n"
             ")"
         )
+
 
 __all__ = ["IonQClient", "JobEstimate"]

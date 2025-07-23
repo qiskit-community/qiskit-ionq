@@ -663,10 +663,16 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
 def get_n_qubits(backend, fallback=100):
     """Get the number of qubits for a given backend."""
     backend = backend.removeprefix("ionq_")
-    backend = backend if backend == "simulator" or backend.startswith("qpu.") else f"qpu.{backend}"
+    backend = (
+        backend
+        if backend == "simulator" or backend.startswith("qpu.")
+        else f"qpu.{backend}"
+    )
     try:
         return (
-            requests.get(f"{resolve_credentials()['url']}/backends/{backend}", timeout=5)
+            requests.get(
+                f"{resolve_credentials()['url']}/backends/{backend}", timeout=5
+            )
             .json()
             .get("qubits", fallback)
         )
