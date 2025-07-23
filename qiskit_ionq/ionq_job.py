@@ -387,7 +387,9 @@ class IonQJob(JobV1):
             def _meas_map_from_header(header_dict, fallback_nq):
                 """Return meas_mapped list or a default 0-based map."""
                 mmap = header_dict.get("meas_mapped")
-                if mmap is None or (isinstance(mmap, list) and all(b is None for b in mmap)):
+                if mmap is None or (
+                    isinstance(mmap, list) and all(b is None for b in mmap)
+                ):
                     return list(range(header_dict.get("n_qubits", fallback_nq)))
                 return mmap
 
