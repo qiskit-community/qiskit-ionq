@@ -56,9 +56,7 @@ def test_output_map__with_multiple_measurements_to_different_clbits(
         qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
-    meta_hdr = decompress_metadata_string(
-        actual["metadata"]["qiskit_header"]
-    )
+    meta_hdr = decompress_metadata_string(actual["metadata"]["qiskit_header"])
     actual_output_map = meta_hdr["meas_mapped"]
 
     assert actual_output_map == [0, 0]
@@ -79,9 +77,7 @@ def test_output_map__with_multiple_measurements_to_same_clbit(
         qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
-    meta_hdr = decompress_metadata_string(
-        actual["metadata"]["qiskit_header"]
-    )
+    meta_hdr = decompress_metadata_string(actual["metadata"]["qiskit_header"])
     actual_output_map = meta_hdr["meas_mapped"]
 
     assert actual_output_map == [1, None]
@@ -107,9 +103,7 @@ def test_output_map__with_multiple_registers(
         qc, simulator_backend, passed_args={"shots": 123, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
-    meta_hdr = decompress_metadata_string(
-        actual["metadata"]["qiskit_header"]
-    )
+    meta_hdr = decompress_metadata_string(actual["metadata"]["qiskit_header"])
     actual_output_map = meta_hdr["meas_mapped"]
 
     assert actual_output_map == [0, 1, 2, 3]
@@ -405,9 +399,6 @@ def test__error_mitigation_settings(simulator_backend, error_mitigation, expecte
     args = {"shots": 123, "sampler_seed": 42, "error_mitigation": error_mitigation}
     ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
     actual = json.loads(ionq_json)
-    debiased = (
-        actual["settings"]
-        .get("error_mitigation", {})
-    )
+    debiased = actual["settings"].get("error_mitigation", {})
 
     assert debiased == expected
