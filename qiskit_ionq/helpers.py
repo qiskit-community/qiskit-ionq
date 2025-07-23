@@ -406,7 +406,6 @@ def decompress_metadata_string(
     encoded = input_string.encode()
     decoded = base64.b64decode(encoded)
     decompressed = gzip.decompress(decoded)
-    print(json.loads(decompressed))
     return json.loads(decompressed)
 
 

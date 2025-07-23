@@ -137,12 +137,6 @@ class IonQClient:
             job.extra_metadata,
         )
         req_path = self.make_path("jobs")
-        # print(
-        #     f"{req_path=}",
-        #     f"as_json={json.dumps(json.loads(as_json), indent=2)}",
-        #     f"{self.api_headers=}",
-        #     sep="\n",
-        # )
         res = requests.post(
             req_path,
             data=as_json,
