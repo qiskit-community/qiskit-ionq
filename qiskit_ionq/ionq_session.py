@@ -23,6 +23,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Session object to both create and end sessions as well as
+use in a context manager to for automatic lifecycle management.
+"""
 
 from __future__ import annotations
 
@@ -31,6 +35,7 @@ from .ionq_client import IonQClient
 
 
 class Session:
+    """Session object to manage IonQ sessions."""
     def __init__(
         self,
         backend: Backend,
@@ -71,9 +76,11 @@ class Session:
         ).json()
 
     def status(self) -> str | None:
+        """Return the status of this session."""
         return self.details().get("state")
 
     def usage(self) -> float | None:
+        """Return the usage time of this session in seconds."""
         return self.details().get("usage_time")
 
     def cancel(self) -> None:
@@ -110,6 +117,7 @@ class Session:
         max_cost: int | str | None,
         max_jobs: int | None,
     ) -> None:
+        """Create a new session."""
         payload = {
             "backend": self._backend.name().replace("ionq_qpu", "qpu"),
             "settings": {},
@@ -127,6 +135,7 @@ class Session:
     # class-method shortcut
     @classmethod
     def from_id(cls, session_id: str, *, backend: Backend, client: IonQClient):
+        """Create a Session object from an existing session ID."""
         return cls(
             backend=backend, client=client, session_id=session_id, create_new=False
         )

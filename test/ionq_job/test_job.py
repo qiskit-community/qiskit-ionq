@@ -229,7 +229,7 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
     path = simulator_backend.client.make_path("jobs", job_id)
     requests_mock.get(path, json=conftest.dummy_job_response(job_id))
 
-    results_path = simulator_backend.client.make_path("jobs", job_id, "results")
+    results_path = simulator_backend.client.make_path("jobs", job_id, "results", "probabilities")
     requests_mock.get(results_path, json={"0": 0.5, "2": 0.499999})
     job = ionq_job.IonQJob(simulator_backend, job_id)
 
@@ -258,7 +258,7 @@ def test_counts_and_probs_from_job(simulator_backend, requests_mock):
     # Create the request path for accessing the dummy job:
     path = simulator_backend.client.make_path("jobs", job_id)
     requests_mock.get(path, json=conftest.dummy_job_response(job_id))
-    results_path = simulator_backend.client.make_path("jobs", job_id, "results")
+    results_path = simulator_backend.client.make_path("jobs", job_id, "results", "probabilities")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
     job = ionq_job.IonQJob(simulator_backend, job_id)
 
@@ -455,7 +455,7 @@ def test_result(mock_backend, requests_mock):
     path = client.make_path("jobs", job_id)
     requests_mock.get(path, status_code=200, json=job_result)
 
-    results_path = client.make_path("jobs", job_id, "results")
+    results_path = client.make_path("jobs", job_id, "results", "probabilities")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Create a job ref (this will call .status() to fetch our mock above)
@@ -480,7 +480,7 @@ def test_result__with_sharpen(mock_backend, requests_mock):
     path = client.make_path("jobs", job_id)
     requests_mock.get(path, status_code=200, json=job_result)
 
-    results_path = client.make_path("jobs", job_id, "results") + "?sharpen=false"
+    results_path = client.make_path("jobs", job_id, "results", "probabilities") + "?sharpen=false"
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Create a job ref (this will call .status() to fetch our mock above)
@@ -505,7 +505,7 @@ def test_result__with_extra_payload(mock_backend, requests_mock):
     path = client.make_path("jobs", job_id)
     requests_mock.get(path, status_code=200, json=job_result)
 
-    results_path = client.make_path("jobs", job_id, "results") + "?sharpen=false"
+    results_path = client.make_path("jobs", job_id, "results", "probabilities") + "?sharpen=false"
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Create a job ref (this will call .status() to fetch our mock above)
@@ -532,7 +532,7 @@ def test_result__bad_sharpen(mock_backend, requests_mock):
     fetch_path = client.make_path("jobs", job_id)
     requests_mock.get(fetch_path, status_code=200, json=job_response)
 
-    results_path = client.make_path("jobs", job_id, "results")
+    results_path = client.make_path("jobs", job_id, "results", "probabilities")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Create a job ref (this will call .status() to fetch our mock above)
@@ -568,7 +568,7 @@ def test_result__from_circuit(mock_backend, requests_mock):
     fetch_path = client.make_path("jobs", job_id)
     requests_mock.get(fetch_path, status_code=200, json=job_response)
 
-    results_path = client.make_path("jobs", job_id, "results")
+    results_path = client.make_path("jobs", job_id, "results", "probabilities")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Validate the result and its format. should be the same as base case.
@@ -607,7 +607,7 @@ def test_result__meas_mapped(mock_backend, requests_mock):
     requests_mock.get(fetch_path, status_code=200, json=job_response)
 
     # Mock the fetch from `results`
-    fetch_path = client.make_path("jobs", job_id, "results")
+    fetch_path = client.make_path("jobs", job_id, "results", "probabilities")
     requests_mock.get(fetch_path, status_code=200, json={"2": 1})
 
     # Validate the result and its format. should be the same as base case.

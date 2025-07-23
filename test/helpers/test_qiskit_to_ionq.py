@@ -181,7 +181,7 @@ def test_full_circuit(simulator_backend):
             "seed": None,
         },
         "input": {
-            "format": "ionq.circuit.v0",
+            "format": "ionq.circuit.v1",
             "gateset": "qis",
             "qubits": 2,
             "circuit": [
@@ -232,7 +232,7 @@ def test_multicircuit_mapping(simulator_backend):
         "shots": 1024,
         "name": "multicircuit_mapping",
         "input": {
-            "format": "ionq.circuit.v0",
+            "format": "ionq.circuit.v1",
             "gateset": "qis",
             "qubits": 2,
             "circuits": [
@@ -355,7 +355,7 @@ def test_full_native_circuit(simulator_backend):
             "seed": None,
         },
         "input": {
-            "format": "ionq.circuit.v0",
+            "format": "ionq.circuit.v1",
             "gateset": "native",
             "qubits": 3,
             "circuit": [

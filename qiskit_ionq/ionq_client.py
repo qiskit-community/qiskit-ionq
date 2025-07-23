@@ -223,10 +223,17 @@ class IonQClient:
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
-    def get_characterizations(
-        self, backend_name: str, *, limit: int | None = None
-    ) -> list[dict]:
-        """List all characterizations for a backend."""
+    def get_calibration_data(self, backend_name: str, limit: int | None = None) -> dict:
+        """Retrieve calibration data for a specified backend.
+
+        Args:
+            backend_name (str): The IonQ backend to fetch data for.
+            limit (int, optional): Limit the number of results returned.
+
+        Raises:
+            IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
+        """
         params = {"limit": limit} if limit else None
         url = self.make_path("backends", backend_name, "characterizations")
         res = self.get_with_retry(url, headers=self.api_headers, params=params)
@@ -314,7 +321,7 @@ class IonQClient:
         return JobEstimate(res.json())
 
     @retry(exceptions=IonQRetriableError, tries=5)
-    def post(self, *path_parts: str, json_body: dict = {}) -> dict:
+    def post(self, *path_parts: str, json_body: dict | None = None) -> dict:
         """POST helper with IonQ headers + retry.
 
         Args:
@@ -366,7 +373,7 @@ class JobEstimate:
         self.estimated_cost = estimate.get("estimated_cost")
         self.estimated_execution_time = estimate.get("estimated_execution_time")
         self.current_predicted_queue_time = estimate.get("current_predicted_queue_time", 0)
-    
+
     def __repr__(self) -> str:
         """Return a string representation of the JobEstimate."""
         return (

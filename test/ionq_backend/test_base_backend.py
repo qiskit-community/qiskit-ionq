@@ -267,7 +267,7 @@ def test_multiexp_job(mock_backend, requests_mock):
         "shots": 1024,
         "name": f"{len(job.circuit)} circuits",
         "input": {
-            "format": "ionq.circuit.v0",
+            "format": "ionq.circuit.v1",
             "gateset": "qis",
             "qubits": 1,
             "circuits": [

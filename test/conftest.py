@@ -333,7 +333,7 @@ def formatted_result(provider):
 
     # Create the request path for accessing the dummy job:
     path = client.make_path("jobs", job_id)
-    results_path = client.make_path("jobs", job_id, "results")
+    results_path = client.make_path("jobs", job_id, "results", "probabilities")
 
     # mock a job response
     with _default_requests_mock() as requests_mock:

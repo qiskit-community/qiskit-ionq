@@ -531,7 +531,7 @@ def qiskit_to_ionq(
 
     # Input block
     input_block: dict[str, Any] = {
-        "format": "ionq.circuit.v0",
+        "format": "ionq.circuit.v1",
         "gateset": backend.gateset(),
         "qubits": max(c.num_qubits for c in circuit),
     }
@@ -660,28 +660,18 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     }
 
 
-def get_n_qubits(backend: str, fallback: int = 100) -> int:
-    """Get the number of qubits for a given backend.
-
-    Args:
-        backend (str): The name of the backend.
-        fallback (int): Fallback number of qubits if API call fails.
-
-    Returns:
-        int: The number of qubits for the backend.
-    """
-    creds = resolve_credentials()
-    url = creds.get("url")
-    target = backend.split("ionq_")[-1]
-
+def get_n_qubits(backend, fallback=100):
+    """Get the number of qubits for a given backend."""
+    backend = backend.removeprefix("ionq_")
+    backend = backend if backend == "simulator" or backend.startswith("qpu.") else f"qpu.{backend}"
     try:
-        response = requests.get(url=f"{url}/backends/{target}", timeout=5)
-        response.raise_for_status()  # Ensure we catch any HTTP errors
-        return response.json().get("qubits", fallback)
-    except Exception as exception:  # pylint: disable=broad-except
-        warnings.warn(
-            f"Unable to get qubit count for {backend}: {exception}. Defaulting to {fallback}."
+        return (
+            requests.get(f"{resolve_credentials()['url']}/backends/{backend}", timeout=5)
+            .json()
+            .get("qubits", fallback)
         )
+    except Exception as e:
+        warnings.warn(f"Failed to get qubits for {backend}: {e}. Using {fallback}")
         return fallback
 
 
