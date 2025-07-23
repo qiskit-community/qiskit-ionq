@@ -50,6 +50,7 @@ class Session:
     ):
         self._backend = backend
         self._client = client
+        self._orig_run = None
 
         # Re-connect or create
         # TODO check if there's an open session for this backend
@@ -103,6 +104,7 @@ class Session:
 
     def __enter__(self):
         # inject the session_id into any backend.run call
+        assert self._orig_run is None  # mypy/pylint: only set once per context
         self._orig_run = self._backend.run
 
         def _run_with_session(*args, **kwargs):
@@ -119,7 +121,9 @@ class Session:
         self.close()
 
         # restore the backend.run we overwrote in __enter__
-        self._backend.run = self._orig_run
+        if self._orig_run is not None:  # defensive
+            self._backend.run = self._orig_run
+            self._orig_run = None
 
         # propagate exceptions
         return False
