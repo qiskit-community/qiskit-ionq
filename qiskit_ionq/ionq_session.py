@@ -125,7 +125,7 @@ class Session:
         if max_jobs is not None:
             payload["settings"]["job_count_limit"] = max_jobs
         if max_time is not None:
-            payload["settings"]["duration_limit_sec"] = max_time
+            payload["settings"]["duration_limit_min"] = max_time
         if max_cost is not None:
             payload["settings"]["cost_limit"] = {"unit": "usd", "value": max_cost}
 
