@@ -138,7 +138,7 @@ def test_backend_run_with_session():
     client = _client()
     client.post.return_value = {"id": "sess-42"}
 
-    with Session(backend=backend, client=client, max_jobs=1) as sess:
+    with Session(backend=backend, client=client, max_jobs=1) as _:
         backend.run("circ")  # no session_id parameter
 
     assert backend.run.call_args.kwargs["session_id"] == "sess-42"
