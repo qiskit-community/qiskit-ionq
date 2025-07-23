@@ -104,7 +104,7 @@ class Session:
 
     def __enter__(self):
         # inject the session_id into any backend.run call
-        assert self._orig_run is None  # mypy/pylint: only set once per context
+        assert self._orig_run is None  # only set once per context
         self._orig_run = self._backend.run
 
         def _run_with_session(*args, **kwargs):
