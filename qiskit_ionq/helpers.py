@@ -676,8 +676,8 @@ def get_n_qubits(backend, fallback=100):
             .json()
             .get("qubits", fallback)
         )
-    except Exception as e:
-        warnings.warn(f"Failed to get qubits for {backend}: {e}. Using {fallback}")
+    except Exception as exception:  # pylint: disable=broad-except
+        warnings.warn(f"Failed to get qubits for {backend}: {exception}. Using {fallback}")
         return fallback
 
 
