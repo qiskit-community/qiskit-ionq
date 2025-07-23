@@ -116,7 +116,7 @@ def dummy_job_response(
         "request": 1600000000,
         "start": 1600000001,
         "response": 1600000002,
-        "target": target,
+        "backend": target,
         "id": job_id,
         "settings": (job_settings or {}),
         "name": "test_name",
@@ -172,7 +172,7 @@ def dummy_mapped_job_response(
         "request": 1600000000,
         "start": 1600000001,
         "response": 1600000002,
-        "target": target,
+        "backend": target,
         "id": job_id,
         "settings": (job_settings or {}),
         "name": "test_name",
@@ -214,7 +214,7 @@ def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-t
         "type": "circuit",
         "request": 1600000000,
         "response": 1600000002,
-        "target": "qpu",
+        "backend": "qpu",
         "id": job_id,
     }
 

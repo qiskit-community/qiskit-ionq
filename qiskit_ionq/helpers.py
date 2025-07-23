@@ -54,7 +54,6 @@ from qiskit.circuit import (
 
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
-from qiskit_ionq.constants import ErrorMitigation
 from . import exceptions as ionq_exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
@@ -410,7 +409,11 @@ def decompress_metadata_string(
 
 
 def qiskit_to_ionq(
-    circuit, backend, passed_args=None, extra_query_params=None, extra_metadata=None
+    circuit,
+    backend,
+    passed_args: dict | None = None,
+    extra_query_params: dict | None = None,
+    extra_metadata: dict | None = None,
 ) -> str:
     """Convert a Qiskit circuit to a IonQ compatible dict.
 
@@ -427,40 +430,40 @@ def qiskit_to_ionq(
     passed_args = passed_args or {}
     extra_query_params = extra_query_params or {}
     extra_metadata = extra_metadata or {}
-    ionq_circs = []
-    multi_circuit = False
-    if isinstance(circuit, (list, tuple)):
-        multi_circuit = True
+
+    # build the (multi‑)circuit block
+    ionq_circs: list[Any] | Any = []
+    meas_map: list[int] | None = None
+    multi_circuit = isinstance(circuit, (list, tuple))
+
+    if multi_circuit:
         for circ in circuit:
-            ionq_circ, _, meas_map = qiskit_circ_to_ionq_circ(
+            ionq_circ, _, m = qiskit_circ_to_ionq_circ(
                 circ,
                 backend.gateset(),
                 extra_metadata.get("ionq_compiler_synthesis", False),
             )
-            ionq_circs.append((ionq_circ, meas_map, circ.name))
+            ionq_circs.append((ionq_circ, m, circ.name))
     else:
         ionq_circs, _, meas_map = qiskit_circ_to_ionq_circ(
             circuit,
             backend.gateset(),
             extra_metadata.get("ionq_compiler_synthesis", False),
         )
+        # normalize to list for later convenience
         circuit = [circuit]
-    circuit: list[QuantumCircuit] | tuple[QuantumCircuit, ...]  # type: ignore[no-redef]
+
+    # metadata header
     metadata_list = [
         {
-            "memory_slots": circ.num_clbits,  # int
-            "global_phase": circ.global_phase,  # float
-            "n_qubits": circ.num_qubits,  # int
-            "name": circ.name,  # str
-            # list of [str, int] tuples cardinality memory_slots
+            "memory_slots": circ.num_clbits,
+            "global_phase": circ.global_phase,
+            "n_qubits": circ.num_qubits,
+            "name": circ.name,
             "creg_sizes": get_register_sizes_and_labels(circ.cregs)[0],
-            # list of [str, int] tuples cardinality memory_slots
             "clbit_labels": get_register_sizes_and_labels(circ.cregs)[1],
-            # list of [str, int] tuples cardinality num_qubits
             "qreg_sizes": get_register_sizes_and_labels(circ.qregs)[0],
-            # list of [str, int] tuples cardinality num_qubits
             "qubit_labels": get_register_sizes_and_labels(circ.qregs)[1],
-            # custom metadata from the circuits
             **({"metadata": circ.metadata} if circ.metadata else {}),
         }
         for circ in circuit
@@ -470,51 +473,74 @@ def qiskit_to_ionq(
         metadata_list if multi_circuit else metadata_list[0]
     )
 
-    # Common fields
-    target = backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
-    name = passed_args.get("name") or (
-        f"{len(circuit)} circuits" if multi_circuit else circuit[0].name
+    # input block
+    input_block: dict[str, Any] = {
+        "gateset": backend.gateset(),
+        "qubits": max(c.num_qubits for c in circuit),
+    }
+
+    if multi_circuit:
+        input_block["circuits"] = [
+            {
+                "name": n,
+                "circuit": c,
+                # keep measurement map beside each circuit
+                **({"registers": {"meas_mapped": m}} if m else {}),
+            }
+            for c, m, n in ionq_circs
+        ]
+    else:
+        input_block["circuit"] = ionq_circs
+        if meas_map is not None:
+            input_block["registers"] = {"meas_mapped": meas_map}
+
+    # top‑level fields
+    backend_name = (
+        backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
     )
-    ionq_json = {
-        "target": target,
+    ionq_json: dict[str, Any] = {
+        "type": "ionq.multi-circuit.v1" if multi_circuit else "ionq.circuit.v1",
+        "backend": backend_name,
         "shots": passed_args.get("shots"),
-        "name": name,
-        "input": {
-            "format": "ionq.circuit.v0",
-            "gateset": backend.gateset(),
-            "qubits": max(c.num_qubits for c in circuit),
-        },
-        # store a couple of things we'll need later for result formatting
+        "name": passed_args.get("name")
+        or (f"{len(circuit)} circuits" if multi_circuit else circuit[0].name),
+        "input": input_block,
         "metadata": {
             "shots": str(passed_args.get("shots")),
             "sampler_seed": str(passed_args.get("sampler_seed")),
             "qiskit_header": qiskit_header,
         },
     }
-    if multi_circuit:
-        ionq_json["input"]["circuits"] = [
-            {"name": n, "circuit": c, "registers": {"meas_mapped": m}}
-            for c, m, n in ionq_circs
-        ]
-    else:
-        ionq_json["input"]["circuit"] = ionq_circs
-        ionq_json["registers"] = {"meas_mapped": meas_map} if meas_map else {}
-    if target == "simulator":
+
+    # simulator noise model
+    if backend_name == "simulator":
         ionq_json["noise"] = {
             "model": passed_args.get("noise_model") or backend.options.noise_model,
             "seed": backend.options.sampler_seed,
         }
-    ionq_json.update(extra_query_params)
-    # merge circuit and extra metadata
-    ionq_json["metadata"].update(extra_metadata)
-    settings = passed_args.get("job_settings") or None
-    if settings is not None:
-        ionq_json["settings"] = settings
+
+    # settings / error mitigation
+    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
     error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
         "error_mitigation"
     )
-    if error_mitigation and isinstance(error_mitigation, ErrorMitigation):
-        ionq_json["error_mitigation"] = error_mitigation.value
+
+    if error_mitigation is not None:
+        # Accept bool or qiskit_ionq.ErrorMitigation enum
+        debiasing_flag = (
+            bool(error_mitigation.value)
+            if hasattr(error_mitigation, "value")
+            else bool(error_mitigation)
+        )
+        settings.setdefault("error_mitigation", {})["debiasing"] = debiasing_flag
+
+    if settings:
+        ionq_json["settings"] = settings
+
+    # user‑supplied extras & final serialisation
+    ionq_json.update(extra_query_params)
+    ionq_json["metadata"].update(extra_metadata)
+
     return json.dumps(ionq_json, cls=SafeEncoder)
 
 

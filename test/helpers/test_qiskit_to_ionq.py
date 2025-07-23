@@ -173,15 +173,15 @@ def test_full_circuit(simulator_backend):
     expected_output_map = [1, 0]
     expected_metadata = {"shots": "200", "sampler_seed": "42"}
     expected_rest_of_payload = {
-        "target": "simulator",
+        "backend": "simulator",
         "shots": 200,
         "name": "test_name",
         "noise": {
             "model": "ideal",
             "seed": None,
         },
+        "type": "ionq.circuit.v1",
         "input": {
-            "format": "ionq.circuit.v1",
             "gateset": "qis",
             "qubits": 2,
             "circuit": [
@@ -228,11 +228,11 @@ def test_multicircuit_mapping(simulator_backend):
     )
 
     expected_payload = {
-        "target": "simulator",
+        "backend": "simulator",
         "shots": 1024,
         "name": "multicircuit_mapping",
+        "type": "ionq.multi-circuit.v1",
         "input": {
-            "format": "ionq.circuit.v1",
             "gateset": "qis",
             "qubits": 2,
             "circuits": [
@@ -347,15 +347,15 @@ def test_full_native_circuit(simulator_backend):
     }
     expected_metadata = {"shots": "200", "sampler_seed": "23", "iteration": "10"}
     expected_rest_of_payload = {
-        "target": "simulator",
+        "backend": "simulator",
         "name": "blame_test",
         "shots": 200,
         "noise": {
             "model": "aria-1",
             "seed": None,
         },
+        "type": "ionq.circuit.v1",
         "input": {
-            "format": "ionq.circuit.v1",
             "gateset": "native",
             "qubits": 3,
             "circuit": [
@@ -384,8 +384,8 @@ def test_full_native_circuit(simulator_backend):
 @pytest.mark.parametrize(
     "error_mitigation,expected",
     [
-        (ErrorMitigation.NO_DEBIASING, {"debias": False}),
-        (ErrorMitigation.DEBIASING, {"debias": True}),
+        (ErrorMitigation.NO_DEBIASING, {"debiasing": False}),
+        (ErrorMitigation.DEBIASING, {"debiasing": True}),
     ],
 )
 def test__error_mitigation_settings(simulator_backend, error_mitigation, expected):
@@ -401,18 +401,9 @@ def test__error_mitigation_settings(simulator_backend, error_mitigation, expecte
     args = {"shots": 123, "sampler_seed": 42, "error_mitigation": error_mitigation}
     ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
     actual = json.loads(ionq_json)
-    method = (
+    debiased = (
         actual["settings"]
         .get("error_mitigation", {})
-        .get("debiasing", {})
-        .get("method")
     )
-    if isinstance(method, dict):
-        actual_error_mitigation = method
-    else:
-        actual_error_mitigation = {
-            "debias": bool(method)
-            and str(method).lower() not in ("none", "off", "false")
-        }
 
-    assert actual_error_mitigation == expected  # TODO check for other settings
+    assert debiased == expected
