@@ -67,8 +67,8 @@ class JobStatusMap(enum.Enum):
 class ErrorMitigation(enum.Enum):
     """Class for error mitigation settings enumerated type."""
 
-    DEBIASING = {"debias": True}
-    NO_DEBIASING = {"debias": False}
+    DEBIASING = {"debiasing": True}
+    NO_DEBIASING = {"debiasing": False}
 
 
-__all__ = ["APIJobStatus", "JobStatusMap"]
+__all__ = ["APIJobStatus", "JobStatusMap", "ErrorMitigation"]

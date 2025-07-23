@@ -383,17 +383,34 @@ class IonQJob(JobV1):
             self._num_circuits = self._first_of(stats, "circuits", default=1)
             self._num_qubits = self._first_of(stats, "qubits", default=0)
             self._children = self._first_of(response, "child_job_ids", "children", None)
-            default_map = list(range(self._num_qubits))
-            self._clbits = (
-                [
-                    self._client.retrieve_job(job_id)
-                    .get("registers", {})
-                    .get("meas_mapped", default_map)
-                    for job_id in self._children
-                ]
-                if self._children
-                else [response.get("registers", {}).get("meas_mapped", default_map)]
-            )
+
+            def _meas_map_from_header(header_dict, fallback_nq):
+                """Return meas_mapped list or a default 0-based map."""
+                return header_dict.get(
+                    "meas_mapped", list(range(header_dict.get("n_qubits", fallback_nq)))
+                )
+
+            if self._children:
+                # Multi‑circuit jobs executed as child jobs (rare with v0.4)
+                self._clbits = []
+                for cid in self._children:
+                    child_resp = self._client.retrieve_job(cid)
+                    ch_header = decompress_metadata_string(
+                        child_resp.get("metadata", {}).get("qiskit_header", None)
+                    )
+                    if isinstance(ch_header, list):
+                        ch_header = ch_header[0]
+                    self._clbits.append(
+                        _meas_map_from_header(ch_header or {}, self._num_qubits)
+                    )
+            else:
+                # Single job (possibly multi‑circuit type)
+                hdr = decompress_metadata_string(
+                    response.get("metadata", {}).get("qiskit_header", None)
+                )
+                if not isinstance(hdr, list):
+                    hdr = [hdr]
+                self._clbits = [_meas_map_from_header(h, self._num_qubits) for h in hdr]
             self._execution_time = (
                 self._first_of(
                     response, "execution_duration_ms", "execution_time", float("inf")

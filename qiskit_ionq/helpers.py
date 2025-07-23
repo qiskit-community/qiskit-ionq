@@ -54,6 +54,7 @@ from qiskit.circuit import (
 
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
+from .constants import ErrorMitigation
 from . import exceptions as ionq_exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
@@ -405,6 +406,7 @@ def decompress_metadata_string(
     encoded = input_string.encode()
     decoded = base64.b64decode(encoded)
     decompressed = gzip.decompress(decoded)
+    print(json.loads(decompressed))
     return json.loads(decompressed)
 
 
@@ -454,8 +456,13 @@ def qiskit_to_ionq(
         circuit = [circuit]
 
     # metadata header
-    metadata_list = [
-        {
+    metadata_list = []
+    for idx, circ in enumerate(circuit):
+        # measurement map for this circuit
+        m_map = (
+            ionq_circs[idx][1] if multi_circuit else meas_map  # may be None
+        )
+        entry = {
             "memory_slots": circ.num_clbits,
             "global_phase": circ.global_phase,
             "n_qubits": circ.num_qubits,
@@ -465,9 +472,9 @@ def qiskit_to_ionq(
             "qreg_sizes": get_register_sizes_and_labels(circ.qregs)[0],
             "qubit_labels": get_register_sizes_and_labels(circ.qregs)[1],
             **({"metadata": circ.metadata} if circ.metadata else {}),
+            **({"meas_mapped": m_map} if m_map is not None else {}),
         }
-        for circ in circuit
-    ]
+        metadata_list.append(entry)
 
     qiskit_header = compress_to_metadata_string(
         metadata_list if multi_circuit else metadata_list[0]
@@ -484,15 +491,11 @@ def qiskit_to_ionq(
             {
                 "name": n,
                 "circuit": c,
-                # keep measurement map beside each circuit
-                **({"registers": {"meas_mapped": m}} if m else {}),
             }
-            for c, m, n in ionq_circs
+            for c, _, n in ionq_circs
         ]
     else:
         input_block["circuit"] = ionq_circs
-        if meas_map is not None:
-            input_block["registers"] = {"meas_mapped": meas_map}
 
     # top‑level fields
     backend_name = (
@@ -525,14 +528,8 @@ def qiskit_to_ionq(
         "error_mitigation"
     )
 
-    if error_mitigation is not None:
-        # Accept bool or qiskit_ionq.ErrorMitigation enum
-        debiasing_flag = (
-            bool(error_mitigation.value)
-            if hasattr(error_mitigation, "value")
-            else bool(error_mitigation)
-        )
-        settings.setdefault("error_mitigation", {})["debiasing"] = debiasing_flag
+    if isinstance(error_mitigation, ErrorMitigation):
+        settings["error_mitigation"] = error_mitigation.value
 
     if settings:
         ionq_json["settings"] = settings

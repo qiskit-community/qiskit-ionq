@@ -274,12 +274,10 @@ def test_multiexp_job(mock_backend, requests_mock):
                 {
                     "name": qc1.name,
                     "circuit": [{"gate": "h", "targets": [0]}],
-                    "registers": {"meas_mapped": [0]},
                 },
                 {
                     "name": qc2.name,
                     "circuit": [{"gate": "x", "targets": [0]}],
-                    "registers": {"meas_mapped": [0]},
                 },
             ],
         },
