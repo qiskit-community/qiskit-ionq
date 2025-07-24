@@ -29,7 +29,6 @@
 from __future__ import annotations
 
 import abc
-from datetime import datetime
 from typing import Literal, TYPE_CHECKING
 import warnings
 
@@ -41,97 +40,10 @@ from qiskit.providers import Options
 
 from . import exceptions, ionq_client, ionq_job, ionq_equivalence_library
 from .helpers import GATESET_MAP, get_n_qubits
+from .ionq_client import Characterization
 
 if TYPE_CHECKING:
     from .ionq_provider import IonQProvider
-
-
-class Calibration:
-    """
-    IonQ backend calibration data.
-
-    This class is a simple wrapper for IonQ hardware calibration data.
-    """
-
-    def __init__(self, data):
-        self._data = data
-
-    @property
-    def uuid(self) -> str:
-        """The ID of the calibration.
-
-        Returns:
-            str: The ID.
-        """
-        return self._data["id"]
-
-    @property
-    def num_qubits(self) -> int:
-        """The number of qubits available.
-
-        Returns:
-            int: A number of qubits.
-        """
-        return int(self._data["qubits"])
-
-    @property
-    def target(self) -> str:
-        """The target calibrated hardware.
-
-        Returns:
-            str: The name of the target hardware backend.
-        """
-        return self._data["backend"]
-
-    @property
-    def calibration_time(self) -> datetime:
-        """Time of the measurement, in UTC.
-
-        Returns:
-            datetime.datetime: A datetime object with the time.
-        """
-        return datetime.fromtimestamp(self._data["date"])
-
-    @property
-    def fidelities(self) -> dict:
-        """Fidelity for single-qubit (1q) and two-qubit (2q) gates, and State
-        Preparation and Measurement (spam) operations.
-
-        Currently provides only mean fidelity; additional statistical data will
-        be added in the future.
-
-        Returns:
-            dict: A dict containing fidelity data for 1a, 2q, and spam.
-        """
-        return self._data["fidelity"]
-
-    @property
-    def timings(self) -> dict:
-        """Various system property timings. All times expressed as seconds.
-
-        Timings currently include::
-
-            * ``t1``
-            * ``t2``
-            * ``1q``
-            * ``2q``
-            * ``readout``
-            * ``reset``
-
-        Returns:
-            dict: A dictionary of timings.
-        """
-        return self._data["timing"]
-
-    @property
-    def connectivity(self) -> list[tuple[int, int]]:
-        """Returns connectivity data.
-
-        Returns:
-            list[tuple[int, int]]: An array of valid, unordered tuples of
-                possible qubits for executing two-qubit gates
-        """
-        return self._data["connectivity"]
 
 
 class IonQBackend(Backend):
@@ -308,17 +220,16 @@ class IonQBackend(Backend):
             status_msg="",
         )
 
-    def calibration(self) -> Calibration | None:
+    def calibration(self) -> Characterization | None:
         """Fetch the most recent calibration data for this backend.
 
         Returns:
             Calibration: A calibration data wrapper.
         """
-        backend_name = self.name().replace("_", ".")
-        calibration_data = self.client.get_calibration_data(backend_name)
-        if calibration_data is None:
-            return None
-        return Calibration(calibration_data)
+        calibration_data = self.client.get_calibration_data(
+            self.name().replace("ionq_qpu", "qpu"), limit=1
+        )
+        return calibration_data  # type: ignore
 
     @abc.abstractmethod
     def with_name(self, name, **kwargs) -> IonQBackend:
@@ -354,7 +265,7 @@ class IonQSimulatorBackend(IonQBackend):
         When noise_model ideal is specified, calling
         :meth:`get_counts <qiskit_ionq.ionq_job.IonQJob.get_counts>`
         on a job processed by this backend will return counts expressed as
-        probabilites, rather than a multiple of shots.
+        probabilities, rather than a multiple of shots.
     """
 
     @classmethod
@@ -390,7 +301,7 @@ class IonQSimulatorBackend(IonQBackend):
         """Simulators have no calibration data.
 
         Returns:
-            NoneType: None
+            None: Simulators do not have calibration data.
         """
         return None
 

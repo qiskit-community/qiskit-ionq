@@ -372,7 +372,7 @@ class Characterization:
 
     # metadata
     @property
-    def id(self) -> str:
+    def id(self) -> str:  # pylint: disable=invalid-name
         """UUID of this characterization."""
         return self._data["id"]
 
@@ -446,8 +446,8 @@ class JobEstimate:
         self.twoq_gates: int | None = inputs.get("2q_gates")
         self.qubits: int | None = inputs.get("qubits")
         self.shots: int | None = inputs.get("shots")
-        self.error_mitigation: bool = inputs.get("error_mitigation") == "true"
-        self.session: bool = inputs.get("session") == "true"
+        self.error_mitigation: bool = inputs.get("error_mitigation")
+        self.session: bool = inputs.get("session")
 
         # Core numeric results
         self.cost: float | None = data.get("estimated_cost")
@@ -456,7 +456,7 @@ class JobEstimate:
         self.queue_time: float | None = data.get("current_predicted_queue_time")  # sec
 
         # When was this generated?
-        ts = data.get("estimated_at")
+        ts = data.get("estimated_at")  # pylint: disable=invalid-name
         self.estimated_at: datetime | None = (
             datetime.fromisoformat(ts) if isinstance(ts, str) else None
         )
