@@ -404,7 +404,7 @@ class IonQJob(JobV1):
                 return mmap
 
             if self._children:
-                # Multi‑circuit jobs executed as child jobs (rare with v0.4)
+                # Multi‑circuit jobs executed as child jobs
                 self._clbits = []
                 for cid in self._children:
                     child_resp = self._client.retrieve_job(cid)
@@ -417,7 +417,7 @@ class IonQJob(JobV1):
                         _meas_map_from_header(ch_header or {}, self._num_qubits)
                     )
             else:
-                # Single job (possibly multi‑circuit type)
+                # Single job
                 hdr = decompress_metadata_string(
                     response.get("metadata", {}).get("qiskit_header", None)
                 )

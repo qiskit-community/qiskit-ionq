@@ -54,7 +54,7 @@ from qiskit.circuit import (
 
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
-from .constants import ErrorMitigation
+from qiskit_ionq.constants import ErrorMitigation
 from . import exceptions as ionq_exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR

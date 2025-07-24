@@ -31,6 +31,7 @@ from __future__ import annotations
 import re
 import json
 from collections import OrderedDict
+from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from warnings import warn
 import requests
@@ -218,7 +219,9 @@ class IonQClient:
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
-    def get_calibration_data(self, backend_name: str, limit: int | None = None) -> dict:
+    def get_calibration_data(
+        self, backend_name: str, limit: int | None = None
+    ) -> Characterization | list[Characterization]:
         """Retrieve calibration data for a specified backend.
 
         Args:
@@ -228,19 +231,21 @@ class IonQClient:
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
             IonQRetriableError: When a retriable error occurs during the request.
+
+        Returns:
+            Characterization: An instance of Characterization containing the calibration data
+            or a list of Characterization instances if multiple results are returned.
         """
         params = {"limit": limit} if limit else None
         url = self.make_path("backends", backend_name, "characterizations")
         res = self.get_with_retry(url, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
-        return res.json().get("characterizations", [])
-
-    def get_characterization(self, backend_name: str, char_id: str) -> dict:
-        """Fetch a specific characterization by UUID."""
-        url = self.make_path("backends", backend_name, "characterizations", char_id)
-        res = self.get_with_retry(url, headers=self.api_headers)
-        exceptions.IonQAPIError.raise_for_status(res)
-        return res.json()
+        chars = res.json().get("characterizations", [])
+        return (
+            Characterization(chars[0])
+            if limit == 1
+            else [Characterization(item) for item in chars]
+        )
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_results(
@@ -357,34 +362,133 @@ class IonQClient:
         return res.json()
 
 
-class JobEstimate:
-    """A class to hold job estimate information."""
+class Characterization:
+    """
+    Simple wrapper around the `/backends/<backend>/characterizations/<uuid>` payload.
+    """
 
-    def __init__(self, estimate: dict):
-        """Initialize the JobEstimate with a dictionary."""
-        self.input_values = estimate.get("input_values", {})
-        self.estimated_at = estimate.get("estimated_at")
-        self.cost_unit = estimate.get("cost_unit")
-        self.rate_information = estimate.get("rate_information", {})
-        self.estimated_cost = estimate.get("estimated_cost")
-        self.estimated_execution_time = estimate.get("estimated_execution_time")
-        self.current_predicted_queue_time = estimate.get(
-            "current_predicted_queue_time", 0
-        )
+    def __init__(self, data: dict) -> None:
+        self._data = data
+
+    # metadata
+    @property
+    def id(self) -> str:
+        """UUID of this characterization."""
+        return self._data["id"]
+
+    @property
+    def backend(self) -> str:
+        """Backend name, e.g. `"qpu.aria-1"`."""
+        return self._data["backend"]
+
+    @property
+    def date(self) -> datetime:
+        """Timestamp of the measurement (UTC)."""
+        return datetime.fromisoformat(self._data["date"].replace("Z", "+00:00"))
+
+    # qubit info
+    @property
+    def qubits(self) -> int:
+        """Number of qubits available."""
+        return int(self._data["qubits"])
+
+    @property
+    def connectivity(self) -> list[tuple[int, int]]:
+        """Valid two-qubit gate pairs as a list of tuples."""
+        return [tuple(pair) for pair in self._data.get("connectivity", [])]
+
+    # fidelity block
+    @property
+    def fidelity(self) -> dict:
+        """Full fidelity dictionary (spam, 1q, 2q, ...)."""
+        return self._data.get("fidelity", {})
+
+    @property
+    def median_spam_fidelity(self) -> float | None:  # convenience accessor
+        """Median state-prep-and-measurement fidelity, if present."""
+        return self.fidelity.get("spam", {}).get("median")
+
+    # timing block
+    @property
+    def timing(self) -> dict:
+        """Dictionary of timing parameters (readout, reset, 1q, 2q, t1, t2)."""
+        return self._data.get("timing", {})
 
     def __repr__(self) -> str:
-        """Return a string representation of the JobEstimate."""
-        return (
-            "JobEstimate(\n"
-            f"\tinput_values={self.input_values},\n"
-            f"\testimated_at={self.estimated_at},\n"
-            f"\tcost_unit={self.cost_unit},\n"
-            f"\trate_information={self.rate_information},\n"
-            f"\testimated_cost={self.estimated_cost},\n"
-            f"\testimated_execution_time={self.estimated_execution_time},\n"
-            f"\tcurrent_predicted_queue_time={self.current_predicted_queue_time},\n"
-            ")"
+        parts = [
+            f"backend={self.backend}",
+            f"id={self.id}",
+            f"date={self.date.isoformat()}",
+            f"qubits={self.qubits}",
+            f"connectivity={self.connectivity}",
+            f"fidelity={self.fidelity}",
+            f"timing={self.timing}",
+        ]
+        return f"Characterization({', '.join(parts)})"
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Characterization) and other._data == self._data
+
+
+class JobEstimate:
+    """
+    Wrapper for the payload returned by GET /jobs/estimate.
+    """
+
+    def __init__(self, data: dict):
+        # we keep the original dict just in case (for .to_dict())
+        self._raw = data
+
+        # Flatten the interesting bits so they are attributes
+        inputs = data.get("input_values", {})
+        self.backend: str | None = inputs.get("backend")
+        self.oneq_gates: int | None = inputs.get("1q_gates")
+        self.twoq_gates: int | None = inputs.get("2q_gates")
+        self.qubits: int | None = inputs.get("qubits")
+        self.shots: int | None = inputs.get("shots")
+        self.error_mitigation: bool = inputs.get("error_mitigation") == "true"
+        self.session: bool = inputs.get("session") == "true"
+
+        # Core numeric results
+        self.cost: float | None = data.get("estimated_cost")
+        self.cost_unit: str | None = data.get("cost_unit")
+        self.exec_time: float | None = data.get("estimated_execution_time")  # seconds
+        self.queue_time: float | None = data.get("current_predicted_queue_time")  # sec
+
+        # When was this generated?
+        ts = data.get("estimated_at")
+        self.estimated_at: datetime | None = (
+            datetime.fromisoformat(ts) if isinstance(ts, str) else None
         )
 
+        # Optional structured pricing breakdown
+        self.rate_information: dict = data.get("rate_information", {})
 
-__all__ = ["IonQClient", "JobEstimate"]
+    # convenience helpers
+    @property
+    def total_runtime(self) -> float | None:
+        """Predicted queue + execution time, in seconds (if both are present)."""
+        if self.exec_time is None or self.queue_time is None:
+            return None
+        return self.exec_time + self.queue_time
+
+    def to_dict(self) -> dict:
+        """Return a shallow copy of the original JSON dict."""
+        return dict(self._raw)
+
+    def __repr__(self) -> str:
+        parts = [
+            f"backend={self.backend}",
+            f"qubits={self.qubits}",
+            f"shots={self.shots}",
+            f"cost={self.cost} {self.cost_unit}",
+            f"exec_time={self.exec_time}s",
+            f"queue_time={self.queue_time}s",
+        ]
+        return f"JobEstimate({', '.join(parts)})"
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, JobEstimate) and other._raw == self._raw
+
+
+__all__ = ["IonQClient", "Characterization", "JobEstimate"]
