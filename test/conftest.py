@@ -52,9 +52,7 @@ class MockBackend(ionq_backend.IonQBackend):
     def gateset(self):
         return "qis"
 
-    def __init__(
-        self, provider, name="ionq_mock_backend"
-    ):  # pylint: disable=redefined-outer-name
+    def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
         config = BackendConfiguration.from_dict(
             {
                 "backend_name": name,
