@@ -311,7 +311,7 @@ class IonQJob(JobV1):
         if self._status is jobstatus.JobStatus.DONE:
             assert self._job_id is not None
             response = self._client.get_results(
-                job_id=self._job_id,
+                results_url=self._results_url,
                 sharpen=sharpen,
                 extra_query_params=extra_query_params,
             )
@@ -382,7 +382,17 @@ class IonQJob(JobV1):
             stats = response.get("stats", {})
             self._num_circuits = self._first_of(stats, "circuits", default=1)
             self._num_qubits = self._first_of(stats, "qubits", default=0)
-            self._children = self._first_of(response, "child_job_ids", "children", None)
+            self._children = self._first_of(
+                response, "child_job_ids", "children", default=None
+            )
+            _results_url = self._first_of(
+                response, "results", "results_url", default={}
+            )
+            self._results_url = (
+                _results_url
+                if isinstance(_results_url, str)
+                else _results_url.get("probabilities", {}).get("url")
+            )
 
             def _meas_map_from_header(header_dict, fallback_nq):
                 """Return meas_mapped list or a default 0-based map."""

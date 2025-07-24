@@ -34,6 +34,13 @@ from requests_mock import adapter as rm_adapter
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
 from qiskit_ionq.helpers import compress_to_metadata_string
 
+_DEF_RESULTS_TEMPLATE = lambda job_id: {
+    "probabilities": {
+        # v0.4 returns a relative path - the client prefixes it with the base URL
+        "url": f"v0.4/jobs/{job_id}/results/probabilities"
+    }
+}
+
 
 class MockBackend(ionq_backend.IonQBackend):
     """A mock backend for testing super-class behavior in isolation."""
@@ -116,6 +123,7 @@ def dummy_job_response(
         "start": 1600000001,
         "response": 1600000002,
         "backend": target,
+        "results": _DEF_RESULTS_TEMPLATE(job_id),
         "id": job_id,
         "settings": (job_settings or {}),
         "name": "test_name",
@@ -172,6 +180,7 @@ def dummy_mapped_job_response(
         "start": 1600000001,
         "response": 1600000002,
         "backend": target,
+        "results": _DEF_RESULTS_TEMPLATE(job_id),
         "id": job_id,
         "settings": (job_settings or {}),
         "name": "test_name",
@@ -214,6 +223,7 @@ def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-t
         "request": 1600000000,
         "response": 1600000002,
         "backend": "qpu",
+        "results": _DEF_RESULTS_TEMPLATE(job_id),
         "id": job_id,
     }
 

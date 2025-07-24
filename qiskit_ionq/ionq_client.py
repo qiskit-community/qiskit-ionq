@@ -28,6 +28,7 @@
 
 from __future__ import annotations
 
+import re
 import json
 from collections import OrderedDict
 from typing import Optional, TYPE_CHECKING
@@ -244,7 +245,7 @@ class IonQClient:
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_results(
         self,
-        job_id: str,
+        results_url: str,
         sharpen: Optional[bool] = None,
         extra_query_params: Optional[dict] = None,
     ) -> dict:
@@ -253,7 +254,7 @@ class IonQClient:
         The returned JSON dict will only have data if job has completed.
 
         Args:
-            job_id (str): The ID of a job to retrieve.
+            results_url (str): The URL of the job results to retrieve.
             sharpen (bool): Supported if the job is debiased,
             allows you to filter out physical qubit bias from the results.
             extra_query_params (dict): Specify any parameters to include in the request
@@ -280,7 +281,8 @@ class IonQClient:
             )
             params.update(extra_query_params)
 
-        req_path = self.make_path("jobs", job_id, "results", "probabilities")
+        # Strip second API version (v0.4/)
+        req_path = re.sub(r"v\d+\.\d+/", "", self.make_path(results_url), count=1)
         res = self.get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
