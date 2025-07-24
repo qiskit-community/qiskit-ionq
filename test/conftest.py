@@ -34,12 +34,16 @@ from requests_mock import adapter as rm_adapter
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
 from qiskit_ionq.helpers import compress_to_metadata_string
 
-_DEF_RESULTS_TEMPLATE = lambda job_id: {
-    "probabilities": {
-        # v0.4 returns a relative path - the client prefixes it with the base URL
-        "url": f"v0.4/jobs/{job_id}/results/probabilities"
+
+def _def_results_template(job_id):
+    """A template for the results field in a job response."""
+    return {
+        "probabilities": {
+            # v0.4 returns a relative path - the client prefixes it with the base URL
+            # https://docs.ionq.com/api-reference/v0.4/jobs/get-job
+            "url": f"/v0.4/jobs/{job_id}/results/probabilities"
+        }
     }
-}
 
 
 class MockBackend(ionq_backend.IonQBackend):
@@ -48,7 +52,9 @@ class MockBackend(ionq_backend.IonQBackend):
     def gateset(self):
         return "qis"
 
-    def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
+    def __init__(
+        self, provider, name="ionq_mock_backend"
+    ):  # pylint: disable=redefined-outer-name
         config = BackendConfiguration.from_dict(
             {
                 "backend_name": name,
@@ -123,7 +129,7 @@ def dummy_job_response(
         "start": 1600000001,
         "response": 1600000002,
         "backend": target,
-        "results": _DEF_RESULTS_TEMPLATE(job_id),
+        "results": _def_results_template(job_id),
         "id": job_id,
         "settings": (job_settings or {}),
         "name": "test_name",
@@ -180,7 +186,7 @@ def dummy_mapped_job_response(
         "start": 1600000001,
         "response": 1600000002,
         "backend": target,
-        "results": _DEF_RESULTS_TEMPLATE(job_id),
+        "results": _def_results_template(job_id),
         "id": job_id,
         "settings": (job_settings or {}),
         "name": "test_name",
@@ -223,7 +229,7 @@ def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-t
         "request": 1600000000,
         "response": 1600000002,
         "backend": "qpu",
-        "results": _DEF_RESULTS_TEMPLATE(job_id),
+        "results": _def_results_template(job_id),
         "id": job_id,
     }
 

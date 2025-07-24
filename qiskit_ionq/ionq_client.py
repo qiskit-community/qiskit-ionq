@@ -281,8 +281,8 @@ class IonQClient:
             )
             params.update(extra_query_params)
 
-        # Strip second API version (v0.4/)
-        req_path = re.sub(r"v\d+\.\d+/", "", self.make_path(results_url), count=1)
+        # Strip second API version (/v0.4/)
+        req_path = re.sub(r"/v\d+\.\d+/", "", self.make_path(results_url), count=1)
         res = self.get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
