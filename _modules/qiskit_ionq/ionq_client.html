@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_client - Qiskit IonQ Provider 0.5.13</title>
+        <title>qiskit_ionq.ionq_client - Qiskit IonQ Provider 0.6.0.dev0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.5.13</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 0.6.0.dev0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.13</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.6.0.dev0</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -261,8 +261,10 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
@@ -281,7 +283,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;IonQ API Client</span>
 
 <span class="sd">    Attributes:</span>
-<span class="sd">        _url(str): A URL base to use for API calls, e.g. ``&quot;https://api.ionq.co/v0.3&quot;``</span>
+<span class="sd">        _url(str): A URL base to use for API calls, e.g. ``&quot;https://api.ionq.co/v0.4&quot;``</span>
 <span class="sd">        _token(str): An API Access Token to use with the IonQ API.</span>
 <span class="sd">        _custom_headers(dict): Extra headers to add to the request.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -325,7 +327,9 @@
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_with_retry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req_path</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+<div class="viewcode-block" id="IonQClient.get_with_retry">
+<a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.get_with_retry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_with_retry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req_path</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Make a GET request with retry logic and exception handling.</span>
 
 <span class="sd">        Args:</span>
@@ -350,7 +354,8 @@
         <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">req_exc</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">IonQRetriableError</span><span class="p">(</span><span class="n">req_exc</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">req_exc</span>
 
-        <span class="k">return</span> <span class="n">res</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
 
 <div class="viewcode-block" id="IonQClient.submit_job">
 <a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.submit_job">[docs]</a>
@@ -406,7 +411,7 @@
 <span class="sd">            dict: A :mod:`requests &lt;requests&gt;` response :meth:`json &lt;requests.Response.json&gt;` dict.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">req_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_path</span><span class="p">(</span><span class="s2">&quot;jobs&quot;</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_with_retry</span><span class="p">(</span><span class="n">req_path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_headers</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_with_retry</span><span class="p">(</span><span class="n">req_path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_headers</span><span class="p">)</span>
         <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQAPIError</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
 
@@ -472,25 +477,33 @@
 <div class="viewcode-block" id="IonQClient.get_calibration_data">
 <a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.get_calibration_data">[docs]</a>
     <span class="nd">@retry</span><span class="p">(</span><span class="n">exceptions</span><span class="o">=</span><span class="n">IonQRetriableError</span><span class="p">,</span> <span class="n">max_delay</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">backoff</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">jitter</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_calibration_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_calibration_data</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">backend_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Characterization</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Characterization</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve calibration data for a specified backend.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            backend_name (str): The IonQ backend to fetch data for.</span>
+<span class="sd">            limit (int, optional): Limit the number of results returned.</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            IonQAPIError: When the API returns a non-200 status code.</span>
 <span class="sd">            IonQRetriableError: When a retriable error occurs during the request.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            dict: A dictionary of an IonQ backend&#39;s calibration data.</span>
+<span class="sd">            Characterization: An instance of Characterization containing the calibration data</span>
+<span class="sd">            or a list of Characterization instances if multiple results are returned.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">req_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_path</span><span class="p">(</span>
-            <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;characterizations/backends&quot;</span><span class="p">,</span> <span class="n">backend_name</span><span class="p">[</span><span class="mi">5</span><span class="p">:],</span> <span class="s2">&quot;current&quot;</span><span class="p">])</span>
-        <span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_with_retry</span><span class="p">(</span><span class="n">req_path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_headers</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;limit&quot;</span><span class="p">:</span> <span class="n">limit</span><span class="p">}</span> <span class="k">if</span> <span class="n">limit</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_path</span><span class="p">(</span><span class="s2">&quot;backends&quot;</span><span class="p">,</span> <span class="n">backend_name</span><span class="p">,</span> <span class="s2">&quot;characterizations&quot;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_with_retry</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
         <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQAPIError</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
+        <span class="n">chars</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;characterizations&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">Characterization</span><span class="p">(</span><span class="n">chars</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">limit</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">else</span> <span class="p">[</span><span class="n">Characterization</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">chars</span><span class="p">]</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="IonQClient.get_results">
@@ -498,7 +511,7 @@
     <span class="nd">@retry</span><span class="p">(</span><span class="n">exceptions</span><span class="o">=</span><span class="n">IonQRetriableError</span><span class="p">,</span> <span class="n">max_delay</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">backoff</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">jitter</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_results</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">results_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">sharpen</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">extra_query_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
@@ -507,7 +520,7 @@
 <span class="sd">        The returned JSON dict will only have data if job has completed.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            job_id (str): The ID of a job to retrieve.</span>
+<span class="sd">            results_url (str): The URL of the job results to retrieve.</span>
 <span class="sd">            sharpen (bool): Supported if the job is debiased,</span>
 <span class="sd">            allows you to filter out physical qubit bias from the results.</span>
 <span class="sd">            extra_query_params (dict): Specify any parameters to include in the request</span>
@@ -534,16 +547,232 @@
             <span class="p">)</span>
             <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra_query_params</span><span class="p">)</span>
 
-        <span class="n">req_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_path</span><span class="p">(</span><span class="s2">&quot;jobs&quot;</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_with_retry</span><span class="p">(</span><span class="n">req_path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+        <span class="c1"># Strip second API version (/v0.4/)</span>
+        <span class="n">req_path</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;/v\d+\.\d+/&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_path</span><span class="p">(</span><span class="n">results_url</span><span class="p">),</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_with_retry</span><span class="p">(</span><span class="n">req_path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
         <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQAPIError</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
         <span class="c1"># Use json.loads with object_pairs_hook to maintain order of JSON keys</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">object_pairs_hook</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="IonQClient.estimate_job">
+<a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.estimate_job">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">estimate_job</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">oneq_gates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">twoq_gates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">shots</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">error_mitigation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">session</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">job_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ionq.circuit.v1&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JobEstimate</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Call GET /jobs/estimate … returns a cost/time prediction.&quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">job_type</span><span class="p">,</span>
+            <span class="s2">&quot;backend&quot;</span><span class="p">:</span> <span class="n">backend</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;ionq_qpu&quot;</span><span class="p">,</span> <span class="s2">&quot;qpu&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;1q_gates&quot;</span><span class="p">:</span> <span class="n">oneq_gates</span><span class="p">,</span>
+            <span class="s2">&quot;2q_gates&quot;</span><span class="p">:</span> <span class="n">twoq_gates</span><span class="p">,</span>
+            <span class="s2">&quot;qubits&quot;</span><span class="p">:</span> <span class="n">qubits</span><span class="p">,</span>
+            <span class="s2">&quot;shots&quot;</span><span class="p">:</span> <span class="n">shots</span><span class="p">,</span>
+            <span class="s2">&quot;error_mitigation&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">error_mitigation</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
+            <span class="s2">&quot;session&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_path</span><span class="p">(</span><span class="s2">&quot;jobs&quot;</span><span class="p">,</span> <span class="s2">&quot;estimate&quot;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_with_retry</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQAPIError</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">JobEstimate</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="IonQClient.post">
+<a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.post">[docs]</a>
+    <span class="nd">@retry</span><span class="p">(</span><span class="n">exceptions</span><span class="o">=</span><span class="n">IonQRetriableError</span><span class="p">,</span> <span class="n">tries</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">path_parts</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">json_body</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;POST helper with IonQ headers + retry.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            *path_parts (str): Path parts to append to the base URL.</span>
+<span class="sd">            json_body (dict, optional): JSON body to send in the POST request.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            IonQAPIError: When the API returns a non-200 status code.</span>
+<span class="sd">            IonQRetriableError: When a retriable error occurs during the request.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: A :mod:`requests &lt;requests&gt;` response :meth:`json &lt;requests.Response.json&gt;` dict.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_path</span><span class="p">(</span><span class="o">*</span><span class="n">path_parts</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">json_body</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_headers</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+        <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQAPIError</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="IonQClient.put">
+<a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.IonQClient.put">[docs]</a>
+    <span class="nd">@retry</span><span class="p">(</span><span class="n">exceptions</span><span class="o">=</span><span class="n">IonQRetriableError</span><span class="p">,</span> <span class="n">tries</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">path_parts</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">json_body</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;PUT helper with IonQ headers + retry.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            *path_parts (str): Path parts to append to the base URL.</span>
+<span class="sd">            json_body (dict, optional): JSON body to send in the PUT request.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            IonQAPIError: When the API returns a non-200 status code.</span>
+<span class="sd">            IonQRetriableError: When a retriable error occurs during the request.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: A :mod:`requests &lt;requests&gt;` response :meth:`json &lt;requests.Response.json&gt;` dict.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_path</span><span class="p">(</span><span class="o">*</span><span class="n">path_parts</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">json_body</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_headers</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+        <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQAPIError</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
 </div>
 
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;IonQClient&quot;</span><span class="p">]</span>
+<div class="viewcode-block" id="Characterization">
+<a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.Characterization">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Characterization</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple wrapper around the `/backends/&lt;backend&gt;/characterizations/&lt;uuid&gt;` payload.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+
+    <span class="c1"># metadata</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;UUID of this characterization.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backend</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Backend name, e.g. `&quot;qpu.aria-1&quot;`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;backend&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">date</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Timestamp of the measurement (UTC).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;Z&quot;</span><span class="p">,</span> <span class="s2">&quot;+00:00&quot;</span><span class="p">))</span>
+
+    <span class="c1"># qubit info</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">qubits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of qubits available.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;qubits&quot;</span><span class="p">])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">connectivity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Valid two-qubit gate pairs as a list of tuples.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;connectivity&quot;</span><span class="p">,</span> <span class="p">[])]</span>
+
+    <span class="c1"># fidelity block</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fidelity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Full fidelity dictionary (spam, 1q, 2q, ...).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fidelity&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">median_spam_fidelity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># convenience accessor</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Median state-prep-and-measurement fidelity, if present.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fidelity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;spam&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;median&quot;</span><span class="p">)</span>
+
+    <span class="c1"># timing block</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">timing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dictionary of timing parameters (readout, reset, 1q, 2q, t1, t2).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;timing&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;backend=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;date=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;qubits=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;connectivity=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;fidelity=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">fidelity</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;timing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">timing</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Characterization(</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Characterization</span><span class="p">)</span> <span class="ow">and</span> <span class="n">other</span><span class="o">.</span><span class="n">_data</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span></div>
+
+
+
+<div class="viewcode-block" id="JobEstimate">
+<a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.JobEstimate">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">JobEstimate</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper for the payload returned by GET /jobs/estimate.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="c1"># we keep the original dict just in case (for .to_dict())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="c1"># Flatten the interesting bits so they are attributes</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input_values&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;backend&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">oneq_gates</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;1q_gates&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">twoq_gates</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;2q_gates&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qubits&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shots&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_mitigation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;error_mitigation&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Core numeric results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cost</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;estimated_cost&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cost_unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cost_unit&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exec_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;estimated_execution_time&quot;</span><span class="p">)</span>  <span class="c1"># seconds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;current_predicted_queue_time&quot;</span><span class="p">)</span>  <span class="c1"># sec</span>
+
+        <span class="c1"># When was this generated?</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;estimated_at&quot;</span><span class="p">)</span>  <span class="c1"># pylint: disable=invalid-name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimated_at</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Optional structured pricing breakdown</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rate_information</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rate_information&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+    <span class="c1"># convenience helpers</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">total_runtime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predicted queue + execution time, in seconds (if both are present).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exec_time</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">exec_time</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue_time</span>
+
+<div class="viewcode-block" id="JobEstimate.to_dict">
+<a class="viewcode-back" href="../../apidocs/client.html#qiskit_ionq.ionq_client.JobEstimate.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a shallow copy of the original JSON dict.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;backend=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;qubits=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;shots=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">shots</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;cost=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cost</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cost_unit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;exec_time=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">exec_time</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;queue_time=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">queue_time</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;JobEstimate(</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">JobEstimate</span><span class="p">)</span> <span class="ow">and</span> <span class="n">other</span><span class="o">.</span><span class="n">_raw</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span></div>
+
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;IonQClient&quot;</span><span class="p">,</span> <span class="s2">&quot;Characterization&quot;</span><span class="p">,</span> <span class="s2">&quot;JobEstimate&quot;</span><span class="p">]</span>
 </pre></div>
         </article>
       </div>
@@ -577,7 +806,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=c61aa432"></script>
+    <script src="../../_static/documentation_options.js?v=3b49ffdc"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>

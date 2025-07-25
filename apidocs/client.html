@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="IonQ Result" href="result.html" /><link rel="prev" title="IonQ Backends" href="backends.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>API Client - Qiskit IonQ Provider 0.5.13</title>
+        <title>API Client - Qiskit IonQ Provider 0.6.0.dev0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.5.13</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.6.0.dev0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.5.13</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.6.0.dev0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -235,13 +235,67 @@
 <span id="api-client"></span><span id="client"></span><h1>API Client<a class="headerlink" href="#module-qiskit_ionq.ionq_client" title="Link to this heading">¶</a></h1>
 <p>Basic API Client for IonQ’s REST API</p>
 <dl class="py class">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.Characterization">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_client.</span></span><span class="sig-name descname"><span class="pre">Characterization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#Characterization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.Characterization" title="Link to this definition">¶</a></dt>
+<dd><p>Simple wrapper around the <cite>/backends/&lt;backend&gt;/characterizations/&lt;uuid&gt;</cite> payload.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.Characterization.backend">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">backend</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#qiskit_ionq.ionq_client.Characterization.backend" title="Link to this definition">¶</a></dt>
+<dd><p>Backend name, e.g. <cite>“qpu.aria-1”</cite>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.Characterization.connectivity">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">connectivity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_client.Characterization.connectivity" title="Link to this definition">¶</a></dt>
+<dd><p>Valid two-qubit gate pairs as a list of tuples.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.Characterization.date">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">date</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></em><a class="headerlink" href="#qiskit_ionq.ionq_client.Characterization.date" title="Link to this definition">¶</a></dt>
+<dd><p>Timestamp of the measurement (UTC).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.Characterization.fidelity">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fidelity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><a class="headerlink" href="#qiskit_ionq.ionq_client.Characterization.fidelity" title="Link to this definition">¶</a></dt>
+<dd><p>Full fidelity dictionary (spam, 1q, 2q, …).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.Characterization.id">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#qiskit_ionq.ionq_client.Characterization.id" title="Link to this definition">¶</a></dt>
+<dd><p>UUID of this characterization.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.Characterization.median_spam_fidelity">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">median_spam_fidelity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_client.Characterization.median_spam_fidelity" title="Link to this definition">¶</a></dt>
+<dd><p>Median state-prep-and-measurement fidelity, if present.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.Characterization.qubits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">qubits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#qiskit_ionq.ionq_client.Characterization.qubits" title="Link to this definition">¶</a></dt>
+<dd><p>Number of qubits available.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.Characterization.timing">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">timing</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><a class="headerlink" href="#qiskit_ionq.ionq_client.Characterization.timing" title="Link to this definition">¶</a></dt>
+<dd><p>Dictionary of timing parameters (readout, reset, 1q, 2q, t1, t2).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_client.</span></span><span class="sig-name descname"><span class="pre">IonQClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient" title="Link to this definition">¶</a></dt>
 <dd><p>IonQ API Client</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient._url">
 <span class="sig-name descname"><span class="pre">_url</span></span><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient._url" title="Link to this definition">¶</a></dt>
-<dd><p>A URL base to use for API calls, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;https://api.ionq.co/v0.3&quot;</span></code></p>
+<dd><p>A URL base to use for API calls, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;https://api.ionq.co/v0.4&quot;</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
@@ -347,12 +401,21 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.estimate_job">
+<span class="sig-name descname"><span class="pre">estimate_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oneq_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">twoq_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_mitigation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ionq.circuit.v1'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#qiskit_ionq.ionq_client.JobEstimate" title="qiskit_ionq.ionq_client.JobEstimate"><span class="pre">JobEstimate</span></a></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.estimate_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.estimate_job" title="Link to this definition">¶</a></dt>
+<dd><p>Call GET /jobs/estimate … returns a cost/time prediction.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.get_calibration_data">
-<span class="sig-name descname"><span class="pre">get_calibration_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.get_calibration_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.get_calibration_data" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_calibration_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization" title="qiskit_ionq.ionq_client.Characterization"><span class="pre">Characterization</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization" title="qiskit_ionq.ionq_client.Characterization"><span class="pre">Characterization</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.get_calibration_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.get_calibration_data" title="Link to this definition">¶</a></dt>
 <dd><p>Retrieve calibration data for a specified backend.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>backend_name</strong> (<em>str</em>) – The IonQ backend to fetch data for.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>backend_name</strong> (<em>str</em>) – The IonQ backend to fetch data for.</p></li>
+<li><p><strong>limit</strong> (<em>int</em><em>, </em><em>optional</em>) – Limit the number of results returned.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
@@ -361,23 +424,24 @@
 </ul>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A dictionary of an IonQ backend’s calibration data.</p>
+<dd class="field-odd"><p>An instance of Characterization containing the calibration data
+or a list of Characterization instances if multiple results are returned.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>dict</p>
+<dd class="field-even"><p><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization" title="qiskit_ionq.ionq_client.Characterization">Characterization</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.get_results">
-<span class="sig-name descname"><span class="pre">get_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sharpen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_query_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.get_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.get_results" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sharpen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_query_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.get_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.get_results" title="Link to this definition">¶</a></dt>
 <dd><p>Retrieve job results from the IonQ API.</p>
 <p>The returned JSON dict will only have data if job has completed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>job_id</strong> (<em>str</em>) – The ID of a job to retrieve.</p></li>
+<li><p><strong>results_url</strong> (<em>str</em>) – The URL of the job results to retrieve.</p></li>
 <li><p><strong>sharpen</strong> (<em>bool</em>) – Supported if the job is debiased,</p></li>
 <li><p><strong>results.</strong> (<em>allows you to filter out physical qubit bias from the</em>)</p></li>
 <li><p><strong>extra_query_params</strong> (<em>dict</em>) – Specify any parameters to include in the request</p></li>
@@ -399,6 +463,31 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.get_with_retry">
+<span class="sig-name descname"><span class="pre">get_with_retry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">req_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.get_with_retry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.get_with_retry" title="Link to this definition">¶</a></dt>
+<dd><p>Make a GET request with retry logic and exception handling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>req_path</strong> (<em>str</em>) – The URL path to make the request to.</p></li>
+<li><p><strong>params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Parameters to include in the request.</p></li>
+<li><p><strong>headers</strong> (<em>dict</em><em>, </em><em>optional</em>) – Headers to include in the request.</p></li>
+<li><p><strong>timeout</strong> (<em>int</em><em>, </em><em>optional</em>) – Timeout for the request.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>IonQRetriableError</strong> – When a retriable error occurs during the request.</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A requests.Response object.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Response</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.make_path">
 <span class="sig-name descname"><span class="pre">make_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">parts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.make_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.make_path" title="Link to this definition">¶</a></dt>
 <dd><p>Make a “/”-delimited path, then append it to <a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient._url" title="qiskit_ionq.ionq_client.IonQClient._url"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_url</span></code></a>.</p>
@@ -408,6 +497,58 @@
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.post">
+<span class="sig-name descname"><span class="pre">post</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">path_parts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.post" title="Link to this definition">¶</a></dt>
+<dd><p>POST helper with IonQ headers + retry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*path_parts</strong> (<em>str</em>) – Path parts to append to the base URL.</p></li>
+<li><p><strong>json_body</strong> (<em>dict</em><em>, </em><em>optional</em>) – JSON body to send in the POST request.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQAPIError" title="qiskit_ionq.exceptions.IonQAPIError"><strong>IonQAPIError</strong></a> – When the API returns a non-200 status code.</p></li>
+<li><p><strong>IonQRetriableError</strong> – When a retriable error occurs during the request.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A <code class="xref py py-mod docutils literal notranslate"><span class="pre">requests</span></code> response <code class="xref py py-meth docutils literal notranslate"><span class="pre">json</span></code> dict.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.put">
+<span class="sig-name descname"><span class="pre">put</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">path_parts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.put"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.put" title="Link to this definition">¶</a></dt>
+<dd><p>PUT helper with IonQ headers + retry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*path_parts</strong> (<em>str</em>) – Path parts to append to the base URL.</p></li>
+<li><p><strong>json_body</strong> (<em>dict</em><em>, </em><em>optional</em>) – JSON body to send in the PUT request.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQAPIError" title="qiskit_ionq.exceptions.IonQAPIError"><strong>IonQAPIError</strong></a> – When the API returns a non-200 status code.</p></li>
+<li><p><strong>IonQRetriableError</strong> – When a retriable error occurs during the request.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A <code class="xref py py-mod docutils literal notranslate"><span class="pre">requests</span></code> response <code class="xref py py-meth docutils literal notranslate"><span class="pre">json</span></code> dict.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -455,6 +596,24 @@
 <dd class="field-even"><p>dict</p>
 </dd>
 </dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.JobEstimate">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_client.</span></span><span class="sig-name descname"><span class="pre">JobEstimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#JobEstimate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.JobEstimate" title="Link to this definition">¶</a></dt>
+<dd><p>Wrapper for the payload returned by GET /jobs/estimate.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.JobEstimate.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#JobEstimate.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.JobEstimate.to_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Return a shallow copy of the original JSON dict.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.JobEstimate.total_runtime">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">total_runtime</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_client.JobEstimate.total_runtime" title="Link to this definition">¶</a></dt>
+<dd><p>Predicted queue + execution time, in seconds (if both are present).</p>
 </dd></dl>
 
 </dd></dl>
@@ -516,6 +675,17 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">API Client</a><ul>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization"><code class="docutils literal notranslate"><span class="pre">Characterization</span></code></a><ul>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization.backend"><code class="docutils literal notranslate"><span class="pre">Characterization.backend</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization.connectivity"><code class="docutils literal notranslate"><span class="pre">Characterization.connectivity</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization.date"><code class="docutils literal notranslate"><span class="pre">Characterization.date</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization.fidelity"><code class="docutils literal notranslate"><span class="pre">Characterization.fidelity</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization.id"><code class="docutils literal notranslate"><span class="pre">Characterization.id</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization.median_spam_fidelity"><code class="docutils literal notranslate"><span class="pre">Characterization.median_spam_fidelity</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization.qubits"><code class="docutils literal notranslate"><span class="pre">Characterization.qubits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization.timing"><code class="docutils literal notranslate"><span class="pre">Characterization.timing</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient"><code class="docutils literal notranslate"><span class="pre">IonQClient</span></code></a><ul>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient._url"><code class="docutils literal notranslate"><span class="pre">IonQClient._url</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient._token"><code class="docutils literal notranslate"><span class="pre">IonQClient._token</span></code></a></li>
@@ -524,11 +694,20 @@
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.cancel_job"><code class="docutils literal notranslate"><span class="pre">IonQClient.cancel_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.cancel_jobs"><code class="docutils literal notranslate"><span class="pre">IonQClient.cancel_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.delete_job"><code class="docutils literal notranslate"><span class="pre">IonQClient.delete_job()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.estimate_job"><code class="docutils literal notranslate"><span class="pre">IonQClient.estimate_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.get_calibration_data"><code class="docutils literal notranslate"><span class="pre">IonQClient.get_calibration_data()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.get_results"><code class="docutils literal notranslate"><span class="pre">IonQClient.get_results()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.get_with_retry"><code class="docutils literal notranslate"><span class="pre">IonQClient.get_with_retry()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.make_path"><code class="docutils literal notranslate"><span class="pre">IonQClient.make_path()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.post"><code class="docutils literal notranslate"><span class="pre">IonQClient.post()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.put"><code class="docutils literal notranslate"><span class="pre">IonQClient.put()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.retrieve_job"><code class="docutils literal notranslate"><span class="pre">IonQClient.retrieve_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.submit_job"><code class="docutils literal notranslate"><span class="pre">IonQClient.submit_job()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.JobEstimate"><code class="docutils literal notranslate"><span class="pre">JobEstimate</span></code></a><ul>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.JobEstimate.to_dict"><code class="docutils literal notranslate"><span class="pre">JobEstimate.to_dict()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.JobEstimate.total_runtime"><code class="docutils literal notranslate"><span class="pre">JobEstimate.total_runtime</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -544,7 +723,7 @@
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=c61aa432"></script>
+    <script src="../_static/documentation_options.js?v=3b49ffdc"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
