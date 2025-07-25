@@ -35,6 +35,17 @@ from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
 from qiskit_ionq.helpers import compress_to_metadata_string
 
 
+def _def_results_template(job_id):
+    """A template for the results field in a job response."""
+    return {
+        "probabilities": {
+            # v0.4 returns a relative path - the client prefixes it with the base URL
+            # https://docs.ionq.com/api-reference/v0.4/jobs/get-job
+            "url": f"/v0.4/jobs/{job_id}/results/probabilities"
+        }
+    }
+
+
 class MockBackend(ionq_backend.IonQBackend):
     """A mock backend for testing super-class behavior in isolation."""
 
@@ -109,14 +120,14 @@ def dummy_job_response(
             "output_length": "2",
             "qiskit_header": qiskit_header,
         },
-        "registers": {"meas_mapped": [0, 1]},
         "execution_time": 8,
         "qubits": 2,
         "type": "circuit",
         "request": 1600000000,
         "start": 1600000001,
         "response": 1600000002,
-        "target": target,
+        "backend": target,
+        "results": _def_results_template(job_id),
         "id": job_id,
         "settings": (job_settings or {}),
         "name": "test_name",
@@ -153,6 +164,7 @@ def dummy_mapped_job_response(
             "creg_sizes": [["c", 2]],
             "name": job_id,
             "global_phase": 0,
+            "meas_mapped": [1, 0],
         }
     )
     response = {
@@ -165,14 +177,14 @@ def dummy_mapped_job_response(
             "output_length": "2",
             "qiskit_header": qiskit_header,
         },
-        "registers": {"meas_mapped": [1, 0]},
         "execution_time": 8,
         "qubits": 2,
         "type": "circuit",
         "request": 1600000000,
         "start": 1600000001,
         "response": 1600000002,
-        "target": target,
+        "backend": target,
+        "results": _def_results_template(job_id),
         "id": job_id,
         "settings": (job_settings or {}),
         "name": "test_name",
@@ -214,7 +226,8 @@ def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-t
         "type": "circuit",
         "request": 1600000000,
         "response": 1600000002,
-        "target": "qpu",
+        "backend": "qpu",
+        "results": _def_results_template(job_id),
         "id": job_id,
     }
 
@@ -333,7 +346,7 @@ def formatted_result(provider):
 
     # Create the request path for accessing the dummy job:
     path = client.make_path("jobs", job_id)
-    results_path = client.make_path("jobs", job_id, "results")
+    results_path = client.make_path("jobs", job_id, "results", "probabilities")
 
     # mock a job response
     with _default_requests_mock() as requests_mock:

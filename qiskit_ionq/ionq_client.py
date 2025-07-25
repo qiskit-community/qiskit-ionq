@@ -28,8 +28,10 @@
 
 from __future__ import annotations
 
+import re
 import json
 from collections import OrderedDict
+from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from warnings import warn
 import requests
@@ -46,7 +48,7 @@ class IonQClient:
     """IonQ API Client
 
     Attributes:
-        _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.3"``
+        _url(str): A URL base to use for API calls, e.g. ``"https://api.ionq.co/v0.4"``
         _token(str): An API Access Token to use with the IonQ API.
         _custom_headers(dict): Extra headers to add to the request.
     """
@@ -87,7 +89,7 @@ class IonQClient:
         """
         return f"{self._url}/{'/'.join(parts)}"
 
-    def _get_with_retry(self, req_path, params=None, headers=None, timeout=30):
+    def get_with_retry(self, req_path, params=None, headers=None, timeout=30):
         """Make a GET request with retry logic and exception handling.
 
         Args:
@@ -163,7 +165,7 @@ class IonQClient:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
         req_path = self.make_path("jobs", job_id)
-        res = self._get_with_retry(req_path, headers=self.api_headers)
+        res = self.get_with_retry(req_path, headers=self.api_headers)
         exceptions.IonQAPIError.raise_for_status(res)
         return res.json()
 
@@ -217,30 +219,38 @@ class IonQClient:
         return res.json()
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
-    def get_calibration_data(self, backend_name: str) -> dict:
+    def get_calibration_data(
+        self, backend_name: str, limit: int | None = None
+    ) -> Characterization | list[Characterization]:
         """Retrieve calibration data for a specified backend.
 
         Args:
             backend_name (str): The IonQ backend to fetch data for.
+            limit (int, optional): Limit the number of results returned.
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
             IonQRetriableError: When a retriable error occurs during the request.
 
         Returns:
-            dict: A dictionary of an IonQ backend's calibration data.
+            Characterization: An instance of Characterization containing the calibration data
+            or a list of Characterization instances if multiple results are returned.
         """
-        req_path = self.make_path(
-            "/".join(["characterizations/backends", backend_name[5:], "current"])
-        )
-        res = self._get_with_retry(req_path, headers=self.api_headers)
+        params = {"limit": limit} if limit else None
+        url = self.make_path("backends", backend_name, "characterizations")
+        res = self.get_with_retry(url, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
-        return res.json()
+        chars = res.json().get("characterizations", [])
+        return (
+            Characterization(chars[0])
+            if limit == 1
+            else [Characterization(item) for item in chars]
+        )
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_results(
         self,
-        job_id: str,
+        results_url: str,
         sharpen: Optional[bool] = None,
         extra_query_params: Optional[dict] = None,
     ) -> dict:
@@ -249,7 +259,7 @@ class IonQClient:
         The returned JSON dict will only have data if job has completed.
 
         Args:
-            job_id (str): The ID of a job to retrieve.
+            results_url (str): The URL of the job results to retrieve.
             sharpen (bool): Supported if the job is debiased,
             allows you to filter out physical qubit bias from the results.
             extra_query_params (dict): Specify any parameters to include in the request
@@ -276,11 +286,209 @@ class IonQClient:
             )
             params.update(extra_query_params)
 
-        req_path = self.make_path("jobs", job_id, "results")
-        res = self._get_with_retry(req_path, headers=self.api_headers, params=params)
+        # Strip second API version (/v0.4/)
+        req_path = re.sub(r"/v\d+\.\d+/", "", self.make_path(results_url), count=1)
+        res = self.get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
         return json.loads(res.text, object_pairs_hook=OrderedDict)
 
+    def estimate_job(
+        self,
+        *,
+        backend: str,
+        oneq_gates: int,
+        twoq_gates: int,
+        qubits: int,
+        shots: int,
+        error_mitigation: bool = False,
+        session: bool = False,
+        job_type: str = "ionq.circuit.v1",
+    ) -> JobEstimate:
+        """Call GET /jobs/estimate … returns a cost/time prediction."""
+        params = {
+            "type": job_type,
+            "backend": backend.replace("ionq_qpu", "qpu"),
+            "1q_gates": oneq_gates,
+            "2q_gates": twoq_gates,
+            "qubits": qubits,
+            "shots": shots,
+            "error_mitigation": str(error_mitigation).lower(),
+            "session": str(session).lower(),
+        }
+        url = self.make_path("jobs", "estimate")
+        res = self.get_with_retry(url, headers=self.api_headers, params=params)
+        exceptions.IonQAPIError.raise_for_status(res)
+        return JobEstimate(res.json())
 
-__all__ = ["IonQClient"]
+    @retry(exceptions=IonQRetriableError, tries=5)
+    def post(self, *path_parts: str, json_body: dict | None = None) -> dict:
+        """POST helper with IonQ headers + retry.
+
+        Args:
+            *path_parts (str): Path parts to append to the base URL.
+            json_body (dict, optional): JSON body to send in the POST request.
+
+        Raises:
+            IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
+
+        Returns:
+            dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
+        """
+        url = self.make_path(*path_parts)
+        res = requests.post(url, json=json_body, headers=self.api_headers, timeout=30)
+        exceptions.IonQAPIError.raise_for_status(res)
+        return res.json()
+
+    @retry(exceptions=IonQRetriableError, tries=3)
+    def put(self, *path_parts: str, json_body: dict | None = None) -> dict:
+        """PUT helper with IonQ headers + retry.
+
+        Args:
+            *path_parts (str): Path parts to append to the base URL.
+            json_body (dict, optional): JSON body to send in the PUT request.
+
+        Raises:
+            IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
+
+        Returns:
+            dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
+        """
+        url = self.make_path(*path_parts)
+        res = requests.put(url, json=json_body, headers=self.api_headers, timeout=30)
+        exceptions.IonQAPIError.raise_for_status(res)
+        return res.json()
+
+
+class Characterization:
+    """
+    Simple wrapper around the `/backends/<backend>/characterizations/<uuid>` payload.
+    """
+
+    def __init__(self, data: dict) -> None:
+        self._data = data
+
+    # metadata
+    @property
+    def id(self) -> str:  # pylint: disable=invalid-name
+        """UUID of this characterization."""
+        return self._data["id"]
+
+    @property
+    def backend(self) -> str:
+        """Backend name, e.g. `"qpu.aria-1"`."""
+        return self._data["backend"]
+
+    @property
+    def date(self) -> datetime:
+        """Timestamp of the measurement (UTC)."""
+        return datetime.fromisoformat(self._data["date"].replace("Z", "+00:00"))
+
+    # qubit info
+    @property
+    def qubits(self) -> int:
+        """Number of qubits available."""
+        return int(self._data["qubits"])
+
+    @property
+    def connectivity(self) -> list[tuple[int, int]]:
+        """Valid two-qubit gate pairs as a list of tuples."""
+        return [tuple(pair) for pair in self._data.get("connectivity", [])]
+
+    # fidelity block
+    @property
+    def fidelity(self) -> dict:
+        """Full fidelity dictionary (spam, 1q, 2q, ...)."""
+        return self._data.get("fidelity", {})
+
+    @property
+    def median_spam_fidelity(self) -> float | None:  # convenience accessor
+        """Median state-prep-and-measurement fidelity, if present."""
+        return self.fidelity.get("spam", {}).get("median")
+
+    # timing block
+    @property
+    def timing(self) -> dict:
+        """Dictionary of timing parameters (readout, reset, 1q, 2q, t1, t2)."""
+        return self._data.get("timing", {})
+
+    def __repr__(self) -> str:
+        parts = [
+            f"backend={self.backend}",
+            f"id={self.id}",
+            f"date={self.date.isoformat()}",
+            f"qubits={self.qubits}",
+            f"connectivity={self.connectivity}",
+            f"fidelity={self.fidelity}",
+            f"timing={self.timing}",
+        ]
+        return f"Characterization({', '.join(parts)})"
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Characterization) and other._data == self._data
+
+
+class JobEstimate:
+    """
+    Wrapper for the payload returned by GET /jobs/estimate.
+    """
+
+    def __init__(self, data: dict):
+        # we keep the original dict just in case (for .to_dict())
+        self._raw = data
+
+        # Flatten the interesting bits so they are attributes
+        inputs = data.get("input_values", {})
+        self.backend: str | None = inputs.get("backend")
+        self.oneq_gates: int | None = inputs.get("1q_gates")
+        self.twoq_gates: int | None = inputs.get("2q_gates")
+        self.qubits: int | None = inputs.get("qubits")
+        self.shots: int | None = inputs.get("shots")
+        self.error_mitigation: bool = inputs.get("error_mitigation")
+        self.session: bool = inputs.get("session")
+
+        # Core numeric results
+        self.cost: float | None = data.get("estimated_cost")
+        self.cost_unit: str | None = data.get("cost_unit")
+        self.exec_time: float | None = data.get("estimated_execution_time")  # seconds
+        self.queue_time: float | None = data.get("current_predicted_queue_time")  # sec
+
+        # When was this generated?
+        ts = data.get("estimated_at")  # pylint: disable=invalid-name
+        self.estimated_at: datetime | None = (
+            datetime.fromisoformat(ts) if isinstance(ts, str) else None
+        )
+
+        # Optional structured pricing breakdown
+        self.rate_information: dict = data.get("rate_information", {})
+
+    # convenience helpers
+    @property
+    def total_runtime(self) -> float | None:
+        """Predicted queue + execution time, in seconds (if both are present)."""
+        if self.exec_time is None or self.queue_time is None:
+            return None
+        return self.exec_time + self.queue_time
+
+    def to_dict(self) -> dict:
+        """Return a shallow copy of the original JSON dict."""
+        return dict(self._raw)
+
+    def __repr__(self) -> str:
+        parts = [
+            f"backend={self.backend}",
+            f"qubits={self.qubits}",
+            f"shots={self.shots}",
+            f"cost={self.cost} {self.cost_unit}",
+            f"exec_time={self.exec_time}s",
+            f"queue_time={self.queue_time}s",
+        ]
+        return f"JobEstimate({', '.join(parts)})"
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, JobEstimate) and other._raw == self._raw
+
+
+__all__ = ["IonQClient", "Characterization", "JobEstimate"]

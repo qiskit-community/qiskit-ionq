@@ -56,8 +56,8 @@ def test_output_map__with_multiple_measurements_to_different_clbits(
         qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
-    actual_maps = actual.pop("registers") or {}
-    actual_output_map = actual_maps.pop("meas_mapped")
+    meta_hdr = decompress_metadata_string(actual["metadata"]["qiskit_header"])
+    actual_output_map = meta_hdr["meas_mapped"]
 
     assert actual_output_map == [0, 0]
 
@@ -77,8 +77,8 @@ def test_output_map__with_multiple_measurements_to_same_clbit(
         qc, simulator_backend, passed_args={"shots": 200, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
-    actual_maps = actual.pop("registers") or {}
-    actual_output_map = actual_maps.pop("meas_mapped")
+    meta_hdr = decompress_metadata_string(actual["metadata"]["qiskit_header"])
+    actual_output_map = meta_hdr["meas_mapped"]
 
     assert actual_output_map == [1, None]
 
@@ -103,8 +103,8 @@ def test_output_map__with_multiple_registers(
         qc, simulator_backend, passed_args={"shots": 123, "sampler_seed": 42}
     )
     actual = json.loads(ionq_json)
-    actual_maps = actual.pop("registers") or {}
-    actual_output_map = actual_maps.pop("meas_mapped")
+    meta_hdr = decompress_metadata_string(actual["metadata"]["qiskit_header"])
+    actual_output_map = meta_hdr["meas_mapped"]
 
     assert actual_output_map == [0, 1, 2, 3]
 
@@ -134,6 +134,7 @@ def test_metadata_header__with_multiple_registers(
         "clbit_labels": [["cr0", 0], ["cr0", 1], ["cr1", 0], ["cr1", 1]],
         "qreg_sizes": [["qr0", 2], ["qr1", 2]],
         "qubit_labels": [["qr0", 0], ["qr0", 1], ["qr1", 0], ["qr1", 1]],
+        "meas_mapped": [None, None, 2, 3],
     }
 
     actual = json.loads(ionq_json)
@@ -169,19 +170,20 @@ def test_full_circuit(simulator_backend):
         "clbit_labels": [["c", 0], ["c", 1]],
         "qreg_sizes": [["q", 2]],
         "qubit_labels": [["q", 0], ["q", 1]],
+        "meas_mapped": [1, 0],
     }
     expected_output_map = [1, 0]
     expected_metadata = {"shots": "200", "sampler_seed": "42"}
     expected_rest_of_payload = {
-        "target": "simulator",
+        "backend": "simulator",
         "shots": 200,
         "name": "test_name",
         "noise": {
             "model": "ideal",
             "seed": None,
         },
+        "type": "ionq.circuit.v1",
         "input": {
-            "format": "ionq.circuit.v0",
             "gateset": "qis",
             "qubits": 2,
             "circuit": [
@@ -196,8 +198,7 @@ def test_full_circuit(simulator_backend):
     actual_metadata_header = decompress_metadata_string(
         actual_metadata.pop("qiskit_header") or None
     )
-    actual_maps = actual.pop("registers") or {}
-    actual_output_map = actual_maps.pop("meas_mapped") or []
+    actual_output_map = actual_metadata_header["meas_mapped"]
 
     # check dict equality:
     assert actual_metadata == expected_metadata
@@ -228,23 +229,21 @@ def test_multicircuit_mapping(simulator_backend):
     )
 
     expected_payload = {
-        "target": "simulator",
+        "backend": "simulator",
         "shots": 1024,
         "name": "multicircuit_mapping",
+        "type": "ionq.multi-circuit.v1",
         "input": {
-            "format": "ionq.circuit.v0",
             "gateset": "qis",
             "qubits": 2,
             "circuits": [
                 {
                     "name": "no_reg_map",
                     "circuit": [{"gate": "x", "targets": [0]}],
-                    "registers": {"meas_mapped": [1, 0]},
                 },
                 {
                     "name": "no_reg_no_map",
                     "circuit": [{"gate": "x", "targets": [0]}],
-                    "registers": {"meas_mapped": [0, 1]},
                 },
             ],
         },
@@ -344,18 +343,19 @@ def test_full_native_circuit(simulator_backend):
         "clbit_labels": [],
         "qreg_sizes": [["q", 3]],
         "qubit_labels": [["q", 0], ["q", 1], ["q", 2]],
+        "meas_mapped": [],
     }
     expected_metadata = {"shots": "200", "sampler_seed": "23", "iteration": "10"}
     expected_rest_of_payload = {
-        "target": "simulator",
+        "backend": "simulator",
         "name": "blame_test",
         "shots": 200,
         "noise": {
             "model": "aria-1",
             "seed": None,
         },
+        "type": "ionq.circuit.v1",
         "input": {
-            "format": "ionq.circuit.v0",
             "gateset": "native",
             "qubits": 3,
             "circuit": [
@@ -372,20 +372,18 @@ def test_full_native_circuit(simulator_backend):
     actual_metadata_header = decompress_metadata_string(
         actual_metadata.pop("qiskit_header") or None
     )
-    registers = actual.pop("registers") or {}
 
     # check dict equality:
     assert actual_metadata == expected_metadata
     assert actual_metadata_header == expected_metadata_header
-    assert "meas_mapped" not in registers
     assert actual == expected_rest_of_payload
 
 
 @pytest.mark.parametrize(
     "error_mitigation,expected",
     [
-        (ErrorMitigation.NO_DEBIASING, {"debias": False}),
-        (ErrorMitigation.DEBIASING, {"debias": True}),
+        (ErrorMitigation.NO_DEBIASING, {"debiasing": False}),
+        (ErrorMitigation.DEBIASING, {"debiasing": True}),
     ],
 )
 def test__error_mitigation_settings(simulator_backend, error_mitigation, expected):
@@ -401,6 +399,6 @@ def test__error_mitigation_settings(simulator_backend, error_mitigation, expecte
     args = {"shots": 123, "sampler_seed": 42, "error_mitigation": error_mitigation}
     ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
     actual = json.loads(ionq_json)
-    actual_error_mitigation = actual.pop("error_mitigation")
+    debiased = actual["settings"].get("error_mitigation", {})
 
-    assert actual_error_mitigation == expected
+    assert debiased == expected

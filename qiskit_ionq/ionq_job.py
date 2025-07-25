@@ -197,6 +197,14 @@ class IonQJob(JobV1):
             self._job_id = job_id
             self.status()
 
+    @staticmethod
+    def _first_of(mapping: dict, *keys, default=None):
+        """Return the first present key in `keys` or `default` if none exist."""
+        for k in keys:
+            if k in mapping and mapping[k] is not None:
+                return mapping[k]
+        return default
+
     def cancel(self) -> None:
         """Cancel this job."""
         assert self._job_id is not None, "Cannot cancel a job without a job_id."
@@ -303,7 +311,7 @@ class IonQJob(JobV1):
         if self._status is jobstatus.JobStatus.DONE:
             assert self._job_id is not None
             response = self._client.get_results(
-                job_id=self._job_id,
+                results_url=self._results_url,
                 sharpen=sharpen,
                 extra_query_params=extra_query_params,
             )
@@ -371,21 +379,57 @@ class IonQJob(JobV1):
             self._save_metadata(response)
 
         if self._status == jobstatus.JobStatus.DONE:
-            self._num_circuits = response.get("circuits", 1)
-            self._children = response.get("children", [])
-            self._num_qubits = response.get("qubits", 0)
-            default_map = list(range(self._num_qubits))
-            self._clbits = (
-                [
-                    self._client.retrieve_job(job_id)
-                    .get("registers", {})
-                    .get("meas_mapped", default_map)
-                    for job_id in self._children
-                ]
-                if self._children
-                else [response.get("registers", {}).get("meas_mapped", default_map)]
+            stats = response.get("stats", {})
+            self._num_circuits = self._first_of(stats, "circuits", default=1)
+            self._num_qubits = self._first_of(stats, "qubits", default=0)
+            self._children = self._first_of(
+                response, "child_job_ids", "children", default=None
             )
-            self._execution_time = response["execution_time"] / 1000
+            _results_url = self._first_of(
+                response, "results", "results_url", default={}
+            )
+            self._results_url = (
+                _results_url
+                if isinstance(_results_url, str)
+                else _results_url.get("probabilities", {}).get("url")
+            )
+
+            def _meas_map_from_header(header_dict, fallback_nq):
+                """Return meas_mapped list or a default 0-based map."""
+                mmap = header_dict.get("meas_mapped")
+                if mmap is None or (
+                    isinstance(mmap, list) and all(b is None for b in mmap)
+                ):
+                    return list(range(header_dict.get("n_qubits", fallback_nq)))
+                return mmap
+
+            if self._children:
+                # Multi‑circuit jobs executed as child jobs
+                self._clbits = []
+                for cid in self._children:
+                    child_resp = self._client.retrieve_job(cid)
+                    ch_header = decompress_metadata_string(
+                        child_resp.get("metadata", {}).get("qiskit_header", None)
+                    )
+                    if isinstance(ch_header, list):
+                        ch_header = ch_header[0]
+                    self._clbits.append(
+                        _meas_map_from_header(ch_header or {}, self._num_qubits)
+                    )
+            else:
+                # Single job
+                hdr = decompress_metadata_string(
+                    response.get("metadata", {}).get("qiskit_header", None)
+                )
+                if not isinstance(hdr, list):
+                    hdr = [hdr]
+                self._clbits = [_meas_map_from_header(h, self._num_qubits) for h in hdr]
+            self._execution_time = (
+                self._first_of(
+                    response, "execution_duration_ms", "execution_time", float("inf")
+                )
+                / 1000
+            )
 
         if self._status == jobstatus.JobStatus.ERROR:
             failure = response.get("failure") or {}
@@ -407,10 +451,7 @@ class IonQJob(JobV1):
             for warning in response["warning"]["messages"]:
                 warnings.warn(warning)
 
-        if detailed:
-            return self._children_status()
-
-        return self._status
+        return self._children_status() if detailed else self._status
 
     def _children_status(self):
         """Retrieve the status of the children
@@ -425,7 +466,7 @@ class IonQJob(JobV1):
             dict: A dictionary containing the detailed status of the children.
         """
         response = self._client.retrieve_job(self._job_id)
-        child_ids = response.get("children", [])
+        child_ids = self._first_of(response, "child_job_ids", "children", [])
         child_statuses = []
 
         for child_id in child_ids:
@@ -497,7 +538,7 @@ class IonQJob(JobV1):
 
         # Format the inner result payload.
         success = self._status == jobstatus.JobStatus.DONE
-        metadata = self._metadata.get("metadata", {})
+        metadata = self._metadata.get("metadata") or {}
         sampler_seed = (
             int(metadata.get("sampler_seed", ""))
             if metadata.get("sampler_seed", "").isdigit()

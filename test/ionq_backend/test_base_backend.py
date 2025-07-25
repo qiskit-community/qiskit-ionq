@@ -263,23 +263,21 @@ def test_multiexp_job(mock_backend, requests_mock):
     # delete the qiskit_header field
     del request_json["metadata"]["qiskit_header"]
     assert request_json == {
-        "target": "mock_backend",
+        "backend": "mock_backend",
         "shots": 1024,
         "name": f"{len(job.circuit)} circuits",
+        "type": "ionq.multi-circuit.v1",
         "input": {
-            "format": "ionq.circuit.v0",
             "gateset": "qis",
             "qubits": 1,
             "circuits": [
                 {
                     "name": qc1.name,
                     "circuit": [{"gate": "h", "targets": [0]}],
-                    "registers": {"meas_mapped": [0]},
                 },
                 {
                     "name": qc2.name,
                     "circuit": [{"gate": "x", "targets": [0]}],
-                    "registers": {"meas_mapped": [0]},
                 },
             ],
         },

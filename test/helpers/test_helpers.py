@@ -55,30 +55,29 @@ def test_get_n_qubits_success():
     """Test get_n_qubits returns correct number of qubits and checks correct URL."""
     with patch("requests.get") as mock_get:
         mock_response = MagicMock()
-        mock_response.json.return_value = [
-            {
-                "backend": "qpu.aria-1",
-                "status": "unavailable",
-                "qubits": 25,
-                "average_queue_time": 722980302,
-                "last_updated": 1729699872,
-                "characterization_url": "/characterizations/9d699f61-d894-49b3-94c0-fd8173b32c27",
-                "degraded": False,
-            }
-        ]
+        mock_response.json.return_value = {
+            "backend": "qpu.aria-1",
+            "status": "unavailable",
+            "degraded": False,
+            "qubits": 25,
+            "average_queue_time": 375478,
+            "last_updated": "2025-07-08T17:17:28Z",
+            "characterization_id": "b9b31a31-8d11-47c1-9156-87bd87954f7f",
+        }
         mock_get.return_value = mock_response
 
         backend = "ionq_qpu.aria-1"
         result = get_n_qubits(backend)
 
-        expected_url = "https://api.ionq.co/v0.3/backends"
+        expected_url = "https://api.ionq.co/v0.4/backends/qpu.aria-1"
 
         # Check the arguments of the last call to `requests.get`
         mock_get.assert_called()
-        _, kwargs = mock_get.call_args
+        args, kwargs = mock_get.call_args
+        actual_url = kwargs.get("url", args[0] if args else None)
         assert (
-            kwargs["url"] == expected_url
-        ), f"Expected URL {expected_url}, but got {kwargs['url']}"
+            actual_url == expected_url
+        ), f"Expected URL {expected_url}, but got {actual_url}"
 
         assert result == 25, f"Expected 25 qubits, but got {result}"
 
@@ -89,14 +88,15 @@ def test_get_n_qubits_fallback():
         backend = "aria-1"
         result = get_n_qubits(backend)
 
-        expected_url = "https://api.ionq.co/v0.3/backends"
+        expected_url = "https://api.ionq.co/v0.4/backends/qpu.aria-1"
 
         # Check the arguments of the last call to `requests.get`
         mock_get.assert_called()
-        _, kwargs = mock_get.call_args
+        args, kwargs = mock_get.call_args
+        actual_url = kwargs.get("url", args[0] if args else None)
         assert (
-            kwargs["url"] == expected_url
-        ), f"Expected URL {expected_url}, but got {kwargs['url']}"
+            actual_url == expected_url
+        ), f"Expected URL {expected_url}, but got {actual_url}"
 
         assert result == 100, f"Expected fallback of 100 qubits, but got {result}"
 
