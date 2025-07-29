@@ -61,6 +61,7 @@ class IonQBackend(Backend):
         return Options(
             shots=1024,
             job_settings=None,
+            memory=False,
             error_mitigation=None,
             extra_query_params={},
             extra_metadata={},
@@ -273,6 +274,7 @@ class IonQSimulatorBackend(IonQBackend):
         return Options(
             shots=1024,
             job_settings=None,
+            memory=False,
             sampler_seed=None,
             noise_model="ideal",
             extra_query_params={},
