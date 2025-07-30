@@ -806,4 +806,3 @@ def test_build_memory(counts, shots, num_qubits, expected_counter):
     assert len(memory) == shots
     assert all(len(b) == num_qubits for b in memory)
     assert Counter(memory) == expected_counter
-

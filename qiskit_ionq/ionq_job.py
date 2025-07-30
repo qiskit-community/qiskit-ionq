@@ -45,6 +45,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
+from qiskit.exceptions import QiskitError
 from .ionq_result import IonQResult as Result
 from .helpers import decompress_metadata_string
 
@@ -159,8 +160,11 @@ def _build_memory(
     Returns:
         list: A list of memory strings.
     """
-    to_bits = lambda h: format(int(h, 16), f"0{num_qubits}b")
-    memory = [to_bits(hex_key) for hex_key, cnt in counts.items() for _ in range(cnt)]
+    memory = [
+        format(int(hex_key, 16), f"0{num_qubits}b")
+        for hex_key, cnt in counts.items()
+        for _ in range(cnt)
+    ]
     pad = shots - len(memory)
     if pad > 0:
         memory.extend(repeat("0" * num_qubits, pad))
