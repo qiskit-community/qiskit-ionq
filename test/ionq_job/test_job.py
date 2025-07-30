@@ -28,6 +28,7 @@
 
 from unittest import mock
 import warnings
+from collections import Counter
 
 import pytest
 from qiskit import QuantumCircuit
@@ -789,3 +790,20 @@ def test_status_with_detailed(mock_backend, requests_mock):
 
     # Assert the detailed status
     assert detailed_status == expected_detailed_status
+
+
+@pytest.mark.parametrize(
+    "counts, shots, num_qubits, expected_counter",
+    [
+        ({"0x0": 2, "0x3": 3}, 5, 2, Counter({"00": 2, "11": 3})),
+        ({"0x3": 2}, 5, 2, Counter({"11": 2, "00": 3})),
+        ({"0x0": 7, "0x1": 7}, 10, 1, Counter({"0": 7, "1": 3})),
+    ],
+)
+def test_build_memory(counts, shots, num_qubits, expected_counter):
+    """_build_memory returns shots strings, each num_qubits long, with correct counts."""
+    memory = ionq_job._build_memory(counts, shots, num_qubits)
+    assert len(memory) == shots
+    assert all(len(b) == num_qubits for b in memory)
+    assert Counter(memory) == expected_counter
+
