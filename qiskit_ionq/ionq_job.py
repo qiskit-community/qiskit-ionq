@@ -294,7 +294,7 @@ class IonQJob(JobV1):
             return self.result().get_memory(circuit)
 
         raise QiskitError(
-            f'No memory for experiment "{circuit.name}". '
+            f'No memory for experiment "{circuit.name if circuit else ""}". '
             "Please verify that you either ran a measurement level 2 job "
             'with the memory flag set, eg., "memory=True", '
             "or a measurement level 0/1 job."
