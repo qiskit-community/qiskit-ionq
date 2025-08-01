@@ -74,7 +74,7 @@ class IonQProvider:
         name: str,
         gateset: Literal["qis", "native"] = "qis",
         **kwargs,
-    ) -> ionq_backend.Backend:
+    ) -> ionq_backend.IonQBackend:
         """Return a single backend matching the specified filtering.
         Args:
             name (str): name of the backend.

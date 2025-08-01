@@ -318,11 +318,11 @@ class IonQJob(JobV1):
     def result(
         self,
         sharpen: bool | None = None,
-        extra_query_params: dict | None = None,
         timeout: float | None = None,
         wait: float = 5,
         callback: Callable | None = None,
-    ):
+        extra_query_params: dict | None = None,
+    ):  # pylint: disable=too-many-positional-arguments
         """Retrieve job result data.
 
         .. NOTE::
