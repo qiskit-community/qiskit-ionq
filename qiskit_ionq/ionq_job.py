@@ -39,7 +39,7 @@ from __future__ import annotations
 
 from itertools import repeat
 import warnings
-from typing import TYPE_CHECKING, Any, Union, Optional
+from typing import TYPE_CHECKING, Any, Union, Optional, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -319,7 +319,9 @@ class IonQJob(JobV1):
         self,
         sharpen: bool | None = None,
         extra_query_params: dict | None = None,
-        **kwargs,
+        timeout: float | None = None,
+        wait: float = 5,
+        callback: Callable | None = None,
     ):
         """Retrieve job result data.
 
@@ -350,7 +352,7 @@ class IonQJob(JobV1):
 
         # Wait for the job to complete.
         try:
-            self.wait_for_final_state(**kwargs)
+            self.wait_for_final_state(timeout=timeout, wait=wait, callback=callback)
         except JobTimeoutError as ex:
             raise exceptions.IonQJobTimeoutError(
                 "Timed out waiting for job to complete."
