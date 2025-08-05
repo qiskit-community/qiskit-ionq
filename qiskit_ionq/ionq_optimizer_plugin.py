@@ -94,7 +94,7 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
 
 class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
     """
-    This class is no intended to be used in production, is meant
+    This class is not intended to be used in production, is meant
      to test the following transformation passes in isolation:
         - CompactMoreThanThreeSingleQubitGates
     """
