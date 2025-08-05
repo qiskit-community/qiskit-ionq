@@ -83,7 +83,7 @@ print(job.result().get_counts())
 # is applied as an error mitigation strategy
 print(job.result(sharpen=True).get_counts())
 
-# The simulator specifically provides the the ideal probabilities and creates
+# The simulator specifically provides the ideal probabilities and creates
 # counts by sampling from these probabilities. The raw probabilities are also accessible:
 print(job.result().get_probabilities())
 ```

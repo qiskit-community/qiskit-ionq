@@ -24,7 +24,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Rewrite rules for optimizing the transpilatiom to IonQ native gates."""
+"""Rewrite rules for optimizing the transpilation to IonQ native gates."""
 
 import math
 from sympy import Matrix, exp, sqrt
