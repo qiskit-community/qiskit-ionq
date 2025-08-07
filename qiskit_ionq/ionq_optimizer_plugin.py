@@ -67,7 +67,7 @@ class CustomPassManager(PassManager):
 
 class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
     """
-    This class is no intended to be used in production, is is meant
+    This class is not intended to be used in production, is meant
      to test the following transformation passes in isolation:
         - CancelGPI2Adjoint
         - CancelGPIAdjoint
@@ -94,7 +94,7 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
 
 class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
     """
-    This class is no intended to be used in production, is is meant
+    This class is not intended to be used in production, is meant
      to test the following transformation passes in isolation:
         - CompactMoreThanThreeSingleQubitGates
     """
@@ -117,7 +117,7 @@ class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
 
 class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
     """
-    This class is no intended to be used in production, is is meant
+    This class is not intended to be used in production, is meant
      to test the following transformation passes in isolation:
         - CommuteGPIsThroughMS
     """
@@ -141,7 +141,7 @@ class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
 
 class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
     """
-    This the optimizer plugin is intended to be used in production.
+    This optimizer plugin is intended to be used in production.
     """
 
     def pass_manager(
