@@ -2,7 +2,7 @@
 Submitting circuits to IonQ backends
 ====================================
 
-Once a a backend has been specified, it may be used to submit circuits.
+Once a backend has been specified, it may be used to submit circuits.
 For example, running a Bell State:
 
 .. code-block:: python

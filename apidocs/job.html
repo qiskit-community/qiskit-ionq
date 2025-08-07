@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="IonQ Provider" href="provider.html" /><link rel="prev" title="Qiskit IonQ Provider API Reference" href="index.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>IonQ Job - Qiskit IonQ Provider 0.6.0</title>
+        <title>IonQ Job - Qiskit IonQ Provider 0.6.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.6.0</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.6.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.6.0</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.6.1</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -246,10 +246,8 @@ perform a mapping between these status values for compatibility with
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_job.IonQJob">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_job.</span></span><span class="sig-name descname"><span class="pre">IonQJob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="backends.html#qiskit_ionq.ionq_backend.IonQBackend" title="qiskit_ionq.ionq_backend.IonQBackend"><span class="pre">ionq_backend.IonQBackend</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient"><span class="pre">ionq_client.IonQClient</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passed_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_job.html#IonQJob"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_job.IonQJob" title="Link to this definition">¶</a></dt>
 <dd><p>Representation of a Job that will run on an IonQ backend.</p>
-<p>It is not recommended to create Job instances directly, but rather use the
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">run</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">retrieve_job</span></code>
-methods on sub-class instances of IonQBackend to create and retrieve jobs
-(both methods return a job instance).</p>
+<p>It is not recommended to create Job instances directly; use
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">IonQBackend.run()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">IonQBackend.retrieve_job()</span></code> instead.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_job.IonQJob.circuit">
 <span class="sig-name descname"><span class="pre">circuit</span></span><a class="headerlink" href="#qiskit_ionq.ionq_job.IonQJob.circuit" title="Link to this definition">¶</a></dt>
@@ -337,7 +335,7 @@ The index of the experiment.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_job.IonQJob.get_probabilities">
 <span class="sig-name descname"><span class="pre">get_probabilities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_job.html#IonQJob.get_probabilities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_job.IonQJob.get_probabilities" title="Link to this definition">¶</a></dt>
-<dd><p>Return the probabilities for the job.</p>
+<dd><p>Return the probabilities (for simulators).</p>
 <dl class="simple">
 <dt>This is effectively a pass-through to</dt><dd><p><a class="reference internal" href="result.html#qiskit_ionq.ionq_result.IonQResult.get_probabilities" title="qiskit_ionq.ionq_result.IonQResult.get_probabilities"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_probabilities</span></code></a></p>
 </dd>
@@ -370,7 +368,7 @@ The index of the experiment.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_job.IonQJob.result">
 <span class="sig-name descname"><span class="pre">result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sharpen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_query_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_job.html#IonQJob.result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_job.IonQJob.result" title="Link to this definition">¶</a></dt>
-<dd><p>Retrieve job result data.</p>
+<dd><p>Retrieve job result data, blocking until the job is complete.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><a class="reference internal" href="#qiskit_ionq.ionq_job.IonQJob._result" title="qiskit_ionq.ionq_job.IonQJob._result"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_result</span></code></a> is populated by <a class="reference internal" href="#qiskit_ionq.ionq_job.IonQJob.status" title="qiskit_ionq.ionq_job.IonQJob.status"><code class="xref py py-meth docutils literal notranslate"><span class="pre">status()</span></code></a>, when the job
@@ -409,7 +407,7 @@ method to poll for a completed job.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_job.IonQJob.status">
 <span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">detailed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">JobStatus</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_job.html#IonQJob.status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_job.IonQJob.status" title="Link to this definition">¶</a></dt>
-<dd><p>Retrieve the status of a job</p>
+<dd><p>Retrieve the status of a job.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>detailed</strong> (<em>bool</em>) – If True, returns a detailed status of children.</p>
@@ -565,7 +563,7 @@ the callback function.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
+    <script src="../_static/documentation_options.js?v=2bd037f0"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
