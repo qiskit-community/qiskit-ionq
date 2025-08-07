@@ -60,7 +60,7 @@ def map_output(data, clbits, num_qubits):
     if not clbits:
         return {}
 
-    mapped_output: dict[int, float] = {}
+    mapped_output = {}
 
     def get_bitvalue(bitstring, bit):
         if bit is not None and 0 <= bit < len(bitstring):
@@ -129,7 +129,7 @@ def _build_counts(
     # Grab the mapped output from response.
     output_probs = map_output(data, clbits, num_qubits)
 
-    sampled: dict[int, int] = {}
+    sampled = {}
     if use_sampler:
         rand = np.random.RandomState(sampler_seed)
         outcomes, weights = zip(*output_probs.items())
@@ -141,8 +141,8 @@ def _build_counts(
         sampled = dict(zip(outcomes, sample_counts))
 
     # Build counts and probabilities
-    counts: dict[str, int] = {}
-    probabilities: dict[str, float] = {}
+    counts = {}
+    probabilities = {}
     for key, val in output_probs.items():
         bits = bin(int(key))[2:].rjust(num_qubits, "0")
         hex_bits = hex(int(bits, 2))
@@ -354,8 +354,8 @@ class IonQJob(JobV1):
 
         try:
             status_enum = constants.APIJobStatus(api_response_status)
-            status_enum = constants.JobStatusMap[status_enum.name]
-            self._status = jobstatus.JobStatus[status_enum.value]
+            mapped_status = constants.JobStatusMap[status_enum.name]
+            self._status = jobstatus.JobStatus[mapped_status.value]
         except (ValueError, KeyError) as ex:
             raise exceptions.IonQJobError(
                 f"Unknown or unmappable job status {api_response_status}"
@@ -506,8 +506,6 @@ class IonQJob(JobV1):
             IonQJobFailureError: If the remote job has an error status.
             IonQJobStateError: If the job was cancelled before this method fetches it.
         """
-        print(f"{data=}")
-
         backend = self.backend()
         backend_name = backend.name()
         backend_version = backend.configuration().backend_version
