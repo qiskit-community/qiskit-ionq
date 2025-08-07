@@ -153,5 +153,9 @@ class Session:
         """Create a Session object from an existing session ID."""
         return cls(backend=backend, session_id=session_id, create_new=False)
 
+    def run(self, *args, **kwargs):
+        """Run a job using the session."""
+        return self._backend.run(*args, **kwargs, session_id=self._session_id)
+
 
 __all__ = ["Session"]

@@ -26,7 +26,7 @@
 """Test the IonQ Session creation, submission, and ending."""
 
 import pytest
-from unittest.mock import MagicMock, call, ANY
+from unittest.mock import MagicMock, call
 
 from qiskit_ionq import Session
 
@@ -122,3 +122,18 @@ def test_backend_run_uses_session_id(backend):
         backend.run("circ")
 
     assert backend.run.call_args.kwargs["session_id"] == "sess-42"
+
+
+def test_session_run_uses_session_id(backend):
+    backend.client.post.return_value = {"id": "sess-99"}
+    backend.run = MagicMock(return_value="job-result")
+
+    with Session(backend=backend, max_jobs=1) as sess:
+        ret = sess.run("circ")  # invoke the new helper
+
+    # The helper should propagate the return value unchanged.
+    assert ret == "job-result"
+
+    # And the wrapped backend.run must receive the session_id we created.
+    backend.run.assert_called_once()
+    assert backend.run.call_args.kwargs["session_id"] == "sess-99"
