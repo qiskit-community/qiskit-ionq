@@ -754,7 +754,7 @@ def test_status_with_detailed(mock_backend, requests_mock):
     child_job_1_response = conftest.dummy_job_response(
         child_job_id_1, status="completed"
     )
-    child_job_2_response = conftest.dummy_job_response(child_job_id_2, status="running")
+    child_job_2_response = conftest.dummy_job_response(child_job_id_2, status="started")
 
     # Mock the job response API calls
     client = mock_backend.client
