@@ -118,14 +118,6 @@ def _build_counts(
     if not data:
         raise exceptions.IonQJobError("Cannot remap counts without data!")
 
-    # Guard against bad header -> classical-bit map mismatch
-    if len(clbits) != num_qubits:
-        warnings.warn(
-            "Classical bit map length does not match number of qubits. "
-            "Using 0-based classical bit map."
-        )
-        clbits = list(range(num_qubits))
-
     # Grab the mapped output from response.
     output_probs = map_output(data, clbits, num_qubits)
 
@@ -396,35 +388,27 @@ class IonQJob(JobV1):
                     return list(range(header_dict.get("n_qubits", fallback_nq)))
                 return mmap
 
-            if self._children:
-                # Multi‑circuit jobs executed as child jobs
-                self._clbits = []
-                for cid in self._children:
-                    child_resp = self._client.retrieve_job(cid)
-                    ch_header = decompress_metadata_string(
-                        child_resp.get("metadata", {}).get("qiskit_header")
-                    )
-                    if isinstance(ch_header, list):
-                        ch_header = ch_header[0]
-                    self._clbits.append(
-                        _meas_map_from_header(ch_header or {}, self._num_qubits)
-                    )
-            else:
-                # Single circuit job
-                hdr = decompress_metadata_string(
-                    response.get("metadata", {}).get("qiskit_header")
-                )
-                if not isinstance(hdr, list):
-                    hdr = [hdr]
-                self._clbits = [_meas_map_from_header(h, self._num_qubits) for h in hdr]
+            # Classical-bit maps for every circuit
+            header_list = decompress_metadata_string(
+                response.get("metadata", {}).get("qiskit_header")
+            )
+            if not isinstance(header_list, list):
+                header_list = [header_list]
+            self._clbits = [
+                _meas_map_from_header(h, self._num_qubits) for h in header_list
+            ]
 
             # Ensure one map per circuit
             if len(self._clbits) == 1 and self._num_circuits > 1:
                 self._clbits *= self._num_circuits
 
+            # Prefer the API-supplied execution time; otherwise use infinity so it doesn't break reality
             self._execution_time = (
                 self._first_of(
-                    response, "execution_duration_ms", "execution_time", float("inf")
+                    response,
+                    "execution_duration_ms",
+                    "execution_time",
+                    default=float("inf"),
                 )
                 / 1000
             )
