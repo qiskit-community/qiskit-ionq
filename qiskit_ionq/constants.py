@@ -40,7 +40,7 @@ class APIJobStatus(enum.Enum):
 
     SUBMITTED = "submitted"
     READY = "ready"
-    RUNNING = "running"
+    RUNNING = "started"
     CANCELED = "canceled"
     COMPLETED = "completed"
     FAILED = "failed"
