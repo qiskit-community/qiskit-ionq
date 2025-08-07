@@ -28,14 +28,41 @@
 # pylint: disable=redefined-outer-name
 
 from unittest import mock
+from collections import Counter
 
 import pytest
 from qiskit import QuantumCircuit
 from qiskit.providers.models.backendstatus import BackendStatus
+from qiskit.exceptions import QiskitError
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
 
 from .. import conftest
+
+
+def _prep_memory_job(
+    sim_backend, requests_mock, *, memory_flag=False, job_id="mem_job"
+):
+    """
+    Create an IonQJob pointing at sim_backend whose API endpoints are mocked.
+    Setting memory_flag controls the `memory` keyword passed to the backend.
+    """
+    client = sim_backend.client
+    # Mock status retrieval
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        status_code=200,
+        json=conftest.dummy_job_response(job_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        status_code=200,
+        json={"2": 1},  # 10 - for a 2‑qubit example
+    )
+
+    # The backend `run` injects a `passed_args` dict.
+    passed_args = {"memory": memory_flag}
+    return ionq_job.IonQJob(sim_backend, job_id, passed_args=passed_args)
 
 
 def test_status_dummy_response(mock_backend):
@@ -286,3 +313,41 @@ def test_multiexp_job(mock_backend, requests_mock):
             "sampler_seed": "None",
         },
     }
+
+
+@pytest.mark.parametrize(
+    "counts,shots,num_qubits,expected",
+    [
+        ({"0x0": 2, "0x3": 3}, 5, 2, Counter({"00": 2, "11": 3})),
+        ({"0x3": 2}, 5, 2, Counter({"11": 2, "00": 3})),
+        ({"0x0": 7, "0x1": 7}, 10, 1, Counter({"0": 7, "1": 3})),
+    ],
+)
+def test_build_memory_distribution(counts, shots, num_qubits, expected):
+    """_build_memory returns exactly shots items with correct per-outcome tally."""
+    mem = ionq_job._build_memory(counts, shots, num_qubits)
+
+    # length & bit-width
+    assert len(mem) == shots
+    assert all(len(b) == num_qubits for b in mem)
+
+    # use Counter for comparison
+    assert Counter(mem) == expected
+
+
+def test_get_memory_without_flag(simulator_backend, requests_mock):
+    """Calling get_memory without memory=True must raise QiskitError."""
+    job = _prep_memory_job(simulator_backend, requests_mock, memory_flag=False)
+    with pytest.raises(QiskitError):
+        job.get_memory()
+
+
+def test_get_memory_with_flag(simulator_backend, requests_mock):
+    """With memory=True the memory array should be available and sized correctly."""
+    job = _prep_memory_job(simulator_backend, requests_mock, memory_flag=True)
+    memory = job.get_memory()
+
+    # The fixture’s dummy response stores shots count in metadata
+    shots = int(conftest.dummy_job_response("mem_job")["metadata"]["shots"])
+    assert len(memory) == shots
+    assert all(set(bits) <= {"0", "1"} for bits in memory)
