@@ -30,8 +30,7 @@ use in a context manager to for automatic lifecycle management.
 
 from __future__ import annotations
 
-from qiskit.providers import BackendV1 as Backend
-from .ionq_client import IonQClient
+from .ionq_backend import IonQBackend
 
 
 class Session:
@@ -39,9 +38,8 @@ class Session:
 
     def __init__(
         self,
-        backend: Backend,
+        backend: IonQBackend,
         *,
-        client: IonQClient,
         max_time: int | str | None = None,
         max_cost: int | str | None = None,
         max_jobs: int | None = None,
@@ -49,7 +47,7 @@ class Session:
         session_id: str | None = None,
     ):
         self._backend = backend
-        self._client = client
+        self._client = backend.client
         self._orig_run = None
 
         # Re-connect or create
@@ -151,11 +149,9 @@ class Session:
 
     # class-method shortcut
     @classmethod
-    def from_id(cls, session_id: str, *, backend: Backend, client: IonQClient):
+    def from_id(cls, session_id: str, *, backend: IonQBackend) -> Session:
         """Create a Session object from an existing session ID."""
-        return cls(
-            backend=backend, client=client, session_id=session_id, create_new=False
-        )
+        return cls(backend=backend, session_id=session_id, create_new=False)
 
 
 __all__ = ["Session"]

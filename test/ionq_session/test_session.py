@@ -26,44 +26,28 @@
 """Test the IonQ Session creation, submission, and ending."""
 
 import pytest
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, ANY
+
 from qiskit_ionq import Session
 
 
-# Helpers
-def _backend(name="ionq_qpu.aria-1"):
+@pytest.fixture()
+def backend() -> MagicMock:
+    """Return a minimally-specced mock backend."""
     bk = MagicMock()
-    bk.name.return_value = name
+    bk.name.return_value = "ionq_qpu.aria-1"
+    bk.client = MagicMock()
+    bk.client.make_path.side_effect = lambda *parts: "/".join(parts)
     return bk
 
 
-def _client():
-    """Return a MagicMock with the attributes Session expects."""
-    cl = MagicMock()
-    cl.api_headers = {}
-    # make_path is only used to build URLs for get_with_retry/post; the exact value
-    # is irrelevant so long as it is a string.
-    cl.make_path.side_effect = lambda *parts: "/".join(parts)
-    return cl
+def test_create_session_payload(backend):
+    backend.client.post.return_value = {"id": "sess-123"}
 
-
-# Tests
-def test_create_session_payload():
-    client = _client()
-    client.post.return_value = {"id": "sess-123"}
-
-    sess = Session(
-        backend=_backend(),
-        client=client,
-        max_jobs=3,
-        max_time=10,
-        max_cost=1000,
-    )
+    sess = Session(backend=backend, max_jobs=3, max_time=10, max_cost=1000)
 
     assert sess.session_id == "sess-123"
-
-    # first positional arg(s) are the *path_parts
-    client.post.assert_called_once_with(
+    backend.client.post.assert_called_once_with(
         "sessions",
         json_body={
             "backend": "qpu.aria-1",
@@ -76,69 +60,65 @@ def test_create_session_payload():
     )
 
 
-def test_details_status_usage():
-    client = _client()
-    # side‑effect order: first call is __init__ verification
-    client.get_with_retry.return_value.json.return_value = {
+def test_status_and_usage(backend):
+    # Every call to .json() should return the same dict.
+    backend.client.get_with_retry.return_value.json.return_value = {
         "state": "active",
         "usage_time": 123,
     }
 
-    sess = Session.from_id("sess-456", backend=_backend(), client=client)
+    sess = Session.from_id("sess-456", backend=backend)
 
     assert sess.status() == "active"
     assert sess.usage() == 123
 
-    client.get_with_retry.assert_called_with(
-        "sessions/sess-456", headers=client.api_headers
+    # The helper is invoked once for __init__, and once per accessor.
+    assert backend.client.get_with_retry.call_count == 3
+    backend.client.get_with_retry.assert_any_call(
+        "sessions/sess-456", headers=backend.client.api_headers
     )
 
 
-def test_cancel_queued_jobs():
-    client = _client()
-    # First call ‑‑ constructor check; second call ‑‑ queued jobs listing
-    client.get_with_retry.side_effect = [
-        MagicMock(json=MagicMock(return_value={})),  # details()
-        MagicMock(
-            json=MagicMock(return_value={"jobs": [{"id": "job1"}, {"id": "job2"}]})
-        ),
+def test_cancel_queued_jobs(backend):
+    backend.client.get_with_retry.side_effect = [
+        MagicMock(json=lambda: {}),  # details()
+        MagicMock(json=lambda: {"jobs": [{"id": "job1"}, {"id": "job2"}]}),
     ]
-    client.cancel_jobs = MagicMock()
 
-    sess = Session.from_id("sess-1", backend=_backend(), client=client)
+    sess = Session.from_id("sess-1", backend=backend)
     sess.cancel()
 
-    client.cancel_jobs.assert_called_once_with(["job1", "job2"])
+    backend.client.cancel_jobs.assert_called_once_with(["job1", "job2"])
 
 
-def test_context_manager_closes_on_exception():
-    client = _client()
-    client.post.return_value = {"id": "sess-789"}
+def test_context_manager_closes_on_exception(backend):
+    backend.client.post.return_value = {"id": "sess-789"}
 
     with pytest.raises(RuntimeError):
-        with Session(backend=_backend(), client=client, max_jobs=1) as _sess:
+        with Session(backend=backend, max_jobs=1):
             raise RuntimeError("boom")
 
-    # A POST should have been made to /sessions/<id>/end
-    assert client.post.call_count == 2
-    expected_end_call = call("sessions", "sess-789", "end")
-    assert expected_end_call in client.post.mock_calls
+    # We only verify that an 'end' call happens; the creation call's payload can be anything.
+    assert call("sessions", "sess-789", "end") in backend.client.post.call_args_list
 
 
-def test_invalid_init_raises():
+@pytest.mark.parametrize(
+    "create_new, session_id",
+    [
+        (False, None),
+        (False, ""),
+    ],
+)
+def test_invalid_init_raises(backend, create_new, session_id):
     with pytest.raises(ValueError):
-        Session(backend=_backend(), client=_client(), create_new=False, session_id=None)
+        Session(backend=backend, create_new=create_new, session_id=session_id)
 
 
-def test_backend_run_with_session():
-    """Test that the backend.run method uses the session ID from the context."""
-    backend = _backend()
+def test_backend_run_uses_session_id(backend):
+    backend.client.post.return_value = {"id": "sess-42"}
     backend.run = MagicMock()
 
-    client = _client()
-    client.post.return_value = {"id": "sess-42"}
-
-    with Session(backend=backend, client=client, max_jobs=1) as _:
-        backend.run("circ")  # no session_id parameter
+    with Session(backend=backend, max_jobs=1):
+        backend.run("circ")
 
     assert backend.run.call_args.kwargs["session_id"] == "sess-42"
