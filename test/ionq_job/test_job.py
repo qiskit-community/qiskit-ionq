@@ -36,8 +36,32 @@ from qiskit.providers import jobstatus
 
 from qiskit.qobj.utils import MeasLevel
 from qiskit_ionq import exceptions, ionq_job
+from qiskit_ionq.helpers import compress_to_metadata_string
+
 
 from .. import conftest
+
+
+def _mock_job_payload(job_id, qiskit_header, circuits, children=None, qubits=3):
+    """Return the minimal JSON payload that IonQJob.status() expects."""
+    return {
+        "id": job_id,
+        "status": "completed",
+        "stats": {"qubits": qubits, "circuits": circuits},
+        "children": (
+            children
+            if children is not None
+            else (
+                [f"{job_id}_child_{i}" for i in range(circuits)]
+                if circuits > 1
+                else None
+            )
+        ),
+        # parent-level header contains all circuits
+        "metadata": {"qiskit_header": compress_to_metadata_string(qiskit_header)},
+        # dummy results URL so status() sets _results_url without error
+        "results": {"probabilities": {"url": f"/jobs/{job_id}/results/probabilities"}},
+    }
 
 
 def spy(instance, attr):
@@ -789,3 +813,64 @@ def test_status_with_detailed(mock_backend, requests_mock):
 
     # Assert the detailed status
     assert detailed_status == expected_detailed_status
+
+
+def test_single_circuit_clbit_map(mock_backend, requests_mock):
+    """
+    For a single-circuit submission the meas-map is a dict, not a list.
+    Verify IonQJob.status() still ends up with a one-element _clbits list.
+    """
+    job_id = "single_meas_map"
+    meas_map = [2, 1, 0]
+    header = {
+        "n_qubits": 3,
+        "memory_slots": 3,
+        "meas_mapped": meas_map,
+    }
+
+    child_id = f"{job_id}_child_0"
+    payload = _mock_job_payload(
+        job_id, header, circuits=1, qubits=3, children=[child_id]
+    )
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id), status_code=200, json=payload
+    )
+    # mock the child-job fetch
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", child_id),
+        status_code=200,
+        json={"id": child_id, "status": "completed", "metadata": {}},
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job._clbits == [meas_map]
+
+
+def test_multi_circuit_clbit_map(mock_backend, requests_mock):
+    """
+    For a multi-circuit submission the parent metadata contains a list
+    of per-circuit headers. Each meas-map must be preserved in order.
+    """
+    job_id = "multi_meas_map"
+    meas_maps = [[0, 1], [1, 0], [None, 0]]  # three different circuits
+    header_list = [
+        {"n_qubits": 2, "memory_slots": 2, "meas_mapped": m} for m in meas_maps
+    ]
+
+    child_ids = [f"{job_id}_child_{i}" for i in range(len(meas_maps))]
+    payload = _mock_job_payload(
+        job_id, header_list, circuits=len(meas_maps), qubits=2, children=child_ids
+    )
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id), status_code=200, json=payload
+    )
+    # mock every child-job fetch
+    for cid in child_ids:
+        requests_mock.get(
+            mock_backend.client.make_path("jobs", cid),
+            status_code=200,
+            json={"id": cid, "status": "completed", "metadata": {}},
+        )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job._clbits == meas_maps
