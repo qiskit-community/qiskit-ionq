@@ -402,7 +402,7 @@ class IonQJob(JobV1):
             if len(self._clbits) == 1 and self._num_circuits > 1:
                 self._clbits *= self._num_circuits
 
-            # Prefer the API-supplied execution time; otherwise use infinity so it doesn't break reality
+            # Prefer the API-supplied execution time
             self._execution_time = (
                 self._first_of(
                     response,
