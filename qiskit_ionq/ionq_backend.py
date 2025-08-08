@@ -34,7 +34,10 @@ import warnings
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import BackendV2 as Backend, Options
 from qiskit.transpiler import Target, CouplingMap
+from qiskit.circuit.library import Measure, Reset
+from qiskit.circuit import Parameter
 
+from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
 from .helpers import GATESET_MAP, get_n_qubits
 from .ionq_client import Characterization
@@ -47,6 +50,34 @@ class IonQBackend(Backend):
     """Common functionality for all IonQ backends (simulator and QPU)."""
 
     _client: ionq_client.IonQClient | None = None
+
+    def _make_native_target(self) -> Target:
+        """Return a Target exposing the native IonQ gates for *this* backend."""
+        n = self._num_qubits
+        phi, phi0, phi1, theta = (
+            Parameter("φ"),
+            Parameter("φ0"),
+            Parameter("φ1"),
+            Parameter("θ"),
+        )
+        tgt = Target(num_qubits=n)
+
+        # 1-qubit gates
+        tgt.add_instruction(GPIGate(phi), {(q,): None for q in range(n)})
+        tgt.add_instruction(GPI2Gate(phi), {(q,): None for q in range(n)})
+
+        # 2-qubit gate - choose MS or ZZ
+        pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
+        if "forte" in self.name.lower():
+            tgt.add_instruction(ZZGate(theta), pairs)
+        else:
+            tgt.add_instruction(MSGate(phi0, phi1, theta), pairs)
+
+        # Always allow measure and reset
+        for cls in (Measure, Reset):
+            tgt.add_instruction(cls(), {(q,): None for q in range(n)})
+
+        return tgt
 
     def __init__(
         self,
@@ -66,7 +97,6 @@ class IonQBackend(Backend):
         # Register IonQ-specific gate equivalences once per process.
         ionq_equivalence_library.add_equivalences()
 
-        # Feed mandatory metadata to BackendV2.
         super().__init__(
             provider=provider,
             name=name,
@@ -75,18 +105,19 @@ class IonQBackend(Backend):
             **option_overrides,  # these must exist in _default_options()
         )
 
-        # Immutable device facts
+        # Immutable facts
         self._gateset: Literal["qis", "native"] = gateset
-        # Always advertise measure/reset so the transpiler can accept user circuits.
         self._basis_gates: Sequence[str] = tuple(GATESET_MAP[gateset])
         self._num_qubits: int = num_qubits
         self._simulator: bool = simulator
         self._max_experiments: int | None = max_experiments
         self._max_shots: int | None = max_shots
 
-        # A bare-bones transpiler Target.
-        target = Target(num_qubits=self._num_qubits, dt=None)
-        self._target: Target = target
+        # Build or suppress a Target depending on gate-set
+        if gateset == "qis":
+            self._target = Target(num_qubits=num_qubits)
+        else:  # "native"
+            self._target = self._make_native_target()
 
     @classmethod
     def _default_options(cls) -> Options:
@@ -152,31 +183,17 @@ class IonQBackend(Backend):
         return ionq_client.IonQClient(token, url, self._provider.custom_headers)
 
     def run(self, run_input: QuantumCircuit | Sequence[QuantumCircuit], **options):
-        """Create and run a job on an IonQ Backend.
-
-        Args:
-            run_input (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
-                A Qiskit QuantumCircuit object.
-
-        Returns:
-            IonQJob: A reference to the job that was submitted.
-        """
-        # Mid-circuit measurement sanity check.
+        # Warn if nothing is measured
         if not all(
-            (
-                self._has_measurements(circ)
-                for circ in (run_input if isinstance(run_input, list) else [run_input])
-            )
+            self._has_measurements(c)
+            for c in (run_input if isinstance(run_input, list) else [run_input])
         ):
             warnings.warn(
-                "Circuit is not measuring any qubits",
-                UserWarning,
-                stacklevel=2,
+                "Circuit is not measuring any qubits", UserWarning, stacklevel=2
             )
 
         # Merge default & user-supplied options
         run_opts = {**self.options.__dict__, **options}
-
         job = ionq_job.IonQJob(
             backend=self,
             job_id=None,
@@ -235,13 +252,12 @@ class IonQSimulatorBackend(IonQBackend):
         gateset: Literal["qis", "native"] = "qis",
     ):
         backend_name = name if name.startswith("ionq_") else f"ionq_{name}"
-        num_qubits = get_n_qubits(name)
         super().__init__(
             provider=provider,
             name=backend_name,
             description="IonQ cloud simulator",
             gateset=gateset,
-            num_qubits=num_qubits,
+            num_qubits=get_n_qubits(name),
             simulator=True,
             max_shots=1,
             max_experiments=None,
@@ -261,19 +277,18 @@ class IonQQPUBackend(IonQBackend):
         name: str = "ionq_qpu",
         gateset: Literal["qis", "native"] = "qis",
     ):
-        num_qubits = get_n_qubits(name)
         super().__init__(
             provider=provider,
             name=name,
             description="IonQ trapped-ion QPU",
             gateset=gateset,
-            num_qubits=num_qubits,
+            num_qubits=get_n_qubits(name),
             simulator=False,
             max_shots=10_000,
             max_experiments=None,
         )
 
-    def with_name(self, name: str, **kwargs) -> IonQQPUBackend:
+    def with_name(self, name: str, **kwargs):
         """Helper method that returns this backend with a more specific target system."""
         return IonQQPUBackend(self._provider, name, **kwargs)
 

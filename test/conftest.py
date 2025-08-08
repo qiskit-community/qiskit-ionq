@@ -55,9 +55,7 @@ class MockBackend(ionq_backend.IonQBackend):
         """Return a new mock backend instance with a different name."""
         return MockBackend(self.provider, name=name, **kwargs)
 
-    def __init__(
-        self, provider, *, name: str = "ionq_mock_backend"
-    ):  # pylint: disable=redefined-outer-name
+    def __init__(self, provider, *, name: str = "ionq_mock_backend"):  # pylint: disable=redefined-outer-name
         """
         Build a minimal mock backend that satisfies BackendV2.
         """

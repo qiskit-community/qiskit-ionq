@@ -495,9 +495,7 @@ def qiskit_to_ionq(
         input_block["circuit"] = ionq_circs
 
     # top-level fields
-    backend_name = (
-        backend.name[5:] if backend.name.startswith("ionq") else backend.name
-    )
+    backend_name = backend.name[5:] if backend.name.startswith("ionq") else backend.name
     ionq_json: dict[str, Any] = {
         "type": "ionq.multi-circuit.v1" if multi_circuit else "ionq.circuit.v1",
         "backend": backend_name,

@@ -213,9 +213,7 @@ class CompactMoreThanThreeSingleQubitGates(TransformationPass):
         qubit_index = dag.qubits.index(last_gate.qargs[0])
         qc.append(GPI2Gate(0.5 - lambd / (2 * np.pi)), [qubit_index])
         qc.append(
-            GPIGate(
-                theta / (4 * np.pi) + phi / (4 * np.pi) - lambd / (4 * np.pi)
-            ),
+            GPIGate(theta / (4 * np.pi) + phi / (4 * np.pi) - lambd / (4 * np.pi)),
             [qubit_index],
         )
         qc.append(GPI2Gate(0.5 + phi / (2 * np.pi)), [qubit_index])
