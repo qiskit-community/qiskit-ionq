@@ -624,7 +624,7 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     }
 
 
-def get_n_qubits(backend, fallback=100):
+def get_n_qubits(backend, fallback=4):
     """Get the number of qubits for a given backend."""
     backend = backend.removeprefix("ionq_")
     backend = (

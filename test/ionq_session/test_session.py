@@ -35,7 +35,7 @@ from qiskit_ionq import Session
 def backend() -> MagicMock:
     """Return a minimally-specced mock backend."""
     bk = MagicMock()
-    bk.name.return_value = "ionq_qpu.aria-1"
+    bk.name = "ionq_qpu.aria-1"
     bk.client = MagicMock()
     bk.client.make_path.side_effect = lambda *parts: "/".join(parts)
     return bk

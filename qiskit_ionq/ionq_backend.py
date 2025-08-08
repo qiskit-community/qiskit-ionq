@@ -34,7 +34,7 @@ import warnings
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import BackendV2 as Backend, Options
 from qiskit.transpiler import Target, CouplingMap
-from qiskit.circuit.library import Measure, Reset
+from qiskit.circuit.library import Measure, Reset, CXGate, HGate, SGate, TGate
 from qiskit.circuit import Parameter
 
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
@@ -79,6 +79,26 @@ class IonQBackend(Backend):
 
         return tgt
 
+    def _make_qis_target(self) -> Target:
+        """Return a Target exposing the QIS gates for this backend."""
+        n = self._num_qubits
+        tgt = Target(num_qubits=n)
+
+        # 1-qubit gates
+        tgt.add_instruction(HGate(), {(q,): None for q in range(n)})
+        tgt.add_instruction(SGate(), {(q,): None for q in range(n)})
+        tgt.add_instruction(TGate(), {(q,): None for q in range(n)})
+
+        # 2-qubit gate
+        pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
+        tgt.add_instruction(CXGate(), pairs)
+
+        # Always allow measure and reset
+        for cls in (Measure, Reset):
+            tgt.add_instruction(cls(), {(q,): None for q in range(n)})
+
+        return tgt
+
     def __init__(
         self,
         *,
@@ -115,7 +135,7 @@ class IonQBackend(Backend):
 
         # Build or suppress a Target depending on gate-set
         if gateset == "qis":
-            self._target = Target(num_qubits=num_qubits)
+            self._target = self._make_qis_target()
         else:  # "native"
             self._target = self._make_native_target()
 
