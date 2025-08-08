@@ -44,6 +44,7 @@ import random
 import requests
 from dotenv import dotenv_values
 
+import numpy as np
 from qiskit import __version__ as qiskit_terra_version
 from qiskit.circuit import (
     controlledgate as q_cgates,
@@ -695,6 +696,15 @@ def retry(
         return f_retry
 
     return deco_retry
+
+
+def normalize(weights):
+    """Normalize a numpy array of weights."""
+    arr = np.asarray(weights, dtype=float)
+    total = arr.sum()
+    if total == 0:
+        raise ValueError("sum of weights is zero")
+    return arr / total
 
 
 __all__ = [

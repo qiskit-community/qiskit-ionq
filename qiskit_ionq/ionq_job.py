@@ -45,7 +45,7 @@ from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
-from .helpers import decompress_metadata_string
+from .helpers import decompress_metadata_string, normalize
 
 from . import constants, exceptions
 
@@ -69,9 +69,7 @@ def map_output(data, clbits, num_qubits):
 
     for value, probability in data.items():
         bitstring = bin(int(value))[2:].rjust(num_qubits, "0")[::-1]
-
         outvalue = int("".join(get_bitvalue(bitstring, bit) for bit in clbits)[::-1], 2)
-
         mapped_output[outvalue] = mapped_output.get(outvalue, 0) + probability
 
     return mapped_output
@@ -125,10 +123,9 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     if use_sampler:
         rand = np.random.RandomState(sampler_seed)
         outcomes, weights = zip(*output_probs.items())
-        weights = np.asarray(weights, dtype=float)
-        weights /= weights.sum()  # normalize
         sample_counts = np.bincount(
-            rand.choice(len(outcomes), shots, p=weights), minlength=len(outcomes)
+            rand.choice(len(outcomes), shots, p=normalize(weights)),
+            minlength=len(outcomes),
         )
         sampled = dict(zip(outcomes, sample_counts))
 
