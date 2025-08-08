@@ -64,7 +64,7 @@ class MockBackend(ionq_backend.IonQBackend):
             name=name,
             description="IonQ Mock Backend",
             gateset="qis",
-            num_qubits=4,
+            num_qubits=11,
             simulator=True,
             max_shots=10_000,
         )
