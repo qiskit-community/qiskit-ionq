@@ -40,7 +40,7 @@ class APIJobStatus(enum.Enum):
 
     SUBMITTED = "submitted"
     READY = "ready"
-    RUNNING = "started"
+    RUNNING = "started"  # Note: IonQ uses "started" instead of "running"
     CANCELED = "canceled"
     COMPLETED = "completed"
     FAILED = "failed"

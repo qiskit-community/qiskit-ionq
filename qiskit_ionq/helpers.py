@@ -432,7 +432,7 @@ def qiskit_to_ionq(
     extra_query_params = extra_query_params or {}
     extra_metadata = extra_metadata or {}
 
-    # build the (multi‑)circuit block
+    # build the (multi-)circuit block
     ionq_circs: list[Any] | Any = []
     meas_map: list[int] | None = None
     multi_circuit = isinstance(circuit, (list, tuple))
@@ -494,9 +494,9 @@ def qiskit_to_ionq(
     else:
         input_block["circuit"] = ionq_circs
 
-    # top‑level fields
+    # top-level fields
     backend_name = (
-        backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
+        backend.name[5:] if backend.name.startswith("ionq") else backend.name
     )
     ionq_json: dict[str, Any] = {
         "type": "ionq.multi-circuit.v1" if multi_circuit else "ionq.circuit.v1",
@@ -536,7 +536,7 @@ def qiskit_to_ionq(
     if settings:
         ionq_json["settings"] = settings
 
-    # user‑supplied extras & final serialisation
+    # user-supplied extras & final serialisation
     ionq_json.update(extra_query_params)
     ionq_json["metadata"].update(extra_metadata)
 

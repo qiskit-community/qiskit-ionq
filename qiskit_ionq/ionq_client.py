@@ -40,7 +40,7 @@ from . import exceptions
 from .helpers import qiskit_to_ionq, get_user_agent, retry
 from .exceptions import IonQRetriableError
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .ionq_job import IonQJob
 
 
@@ -380,6 +380,11 @@ class Characterization:
     def backend(self) -> str:
         """Backend name, e.g. `"qpu.aria-1"`."""
         return self._data["backend"]
+
+    @property
+    def status(self) -> str:
+        """Status of the characterization, e.g. `"available"`."""
+        return self._data["status"]
 
     @property
     def date(self) -> datetime:

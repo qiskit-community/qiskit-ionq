@@ -28,7 +28,6 @@
 
 import pytest
 import requests_mock as _requests_mock
-from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from requests_mock import adapter as rm_adapter
 
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
@@ -47,40 +46,30 @@ def _def_results_template(job_id):
 
 
 class MockBackend(ionq_backend.IonQBackend):
-    """A mock backend for testing super-class behavior in isolation."""
+    """A super-light fake backend used only for unit tests."""
 
     def gateset(self):
         return "qis"
 
-    def __init__(self, provider, name="ionq_mock_backend"):  # pylint: disable=redefined-outer-name
-        config = BackendConfiguration.from_dict(
-            {
-                "backend_name": name,
-                "backend_version": "0.0.1",
-                "simulator": True,
-                "local": True,
-                "coupling_map": None,
-                "description": "IonQ Mock Backend",
-                "n_qubits": 29,
-                "conditional": False,
-                "open_pulse": False,
-                "memory": False,
-                "max_shots": 0,
-                "basis_gates": [],
-                "gates": [
-                    {
-                        "name": "TODO",
-                        "parameters": [],
-                        "qasm_def": "TODO",
-                    }
-                ],
-            }
-        )
-        super().__init__(config, provider=provider)
+    def with_name(self, name: str, **kwargs):
+        """Return a new mock backend instance with a different name."""
+        return MockBackend(self.provider, name=name, **kwargs)
 
-    def with_name(self, name, **kwargs):
-        """Helper method that returns this backend with a more specific target system."""
-        return MockBackend(self._provider, name, **kwargs)
+    def __init__(
+        self, provider, *, name: str = "ionq_mock_backend"
+    ):  # pylint: disable=redefined-outer-name
+        """
+        Build a minimal mock backend that satisfies BackendV2.
+        """
+        super().__init__(
+            provider=provider,
+            name=name,
+            description="IonQ Mock Backend",
+            gateset="qis",
+            num_qubits=29,
+            simulator=True,
+            max_shots=10_000,
+        )
 
 
 def dummy_job_response(
@@ -342,7 +331,7 @@ def formatted_result(provider):
     # Create a backend and client to use for accessing the job.
     backend = provider.get_backend("ionq_qpu.aria-1")
     backend.set_options(job_settings=settings)
-    client = backend.create_client()
+    client = backend._create_client()
 
     # Create the request path for accessing the dummy job:
     path = client.make_path("jobs", job_id)

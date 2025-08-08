@@ -28,107 +28,144 @@
 
 from __future__ import annotations
 
-import abc
-from typing import Literal, TYPE_CHECKING
+from typing import Literal, Sequence, TYPE_CHECKING
 import warnings
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.providers import BackendV1 as Backend
-from qiskit.providers.models.backendconfiguration import BackendConfiguration
-from qiskit.providers.models.backendstatus import BackendStatus
-from qiskit.providers import Options
+from qiskit.providers import BackendV2 as Backend, Options
+from qiskit.transpiler import Target, CouplingMap
 
-from . import exceptions, ionq_client, ionq_job, ionq_equivalence_library
+from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
 from .helpers import GATESET_MAP, get_n_qubits
 from .ionq_client import Characterization
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .ionq_provider import IonQProvider
 
 
 class IonQBackend(Backend):
-    """IonQ Backend base class."""
+    """Common functionality for all IonQ backends (simulator and QPU)."""
 
-    _client = None
+    _client: ionq_client.IonQClient | None = None
 
-    def __init__(self, *args, **kwargs) -> None:
-        # Add IonQ equivalences
+    def __init__(
+        self,
+        *,
+        provider: IonQProvider,
+        name: str,
+        description: str,
+        gateset: Literal["qis", "native"],
+        num_qubits: int,
+        simulator: bool,
+        backend_version: str = "0.0.1",
+        max_shots: int | None = None,
+        max_experiments: int | None = None,
+        **option_overrides,
+    ):
+        """Build a new IonQ backend instance."""
+        # Register IonQ-specific gate equivalences once per process.
         ionq_equivalence_library.add_equivalences()
-        super().__init__(*args, **kwargs)
+
+        # Feed mandatory metadata to BackendV2.
+        super().__init__(
+            provider=provider,
+            name=name,
+            description=description,
+            backend_version=backend_version,
+            **option_overrides,  # these must exist in _default_options()
+        )
+
+        # Immutable device facts
+        self._gateset: Literal["qis", "native"] = gateset
+        # Always advertise measure/reset so the transpiler can accept user circuits.
+        self._basis_gates: Sequence[str] = tuple(GATESET_MAP[gateset])
+        self._num_qubits: int = num_qubits
+        self._simulator: bool = simulator
+        self._max_experiments: int | None = max_experiments
+        self._max_shots: int | None = max_shots
+
+        # A bare-bones transpiler Target.
+        target = Target(num_qubits=self._num_qubits, dt=None)
+        self._target: Target = target
 
     @classmethod
     def _default_options(cls) -> Options:
+        """Dynamic (user-tuneable) backend options."""
         return Options(
             shots=1024,
             job_settings=None,
             error_mitigation=None,
             extra_query_params={},
             extra_metadata={},
+            sampler_seed=None,  # simulator-only; harmless default for QPU
+            noise_model="ideal",  # simulator-only
         )
 
     @property
-    def client(self) -> ionq_client.IonQClient:
-        """A lazily populated IonQ API Client.
+    def target(self) -> Target | None:
+        return self._target
 
-        Returns:
-            IonQClient: An instance of a REST API client
-        """
+    @property
+    def num_qubits(self) -> int:
+        return self._num_qubits
+
+    @property
+    def max_circuits(self) -> int | None:
+        return self._max_experiments
+
+    @property
+    def basis_gates(self) -> Sequence[str]:
+        """Return the basis gates for this backend."""
+        return self._basis_gates
+
+    def gateset(self) -> Literal["qis", "native"]:
+        """Return the active gate-set (``"qis"`` or ``"native"``)."""
+        return self._gateset
+
+    @property
+    def client(self) -> ionq_client.IonQClient:
+        """Return the IonQ client for this backend."""
         if self._client is None:
-            self._client = self.create_client()
+            self._client = self._create_client()
         return self._client
 
-    def create_client(self) -> ionq_client.IonQClient:
-        """Create an IonQ REST API Client using provider credentials.
+    def _create_client(self) -> ionq_client.IonQClient:
+        creds = self._provider.credentials
 
-        Raises:
-            IonQCredentialsError: If the provider's
-                :attr:`credentials <IonQProvider.credentials>` does not have
-                a ``"token"`` or ``"url"`` key, or if their values are ``None``.
-
-        Returns:
-            IonQClient: An instance of a REST API client.
-        """
-        credentials = self._provider.credentials
-
-        try:
-            token = credentials["token"]
-        except KeyError as ex:
+        if "token" not in creds:
             raise exceptions.IonQCredentialsError(
                 "Credentials `token` not present in provider."
-            ) from ex
-
+            )
+        token = creds["token"]
         if token is None:
             raise exceptions.IonQCredentialsError(
                 "Credentials `token` may not be None!"
             )
 
-        try:
-            url = credentials["url"]
-        except KeyError as ex:
+        if "url" not in creds:
             raise exceptions.IonQCredentialsError(
                 "Credentials `url` not present in provider."
-            ) from ex
-
+            )
+        url = creds["url"]
         if url is None:
             raise exceptions.IonQCredentialsError("Credentials `url` may not be None!")
-
         return ionq_client.IonQClient(token, url, self._provider.custom_headers)
 
-    # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,arguments-renamed
-    def run(self, circuit: QuantumCircuit, **kwargs) -> ionq_job.IonQJob:
+    def run(self, run_input: QuantumCircuit | Sequence[QuantumCircuit], **options):
         """Create and run a job on an IonQ Backend.
 
         Args:
-            circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
+            run_input (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
                 A Qiskit QuantumCircuit object.
 
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
+        # Mid-circuit measurement sanity check.
         if not all(
             (
-                self.has_valid_mapping(circ)
-                for circ in (circuit if isinstance(circuit, list) else [circuit])
+                self._has_measurements(circ)
+                for circ in (run_input if isinstance(run_input, list) else [run_input])
             )
         ):
             warnings.warn(
@@ -137,257 +174,86 @@ class IonQBackend(Backend):
                 stacklevel=2,
             )
 
-        for kwarg in kwargs:
-            if not hasattr(self.options, kwarg):
-                warnings.warn(
-                    f"Option {kwarg} is not used by this backend",
-                    UserWarning,
-                    stacklevel=2,
-                )
-
-        if "shots" not in kwargs:
-            kwargs["shots"] = self.options.shots
-        # TODO: Should we merge the two maps, or warn if both are set?
-        if "job_settings" not in kwargs:
-            kwargs["job_settings"] = self.options.job_settings
-        elif self.options.job_settings is not None:
-            warnings.warn(
-                (
-                    "Option job_settings is set on the backend, and on the request. "
-                    "Ignoring the backend specified option."
-                ),
-                UserWarning,
-                stacklevel=2,
-            )
-        passed_args = kwargs
+        # Merge default & user-supplied options
+        run_opts = {**self.options.__dict__, **options}
 
         job = ionq_job.IonQJob(
-            self,
-            None,
-            self.client,
-            circuit=circuit,
-            passed_args=passed_args,
+            backend=self,
+            job_id=None,
+            client=self.client,
+            circuit=run_input,
+            passed_args=run_opts,
         )
         job.submit()
         return job
 
-    def retrieve_job(self, job_id: str) -> ionq_job.IonQJob:
-        """get a job from a specific backend, by job id."""
+    def retrieve_job(self, job_id: str):
+        """Retrieve a job by its ID."""
         return ionq_job.IonQJob(self, job_id, self.client)
 
-    def retrieve_jobs(self, job_ids: list[str]) -> list[ionq_job.IonQJob]:
-        """get a list of jobs from a specific backend, job id"""
-        return [ionq_job.IonQJob(self, job_id, self.client) for job_id in job_ids]
-
-    def cancel_job(self, job_id: str) -> dict:
-        """cancels a job from a specific backend, by job id."""
-        return self.client.cancel_job(job_id)
-
-    def cancel_jobs(self, job_ids: list[str]) -> list[dict]:
-        """cancels a list of jobs from a specific backend, job id"""
-        return [self.client.cancel_job(job_id) for job_id in job_ids]
-
-    def has_valid_mapping(self, circuit: QuantumCircuit) -> bool:
-        """checks if the circuit has at least one
-        valid qubit -> bit measurement.
-
-        Args:
-            circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
-                A Qiskit QuantumCircuit object.
-
-        Returns:
-            boolean: if the circuit has valid mappings
-        """
-        # Check if a qubit is measured
-        for instruction, _, cargs in circuit.data:
-            if instruction.name == "measure" and len(cargs):
-                return True
-        # If no mappings are found, return False
-        return False
-
-    # TODO: Implement backend status checks.
-    def status(self) -> BackendStatus:
-        """Return a backend status object to the caller.
-
-        Returns:
-            BackendStatus: the status of the backend.
-        """
-        return BackendStatus(
-            backend_name=self.name(),
-            backend_version="1",
-            operational=True,
-            pending_jobs=0,
-            status_msg="",
-        )
+    def retrieve_jobs(self, job_ids: Sequence[str]):
+        """Retrieve multiple jobs by their IDs."""
+        return [ionq_job.IonQJob(self, jid, self.client) for jid in job_ids]
 
     def calibration(self) -> Characterization | None:
-        """Fetch the most recent calibration data for this backend.
+        """Return the characterization data for this backend."""
+        if self._simulator:
+            return None
+        name_for_api = self.name.replace("ionq_qpu", "qpu")
+        return self.client.get_calibration_data(name_for_api, limit=1)
 
-        Returns:
-            Calibration: A calibration data wrapper.
-        """
-        calibration_data = self.client.get_calibration_data(
-            self.name().replace("ionq_qpu", "qpu"), limit=1
-        )
-        return calibration_data  # type: ignore
+    def status(self) -> bool:
+        """Return True if the backend is available, False otherwise."""
+        cal = self.calibration()
+        return bool(cal and getattr(cal, "status", "available") == "available")
 
-    @abc.abstractmethod
-    def with_name(self, name, **kwargs) -> IonQBackend:
-        """Helper method that returns this backend with a more specific target system."""
-        pass
+    @property
+    def coupling_map(self) -> CouplingMap:
+        """IonQ hardware is fully connected."""
+        return CouplingMap.from_full(self._num_qubits)
 
-    @abc.abstractmethod
-    def gateset(self) -> Literal["qis", "native"]:
-        """Helper method returning the gateset this backend is targeting."""
+    @staticmethod
+    def _has_measurements(circ: QuantumCircuit) -> bool:
+        return any(inst.operation.name == "measure" for inst in circ.data)
 
-    def __eq__(self, other) -> bool:
-        if isinstance(other, self.__class__):
-            return self.name() == other.name() and self.gateset() == other.gateset()
-        else:
-            return False
+    def __eq__(self, other):
+        if not isinstance(other, IonQBackend):
+            return NotImplemented
+        return (self.name, self._gateset) == (other.name, other._gateset)
 
-    def __ne__(self, other) -> bool:
-        return not self.__eq__(other)
+    def __hash__(self):
+        return hash((self.name, self._gateset))
 
 
 class IonQSimulatorBackend(IonQBackend):
-    """
-    IonQ Backend for running simulated jobs.
-
-
-    .. ATTENTION::
-
-        When noise_model ideal is specified, the maximum shot-count for a state vector sim is
-        always ``1``.
-
-    .. ATTENTION::
-
-        When noise_model ideal is specified, calling
-        :meth:`get_counts <qiskit_ionq.ionq_job.IonQJob.get_counts>`
-        on a job processed by this backend will return counts expressed as
-        probabilities, rather than a multiple of shots.
-    """
-
-    @classmethod
-    def _default_options(cls) -> Options:
-        return Options(
-            shots=1024,
-            job_settings=None,
-            sampler_seed=None,
-            noise_model="ideal",
-            extra_query_params={},
-            extra_metadata={},
-        )
-
-    # pylint: disable=missing-type-doc,missing-param-doc,arguments-differ,useless-super-delegation
-    def run(self, circuit: QuantumCircuit, **kwargs) -> ionq_job.IonQJob:
-        """Create and run a job on IonQ's Simulator Backend.
-
-        .. WARNING:
-
-            The maximum shot-count for a state vector sim is always ``1``.
-            As a result, the ``shots`` keyword argument in this method is ignored.
-
-        Args:
-            circuit (:class:`QuantumCircuit <qiskit.circuit.QuantumCircuit>`):
-                A Qiskit QuantumCircuit object.
-
-        Returns:
-            IonQJob: A reference to the job that was submitted.
-        """
-        return super().run(circuit, **kwargs)
-
-    def calibration(self) -> None:
-        """Simulators have no calibration data.
-
-        Returns:
-            None: Simulators do not have calibration data.
-        """
-        return None
-
-    def gateset(self) -> Literal["qis", "native"]:
-        return self._gateset
+    """IonQ state-vector simulator."""
 
     def __init__(
         self,
-        provider,
+        provider: IonQProvider,
         name: str = "simulator",
         gateset: Literal["qis", "native"] = "qis",
     ):
-        """Base class for interfacing with an IonQ backend"""
-        self._gateset = gateset
-        config = BackendConfiguration.from_dict(
-            {
-                "backend_name": (
-                    "ionq_" + name if not name.startswith("ionq_") else name
-                ),
-                "backend_version": "0.0.1",
-                "simulator": True,
-                "local": False,
-                "coupling_map": None,
-                "description": "IonQ simulator",
-                "basis_gates": GATESET_MAP[gateset],
-                "memory": False,
-                # Varied based on noise model, but enforced server-side.
-                "n_qubits": get_n_qubits(name),
-                "conditional": False,
-                "max_shots": 1,
-                "max_experiments": 1,
-                "open_pulse": False,
-                "gates": [
-                    {
-                        "name": "gpi",
-                        "parameters": ["phi"],
-                        "qasm_def": "gate gpi(phi) q { U(pi, 0, pi) q; U(0, 0, 4 * phi * pi) q;}",
-                    },
-                    {
-                        "name": "gpi2",
-                        "parameters": ["phi"],
-                        "qasm_def": "gate gpi2(phi) q \
-{ \
-    U(0, 0, -2 * phi * pi) q; \
-    U(pi/2, -pi/2, pi/2) q; \
-    U(0, 0, 2 * phi * pi) q; \
-}",
-                    },
-                    {
-                        "name": "ms",
-                        "parameters": ["phi0", "phi1", "theta"],
-                        "qasm_def": "gate ms(phi0, phi1, theta) q0, q1 \
-{ \
-    ctrl @ U(pi , 0, pi) q1, q0; \
-    U(pi, 0, pi) q0; \
-    ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
-    U(pi, 0, pi) q0; \
-    ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
-    ctrl @ U(pi , 0, pi) q1, q0; \
-}",
-                    },
-                    {
-                        "name": "zz",
-                        "parameters": ["theta"],
-                        "qasm_def": "gate zz(theta) q0, q1  \
-{ \
-    ctrl @ U(pi , 0, pi) q0, q1; \
-    U(0, 0, 2 * theta * pi) q1;  \
-    ctrl @ U(pi , 0, pi) q0, q1; \
-}",
-                    },
-                ],
-            }
+        backend_name = name if name.startswith("ionq_") else f"ionq_{name}"
+        num_qubits = get_n_qubits(name)
+        super().__init__(
+            provider=provider,
+            name=backend_name,
+            description="IonQ cloud simulator",
+            gateset=gateset,
+            num_qubits=num_qubits,
+            simulator=True,
+            max_shots=1,
+            max_experiments=None,
         )
-        super().__init__(configuration=config, provider=provider)
 
-    def with_name(self, name, **kwargs) -> IonQSimulatorBackend:
+    def with_name(self, name: str, **kwargs):
         """Helper method that returns this backend with a more specific target system."""
         return IonQSimulatorBackend(self._provider, name, **kwargs)
 
 
 class IonQQPUBackend(IonQBackend):
-    """IonQ Backend for running qpu-based jobs."""
-
-    def gateset(self) -> Literal["qis", "native"]:
-        return self._gateset
+    """IonQ trapped-ion hardware back-ends."""
 
     def __init__(
         self,
@@ -395,69 +261,21 @@ class IonQQPUBackend(IonQBackend):
         name: str = "ionq_qpu",
         gateset: Literal["qis", "native"] = "qis",
     ):
-        self._gateset = gateset
-        config = BackendConfiguration.from_dict(
-            {
-                "backend_name": name,
-                "backend_version": "0.0.1",
-                "simulator": False,
-                "local": False,
-                "coupling_map": None,
-                "description": "IonQ QPU",
-                "basis_gates": GATESET_MAP[gateset],
-                "memory": False,
-                "n_qubits": get_n_qubits(name),
-                "conditional": False,
-                "max_shots": 10000,
-                "max_experiments": 1,
-                "open_pulse": False,
-                "gates": [
-                    {
-                        "name": "gpi",
-                        "parameters": ["phi"],
-                        "qasm_def": "gate gpi(phi) q { U(pi, 0, pi) q; U(0, 0, 4 * phi * pi) q;}",
-                    },
-                    {
-                        "name": "gpi2",
-                        "parameters": ["phi"],
-                        "qasm_def": "gate gpi2(phi) q \
-{ \
-    U(0, 0, -2 * phi * pi) q; \
-    U(pi/2, -pi/2, pi/2) q; \
-    U(0, 0, 2 * phi * pi) q; \
-}",
-                    },
-                    {
-                        "name": "ms",
-                        "parameters": ["phi0", "phi1", "theta"],
-                        "qasm_def": "gate ms(phi0, phi1, theta) q0, q1 \
-{ \
-    ctrl @ U(pi , 0, pi) q1, q0; \
-    U(pi, 0, pi) q0; \
-    ctrl @ U(2 * theta * pi, 2 * (phi0 + phi1) * pi - pi / 2, pi / 2 - 2 * (phi0 + phi1) * pi) q0, q1; \
-    U(pi, 0, pi) q0; \
-    ctrl @ U(2 * theta * pi, -2 * (phi0 - phi1) * pi - pi / 2, pi / 2 + 2 * (phi0 - phi1) * pi) q0, q1; \
-    ctrl @ U(pi , 0, pi) q1, q0; \
-}",
-                    },
-                    {
-                        "name": "zz",
-                        "parameters": ["theta"],
-                        "qasm_def": "gate zz(theta) q0, q1  \
-{ \
-    ctrl @ U(pi , 0, pi) q0, q1; \
-    U(0, 0, 2 * theta * pi) q1;  \
-    ctrl @ U(pi , 0, pi) q0, q1; \
-}",
-                    },
-                ],
-            }
+        num_qubits = get_n_qubits(name)
+        super().__init__(
+            provider=provider,
+            name=name,
+            description="IonQ trapped-ion QPU",
+            gateset=gateset,
+            num_qubits=num_qubits,
+            simulator=False,
+            max_shots=10_000,
+            max_experiments=None,
         )
-        super().__init__(configuration=config, provider=provider)
 
     def with_name(self, name: str, **kwargs) -> IonQQPUBackend:
         """Helper method that returns this backend with a more specific target system."""
         return IonQQPUBackend(self._provider, name, **kwargs)
 
 
-__all__ = ["IonQBackend", "IonQQPUBackend", "IonQSimulatorBackend"]
+__all__ = ["IonQBackend", "IonQSimulatorBackend", "IonQQPUBackend"]

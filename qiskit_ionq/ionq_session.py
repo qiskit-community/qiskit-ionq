@@ -109,7 +109,7 @@ class Session:
             kwargs.setdefault("session_id", self._session_id)
             return self._orig_run(*args, **kwargs)
 
-        self._backend.run = _run_with_session  # monkey‑patch for life of the context
+        self._backend.run = _run_with_session  # monkey-patch for life of the context
         return self
 
     def __exit__(self, exc_type, *_):
@@ -134,7 +134,7 @@ class Session:
     ) -> None:
         """Create a new session."""
         payload = {
-            "backend": self._backend.name().replace("ionq_qpu", "qpu"),
+            "backend": self._backend.name.replace("ionq_qpu", "qpu"),
             "settings": {},
         }
         if max_jobs is not None:

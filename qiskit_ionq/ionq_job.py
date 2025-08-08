@@ -49,7 +49,7 @@ from .helpers import decompress_metadata_string
 
 from . import constants, exceptions
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_backend
     from . import ionq_client
 
@@ -77,14 +77,16 @@ def map_output(data, clbits, num_qubits):
     return mapped_output
 
 
-def _build_counts(
+def _build_counts(  # pylint: disable=too-many-positional-arguments
     data,
-    num_qubits,
-    clbits,
-    shots,
-    use_sampler=False,
-    sampler_seed=None,
-):  # pylint: disable=too-many-positional-arguments
+    num_qubits: int,
+    clbits: list[int],
+    shots: int,
+    use_sampler: bool = False,
+    sampler_seed: int | None = None,
+) -> tuple[
+    dict[str, int], dict[str, float]
+]:
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
     .. NOTE:: For simulator jobs, this method builds counts using a randomly
@@ -135,13 +137,14 @@ def _build_counts(
     # Build counts and probabilities
     counts = {}
     probabilities = {}
-    for key, val in output_probs.items():
-        bits = bin(int(key))[2:].rjust(num_qubits, "0")
-        hex_bits = hex(int(bits, 2))
-        count = sampled[key] if use_sampler else round(val * shots)
-        if count:  # only non-zero counts
-            counts[hex_bits] = count
-            probabilities[hex_bits] = val
+    for key_int, prob in output_probs.items():
+        bitstr = bin(int(key_int))[2:].rjust(
+            len(clbits) if clbits else num_qubits, "0"
+        )  # e.g. '101'
+        cnt = sampled.get(key_int, round(prob * shots))
+        if cnt:  # ignore zero bins
+            counts[bitstr] = int(cnt)
+            probabilities[bitstr] = float(prob)
 
     return counts, probabilities
 
@@ -170,7 +173,9 @@ class IonQJob(JobV1):
         assert (
             job_id is not None or circuit is not None
         ), "Job must have a job_id or circuit"
-        super().__init__(backend, job_id)
+        super().__init__(
+            backend=backend, job_id=job_id if job_id else ""
+        )  # TODO improve handling of None job_id
         self._client = client or backend.client
         self._result = None
         self._status = None
@@ -333,7 +338,7 @@ class IonQJob(JobV1):
             IonQJobStateError: If the job was cancelled
         """
         # Return early if we have no job id yet.
-        if self._job_id is None:
+        if not self._job_id:
             return self._status
 
         # Return early if the job is already final.
@@ -491,8 +496,8 @@ class IonQJob(JobV1):
             IonQJobStateError: If the job was cancelled before this method fetches it.
         """
         backend = self.backend()
-        backend_name = backend.name()
-        backend_version = backend.configuration().backend_version
+        backend_name = backend.name
+        backend_version = backend.backend_version
         is_ideal_sim = (
             backend_name == "ionq_simulator" and backend.options.noise_model == "ideal"
         )
