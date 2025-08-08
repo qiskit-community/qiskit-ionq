@@ -535,7 +535,7 @@ def qiskit_to_ionq(
     if settings:
         ionq_json["settings"] = settings
 
-    # user-supplied extras & final serialisation
+    # user-supplied extras & final serialization
     ionq_json.update(extra_query_params)
     ionq_json["metadata"].update(extra_metadata)
 

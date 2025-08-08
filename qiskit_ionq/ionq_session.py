@@ -64,7 +64,7 @@ class Session:
             raise ValueError("Either create_new must be True or a session_id supplied.")
 
     @property
-    def session_id(self) -> str:  # noqa: D401
+    def session_id(self) -> str:
         """Return the IonQ session UUID."""
         return self._session_id
 
