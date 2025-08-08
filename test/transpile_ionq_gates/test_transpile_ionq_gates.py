@@ -35,6 +35,8 @@ from qiskit import (
     QuantumRegister,
     transpile,
 )
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.transpiler import TransformationPass
 from qiskit.quantum_info import Statevector
 from qiskit.circuit.library import (
     HGate,
@@ -133,6 +135,29 @@ gate_map = {
 }
 
 
+class StripIdleQubits(TransformationPass):
+    """Remove padding qubits but keep at least one qubit alive."""
+
+    def run(self, dag):
+        idle = list(dag.idle_wires())
+        if not idle:
+            return dag  # nothing to do
+        if len(idle) == dag.num_qubits():
+            # All qubits are idle: keep the first, drop the rest
+            dag.remove_qubits(*idle[1:])
+        else:
+            # Normal case: drop only the padding qubits
+            dag.remove_qubits(*idle)
+        return dag
+
+
+def strip_idle_wires(qc):
+    """Remove idle wires from a quantum circuit."""
+    dag = circuit_to_dag(qc)
+    dag = StripIdleQubits().run(dag)
+    return dag_to_circuit(dag)
+
+
 def append_gate(circuit, gate_name, param, qubits):
     """Append a gate to a circuit."""
     gate_class = gate_map[gate_name]
@@ -209,7 +234,7 @@ def test_single_qubit_transpilation(ideal_results, gates):
     # transpile circuit to native gates
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="native")
-    transpiled_circuit = transpile(circuit, backend)
+    transpiled_circuit = strip_idle_wires(transpile(circuit, backend))
 
     # simulate the circuit
     statevector = Statevector(transpiled_circuit)
@@ -375,7 +400,9 @@ def test_multi_qubit_transpilation(ideal_results, gates):
     # Using optmization level 0 below is important here because ElidePermutations transpiler pass
     # in Qiskit will remove swap gates and instead premute qubits if optimization level is 2 or 3.
     # In the future this feature could be extended to optmization level 1 as well.
-    transpiled_circuit = transpile(circuit, backend, optimization_level=0)
+    transpiled_circuit = strip_idle_wires(
+        transpile(circuit, backend, optimization_level=0)
+    )
 
     # simulate the circuit
     statevector = Statevector(transpiled_circuit)

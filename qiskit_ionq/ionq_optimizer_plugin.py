@@ -34,6 +34,7 @@ rules in isolation.
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.passes import ContractIdleWiresInControlFlow
 from qiskit.converters import circuit_to_dag
 from qiskit_ionq.rewrite_rules import (
     CancelGPI2Adjoint,
@@ -89,6 +90,7 @@ class TrappedIonOptimizerPluginSimpleRules(PassManagerStagePlugin):
             custom_pass_manager.append(CancelGPI2Adjoint())
             custom_pass_manager.append(CancelGPIAdjoint())
             custom_pass_manager.append(GPI2TwiceIsGPI())
+            custom_pass_manager.append(ContractIdleWiresInControlFlow())
         return custom_pass_manager
 
 
@@ -112,6 +114,7 @@ class TrappedIonOptimizerPluginCompactGates(PassManagerStagePlugin):
             pass
         if optimization_level >= 1:
             custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
+            custom_pass_manager.append(ContractIdleWiresInControlFlow())
         return custom_pass_manager
 
 
@@ -136,6 +139,7 @@ class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
             pass
         if optimization_level >= 1:
             custom_pass_manager.append(CommuteGPIsThroughMS())
+            custom_pass_manager.append(ContractIdleWiresInControlFlow())
         return custom_pass_manager
 
 
@@ -164,4 +168,5 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             custom_pass_manager.append(GPI2TwiceIsGPI())
             custom_pass_manager.append(CommuteGPIsThroughMS())
             custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
+            custom_pass_manager.append(ContractIdleWiresInControlFlow())
         return custom_pass_manager

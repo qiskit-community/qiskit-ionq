@@ -98,7 +98,7 @@ def test_get_n_qubits_fallback():
             actual_url == expected_url
         ), f"Expected URL {expected_url}, but got {actual_url}"
 
-        assert result == 100, f"Expected fallback of 100 qubits, but got {result}"
+        assert result == 4, f"Expected fallback of 4 qubits, but got {result}"
 
 
 def test_retry():

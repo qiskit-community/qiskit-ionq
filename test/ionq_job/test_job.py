@@ -33,8 +33,8 @@ import pytest
 from qiskit import QuantumCircuit
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
+from qiskit.result import MeasLevel
 
-from qiskit.qobj.utils import MeasLevel
 from qiskit_ionq import exceptions, ionq_job
 from qiskit_ionq.helpers import compress_to_metadata_string
 
@@ -218,8 +218,8 @@ def test_build_counts():
     (counts, probabilties) = ionq_job._build_counts(
         {"5": 0.5, "7": 0.5}, 3, [0, 1, 2], 100
     )
-    assert ({"0x5": 50, "0x7": 50}) == counts
-    assert ({"0x5": 0.5, "0x7": 0.5}) == probabilties
+    assert ({"101": 50, "111": 50}) == counts
+    assert ({"101": 0.5, "111": 0.5}) == probabilties
 
 
 def test_results_meta(formatted_result):
@@ -272,8 +272,8 @@ def test_build_counts__with_int():
     counts, probabilties = ionq_job._build_counts(
         {"1": 1}, 1, [0], 100, use_sampler=True, sampler_seed=42
     )
-    assert ({"0x1": 100}) == counts
-    assert ({"0x1": 1.0}) == probabilties
+    assert ({"1": 100}) == counts
+    assert ({"1": 1.0}) == probabilties
 
 
 def test_counts_and_probs_from_job(simulator_backend, requests_mock):
@@ -430,8 +430,8 @@ expected_result = {
     "results": [
         {
             "data": {
-                "counts": {"0x0": 617, "0x2": 617},
-                "probabilities": {"0x0": 0.5, "0x2": 0.499999},
+                "counts": {"00": 617, "10": 617},
+                "probabilities": {"00": 0.5, "10": 0.499999},
                 "metadata": {
                     "clbit_labels": [["c", 0], ["c", 1]],
                     "creg_sizes": [["c", 2]],
