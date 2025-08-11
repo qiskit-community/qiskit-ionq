@@ -27,9 +27,9 @@
 """Test transpilation to native gatesets."""
 
 import collections.abc
+import warnings
 import numpy as np
 import pytest
-import warnings
 
 from qiskit import (
     QuantumCircuit,
