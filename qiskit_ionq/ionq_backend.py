@@ -285,10 +285,14 @@ class IonQBackend(Backend):
 class IonQSimulatorBackend(IonQBackend):
     """
     IonQ Backend for running simulated jobs.
+
     .. ATTENTION::
+
         When noise_model ideal is specified, the maximum shot-count for a state vector sim is
         always ``1``.
+
     .. ATTENTION::
+
         When noise_model ideal is specified, calling
         :meth:`get_counts <qiskit_ionq.ionq_job.IonQJob.get_counts>`
         on a job processed by this backend will return counts expressed as
