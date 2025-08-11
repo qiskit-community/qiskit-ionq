@@ -28,6 +28,7 @@
 # pylint: disable=redefined-outer-name
 
 from unittest import mock
+from collections import Counter
 
 import pytest
 from qiskit import QuantumCircuit
@@ -285,3 +286,50 @@ def test_multiexp_job(mock_backend, requests_mock):
             "sampler_seed": "None",
         },
     }
+
+
+@pytest.mark.parametrize(
+    "memory_flag",
+    [
+        pytest.param(True, id="memory=True"),
+        pytest.param(False, id="memory=False"),
+    ],
+)
+def test_run_with_memory(
+    mock_backend, requests_mock, memory_flag
+):  # TODO fix when BE supports memory
+    """Ensure memory handling matches flag behavior.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+        memory_flag (bool): Whether to test with memory enabled or not.
+    """
+
+    job_id = "mem_job"
+    probabilities = {"0": 0.4, "2": 0.1, "1": 0.1, "3": 0.4}
+    client = mock_backend.client
+    resp = conftest.dummy_job_response(job_id)
+
+    requests_mock.get(client.make_path("jobs", job_id), status_code=200, json=resp)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        status_code=200,
+        json=probabilities,
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id, passed_args={"memory": memory_flag})
+    assert job.memory is memory_flag
+
+    if memory_flag:
+        memory = job.get_memory()
+        shots = int(resp["metadata"]["shots"])
+        assert Counter(memory) == Counter(
+            {
+                format(int(key), "02b"): round(shots * prob)
+                for key, prob in probabilities.items()
+            }
+        )
+    else:
+        with pytest.raises(exceptions.IonQBackendError):
+            job.get_memory()
