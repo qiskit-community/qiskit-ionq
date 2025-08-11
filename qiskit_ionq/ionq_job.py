@@ -281,7 +281,7 @@ class IonQJob(JobV1):
 
         raise IonQBackendError(
             f'No memory for experiment "{circuit.name if circuit else ""}". '
-            "Please verify that you either ran a job with "
+            "Please verify that you ran a job with "
             'the memory flag set, eg., "memory=True".'
         )
 
