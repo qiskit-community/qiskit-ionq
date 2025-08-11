@@ -152,6 +152,7 @@ class IonQBackend(Backend):
             extra_metadata={},
             sampler_seed=None,  # simulator-only; harmless default for QPU
             noise_model="ideal",  # simulator-only
+            memory=False,
         )
 
     @property
