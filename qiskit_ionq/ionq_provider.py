@@ -74,7 +74,7 @@ class IonQProvider:
         name: str,
         gateset: Literal["qis", "native"] = "qis",
         **kwargs,
-    ) -> ionq_backend.Backend:
+    ) -> ionq_backend.IonQSimulatorBackend | ionq_backend.IonQQPUBackend:
         """Return a single backend matching the specified filtering.
         Args:
             name (str): name of the backend.
@@ -109,7 +109,7 @@ class BackendService:
         """
         self._backends = backends
         for backend in backends:
-            setattr(self, backend.name(), backend)
+            setattr(self, backend.name, backend)
 
     def __call__(
         self, name: Optional[str] = None, filters: Optional[Callable] = None, **kwargs
@@ -130,12 +130,12 @@ class BackendService:
 
             from qiskit_ionq import IonQProvider
             ionq = IonQProvider('TOKEN')
-            sim = ionq.backends(filters=lambda x: x.configuration().simulator)
+            sim = ionq.backends(filters=lambda x: x._simulator)
             print(sim)
 
         """
         # pylint: disable=arguments-differ
         backends = self._backends
         if name:
-            backends = [b for b in self._backends if name.startswith(b.name())]
+            backends = [b for b in self._backends if name.startswith(b.name)]
         return filter_backends(backends, filters, **kwargs)

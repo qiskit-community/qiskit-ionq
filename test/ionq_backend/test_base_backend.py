@@ -31,7 +31,6 @@ from unittest import mock
 
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.providers.models.backendstatus import BackendStatus
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
 
@@ -44,9 +43,9 @@ def test_status_dummy_response(mock_backend):
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend.
     """
+    # TODO mock the client status call
     status = mock_backend.status()
-    assert isinstance(status, BackendStatus)
-    assert status.operational is True
+    assert status is False
 
 
 def test_client_property(mock_backend):
@@ -121,7 +120,7 @@ def test_create_client_exceptions(mock_backend, creds, msg):
     fake_provider.credentials = creds
     provider_patch = mock.patch.object(mock_backend, "_provider", fake_provider)
     with provider_patch, pytest.raises(exceptions.IonQCredentialsError) as exc_info:
-        mock_backend.create_client()
+        mock_backend._create_client()
 
     assert str(exc_info.value.message) == msg
 

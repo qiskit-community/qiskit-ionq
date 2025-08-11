@@ -33,7 +33,7 @@ def test_provider_autocomplete():
     pro = IonQProvider("123456")
 
     for backend in pro.backends():
-        assert hasattr(pro.backends, backend.name())
+        assert hasattr(pro.backends, backend.name)
 
 
 def test_provider_getbackend():
@@ -41,8 +41,8 @@ def test_provider_getbackend():
     pro = IonQProvider("123456")
 
     for backend in pro.backends():
-        qis = pro.get_backend(backend.name())
-        native = pro.get_backend(backend.name(), gateset="native")
+        qis = pro.get_backend(backend.name)
+        native = pro.get_backend(backend.name, gateset="native")
         assert backend == qis
         assert backend != native
 

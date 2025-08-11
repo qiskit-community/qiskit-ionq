@@ -44,6 +44,7 @@ import random
 import requests
 from dotenv import dotenv_values
 
+import numpy as np
 from qiskit import __version__ as qiskit_terra_version
 from qiskit.circuit import (
     controlledgate as q_cgates,
@@ -432,7 +433,7 @@ def qiskit_to_ionq(
     extra_query_params = extra_query_params or {}
     extra_metadata = extra_metadata or {}
 
-    # build the (multi‑)circuit block
+    # build the (multi-)circuit block
     ionq_circs: list[Any] | Any = []
     meas_map: list[int] | None = None
     multi_circuit = isinstance(circuit, (list, tuple))
@@ -494,10 +495,8 @@ def qiskit_to_ionq(
     else:
         input_block["circuit"] = ionq_circs
 
-    # top‑level fields
-    backend_name = (
-        backend.name()[5:] if backend.name().startswith("ionq") else backend.name()
-    )
+    # top-level fields
+    backend_name = backend.name[5:] if backend.name.startswith("ionq") else backend.name
     ionq_json: dict[str, Any] = {
         "type": "ionq.multi-circuit.v1" if multi_circuit else "ionq.circuit.v1",
         "backend": backend_name,
@@ -536,7 +535,7 @@ def qiskit_to_ionq(
     if settings:
         ionq_json["settings"] = settings
 
-    # user‑supplied extras & final serialisation
+    # user-supplied extras & final serialization
     ionq_json.update(extra_query_params)
     ionq_json["metadata"].update(extra_metadata)
 
@@ -625,7 +624,7 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     }
 
 
-def get_n_qubits(backend, fallback=100):
+def get_n_qubits(backend, fallback=4):
     """Get the number of qubits for a given backend."""
     backend = backend.removeprefix("ionq_")
     backend = (
@@ -697,6 +696,15 @@ def retry(
         return f_retry
 
     return deco_retry
+
+
+def normalize(weights):
+    """Normalize a numpy array of weights."""
+    arr = np.asarray(weights, dtype=float)
+    total = arr.sum()
+    if total == 0:
+        raise ValueError("sum of weights is zero")
+    return arr / total
 
 
 __all__ = [

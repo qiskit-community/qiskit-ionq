@@ -26,14 +26,6 @@
 
 """Provider for IonQ backends"""
 
-# warn if qiskit is not installed
-try:
-    from qiskit.version import get_version_info  # pylint: disable=unused-import  # noqa: F401
-except ImportError as exc:
-    raise ImportError(
-        "Qiskit is not installed. Please install the latest version of Qiskit."
-    ) from exc
-
 from .ionq_provider import IonQProvider
 from .ionq_session import Session
 from .ionq_optimizer_plugin import (
