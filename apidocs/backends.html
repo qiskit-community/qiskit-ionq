@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="API Client" href="client.html" /><link rel="prev" title="IonQ Provider" href="provider.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>IonQ Backends - Qiskit IonQ Provider 0.6.1</title>
+        <title>IonQ Backends - Qiskit IonQ Provider 1.0.0.dev0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.6.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.0.0.dev0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.6.1</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.0.dev0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -236,136 +236,159 @@
 <p>IonQ provider backends.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_backend.</span></span><span class="sig-name descname"><span class="pre">IonQBackend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend" title="Link to this definition">¶</a></dt>
-<dd><p>IonQ Backend base class.</p>
-<p>Initialize a backend class</p>
-<div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 1.2: </span>The class <code class="docutils literal notranslate"><span class="pre">qiskit.providers.backend.BackendV1</span></code> is deprecated as of qiskit 1.2. It will be removed in the 2.0 release. If the backend only encapsulates a hardware description, consider constructing a Target directly. If it is part of a provider that gives access to execution, consider using Primitives instead. Alternatively, consider moving to BackendV2 (see <a class="reference external" href="https://qisk.it/backendV1-to-V2">https://qisk.it/backendV1-to-V2</a>).</p>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>configuration</strong> (<em>BackendConfiguration</em>) – A backend configuration
-object for the backend object.</p></li>
-<li><p><strong>provider</strong> (<em>qiskit.providers.Provider</em>) – Optionally, the provider
-object that this Backend comes from.</p></li>
-<li><p><strong>fields</strong> – kwargs for the values to use to override the default
-options.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>AttributeError</strong> – if input field not a valid options</p>
-</dd>
-</dl>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_backend.</span></span><span class="sig-name descname"><span class="pre">IonQBackend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">provider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="provider.html#qiskit_ionq.ionq_provider.IonQProvider" title="qiskit_ionq.ionq_provider.IonQProvider"><span class="pre">IonQProvider</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_qubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend_version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_shots</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_experiments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">option_overrides</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend" title="Link to this definition">¶</a></dt>
+<dd><p>Common functionality for all IonQ backends (simulator and QPU).</p>
+<p>Build a new IonQ backend instance.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.backend_version">
+<span class="sig-name descname"><span class="pre">backend_version</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.backend_version" title="Link to this definition">¶</a></dt>
+<dd><p>Version of the backend being provided.  This is not the same as
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">BackendV2.version</span></code>, which is the version of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Backend</span></code>
+abstract interface.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.basis_gates">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">basis_gates</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.basis_gates" title="Link to this definition">¶</a></dt>
+<dd><p>Return the basis gates for this backend.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.calibration">
 <span class="sig-name descname"><span class="pre">calibration</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.Characterization" title="qiskit_ionq.ionq_client.Characterization"><span class="pre">Characterization</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.calibration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.calibration" title="Link to this definition">¶</a></dt>
-<dd><p>Fetch the most recent calibration data for this backend.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A calibration data wrapper.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Calibration</p>
-</dd>
-</dl>
+<dd><p>Return the characterization data for this backend.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.cancel_job">
 <span class="sig-name descname"><span class="pre">cancel_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.cancel_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.cancel_job" title="Link to this definition">¶</a></dt>
-<dd><p>cancels a job from a specific backend, by job id.</p>
+<dd><p>Cancel a job by its ID.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.cancel_jobs">
-<span class="sig-name descname"><span class="pre">cancel_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.cancel_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.cancel_jobs" title="Link to this definition">¶</a></dt>
-<dd><p>cancels a list of jobs from a specific backend, job id</p>
+<span class="sig-name descname"><span class="pre">cancel_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.cancel_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.cancel_jobs" title="Link to this definition">¶</a></dt>
+<dd><p>Cancel a list of jobs by their IDs.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.client">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">client</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient"><span class="pre">IonQClient</span></a></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.client" title="Link to this definition">¶</a></dt>
-<dd><p>A lazily populated IonQ API Client.</p>
+<dd><p>Return the IonQ client for this backend.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.coupling_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">coupling_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">CouplingMap</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.coupling_map" title="Link to this definition">¶</a></dt>
+<dd><p>IonQ hardware is fully connected.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.description">
+<span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.description" title="Link to this definition">¶</a></dt>
+<dd><p>Optional human-readable description.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.dt">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.dt" title="Link to this definition">¶</a></dt>
+<dd><p>Return the system time resolution of input signals</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>An instance of a REST API client</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient">IonQClient</a></p>
+<dd class="field-odd"><p>The input signal timestep in seconds. If the backend doesn’t define <code class="docutils literal notranslate"><span class="pre">dt</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code> will
+be returned.</p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.configuration">
-<span class="sig-name descname"><span class="pre">configuration</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.configuration" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend configuration.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.dtm">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dtm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.dtm" title="Link to this definition">¶</a></dt>
+<dd><p>Return the system time resolution of output signals</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the configuration for the backend.</p>
+<dd class="field-odd"><p>The output signal timestep in seconds.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>BackendConfiguration</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.create_client">
-<span class="sig-name descname"><span class="pre">create_client</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient"><span class="pre">IonQClient</span></a></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.create_client"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.create_client" title="Link to this definition">¶</a></dt>
-<dd><p>Create an IonQ REST API Client using provider credentials.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQCredentialsError" title="qiskit_ionq.exceptions.IonQCredentialsError"><strong>IonQCredentialsError</strong></a> – If the provider’s
-    <code class="xref py py-attr docutils literal notranslate"><span class="pre">credentials</span></code> does not have
-    a <code class="docutils literal notranslate"><span class="pre">&quot;token&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;url&quot;</span></code> key, or if their values are <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>An instance of a REST API client.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient">IonQClient</a></p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    output signal timestep</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.gateset">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">gateset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.gateset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.gateset" title="Link to this definition">¶</a></dt>
-<dd><p>Helper method returning the gateset this backend is targeting.</p>
+<span class="sig-name descname"><span class="pre">gateset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.gateset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.gateset" title="Link to this definition">¶</a></dt>
+<dd><p>Return the active gate-set (<code class="docutils literal notranslate"><span class="pre">&quot;qis&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>).</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.has_valid_mapping">
-<span class="sig-name descname"><span class="pre">has_valid_mapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.has_valid_mapping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.has_valid_mapping" title="Link to this definition">¶</a></dt>
-<dd><p>checks if the circuit has at least one
-valid qubit -&gt; bit measurement.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>circuit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code>) – A Qiskit QuantumCircuit object.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>if the circuit has valid mappings</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>boolean</p>
-</dd>
-</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.instruction_durations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">instruction_durations</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.instruction_durations" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionDurations</span></code> object.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.name">
-<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.name" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend name.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.instructions">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">instructions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Instruction</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.instructions" title="Link to this definition">¶</a></dt>
+<dd><p>A list of Instruction tuples on the backend of the form <code class="docutils literal notranslate"><span class="pre">(instruction,</span> <span class="pre">(qubits)</span></code></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.max_circuits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_circuits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.max_circuits" title="Link to this definition">¶</a></dt>
+<dd><p>The maximum number of circuits that can be
+run in a single job.</p>
+<p>If there is no limit this will return None</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.meas_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">meas_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.meas_map" title="Link to this definition">¶</a></dt>
+<dd><p>Return the grouping of measurements which are multiplexed</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the name of the backend.</p>
+<dd class="field-odd"><p>The grouping of measurements which are multiplexed</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str</p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    measurement mapping</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.name" title="Link to this definition">¶</a></dt>
+<dd><p>Name of the backend.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.num_qubits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">num_qubits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.num_qubits" title="Link to this definition">¶</a></dt>
+<dd><p>Return the number of qubits the backend has.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.online_date">
+<span class="sig-name descname"><span class="pre">online_date</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.online_date" title="Link to this definition">¶</a></dt>
+<dd><p>Date that the backend came online.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.operation_names">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">operation_names</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.operation_names" title="Link to this definition">¶</a></dt>
+<dd><p>A list of instruction names that the backend supports.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.operations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">operations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Instruction</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.operations" title="Link to this definition">¶</a></dt>
+<dd><p>A list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Instruction</span></code> instances that the backend supports.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -377,31 +400,43 @@ how the backend is used. These are used to control the <a class="reference inter
 method.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.properties">
-<span class="sig-name descname"><span class="pre">properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.properties" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend properties.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.provider">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">provider</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.provider" title="Link to this definition">¶</a></dt>
+<dd><p>Return the backend provider.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the configuration for the backend. If the backend
-does not support properties, it returns <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dd class="field-odd"><p>the provider responsible for the backend.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>BackendProperties</p>
+<dd class="field-even"><p>provider</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.provider">
-<span class="sig-name descname"><span class="pre">provider</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.provider" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend Provider.</p>
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.qubit_properties">
+<span class="sig-name descname"><span class="pre">qubit_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">QubitProperties</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">QubitProperties</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.qubit_properties" title="Link to this definition">¶</a></dt>
+<dd><p>Return QubitProperties for a given qubit.</p>
+<p>If there are no defined or the backend doesn’t support querying these
+details this method does not need to be implemented.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the Provider responsible for the backend.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>qubit</strong> – The qubit to get the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> object for. This can
+be a single integer for 1 qubit or a list of qubits and a list
+of <code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> objects will be
+returned in the same order</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Provider</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> object for the
+specified qubit. If a list of qubits is provided a list will be
+returned. If properties are missing for a qubit this can be
+<code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    qubit properties</p>
 </dd>
 </dl>
 </dd></dl>
@@ -409,22 +444,25 @@ does not support properties, it returns <code class="docutils literal notranslat
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.retrieve_job">
 <span class="sig-name descname"><span class="pre">retrieve_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.retrieve_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.retrieve_job" title="Link to this definition">¶</a></dt>
-<dd><p>get a job from a specific backend, by job id.</p>
+<dd><p>Retrieve a job by its ID.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.retrieve_jobs">
-<span class="sig-name descname"><span class="pre">retrieve_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.retrieve_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.retrieve_jobs" title="Link to this definition">¶</a></dt>
-<dd><p>get a list of jobs from a specific backend, job id</p>
+<span class="sig-name descname"><span class="pre">retrieve_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.retrieve_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.retrieve_jobs" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieve multiple jobs by their IDs.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.run" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">QuantumCircuit</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.run" title="Link to this definition">¶</a></dt>
 <dd><p>Create and run a job on an IonQ Backend.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>circuit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code>) – A Qiskit QuantumCircuit object.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run_input</strong> – A single or list of Qiskit QuantumCircuit object(s).</p></li>
+<li><p><strong>**options</strong> – Additional options for the job.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A reference to the job that was submitted.</p>
@@ -455,22 +493,19 @@ pass in the kwarg with the new value for the options.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.status">
-<span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">BackendStatus</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.status" title="Link to this definition">¶</a></dt>
-<dd><p>Return a backend status object to the caller.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the status of the backend.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>BackendStatus</p>
-</dd>
-</dl>
+<span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.status" title="Link to this definition">¶</a></dt>
+<dd><p>Return True if the backend is available, False otherwise.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.with_name">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">with_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend" title="qiskit_ionq.ionq_backend.IonQBackend"><span class="pre">IonQBackend</span></a></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQBackend.with_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.with_name" title="Link to this definition">¶</a></dt>
-<dd><p>Helper method that returns this backend with a more specific target system.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQBackend.target">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">target</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Target</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQBackend.target" title="Link to this definition">¶</a></dt>
+<dd><p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.transpiler.Target</span></code> object for the backend.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Target</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -479,134 +514,157 @@ pass in the kwarg with the new value for the options.</p>
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_backend.</span></span><span class="sig-name descname"><span class="pre">IonQQPUBackend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">provider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="provider.html#qiskit_ionq.ionq_provider.IonQProvider" title="qiskit_ionq.ionq_provider.IonQProvider"><span class="pre">IonQProvider</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ionq_qpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'qis'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQQPUBackend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend" title="Link to this definition">¶</a></dt>
 <dd><p>IonQ Backend for running qpu-based jobs.</p>
-<p>Initialize a backend class</p>
-<div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 1.2: </span>The class <code class="docutils literal notranslate"><span class="pre">qiskit.providers.backend.BackendV1</span></code> is deprecated as of qiskit 1.2. It will be removed in the 2.0 release. If the backend only encapsulates a hardware description, consider constructing a Target directly. If it is part of a provider that gives access to execution, consider using Primitives instead. Alternatively, consider moving to BackendV2 (see <a class="reference external" href="https://qisk.it/backendV1-to-V2">https://qisk.it/backendV1-to-V2</a>).</p>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>configuration</strong> (<em>BackendConfiguration</em>) – A backend configuration
-object for the backend object.</p></li>
-<li><p><strong>provider</strong> (<em>qiskit.providers.Provider</em>) – Optionally, the provider
-object that this Backend comes from.</p></li>
-<li><p><strong>fields</strong> – kwargs for the values to use to override the default
-options.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>AttributeError</strong> – if input field not a valid options</p>
-</dd>
-</dl>
+<p>Build a new IonQ backend instance.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.backend_version">
+<span class="sig-name descname"><span class="pre">backend_version</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.backend_version" title="Link to this definition">¶</a></dt>
+<dd><p>Version of the backend being provided.  This is not the same as
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">BackendV2.version</span></code>, which is the version of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Backend</span></code>
+abstract interface.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.basis_gates">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">basis_gates</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.basis_gates" title="Link to this definition">¶</a></dt>
+<dd><p>Return the basis gates for this backend.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.calibration">
 <span class="sig-name descname"><span class="pre">calibration</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.Characterization" title="qiskit_ionq.ionq_client.Characterization"><span class="pre">Characterization</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.calibration" title="Link to this definition">¶</a></dt>
-<dd><p>Fetch the most recent calibration data for this backend.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A calibration data wrapper.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Calibration</p>
-</dd>
-</dl>
+<dd><p>Return the characterization data for this backend.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_job">
 <span class="sig-name descname"><span class="pre">cancel_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_job" title="Link to this definition">¶</a></dt>
-<dd><p>cancels a job from a specific backend, by job id.</p>
+<dd><p>Cancel a job by its ID.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_jobs">
-<span class="sig-name descname"><span class="pre">cancel_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_jobs" title="Link to this definition">¶</a></dt>
-<dd><p>cancels a list of jobs from a specific backend, job id</p>
+<span class="sig-name descname"><span class="pre">cancel_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_jobs" title="Link to this definition">¶</a></dt>
+<dd><p>Cancel a list of jobs by their IDs.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.client">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">client</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient"><span class="pre">IonQClient</span></a></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.client" title="Link to this definition">¶</a></dt>
-<dd><p>A lazily populated IonQ API Client.</p>
+<dd><p>Return the IonQ client for this backend.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.coupling_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">coupling_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">CouplingMap</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.coupling_map" title="Link to this definition">¶</a></dt>
+<dd><p>IonQ hardware is fully connected.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.description">
+<span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.description" title="Link to this definition">¶</a></dt>
+<dd><p>Optional human-readable description.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.dt">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.dt" title="Link to this definition">¶</a></dt>
+<dd><p>Return the system time resolution of input signals</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>An instance of a REST API client</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient">IonQClient</a></p>
+<dd class="field-odd"><p>The input signal timestep in seconds. If the backend doesn’t define <code class="docutils literal notranslate"><span class="pre">dt</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code> will
+be returned.</p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.configuration">
-<span class="sig-name descname"><span class="pre">configuration</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.configuration" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend configuration.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.dtm">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dtm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.dtm" title="Link to this definition">¶</a></dt>
+<dd><p>Return the system time resolution of output signals</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the configuration for the backend.</p>
+<dd class="field-odd"><p>The output signal timestep in seconds.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>BackendConfiguration</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.create_client">
-<span class="sig-name descname"><span class="pre">create_client</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient"><span class="pre">IonQClient</span></a></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.create_client" title="Link to this definition">¶</a></dt>
-<dd><p>Create an IonQ REST API Client using provider credentials.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQCredentialsError" title="qiskit_ionq.exceptions.IonQCredentialsError"><strong>IonQCredentialsError</strong></a> – If the provider’s
-    <code class="xref py py-attr docutils literal notranslate"><span class="pre">credentials</span></code> does not have
-    a <code class="docutils literal notranslate"><span class="pre">&quot;token&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;url&quot;</span></code> key, or if their values are <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>An instance of a REST API client.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient">IonQClient</a></p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    output signal timestep</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.gateset">
-<span class="sig-name descname"><span class="pre">gateset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQQPUBackend.gateset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.gateset" title="Link to this definition">¶</a></dt>
-<dd><p>Helper method returning the gateset this backend is targeting.</p>
+<span class="sig-name descname"><span class="pre">gateset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.gateset" title="Link to this definition">¶</a></dt>
+<dd><p>Return the active gate-set (<code class="docutils literal notranslate"><span class="pre">&quot;qis&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>).</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.has_valid_mapping">
-<span class="sig-name descname"><span class="pre">has_valid_mapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.has_valid_mapping" title="Link to this definition">¶</a></dt>
-<dd><p>checks if the circuit has at least one
-valid qubit -&gt; bit measurement.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>circuit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code>) – A Qiskit QuantumCircuit object.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>if the circuit has valid mappings</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>boolean</p>
-</dd>
-</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.instruction_durations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">instruction_durations</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.instruction_durations" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionDurations</span></code> object.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.name">
-<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.name" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend name.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.instructions">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">instructions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Instruction</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.instructions" title="Link to this definition">¶</a></dt>
+<dd><p>A list of Instruction tuples on the backend of the form <code class="docutils literal notranslate"><span class="pre">(instruction,</span> <span class="pre">(qubits)</span></code></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.max_circuits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_circuits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.max_circuits" title="Link to this definition">¶</a></dt>
+<dd><p>The maximum number of circuits that can be
+run in a single job.</p>
+<p>If there is no limit this will return None</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.meas_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">meas_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.meas_map" title="Link to this definition">¶</a></dt>
+<dd><p>Return the grouping of measurements which are multiplexed</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the name of the backend.</p>
+<dd class="field-odd"><p>The grouping of measurements which are multiplexed</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str</p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    measurement mapping</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.name" title="Link to this definition">¶</a></dt>
+<dd><p>Name of the backend.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.num_qubits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">num_qubits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.num_qubits" title="Link to this definition">¶</a></dt>
+<dd><p>Return the number of qubits the backend has.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.online_date">
+<span class="sig-name descname"><span class="pre">online_date</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.online_date" title="Link to this definition">¶</a></dt>
+<dd><p>Date that the backend came online.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.operation_names">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">operation_names</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.operation_names" title="Link to this definition">¶</a></dt>
+<dd><p>A list of instruction names that the backend supports.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.operations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">operations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Instruction</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.operations" title="Link to this definition">¶</a></dt>
+<dd><p>A list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Instruction</span></code> instances that the backend supports.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -618,31 +676,43 @@ how the backend is used. These are used to control the <a class="reference inter
 method.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.properties">
-<span class="sig-name descname"><span class="pre">properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.properties" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend properties.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.provider">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">provider</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.provider" title="Link to this definition">¶</a></dt>
+<dd><p>Return the backend provider.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the configuration for the backend. If the backend
-does not support properties, it returns <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dd class="field-odd"><p>the provider responsible for the backend.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>BackendProperties</p>
+<dd class="field-even"><p>provider</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.provider">
-<span class="sig-name descname"><span class="pre">provider</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.provider" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend Provider.</p>
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.qubit_properties">
+<span class="sig-name descname"><span class="pre">qubit_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">QubitProperties</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">QubitProperties</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.qubit_properties" title="Link to this definition">¶</a></dt>
+<dd><p>Return QubitProperties for a given qubit.</p>
+<p>If there are no defined or the backend doesn’t support querying these
+details this method does not need to be implemented.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the Provider responsible for the backend.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>qubit</strong> – The qubit to get the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> object for. This can
+be a single integer for 1 qubit or a list of qubits and a list
+of <code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> objects will be
+returned in the same order</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Provider</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> object for the
+specified qubit. If a list of qubits is provided a list will be
+returned. If properties are missing for a qubit this can be
+<code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    qubit properties</p>
 </dd>
 </dl>
 </dd></dl>
@@ -650,22 +720,25 @@ does not support properties, it returns <code class="docutils literal notranslat
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.retrieve_job">
 <span class="sig-name descname"><span class="pre">retrieve_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.retrieve_job" title="Link to this definition">¶</a></dt>
-<dd><p>get a job from a specific backend, by job id.</p>
+<dd><p>Retrieve a job by its ID.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.retrieve_jobs">
-<span class="sig-name descname"><span class="pre">retrieve_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.retrieve_jobs" title="Link to this definition">¶</a></dt>
-<dd><p>get a list of jobs from a specific backend, job id</p>
+<span class="sig-name descname"><span class="pre">retrieve_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.retrieve_jobs" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieve multiple jobs by their IDs.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.run" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">QuantumCircuit</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.run" title="Link to this definition">¶</a></dt>
 <dd><p>Create and run a job on an IonQ Backend.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>circuit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code>) – A Qiskit QuantumCircuit object.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run_input</strong> – A single or list of Qiskit QuantumCircuit object(s).</p></li>
+<li><p><strong>**options</strong> – Additional options for the job.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A reference to the job that was submitted.</p>
@@ -696,14 +769,17 @@ pass in the kwarg with the new value for the options.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.status">
-<span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">BackendStatus</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.status" title="Link to this definition">¶</a></dt>
-<dd><p>Return a backend status object to the caller.</p>
+<span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.status" title="Link to this definition">¶</a></dt>
+<dd><p>Return True if the backend is available, False otherwise.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQQPUBackend.target">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">target</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Target</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.target" title="Link to this definition">¶</a></dt>
+<dd><p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.transpiler.Target</span></code> object for the backend.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the status of the backend.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>BackendStatus</p>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Target</p>
 </dd>
 </dl>
 </dd></dl>
@@ -718,7 +794,7 @@ pass in the kwarg with the new value for the options.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_backend.</span></span><span class="sig-name descname"><span class="pre">IonQSimulatorBackend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">provider</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'simulator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'qis'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQSimulatorBackend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_backend.</span></span><span class="sig-name descname"><span class="pre">IonQSimulatorBackend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">provider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="provider.html#qiskit_ionq.ionq_provider.IonQProvider" title="qiskit_ionq.ionq_provider.IonQProvider"><span class="pre">IonQProvider</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'simulator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gateset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'qis'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQSimulatorBackend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend" title="Link to this definition">¶</a></dt>
 <dd><p>IonQ Backend for running simulated jobs.</p>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
@@ -732,116 +808,157 @@ always <code class="docutils literal notranslate"><span class="pre">1</span></co
 on a job processed by this backend will return counts expressed as
 probabilities, rather than a multiple of shots.</p>
 </div>
-<p>Base class for interfacing with an IonQ backend</p>
+<p>Build a new IonQ backend instance.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.backend_version">
+<span class="sig-name descname"><span class="pre">backend_version</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.backend_version" title="Link to this definition">¶</a></dt>
+<dd><p>Version of the backend being provided.  This is not the same as
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">BackendV2.version</span></code>, which is the version of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Backend</span></code>
+abstract interface.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.basis_gates">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">basis_gates</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.basis_gates" title="Link to this definition">¶</a></dt>
+<dd><p>Return the basis gates for this backend.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.calibration">
-<span class="sig-name descname"><span class="pre">calibration</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQSimulatorBackend.calibration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.calibration" title="Link to this definition">¶</a></dt>
-<dd><p>Simulators have no calibration data.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Simulators do not have calibration data.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
+<span class="sig-name descname"><span class="pre">calibration</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.Characterization" title="qiskit_ionq.ionq_client.Characterization"><span class="pre">Characterization</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.calibration" title="Link to this definition">¶</a></dt>
+<dd><p>Return the characterization data for this backend.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_job">
 <span class="sig-name descname"><span class="pre">cancel_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_job" title="Link to this definition">¶</a></dt>
-<dd><p>cancels a job from a specific backend, by job id.</p>
+<dd><p>Cancel a job by its ID.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_jobs">
-<span class="sig-name descname"><span class="pre">cancel_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_jobs" title="Link to this definition">¶</a></dt>
-<dd><p>cancels a list of jobs from a specific backend, job id</p>
+<span class="sig-name descname"><span class="pre">cancel_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_jobs" title="Link to this definition">¶</a></dt>
+<dd><p>Cancel a list of jobs by their IDs.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.client">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">client</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient"><span class="pre">IonQClient</span></a></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.client" title="Link to this definition">¶</a></dt>
-<dd><p>A lazily populated IonQ API Client.</p>
+<dd><p>Return the IonQ client for this backend.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.coupling_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">coupling_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">CouplingMap</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.coupling_map" title="Link to this definition">¶</a></dt>
+<dd><p>IonQ hardware is fully connected.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.description">
+<span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.description" title="Link to this definition">¶</a></dt>
+<dd><p>Optional human-readable description.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.dt">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.dt" title="Link to this definition">¶</a></dt>
+<dd><p>Return the system time resolution of input signals</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>An instance of a REST API client</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient">IonQClient</a></p>
+<dd class="field-odd"><p>The input signal timestep in seconds. If the backend doesn’t define <code class="docutils literal notranslate"><span class="pre">dt</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code> will
+be returned.</p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.configuration">
-<span class="sig-name descname"><span class="pre">configuration</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.configuration" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend configuration.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.dtm">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dtm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.dtm" title="Link to this definition">¶</a></dt>
+<dd><p>Return the system time resolution of output signals</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the configuration for the backend.</p>
+<dd class="field-odd"><p>The output signal timestep in seconds.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>BackendConfiguration</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.create_client">
-<span class="sig-name descname"><span class="pre">create_client</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient"><span class="pre">IonQClient</span></a></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.create_client" title="Link to this definition">¶</a></dt>
-<dd><p>Create an IonQ REST API Client using provider credentials.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQCredentialsError" title="qiskit_ionq.exceptions.IonQCredentialsError"><strong>IonQCredentialsError</strong></a> – If the provider’s
-    <code class="xref py py-attr docutils literal notranslate"><span class="pre">credentials</span></code> does not have
-    a <code class="docutils literal notranslate"><span class="pre">&quot;token&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;url&quot;</span></code> key, or if their values are <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>An instance of a REST API client.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="client.html#qiskit_ionq.ionq_client.IonQClient" title="qiskit_ionq.ionq_client.IonQClient">IonQClient</a></p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    output signal timestep</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.gateset">
-<span class="sig-name descname"><span class="pre">gateset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQSimulatorBackend.gateset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.gateset" title="Link to this definition">¶</a></dt>
-<dd><p>Helper method returning the gateset this backend is targeting.</p>
+<span class="sig-name descname"><span class="pre">gateset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'qis'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'native'</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.gateset" title="Link to this definition">¶</a></dt>
+<dd><p>Return the active gate-set (<code class="docutils literal notranslate"><span class="pre">&quot;qis&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>).</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.has_valid_mapping">
-<span class="sig-name descname"><span class="pre">has_valid_mapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.has_valid_mapping" title="Link to this definition">¶</a></dt>
-<dd><p>checks if the circuit has at least one
-valid qubit -&gt; bit measurement.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>circuit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code>) – A Qiskit QuantumCircuit object.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>if the circuit has valid mappings</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>boolean</p>
-</dd>
-</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.instruction_durations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">instruction_durations</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.instruction_durations" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionDurations</span></code> object.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.name">
-<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.name" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend name.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.instructions">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">instructions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Instruction</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.instructions" title="Link to this definition">¶</a></dt>
+<dd><p>A list of Instruction tuples on the backend of the form <code class="docutils literal notranslate"><span class="pre">(instruction,</span> <span class="pre">(qubits)</span></code></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.max_circuits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_circuits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.max_circuits" title="Link to this definition">¶</a></dt>
+<dd><p>The maximum number of circuits that can be
+run in a single job.</p>
+<p>If there is no limit this will return None</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.meas_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">meas_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.meas_map" title="Link to this definition">¶</a></dt>
+<dd><p>Return the grouping of measurements which are multiplexed</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the name of the backend.</p>
+<dd class="field-odd"><p>The grouping of measurements which are multiplexed</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str</p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    measurement mapping</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.name" title="Link to this definition">¶</a></dt>
+<dd><p>Name of the backend.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.num_qubits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">num_qubits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.num_qubits" title="Link to this definition">¶</a></dt>
+<dd><p>Return the number of qubits the backend has.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.online_date">
+<span class="sig-name descname"><span class="pre">online_date</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.online_date" title="Link to this definition">¶</a></dt>
+<dd><p>Date that the backend came online.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.operation_names">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">operation_names</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.operation_names" title="Link to this definition">¶</a></dt>
+<dd><p>A list of instruction names that the backend supports.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.operations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">operations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Instruction</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.operations" title="Link to this definition">¶</a></dt>
+<dd><p>A list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Instruction</span></code> instances that the backend supports.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -853,31 +970,43 @@ how the backend is used. These are used to control the <a class="reference inter
 method.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.properties">
-<span class="sig-name descname"><span class="pre">properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.properties" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend properties.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.provider">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">provider</span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.provider" title="Link to this definition">¶</a></dt>
+<dd><p>Return the backend provider.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the configuration for the backend. If the backend
-does not support properties, it returns <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dd class="field-odd"><p>the provider responsible for the backend.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>BackendProperties</p>
+<dd class="field-even"><p>provider</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.provider">
-<span class="sig-name descname"><span class="pre">provider</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.provider" title="Link to this definition">¶</a></dt>
-<dd><p>Return the backend Provider.</p>
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.qubit_properties">
+<span class="sig-name descname"><span class="pre">qubit_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">QubitProperties</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">QubitProperties</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.qubit_properties" title="Link to this definition">¶</a></dt>
+<dd><p>Return QubitProperties for a given qubit.</p>
+<p>If there are no defined or the backend doesn’t support querying these
+details this method does not need to be implemented.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the Provider responsible for the backend.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>qubit</strong> – The qubit to get the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> object for. This can
+be a single integer for 1 qubit or a list of qubits and a list
+of <code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> objects will be
+returned in the same order</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Provider</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> object for the
+specified qubit. If a list of qubits is provided a list will be
+returned. If properties are missing for a qubit this can be
+<code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    qubit properties</p>
 </dd>
 </dl>
 </dd></dl>
@@ -885,22 +1014,25 @@ does not support properties, it returns <code class="docutils literal notranslat
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.retrieve_job">
 <span class="sig-name descname"><span class="pre">retrieve_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.retrieve_job" title="Link to this definition">¶</a></dt>
-<dd><p>get a job from a specific backend, by job id.</p>
+<dd><p>Retrieve a job by its ID.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.retrieve_jobs">
-<span class="sig-name descname"><span class="pre">retrieve_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.retrieve_jobs" title="Link to this definition">¶</a></dt>
-<dd><p>get a list of jobs from a specific backend, job id</p>
+<span class="sig-name descname"><span class="pre">retrieve_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.retrieve_jobs" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieve multiple jobs by their IDs.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQSimulatorBackend.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.run" title="Link to this definition">¶</a></dt>
-<dd><p>Create and run a job on IonQ’s Simulator Backend.</p>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">QuantumCircuit</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="job.html#qiskit_ionq.ionq_job.IonQJob" title="qiskit_ionq.ionq_job.IonQJob"><span class="pre">IonQJob</span></a></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.run" title="Link to this definition">¶</a></dt>
+<dd><p>Create and run a job on an IonQ Backend.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>circuit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code>) – A Qiskit QuantumCircuit object.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run_input</strong> – A single or list of Qiskit QuantumCircuit object(s).</p></li>
+<li><p><strong>**options</strong> – Additional options for the job.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A reference to the job that was submitted.</p>
@@ -931,21 +1063,24 @@ pass in the kwarg with the new value for the options.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.status">
-<span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">BackendStatus</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.status" title="Link to this definition">¶</a></dt>
-<dd><p>Return a backend status object to the caller.</p>
+<span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.status" title="Link to this definition">¶</a></dt>
+<dd><p>Return True if the backend is available, False otherwise.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.target">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">target</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Target</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.target" title="Link to this definition">¶</a></dt>
+<dd><p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.transpiler.Target</span></code> object for the backend.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the status of the backend.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>BackendStatus</p>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Target</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_backend.IonQSimulatorBackend.with_name">
-<span class="sig-name descname"><span class="pre">with_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend" title="qiskit_ionq.ionq_backend.IonQSimulatorBackend"><span class="pre">IonQSimulatorBackend</span></a></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQSimulatorBackend.with_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.with_name" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">with_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend" title="qiskit_ionq.ionq_backend.IonQSimulatorBackend"><span class="pre">IonQSimulatorBackend</span></a></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_backend.html#IonQSimulatorBackend.with_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.with_name" title="Link to this definition">¶</a></dt>
 <dd><p>Helper method that returns this backend with a more specific target system.</p>
 </dd></dl>
 
@@ -1009,65 +1144,100 @@ pass in the kwarg with the new value for the options.</p>
             <ul>
 <li><a class="reference internal" href="#">IonQ Backends</a><ul>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend"><code class="docutils literal notranslate"><span class="pre">IonQBackend</span></code></a><ul>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.backend_version"><code class="docutils literal notranslate"><span class="pre">IonQBackend.backend_version</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.basis_gates"><code class="docutils literal notranslate"><span class="pre">IonQBackend.basis_gates</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.calibration"><code class="docutils literal notranslate"><span class="pre">IonQBackend.calibration()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.cancel_job"><code class="docutils literal notranslate"><span class="pre">IonQBackend.cancel_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.cancel_jobs"><code class="docutils literal notranslate"><span class="pre">IonQBackend.cancel_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.client"><code class="docutils literal notranslate"><span class="pre">IonQBackend.client</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.configuration"><code class="docutils literal notranslate"><span class="pre">IonQBackend.configuration()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.create_client"><code class="docutils literal notranslate"><span class="pre">IonQBackend.create_client()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.coupling_map"><code class="docutils literal notranslate"><span class="pre">IonQBackend.coupling_map</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.description"><code class="docutils literal notranslate"><span class="pre">IonQBackend.description</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.dt"><code class="docutils literal notranslate"><span class="pre">IonQBackend.dt</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.dtm"><code class="docutils literal notranslate"><span class="pre">IonQBackend.dtm</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.gateset"><code class="docutils literal notranslate"><span class="pre">IonQBackend.gateset()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.has_valid_mapping"><code class="docutils literal notranslate"><span class="pre">IonQBackend.has_valid_mapping()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.name"><code class="docutils literal notranslate"><span class="pre">IonQBackend.name()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.instruction_durations"><code class="docutils literal notranslate"><span class="pre">IonQBackend.instruction_durations</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.instructions"><code class="docutils literal notranslate"><span class="pre">IonQBackend.instructions</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.max_circuits"><code class="docutils literal notranslate"><span class="pre">IonQBackend.max_circuits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.meas_map"><code class="docutils literal notranslate"><span class="pre">IonQBackend.meas_map</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.name"><code class="docutils literal notranslate"><span class="pre">IonQBackend.name</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.num_qubits"><code class="docutils literal notranslate"><span class="pre">IonQBackend.num_qubits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.online_date"><code class="docutils literal notranslate"><span class="pre">IonQBackend.online_date</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.operation_names"><code class="docutils literal notranslate"><span class="pre">IonQBackend.operation_names</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.operations"><code class="docutils literal notranslate"><span class="pre">IonQBackend.operations</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.options"><code class="docutils literal notranslate"><span class="pre">IonQBackend.options</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.properties"><code class="docutils literal notranslate"><span class="pre">IonQBackend.properties()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.provider"><code class="docutils literal notranslate"><span class="pre">IonQBackend.provider()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.provider"><code class="docutils literal notranslate"><span class="pre">IonQBackend.provider</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.qubit_properties"><code class="docutils literal notranslate"><span class="pre">IonQBackend.qubit_properties()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.retrieve_job"><code class="docutils literal notranslate"><span class="pre">IonQBackend.retrieve_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.retrieve_jobs"><code class="docutils literal notranslate"><span class="pre">IonQBackend.retrieve_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.run"><code class="docutils literal notranslate"><span class="pre">IonQBackend.run()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.set_options"><code class="docutils literal notranslate"><span class="pre">IonQBackend.set_options()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.status"><code class="docutils literal notranslate"><span class="pre">IonQBackend.status()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.with_name"><code class="docutils literal notranslate"><span class="pre">IonQBackend.with_name()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQBackend.target"><code class="docutils literal notranslate"><span class="pre">IonQBackend.target</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend</span></code></a><ul>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.backend_version"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.backend_version</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.basis_gates"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.basis_gates</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.calibration"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.calibration()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_job"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.cancel_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.cancel_jobs"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.cancel_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.client"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.client</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.configuration"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.configuration()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.create_client"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.create_client()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.coupling_map"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.coupling_map</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.description"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.description</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.dt"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.dt</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.dtm"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.dtm</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.gateset"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.gateset()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.has_valid_mapping"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.has_valid_mapping()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.name"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.name()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.instruction_durations"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.instruction_durations</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.instructions"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.instructions</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.max_circuits"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.max_circuits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.meas_map"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.meas_map</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.name"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.name</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.num_qubits"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.num_qubits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.online_date"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.online_date</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.operation_names"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.operation_names</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.operations"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.operations</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.options"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.options</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.properties"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.properties()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.provider"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.provider()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.provider"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.provider</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.qubit_properties"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.qubit_properties()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.retrieve_job"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.retrieve_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.retrieve_jobs"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.retrieve_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.run"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.run()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.set_options"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.set_options()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.status"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.status()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.target"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.target</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQQPUBackend.with_name"><code class="docutils literal notranslate"><span class="pre">IonQQPUBackend.with_name()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend</span></code></a><ul>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.backend_version"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.backend_version</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.basis_gates"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.basis_gates</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.calibration"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.calibration()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_job"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.cancel_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.cancel_jobs"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.cancel_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.client"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.client</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.configuration"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.configuration()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.create_client"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.create_client()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.coupling_map"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.coupling_map</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.description"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.description</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.dt"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.dt</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.dtm"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.dtm</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.gateset"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.gateset()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.has_valid_mapping"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.has_valid_mapping()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.name"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.name()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.instruction_durations"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.instruction_durations</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.instructions"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.instructions</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.max_circuits"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.max_circuits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.meas_map"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.meas_map</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.name"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.name</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.num_qubits"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.num_qubits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.online_date"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.online_date</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.operation_names"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.operation_names</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.operations"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.operations</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.options"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.options</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.properties"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.properties()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.provider"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.provider()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.provider"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.provider</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.qubit_properties"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.qubit_properties()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.retrieve_job"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.retrieve_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.retrieve_jobs"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.retrieve_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.run"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.run()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.set_options"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.set_options()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.status"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.status()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.target"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.target</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_backend.IonQSimulatorBackend.with_name"><code class="docutils literal notranslate"><span class="pre">IonQSimulatorBackend.with_name()</span></code></a></li>
 </ul>
 </li>
@@ -1084,7 +1254,7 @@ pass in the kwarg with the new value for the options.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=2bd037f0"></script>
+    <script src="../_static/documentation_options.js?v=608bb401"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

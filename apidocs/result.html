@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Exceptions" href="exceptions.html" /><link rel="prev" title="API Client" href="client.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>IonQ Result - Qiskit IonQ Provider 0.6.1</title>
+        <title>IonQ Result - Qiskit IonQ Provider 1.0.0.dev0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 0.6.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.0.0.dev0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 0.6.1</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.0.dev0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -236,7 +236,7 @@
 <p>IonQ result implementation that extends to allow for retrieval of probabilities.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_result.IonQResult">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_result.</span></span><span class="sig-name descname"><span class="pre">IonQResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_result.html#IonQResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_result.IonQResult" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.ionq_result.</span></span><span class="sig-name descname"><span class="pre">IonQResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend_version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_result.html#IonQResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_result.IonQResult" title="Link to this definition">¶</a></dt>
 <dd><p>An IonQ-specific result object.</p>
 <p>The primary reason this class extends the base Qiskit result object is to
 provide an API for retrieving result probabilities directly.</p>
@@ -249,11 +249,10 @@ format required by the results schema. We recommend that most users use
 the get_xxx method, and the data will be post-processed for the data type.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>Schedule</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
+<dd class="field-odd"><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
 experiment. Several types are accepted for convenience::
 * str: the name of the experiment.
 * QuantumCircuit: the name of the circuit instance will be used.
-* Schedule: the name of the schedule instance will be used.
 * int: the position of the experiment.
 * None: if there is only one experiment, returns it.</p>
 </dd>
@@ -317,7 +316,7 @@ will be in the same format as output by
 <dd><p>Get the histogram data of an experiment.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>Schedule</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
+<dd class="field-odd"><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
 experiment, as specified by <code class="docutils literal notranslate"><span class="pre">data([experiment])</span></code>.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -344,7 +343,7 @@ The data from the experiment is a list of format
 [‘00000’, ‘01000’, ‘10100’, ‘10100’, ‘11101’, ‘11100’, ‘00101’, …, ‘01010’]</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>Schedule</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
+<dd class="field-odd"><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
 experiment, as specified by <code class="docutils literal notranslate"><span class="pre">data()</span></code>.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -428,7 +427,7 @@ argument is used to get an experiment using Result’s <code class="docutils lit
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>Schedule</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
+<li><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
 experiment, as specified by <code class="docutils literal notranslate"><span class="pre">data()</span></code>.</p></li>
 <li><p><strong>decimals</strong> (<em>int</em>) – the number of decimals in the statevector.
 If None, does not round.</p></li>
@@ -453,7 +452,7 @@ If None, does not round.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>Schedule</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
+<li><p><strong>experiment</strong> (<em>str</em><em> or </em><em>QuantumCircuit</em><em> or </em><em>int</em><em> or </em><em>None</em>) – the index of the
 experiment, as specified by <code class="docutils literal notranslate"><span class="pre">data()</span></code>.</p></li>
 <li><p><strong>decimals</strong> (<em>int</em>) – the number of decimals in the unitary.
 If None, does not round.</p></li>
@@ -572,7 +571,7 @@ If None, does not round.</p></li>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=2bd037f0"></script>
+    <script src="../_static/documentation_options.js?v=608bb401"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

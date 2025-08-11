@@ -35,7 +35,7 @@ the IonQ API will accept:
 
    from qiskit_ionq import IonQProvider
    ionq = IonQProvider('TOKEN')
-   print(ionq.backends.ionq_qpu.configuration().basis_gates)
+   print(ionq.backends.ionq_qpu.basis_gates)
 
 
 If you have circuits that you'd like to run on IonQ backends that use other gates
