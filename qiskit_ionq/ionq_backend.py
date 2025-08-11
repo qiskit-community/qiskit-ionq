@@ -68,7 +68,9 @@ class IonQBackend(Backend):
 
         # 2-qubit gate - choose MS or ZZ
         pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
-        if "forte" in self.name.lower():
+        if (
+            "forte" in self.name.lower()
+        ):  # TODO use .gateset() to apply BE-specific gates
             tgt.add_instruction(ZZGate(theta), pairs)
         else:
             tgt.add_instruction(MSGate(phi0, phi1, theta), pairs)
