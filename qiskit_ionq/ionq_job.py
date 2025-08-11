@@ -271,8 +271,10 @@ class IonQJob(JobV1):
         Return the memory for the job.
         This is effectively a pass-through to
             :meth:`get_memory <qiskit_ionq.ionq_result.IonQResult.get_memory>`
+
         Args:
             circuit (str or QuantumCircuit or int or None): Optional.
+
         Returns:
             list: A list of memory strings.
         """
