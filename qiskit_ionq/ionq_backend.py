@@ -202,8 +202,18 @@ class IonQBackend(Backend):
             raise exceptions.IonQCredentialsError("Credentials `url` may not be None!")
         return ionq_client.IonQClient(token, url, self._provider.custom_headers)
 
-    def run(self, run_input: QuantumCircuit | Sequence[QuantumCircuit], **options):
-        # Warn if nothing is measured
+    def run(
+        self, run_input: QuantumCircuit | Sequence[QuantumCircuit], **options
+    ) -> ionq_job.IonQJob:  # pylint disable=line-too-long
+        """Create and run a job on an IonQ Backend.
+
+        Args:
+            run_input: A single or list of Qiskit QuantumCircuit object(s).
+            **options: Additional options for the job.
+
+        Returns:
+            IonQJob: A reference to the job that was submitted.
+        """
         if not all(
             self._has_measurements(c)
             for c in (run_input if isinstance(run_input, list) else [run_input])
@@ -224,13 +234,21 @@ class IonQBackend(Backend):
         job.submit()
         return job
 
-    def retrieve_job(self, job_id: str):
+    def retrieve_job(self, job_id: str) -> ionq_job.IonQJob:
         """Retrieve a job by its ID."""
         return ionq_job.IonQJob(self, job_id, self.client)
 
-    def retrieve_jobs(self, job_ids: Sequence[str]):
+    def retrieve_jobs(self, job_ids: Sequence[str]) -> Sequence[ionq_job.IonQJob]:
         """Retrieve multiple jobs by their IDs."""
         return [ionq_job.IonQJob(self, jid, self.client) for jid in job_ids]
+
+    def cancel_job(self, job_id: str) -> dict:
+        """Cancel a job by its ID."""
+        return self.client.cancel_job(job_id)
+
+    def cancel_jobs(self, job_ids: list[str]) -> Sequence[dict]:
+        """Cancel a list of jobs by their IDs."""
+        return [self.client.cancel_job(job_id) for job_id in job_ids]
 
     def calibration(self) -> Characterization | None:
         """Return the characterization data for this backend."""
@@ -263,7 +281,17 @@ class IonQBackend(Backend):
 
 
 class IonQSimulatorBackend(IonQBackend):
-    """IonQ state-vector simulator."""
+    """
+    IonQ Backend for running simulated jobs.
+    .. ATTENTION::
+        When noise_model ideal is specified, the maximum shot-count for a state vector sim is
+        always ``1``.
+    .. ATTENTION::
+        When noise_model ideal is specified, calling
+        :meth:`get_counts <qiskit_ionq.ionq_job.IonQJob.get_counts>`
+        on a job processed by this backend will return counts expressed as
+        probabilities, rather than a multiple of shots.
+    """
 
     def __init__(
         self,
@@ -283,13 +311,13 @@ class IonQSimulatorBackend(IonQBackend):
             max_experiments=None,
         )
 
-    def with_name(self, name: str, **kwargs):
+    def with_name(self, name: str, **kwargs) -> IonQSimulatorBackend:
         """Helper method that returns this backend with a more specific target system."""
         return IonQSimulatorBackend(self._provider, name, **kwargs)
 
 
 class IonQQPUBackend(IonQBackend):
-    """IonQ trapped-ion hardware back-ends."""
+    """IonQ Backend for running qpu-based jobs."""
 
     def __init__(
         self,
@@ -308,7 +336,7 @@ class IonQQPUBackend(IonQBackend):
             max_experiments=None,
         )
 
-    def with_name(self, name: str, **kwargs):
+    def with_name(self, name: str, **kwargs) -> IonQQPUBackend:
         """Helper method that returns this backend with a more specific target system."""
         return IonQQPUBackend(self._provider, name, **kwargs)
 

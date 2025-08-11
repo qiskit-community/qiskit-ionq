@@ -46,7 +46,7 @@ def _def_results_template(job_id):
 
 
 class MockBackend(ionq_backend.IonQBackend):
-    """A super-light fake backend used only for unit tests."""
+    """A mock backend for testing super-class behavior in isolation."""
 
     def gateset(self):
         return "qis"
