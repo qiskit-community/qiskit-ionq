@@ -206,7 +206,7 @@ class IonQBackend(Backend):
 
     def run(
         self, run_input: QuantumCircuit | Sequence[QuantumCircuit], **options
-    ) -> ionq_job.IonQJob:  # pylint disable=line-too-long
+    ) -> ionq_job.IonQJob:
         """Create and run a job on an IonQ Backend.
 
         Args:
