@@ -29,6 +29,7 @@
 import collections.abc
 import numpy as np
 import pytest
+import warnings
 
 from qiskit import (
     QuantumCircuit,
@@ -144,6 +145,7 @@ class StripIdleQubits(TransformationPass):
             return dag  # nothing to do
         if len(idle) == dag.num_qubits():
             # All qubits are idle: keep the first, drop the rest
+            warnings.warn("All qubits are idle, removing all but the first.")
             dag.remove_qubits(*idle[1:])
         else:
             # Normal case: drop only the padding qubits
