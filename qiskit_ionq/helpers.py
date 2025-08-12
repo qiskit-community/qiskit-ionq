@@ -172,7 +172,9 @@ def qiskit_circ_to_ionq_circ(
     output_circuit = []
     num_meas = 0
     meas_map = [None] * len(input_circuit.clbits)
-    for instruction, qargs, cargs in input_circuit.data:
+    for inst in input_circuit.data:
+        instruction, qargs, cargs = inst.operation, inst.qubits, inst.clbits
+
         # Don't process compiler directives.
         instruction_name = instruction.name
         if instruction_name in compiler_directives:
