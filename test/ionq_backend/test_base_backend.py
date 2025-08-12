@@ -28,7 +28,6 @@
 # pylint: disable=redefined-outer-name
 
 from unittest import mock
-from collections import Counter
 
 import pytest
 from qiskit import QuantumCircuit
