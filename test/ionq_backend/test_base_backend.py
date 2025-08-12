@@ -288,26 +288,18 @@ def test_multiexp_job(mock_backend, requests_mock):
     }
 
 
-@pytest.mark.parametrize(
-    "memory_flag",
-    [
-        pytest.param(True, id="memory=True"),
-        pytest.param(False, id="memory=False"),
-    ],
-)
-def test_run_with_memory(
-    mock_backend, requests_mock, memory_flag
+def test_backend_memory(
+    mock_backend, requests_mock
 ):  # TODO fix when BE supports memory
-    """Ensure memory handling matches flag behavior.
+    """Test that memory is handled correctly.
 
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend.
         requests_mock (:class:`request_mock.Mocker`): A requests mocker.
-        memory_flag (bool): Whether to test with memory enabled or not.
     """
 
     job_id = "mem_job"
-    probabilities = {"0": 0.4, "2": 0.1, "1": 0.1, "3": 0.4}
+    probabilities = {"0": 0.4, "1": 0.1, "2": 0.1, "3": 0.4}
     client = mock_backend.client
     resp = conftest.dummy_job_response(job_id)
 
@@ -318,18 +310,7 @@ def test_run_with_memory(
         json=probabilities,
     )
 
-    job = ionq_job.IonQJob(mock_backend, job_id, passed_args={"memory": memory_flag})
-    assert job.memory is memory_flag
-
-    if memory_flag:
-        memory = job.get_memory()
-        shots = int(resp["metadata"]["shots"])
-        assert Counter(memory) == Counter(
-            {
-                format(int(key), "02b"): round(shots * prob)
-                for key, prob in probabilities.items()
-            }
-        )
-    else:
-        with pytest.raises(exceptions.IonQBackendError):
-            job.get_memory()
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.memory is True
+    with pytest.raises(Exception):
+        job.get_memory()

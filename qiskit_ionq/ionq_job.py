@@ -145,25 +145,6 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     return counts, probabilities
 
 
-def _build_memory(
-    counts, shots, num_qubits
-):  # TODO remove when backend supports memory
-    """Build memory from counts.
-
-    Args:
-        counts (dict): histogram as returned by the API.
-        shots (int): number of shots
-        num_qubits (int): number of qubits
-
-    Returns:
-        list: A list of memory strings.
-    """
-    memory = [k.zfill(num_qubits) for k, cnt in counts.items() for _ in range(cnt)]
-    memory += ["0" * num_qubits] * max(0, shots - len(memory))
-    np.random.shuffle(memory)
-    return memory[:shots]
-
-
 class IonQJob(JobV1):
     """Representation of a Job that will run on an IonQ backend.
 
@@ -200,12 +181,12 @@ class IonQJob(JobV1):
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
             self.extra_metadata = passed_args.pop("extra_metadata", {})
-            self.memory = passed_args.pop("memory", False)
+            self.memory = passed_args.pop("memory", True)
             self._passed_args = passed_args
         else:
             self.extra_query_params = {}
             self.extra_metadata = {}
-            self.memory = False
+            self.memory = True
             self._passed_args = {"shots": 1024, "sampler_seed": None}
 
         # Support single or list-of-circuits submissions
@@ -594,14 +575,10 @@ class IonQJob(JobV1):
                     use_sampler=is_ideal_sim,
                     sampler_seed=sampler_seed,
                 )
-                memory = _build_memory(
-                    counts,
-                    shots,
-                    qiskit_header[i].get("n_qubits", self._num_qubits),
-                )
+                memory = None  # self.get_memory(data[i]) if self.memory else None
                 job_result[i]["data"] = {
                     "counts": counts,
-                    "memory": memory if self.memory else None,
+                    "memory": memory,
                     "probabilities": probabilities,
                     "metadata": qiskit_header[i] or {},
                 }
