@@ -313,7 +313,7 @@ def test_native_circuit_transpile(simulator_backend):
 
     with pytest.raises(TranspilerError) as exc_info:
         transpile(circ, backend=simulator_backend)
-    assert "unable to synthesize" in exc_info.value.message
+    assert "Unable to translate" in exc_info.value.message
 
 
 def test_full_native_circuit(simulator_backend):

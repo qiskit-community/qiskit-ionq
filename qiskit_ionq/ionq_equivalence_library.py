@@ -37,131 +37,97 @@ from qiskit.circuit.library import (
     RZGate,
     RZZGate,
     UGate,
-    CU3Gate,
 )
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 
 
+# -------- 1q gates --------
+
+
 def u_gate_equivalence() -> None:
-    """Add U gate equivalence to the SessionEquivalenceLibrary."""
+    """U(θ,φ,λ) -> GPI2(1/2 - λ/2π) * GPI(θ/4π + φ/4π - λ/4π) * GPI2(1/2 + φ/2π)."""
     q = QuantumRegister(1, "q")
-    theta_param = Parameter("theta_param")
-    phi_param = Parameter("phi_param")
-    lambda_param = Parameter("lambda_param")
-    u_gate = QuantumCircuit(q)
-    # this sequence can be compacted if virtual-z gates will be introduced
-    u_gate.append(GPI2Gate(0.5 - lambda_param / (2 * np.pi)), [0])
-    u_gate.append(
-        GPIGate(
-            theta_param / (4 * np.pi)
-            + phi_param / (4 * np.pi)
-            - lambda_param / (4 * np.pi)
-        ),
-        [0],
+    theta = Parameter("theta_param")
+    phi = Parameter("phi_param")
+    lam = Parameter("lambda_param")
+
+    circ = QuantumCircuit(q)
+    circ.append(GPI2Gate(0.5 - lam / (2 * np.pi)), [0])
+    circ.append(
+        GPIGate(theta / (4 * np.pi) + phi / (4 * np.pi) - lam / (4 * np.pi)), [0]
     )
-    u_gate.append(GPI2Gate(0.5 + phi_param / (2 * np.pi)), [0])
-    SessionEquivalenceLibrary.add_equivalence(
-        UGate(theta_param, phi_param, lambda_param), u_gate
-    )
-
-
-def cx_gate_equivalence_via_ms() -> None:
-    """Add CX gate equivalence via MS to the SessionEquivalenceLibrary."""
-    q = QuantumRegister(2, "q")
-    cx_gate = QuantumCircuit(q)
-    cx_gate.append(GPI2Gate(1 / 4), [0])
-    cx_gate.append(MSGate(0, 0), [0, 1])
-    cx_gate.append(GPI2Gate(1 / 2), [0])
-    cx_gate.append(GPI2Gate(1 / 2), [1])
-    cx_gate.append(GPI2Gate(-1 / 4), [0])
-    SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_gate)
-
-
-# Below are the rules needed for Aer simulator to simulate circuits containing IonQ native gates
+    circ.append(GPI2Gate(0.5 + phi / (2 * np.pi)), [0])
+    SessionEquivalenceLibrary.add_equivalence(UGate(theta, phi, lam), circ)
 
 
 def gpi_gate_equivalence() -> None:
-    """Add GPI gate equivalence to the SessionEquivalenceLibrary."""
+    """GPI(φ) -> X * RZ(4πφ) (for Aer/QIS simulation)."""
     q = QuantumRegister(1, "q")
-    phi_param = Parameter("phi_param")
-    gpi_gate = QuantumCircuit(q)
-    gpi_gate.append(XGate(), [0])
-    gpi_gate.append(RZGate(4 * phi_param * np.pi), [0])
-    SessionEquivalenceLibrary.add_equivalence(GPIGate(phi_param), gpi_gate)
+    phi = Parameter("phi_param")
+    circ = QuantumCircuit(q)
+    circ.append(XGate(), [0])
+    circ.append(RZGate(4 * phi * np.pi), [0])
+    SessionEquivalenceLibrary.add_equivalence(GPIGate(phi), circ)
 
 
 def gpi2_gate_equivalence() -> None:
-    """Add GPI2 gate equivalence to the SessionEquivalenceLibrary."""
+    """GPI2(φ) -> RZ(-2πφ) * RX(π/2) * RZ(2πφ) (for Aer/QIS simulation)."""
     q = QuantumRegister(1, "q")
-    phi_param = Parameter("phi_param")
-    gpi2_gate = QuantumCircuit(q)
-    gpi2_gate.append(RZGate(-2 * phi_param * np.pi), [0])
-    gpi2_gate.append(RXGate(np.pi / 2), [0])
-    gpi2_gate.append(RZGate(2 * phi_param * np.pi), [0])
-    SessionEquivalenceLibrary.add_equivalence(GPI2Gate(phi_param), gpi2_gate)
+    phi = Parameter("phi_param")
+    circ = QuantumCircuit(q)
+    circ.append(RZGate(-2 * phi * np.pi), [0])
+    circ.append(RXGate(np.pi / 2), [0])
+    circ.append(RZGate(2 * phi * np.pi), [0])
+    SessionEquivalenceLibrary.add_equivalence(GPI2Gate(phi), circ)
 
 
-def ms_gate_equivalence() -> None:
-    """Add MS gate equivalence to the SessionEquivalenceLibrary."""
-    q = QuantumRegister(2, "q")
-    phi0_param = Parameter("phi0_param")
-    phi1_param = Parameter("phi1_param")
-    theta_param = Parameter("theta_param")
-    alpha_param = phi0_param + phi1_param
-    beta_param = phi0_param - phi1_param
-    ms_gate = QuantumCircuit(q)
-    ms_gate.append(CXGate(), [1, 0])
-    ms_gate.x(0)
-    ms_gate.append(
-        CU3Gate(
-            2 * theta_param * np.pi,
-            2 * alpha_param * np.pi - np.pi / 2,
-            np.pi / 2 - 2 * alpha_param * np.pi,
-        ),
-        [0, 1],
-    )
-    ms_gate.x(0)
-    ms_gate.append(
-        CU3Gate(
-            2 * theta_param * np.pi,
-            -2 * beta_param * np.pi - np.pi / 2,
-            np.pi / 2 + 2 * beta_param * np.pi,
-        ),
-        [0, 1],
-    )
-    ms_gate.append(CXGate(), [1, 0])
-    SessionEquivalenceLibrary.add_equivalence(
-        MSGate(phi0_param, phi1_param, theta_param), ms_gate
-    )
+# -------- 2q native gates -> standard rotations (helps simulation & pattern matching) --------
 
 
 def zz_gate_equivalence() -> None:
-    """Add ZZ gate equivalence to the SessionEquivalenceLibrary."""
+    """ZZ(θ) -> RZZ(2πθ)."""
     q = QuantumRegister(2, "q")
     theta = Parameter("theta_param")
-    zz_as_rzz = QuantumCircuit(q)
-    zz_as_rzz.append(RZZGate(2 * np.pi * theta), [0, 1])
-    SessionEquivalenceLibrary.add_equivalence(ZZGate(theta), zz_as_rzz)
+    circ = QuantumCircuit(q)
+    circ.append(RZZGate(2 * np.pi * theta), [0, 1])
+    SessionEquivalenceLibrary.add_equivalence(ZZGate(theta), circ)
+
+
+# -------- CX constructions (one for MS backends, one for Forte/ZZ) --------
+
+
+def cx_gate_equivalence_via_ms() -> None:
+    """CX via one MS(0,0,1/4) and three GPI2 rotations (IonQ MS-native)."""
+    q = QuantumRegister(2, "q")
+    circ = QuantumCircuit(q)
+    circ.append(GPI2Gate(1 / 4), [0])
+    circ.append(MSGate(0, 0, 1 / 4), [0, 1])
+    circ.append(GPI2Gate(1 / 2), [0])
+    circ.append(GPI2Gate(1 / 2), [1])
+    circ.append(GPI2Gate(-1 / 4), [0])
+    SessionEquivalenceLibrary.add_equivalence(CXGate(), circ)
 
 
 def cx_gate_equivalence_via_zz() -> None:
-    """Add CX gate equivalence via ZZ to the SessionEquivalenceLibrary."""
+    """CX via ZZ(1/4): H_t * ZZ(1/4) * S†_c * S†_t * H_t (IonQ Forte-native)."""
     q = QuantumRegister(2, "q")
-    cx_via_zz = QuantumCircuit(q)
-    cx_via_zz.h(1)
-    cx_via_zz.append(ZZGate(1 / 4), [0, 1])
-    cx_via_zz.sdg(0)
-    cx_via_zz.sdg(1)
-    cx_via_zz.h(1)
-    SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_via_zz)
+    circ = QuantumCircuit(q)
+    circ.h(1)
+    circ.append(ZZGate(1 / 4), [0, 1])
+    circ.sdg(0)
+    circ.sdg(1)
+    circ.h(1)
+    SessionEquivalenceLibrary.add_equivalence(CXGate(), circ)
 
 
 def add_equivalences() -> None:
-    """Add IonQ gate equivalences to the SessionEquivalenceLibrary."""
+    """Register all IonQ gate equivalences in the session library."""
+    # 1q
     u_gate_equivalence()
-    cx_gate_equivalence_via_ms()
     gpi_gate_equivalence()
     gpi2_gate_equivalence()
-    ms_gate_equivalence()
+    # 2q
     zz_gate_equivalence()
+    # CX (both backends)
+    cx_gate_equivalence_via_ms()
     cx_gate_equivalence_via_zz()
