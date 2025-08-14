@@ -30,8 +30,16 @@
 import numpy as np
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Parameter
-from qiskit.circuit.library import CXGate, RXGate, RZGate, UGate, XGate, CU3Gate
-from .ionq_gates import GPIGate, GPI2Gate, MSGate
+from qiskit.circuit.library import (
+    XGate,
+    CXGate,
+    RXGate,
+    RZGate,
+    RZZGate,
+    UGate,
+    CU3Gate,
+)
+from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 
 
 def u_gate_equivalence() -> None:
@@ -57,8 +65,8 @@ def u_gate_equivalence() -> None:
     )
 
 
-def cx_gate_equivalence() -> None:
-    """Add CX gate equivalence to the SessionEquivalenceLibrary."""
+def cx_gate_equivalence_via_ms() -> None:
+    """Add CX gate equivalence via MS to the SessionEquivalenceLibrary."""
     q = QuantumRegister(2, "q")
     cx_gate = QuantumCircuit(q)
     cx_gate.append(GPI2Gate(1 / 4), [0])
@@ -127,10 +135,33 @@ def ms_gate_equivalence() -> None:
     )
 
 
+def zz_gate_equivalence() -> None:
+    """Add ZZ gate equivalence to the SessionEquivalenceLibrary."""
+    q = QuantumRegister(2, "q")
+    theta = Parameter("theta_param")
+    zz_as_rzz = QuantumCircuit(q)
+    zz_as_rzz.append(RZZGate(2 * np.pi * theta), [0, 1])
+    SessionEquivalenceLibrary.add_equivalence(ZZGate(theta), zz_as_rzz)
+
+
+def cx_gate_equivalence_via_zz() -> None:
+    """Add CX gate equivalence via ZZ to the SessionEquivalenceLibrary."""
+    q = QuantumRegister(2, "q")
+    cx_via_zz = QuantumCircuit(q)
+    cx_via_zz.h(1)
+    cx_via_zz.append(ZZGate(1 / 4), [0, 1])
+    cx_via_zz.sdg(0)
+    cx_via_zz.sdg(1)
+    cx_via_zz.h(1)
+    SessionEquivalenceLibrary.add_equivalence(CXGate(), cx_via_zz)
+
+
 def add_equivalences() -> None:
     """Add IonQ gate equivalences to the SessionEquivalenceLibrary."""
     u_gate_equivalence()
-    cx_gate_equivalence()
+    cx_gate_equivalence_via_ms()
     gpi_gate_equivalence()
     gpi2_gate_equivalence()
     ms_gate_equivalence()
+    zz_gate_equivalence()
+    cx_gate_equivalence_via_zz()
