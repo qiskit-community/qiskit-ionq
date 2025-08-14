@@ -41,7 +41,7 @@ from qiskit.circuit.library import (
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 
 
-# -------- 1q gates --------
+# 1q gates
 
 
 def u_gate_equivalence() -> None:
@@ -81,7 +81,7 @@ def gpi2_gate_equivalence() -> None:
     SessionEquivalenceLibrary.add_equivalence(GPI2Gate(phi), circ)
 
 
-# -------- 2q native gates -> standard rotations (helps simulation & pattern matching) --------
+# 2q native gates -> standard rotations (helps simulation & pattern matching)
 
 
 def zz_gate_equivalence() -> None:
@@ -93,7 +93,7 @@ def zz_gate_equivalence() -> None:
     SessionEquivalenceLibrary.add_equivalence(ZZGate(theta), circ)
 
 
-# -------- CX constructions (one for MS backends, one for Forte/ZZ) --------
+# CX constructions (one for MS backends, one for Forte/ZZ)
 
 
 def cx_gate_equivalence_via_ms() -> None:
