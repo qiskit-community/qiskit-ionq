@@ -31,7 +31,7 @@ The other plugin classes are intended for testing various rewrite
 rules in isolation.
 """
 
-from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
+from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters import circuit_to_dag
