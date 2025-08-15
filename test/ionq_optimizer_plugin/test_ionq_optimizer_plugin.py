@@ -1178,7 +1178,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPIGate", [0], [0]),
                 ("ZZGate", [0.25], [0, 1]),
             ],
-            4,
+            2,
         ),
         ([("GPIGate", [0], [1]), ("ZZGate", [0.25], [0, 1])], 2),
         (
@@ -1188,7 +1188,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPIGate", [0], [1]),
                 ("ZZGate", [0.25], [0, 1]),
             ],
-            4,
+            2,
         ),
         ([("GPIGate", [0.5], [0]), ("ZZGate", [0.25], [0, 1])], 2),
         (
@@ -1198,7 +1198,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPIGate", [0.5], [0]),
                 ("ZZGate", [0.25], [0, 1]),
             ],
-            4,
+            2,
         ),
         ([("GPIGate", [0.5], [1]), ("ZZGate", [0.25], [0, 1])], 2),
         (
@@ -1208,7 +1208,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPIGate", [0.5], [1]),
                 ("ZZGate", [0.25], [0, 1]),
             ],
-            4,
+            2,
         ),
         ([("GPIGate", [-0.5], [0]), ("ZZGate", [0.25], [0, 1])], 2),
         (
@@ -1218,7 +1218,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPIGate", [-0.5], [0]),
                 ("ZZGate", [0.25], [0, 1]),
             ],
-            4,
+            2,
         ),
         ([("GPIGate", [-0.5], [1]), ("ZZGate", [0.25], [0, 1])], 2),
         (
@@ -1228,7 +1228,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPIGate", [-0.5], [1]),
                 ("ZZGate", [0.25], [0, 1]),
             ],
-            4,
+            2,
         ),
         # GPI2 with ZZ on a ZZ-native target: extra cancellations occur
         ([("GPI2Gate", [0], [0]), ("ZZGate", [0.25], [0, 2])], 2),
@@ -1239,7 +1239,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPI2Gate", [0], [0]),
                 ("ZZGate", [0.25], [0, 2]),
             ],
-            3,
+            2,
         ),
         ([("GPI2Gate", [0], [2]), ("ZZGate", [0.25], [0, 2])], 2),
         (
@@ -1249,7 +1249,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPI2Gate", [0], [2]),
                 ("ZZGate", [0.25], [0, 2]),
             ],
-            4,
+            2,
         ),
         ([("GPI2Gate", [0.5], [0]), ("ZZGate", [0.25], [0, 2])], 2),
         (
@@ -1259,7 +1259,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPI2Gate", [0.5], [0]),
                 ("ZZGate", [0.25], [0, 2]),
             ],
-            4,
+            2,
         ),
         ([("GPI2Gate", [0.5], [2]), ("ZZGate", [0.25], [0, 2])], 2),
         (
@@ -1269,7 +1269,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPI2Gate", [0.5], [2]),
                 ("ZZGate", [0.25], [0, 2]),
             ],
-            4,
+            2,
         ),
         ([("GPI2Gate", [-0.5], [0]), ("ZZGate", [0.25], [0, 2])], 2),
         (
@@ -1279,7 +1279,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPI2Gate", [-0.5], [0]),
                 ("ZZGate", [0.25], [0, 2]),
             ],
-            4,
+            2,
         ),
         ([("GPI2Gate", [-0.5], [2]), ("ZZGate", [0.25], [0, 2])], 2),
         (
@@ -1289,7 +1289,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPI2Gate", [-0.5], [2]),
                 ("ZZGate", [0.25], [0, 2]),
             ],
-            4,
+            2,
         ),
     ],
     ids=lambda val: f"{val}",
