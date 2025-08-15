@@ -38,7 +38,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -46,6 +46,7 @@ from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
 from .helpers import decompress_metadata_string, normalize
+from .exceptions import IonQBackendError
 
 from . import constants, exceptions
 
@@ -180,10 +181,12 @@ class IonQJob(JobV1):
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
             self.extra_metadata = passed_args.pop("extra_metadata", {})
+            self.memory = passed_args.pop("memory", True)
             self._passed_args = passed_args
         else:
             self.extra_query_params = {}
             self.extra_metadata = {}
+            self.memory = True
             self._passed_args = {"shots": 1024, "sampler_seed": None}
 
         # Support single or list-of-circuits submissions
@@ -244,6 +247,25 @@ class IonQJob(JobV1):
         """
         return self.result().get_counts(circuit)
 
+    def get_memory(self, circuit=None):
+        """
+        Return the memory for the job.
+
+        Args:
+            circuit (str or QuantumCircuit or int or None): Optional.
+
+        Returns:
+            list: A list of memory strings.
+        """
+        if self.memory:
+            return self.result().get_memory(circuit)
+
+        raise IonQBackendError(
+            f'No memory for experiment "{circuit.name if circuit else ""}". '
+            "Please verify that you ran a job with "
+            'the memory flag set, eg., "memory=True".'
+        )
+
     def get_probabilities(self, circuit=None):  # pylint: disable=unused-argument
         """Return the probabilities (for simulators).
 
@@ -261,9 +283,11 @@ class IonQJob(JobV1):
     def result(
         self,
         sharpen: bool | None = None,
+        timeout: float | None = None,
+        wait: float = 5,
+        callback: Callable | None = None,
         extra_query_params: dict | None = None,
-        **kwargs,
-    ):
+    ):  # pylint: disable=too-many-positional-arguments
         """Retrieve job result data, blocking until the job is complete.
 
         .. NOTE::
@@ -292,7 +316,7 @@ class IonQJob(JobV1):
 
         # Wait for the job to complete.
         try:
-            self.wait_for_final_state(**kwargs)
+            self.wait_for_final_state(timeout=timeout, wait=wait, callback=callback)
         except JobTimeoutError as ex:
             raise exceptions.IonQJobTimeoutError(
                 "Timed out waiting for job to complete."
@@ -549,8 +573,10 @@ class IonQJob(JobV1):
                     use_sampler=is_ideal_sim,
                     sampler_seed=sampler_seed,
                 )
+                memory = None  # self.get_memory(data[i]) if self.memory else None
                 job_result[i]["data"] = {
                     "counts": counts,
+                    "memory": memory,
                     "probabilities": probabilities,
                     "metadata": qiskit_header[i] or {},
                 }
