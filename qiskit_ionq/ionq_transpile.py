@@ -65,7 +65,7 @@ def _unpad_to_inputs(circ: QuantumCircuit) -> QuantumCircuit:
 
 def ionq_transpile(
     circuits: Union[QuantumCircuit, Sequence[QuantumCircuit]],
-    backend: IonQBackend = None,
+    backend: IonQBackend | None = None,
     *,
     optimization_level: int = 3,
     drop_idle_qubits: bool = True,
