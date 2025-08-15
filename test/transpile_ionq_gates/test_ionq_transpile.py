@@ -49,7 +49,12 @@ def test_ionq_transpile(backend):
     qc.cx(0, 1)
 
     qiskit_transpiled = transpile(
-        qc, backend=backend, optimization_level=3, seed_transpiler=SEED
+        qc,
+        backend=backend,
+        optimization_level=3,
+        seed_transpiler=SEED,
+        layout_method="trivial",
+        routing_method="none",
     )
     ionq_transpiled = ionq_transpile(
         qc, backend=backend, optimization_level=3, seed_transpiler=SEED
@@ -77,7 +82,12 @@ def test_random_circuit_transpile(backend):
         )
 
         qiskit_transpiled = transpile(
-            qc, backend=backend, optimization_level=3, seed_transpiler=SEED
+            qc,
+            backend=backend,
+            optimization_level=3,
+            seed_transpiler=SEED,
+            layout_method="trivial",
+            routing_method="none",
         )
         ionq_transpiled = ionq_transpile(
             qc, backend=backend, optimization_level=3, seed_transpiler=SEED
