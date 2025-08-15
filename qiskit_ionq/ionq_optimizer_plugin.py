@@ -48,10 +48,10 @@ from qiskit_ionq.rewrite_rules import (
     CommuteGPI2AcrossGPI,
 )
 
-def transpiler(...):
-    """..."""
-    ...
-    return ...
+# def transpiler(...):
+#     """..."""
+#     ...
+#     return ...
 
 class CustomPassManager(PassManager):
     """A custom pass manager."""
