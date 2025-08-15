@@ -26,18 +26,62 @@
 
 """Test IonQ transpiler."""
 
+import pytest
+import numpy as np
 from qiskit import QuantumCircuit, transpile
+from qiskit.circuit.random import random_circuit
 from qiskit_ionq import IonQProvider, ionq_transpile
 
+SEED = 123  # master seed for reproducibility
 
-def test_ionq_transpile():
-    """Test IonQ transpile function."""
+
+@pytest.fixture(name="backend")
+def _backend():
+    """Fixture for IonQ backend."""
+    provider = IonQProvider()
+    return provider.get_backend("qpu.aria-1", gateset="native")
+
+
+def test_ionq_transpile(backend):
+    """Transpile a simple circuit."""
     qc = QuantumCircuit(2)
     qc.h(0)
     qc.cx(0, 1)
-    provider = IonQProvider()
-    backend = provider.get_backend("qpu.aria-1", gateset="native")
-    qiskit_transpiled = transpile(qc, backend=backend, optimization_level=3)
-    ionq_transpiled = ionq_transpile(qc, backend=backend, optimization_level=3)
+
+    qiskit_transpiled = transpile(
+        qc, backend=backend, optimization_level=3, seed_transpiler=SEED
+    )
+    ionq_transpiled = ionq_transpile(
+        qc, backend=backend, optimization_level=3, seed_transpiler=SEED
+    )
+
     assert ionq_transpiled.depth() < qiskit_transpiled.depth()
     assert ionq_transpiled.num_qubits == qc.num_qubits
+
+
+def test_random_circuit_transpile(backend):
+    """Reproducible transpile on many random circuits."""
+    # Local RNG so results don't depend on test order or other tests.
+    rng = np.random.default_rng(SEED)
+
+    for _ in range(100):
+        # Derive per-circuit seeds deterministically from the master seed.
+        rc_seed = int(rng.integers(0, 2**32 - 1))
+
+        qc = random_circuit(
+            num_qubits=int(rng.integers(2, 4)),
+            depth=int(rng.integers(6, 10)),
+            max_operands=4,
+            measure=bool(rng.integers(0, 2)),
+            seed=rc_seed,  # <- makes the circuit’s internal randomness reproducible
+        )
+
+        qiskit_transpiled = transpile(
+            qc, backend=backend, optimization_level=3, seed_transpiler=SEED
+        )
+        ionq_transpiled = ionq_transpile(
+            qc, backend=backend, optimization_level=3, seed_transpiler=SEED
+        )
+
+        assert ionq_transpiled.depth() < qiskit_transpiled.depth()
+        assert ionq_transpiled.num_qubits == qc.num_qubits

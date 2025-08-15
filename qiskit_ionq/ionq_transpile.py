@@ -69,6 +69,7 @@ def ionq_transpile(
     *,
     optimization_level: int = 3,
     drop_idle_qubits: bool = True,
+    seed_transpiler: int | None = None,
 ):
     """
     Transpile circuit(s) for IonQ backends using Qiskit's preset pipeline
@@ -79,6 +80,7 @@ def ionq_transpile(
         backend: IonQ backend (simulator, aria, forte) or any Qiskit backend.
         optimization_level: 0-3; forwarded into the preset + IonQ pipelines.
         drop_idle_qubits: If True, remove ancillas based on the final layout.
+        seed_transpiler: Random seed for any stochastic choices during transpilation.
 
     Returns:
         Transpiled circuit (or list of circuits).
@@ -89,6 +91,7 @@ def ionq_transpile(
         def __init__(self, backend):
             self.backend = backend
             self.target = getattr(backend, "target", None)
+            self.seed_transpiler = seed_transpiler
 
     single = isinstance(circuits, QuantumCircuit)
     circ_list = [circuits] if single else list(circuits)

@@ -159,6 +159,7 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             target=getattr(pass_manager_config, "target", None),
             layout_method="trivial",
             routing_method="none",
+            seed_transpiler=getattr(pass_manager_config, "seed_transpiler", None),
         )
 
         # 2) Build IonQ-native polishing passes.
@@ -181,4 +182,5 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
         combined_pm = PassManager()
         combined_pm.append(preset_pm.to_flow_controller())
         combined_pm.append(ionq_native_pm.to_flow_controller())
+        combined_pm.append(preset_pm.to_flow_controller())
         return combined_pm
