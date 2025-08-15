@@ -81,7 +81,7 @@ from qiskit.circuit.library import (
     CYGate,
     CZGate,
 )
-from qiskit_ionq import GPIGate, GPI2Gate, MSGate
+from qiskit_ionq import GPIGate, GPI2Gate, MSGate, ZZGate
 from qiskit_ionq import (
     IonQProvider,
     TrappedIonOptimizerPlugin,
@@ -96,6 +96,7 @@ gate_map = {
     "GPIGate": GPIGate,
     "GPI2Gate": GPI2Gate,
     "MSGate": MSGate,
+    "ZZGate": ZZGate,
     # single-qubit gates
     "HGate": HGate,
     "IGate": IGate,
@@ -475,7 +476,7 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  
         probabilities_optimized,
         atol=1e-5,
         err_msg=(
-            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Unoptimized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
             f"Circuit: {qc}"
         ),
@@ -522,7 +523,7 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  
         probabilities_optimized,
         atol=1e-5,
         err_msg=(
-            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Unoptimized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
             f"Circuit: {qc}"
         ),
@@ -707,6 +708,58 @@ def test_ionq_optimizer_plugin_simple_one_qubit_rules(gates, optimized_depth):  
             ],
             7,
         ),
+        # combine one-qubit gates with two-qubit gates (ZZ on 0-1)
+        (
+            [
+                ("ZZGate", [0.25], [0, 1]),
+                ("GPIGate", [0.2], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [1.5], [0]),
+                ("GPIGate", [2.8], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+                ("GPIGate", [0.2], [1]),
+                ("GPIGate", [0.7], [1]),
+                ("GPI2Gate", [1.5], [1]),
+                ("GPI2Gate", [0.8], [1]),
+                ("GPI2Gate", [0.7], [1]),
+            ],
+            8,
+        ),
+        # same as above but ZZ applies to qubits 0 and 2 (fewer interferences)
+        (
+            [
+                ("ZZGate", [0.25], [0, 2]),
+                ("GPIGate", [0.2], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [1.5], [0]),
+                ("GPIGate", [2.8], [0]),
+                ("ZZGate", [0.25], [0, 2]),
+                ("GPIGate", [0.2], [1]),
+                ("GPIGate", [0.7], [1]),
+                ("GPI2Gate", [1.5], [1]),
+                ("GPI2Gate", [0.8], [1]),
+                ("GPI2Gate", [0.7], [1]),
+            ],
+            5,
+        ),
+        # similar to above but after second ZZ not all gates are on the same qubit
+        (
+            [
+                ("ZZGate", [0.25], [0, 1]),
+                ("GPIGate", [0.2], [0]),
+                ("GPI2Gate", [0.7], [0]),
+                ("GPI2Gate", [1.5], [0]),
+                ("GPIGate", [2.8], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+                ("GPIGate", [0.2], [0]),
+                ("GPIGate", [0.7], [0]),
+                ("GPI2Gate", [1.5], [1]),
+                ("GPI2Gate", [0.8], [1]),
+                ("GPI2Gate", [0.75], [2]),
+                ("GPI2Gate", [0.7], [2]),
+            ],
+            7,
+        ),
     ],
     ids=lambda val: f"{val}",
 )
@@ -730,7 +783,11 @@ def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_de
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
+    contains_zz = any(g[0] == "ZZGate" for g in gates)
+    backend = provider.get_backend(
+        "qpu.forte-1" if contains_zz else "simulator",
+        gateset="native",
+    )
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=3
     )
@@ -753,7 +810,7 @@ def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_de
         probabilities_optimized,
         atol=1e-5,
         err_msg=(
-            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Unoptimized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
             f"Circuit: {qc}",
         ),
@@ -777,7 +834,11 @@ def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_de
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
+    contains_zz = any(g[0] == "ZZGate" for g in gates)
+    backend = provider.get_backend(
+        "qpu.forte-1" if contains_zz else "simulator",
+        gateset="native",
+    )
     transpiled_circuit_unoptimized = transpile(
         qc, backend=backend, optimization_level=3
     )
@@ -800,7 +861,7 @@ def test_ionq_optimizer_plugin_compact_more_than_three_gates(gates, optimized_de
         probabilities_optimized,
         atol=1e-5,
         err_msg=(
-            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Unoptimized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
             f"Circuit: {qc}",
         ),
@@ -1050,7 +1111,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
         probabilities_optimized,
         atol=1e-5,
         err_msg=(
-            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Unoptimized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
             f"Circuit: {qc}"
         ),
@@ -1098,11 +1159,182 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
         probabilities_optimized,
         atol=1e-5,
         err_msg=(
-            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Unoptimized: {np.round(probabilities_unoptimized, 3)},\n"
             f"Optimized: {np.round(probabilities_optimized, 3)},\n"
             f"Circuit: {qc}"
         ),
     )
+
+
+@pytest.mark.parametrize(
+    "gates, optimized_depth",
+    [
+        # GPIs that (anti)commute with ZZ(1/4) keep the circuit very short
+        ([("GPIGate", [0], [0]), ("ZZGate", [0.25], [0, 1])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [0], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            4,
+        ),
+        ([("GPIGate", [0], [1]), ("ZZGate", [0.25], [0, 1])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [0], [1]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            4,
+        ),
+        ([("GPIGate", [0.5], [0]), ("ZZGate", [0.25], [0, 1])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [0.5], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            4,
+        ),
+        ([("GPIGate", [0.5], [1]), ("ZZGate", [0.25], [0, 1])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [0.5], [1]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            4,
+        ),
+        ([("GPIGate", [-0.5], [0]), ("ZZGate", [0.25], [0, 1])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [-0.5], [0]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            4,
+        ),
+        ([("GPIGate", [-0.5], [1]), ("ZZGate", [0.25], [0, 1])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("HGate", None, [1]),
+                ("GPIGate", [-0.5], [1]),
+                ("ZZGate", [0.25], [0, 1]),
+            ],
+            4,
+        ),
+        # GPI2 with ZZ on a ZZ-native target: extra cancellations occur
+        ([("GPI2Gate", [0], [0]), ("ZZGate", [0.25], [0, 2])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [0], [0]),
+                ("ZZGate", [0.25], [0, 2]),
+            ],
+            3,
+        ),
+        ([("GPI2Gate", [0], [2]), ("ZZGate", [0.25], [0, 2])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [0], [2]),
+                ("ZZGate", [0.25], [0, 2]),
+            ],
+            4,
+        ),
+        ([("GPI2Gate", [0.5], [0]), ("ZZGate", [0.25], [0, 2])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [0.5], [0]),
+                ("ZZGate", [0.25], [0, 2]),
+            ],
+            4,
+        ),
+        ([("GPI2Gate", [0.5], [2]), ("ZZGate", [0.25], [0, 2])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [0.5], [2]),
+                ("ZZGate", [0.25], [0, 2]),
+            ],
+            4,
+        ),
+        ([("GPI2Gate", [-0.5], [0]), ("ZZGate", [0.25], [0, 2])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [-0.5], [0]),
+                ("ZZGate", [0.25], [0, 2]),
+            ],
+            4,
+        ),
+        ([("GPI2Gate", [-0.5], [2]), ("ZZGate", [0.25], [0, 2])], 2),
+        (
+            [
+                ("HGate", None, [0]),
+                ("XGate", None, [2]),
+                ("GPI2Gate", [-0.5], [2]),
+                ("ZZGate", [0.25], [0, 2]),
+            ],
+            4,
+        ),
+    ],
+    ids=lambda val: f"{val}",
+)
+def test_commute_gpis_through_zz(gates, optimized_depth):
+    """Test commuting GPI/GPI2 through ZZ(1/4) with the full optimizer plugin."""
+
+    custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
+    custom_pass_manager = custom_pass_manager_plugin.pass_manager(
+        optimization_level=3,
+    )
+
+    qc = QuantumCircuit(3)
+    for gate_name, param, qubits in gates:
+        append_gate(qc, gate_name, param, qubits)
+
+    provider = IonQProvider()
+    backend = provider.get_backend("qpu.forte-1", gateset="native")
+    transpiled_circuit_unoptimized = transpile(
+        qc, backend=backend, optimization_level=3
+    )
+
+    statevector_unoptimized = Statevector.from_instruction(
+        transpiled_circuit_unoptimized
+    )
+    probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
+
+    optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
+
+    statevector_optimized = Statevector.from_instruction(optimized_circuit)
+    probabilities_optimized = np.abs(statevector_optimized.data) ** 2
+
+    np.testing.assert_allclose(
+        probabilities_unoptimized,
+        probabilities_optimized,
+        atol=1e-5,
+        err_msg=(
+            f"Unoptimized: {np.round(probabilities_unoptimized, 3)},\n"
+            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+            f"Circuit: {qc}"
+        ),
+    )
+
+    optimized_dag = circuit_to_dag(optimized_circuit)
+    assert optimized_dag.depth() == optimized_depth
 
 
 @pytest.mark.parametrize(
@@ -1197,7 +1429,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
     ids=lambda val: f"{val}",
 )
 def test_all_rewrite_rules(gates):
-    """Test TrappedIonOptimizerPlugin."""
+    """Test TrappedIonOptimizerPlugin on simulator, Aria (MS) and Forte (ZZ)."""
 
     custom_pass_manager_plugin = TrappedIonOptimizerPlugin()
     custom_pass_manager = custom_pass_manager_plugin.pass_manager(
@@ -1210,33 +1442,39 @@ def test_all_rewrite_rules(gates):
         append_gate(qc, gate_name, param, qubits)
 
     provider = IonQProvider()
-    backend = provider.get_backend("simulator", gateset="native")
-    transpiled_circuit_unoptimized = transpile(
-        qc, backend=backend, optimization_level=1
-    )
+    backends = [
+        provider.get_backend("simulator", gateset="native"),
+        provider.get_backend("qpu.aria-1", gateset="native"),
+        provider.get_backend("qpu.forte-1", gateset="native"),
+    ]
 
-    # simulate the unoptimized circuit
-    statevector_unoptimized = Statevector.from_instruction(
-        transpiled_circuit_unoptimized
-    )
-    probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
+    for backend in backends:
+        transpiled_circuit_unoptimized = transpile(
+            qc, backend=backend, optimization_level=1
+        )
 
-    # optimized transpilation of circuit to native gates
-    optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
+        # simulate the unoptimized circuit
+        statevector_unoptimized = Statevector.from_instruction(
+            transpiled_circuit_unoptimized
+        )
+        probabilities_unoptimized = np.abs(statevector_unoptimized.data) ** 2
 
-    # simulate the optimized circuit
-    statevector_optimized = Statevector.from_instruction(optimized_circuit)
-    probabilities_optimized = np.abs(statevector_optimized.data) ** 2
+        # optimized transpilation of circuit to native gates
+        optimized_circuit = custom_pass_manager.run(transpiled_circuit_unoptimized)
 
-    np.testing.assert_allclose(
-        probabilities_unoptimized,
-        probabilities_optimized,
-        atol=1e-5,
-        err_msg=(
-            f"Unoptmized: {np.round(probabilities_unoptimized, 3)},\n"
-            f"Optimized: {np.round(probabilities_optimized, 3)},\n"
-            f"Circuit: {qc}"
-        ),
-    )
+        # simulate the optimized circuit
+        statevector_optimized = Statevector.from_instruction(optimized_circuit)
+        probabilities_optimized = np.abs(statevector_optimized.data) ** 2
 
-    assert optimized_circuit != transpiled_circuit_unoptimized
+        np.testing.assert_allclose(
+            probabilities_unoptimized,
+            probabilities_optimized,
+            atol=1e-5,
+            err_msg=(
+                f"Unoptimized: {np.round(probabilities_unoptimized, 3)},\n"
+                f"Optimized: {np.round(probabilities_optimized, 3)},\n"
+                f"Circuit: {qc}\n"
+                f"Backend: {backend.name}"
+            ),
+        )
+        assert optimized_circuit != transpiled_circuit_unoptimized

@@ -41,6 +41,11 @@ from qiskit_ionq.rewrite_rules import (
     GPI2TwiceIsGPI,
     CompactMoreThanThreeSingleQubitGates,
     CommuteGPIsThroughMS,
+    NormalizeNativeAngles,
+    FuseConsecutiveZZ,
+    FuseConsecutiveMS,
+    ConjugateGPI2ByGPI,
+    CommuteGPI2AcrossGPI,
 )
 
 
@@ -164,4 +169,9 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             custom_pass_manager.append(GPI2TwiceIsGPI())
             custom_pass_manager.append(CommuteGPIsThroughMS())
             custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
+            custom_pass_manager.append(NormalizeNativeAngles())
+            custom_pass_manager.append(FuseConsecutiveZZ())
+            custom_pass_manager.append(FuseConsecutiveMS())
+            custom_pass_manager.append(ConjugateGPI2ByGPI())
+            custom_pass_manager.append(CommuteGPI2AcrossGPI())
         return custom_pass_manager
