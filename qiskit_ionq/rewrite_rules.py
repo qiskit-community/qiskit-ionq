@@ -475,7 +475,7 @@ class FuseConsecutiveMS(TransformationPass):
 
 class ConjugateGPI2ByGPI(TransformationPass):
     """
-    Collapse GPI(γ) • GPI2(α) • GPI(γ)  →  GPI2(2γ − α)  on the same wire.
+    Collapse GPI(γ) • GPI2(α) • GPI(γ)  →  GPI2(2γ - α)  on the same wire.
     """
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -521,7 +521,7 @@ class ConjugateGPI2ByGPI(TransformationPass):
 class CommuteGPI2AcrossGPI(TransformationPass):
     """
     Reorder adjacent GPI2(a) then GPI(b) on the same wire:
-        GPI2(a) • GPI(b)  →  GPI(b) • GPI2(2b − a)
+        GPI2(a) • GPI(b)  →  GPI(b) • GPI2(2b - a)
     This helps expose cancellations and shorten streaks after subsequent passes.
     """
 

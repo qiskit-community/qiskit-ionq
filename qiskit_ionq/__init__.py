@@ -38,7 +38,6 @@ from .version import __version__
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from .constants import ErrorMitigation
 from .ionq_equivalence_library import add_equivalences
-from .ionq_transpile import ionq_transpile
 
 __all__ = [
     "__version__",
@@ -54,5 +53,4 @@ __all__ = [
     "ZZGate",
     "ErrorMitigation",
     "add_equivalences",
-    "ionq_transpile",
 ]
