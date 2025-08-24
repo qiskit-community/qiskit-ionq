@@ -285,9 +285,11 @@ class CommuteGPIsThroughZZ(TransformationPass):
             if node in nodes_to_remove:
                 continue
 
-            if node.op.name in ("gpi"):
+            if node.op.name == "gpi":
                 successors = [
-                    succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)
+                    succ
+                    for succ in dag.quantum_successors(node)
+                    if isinstance(succ, DAGOpNode)
                 ]
                 for next_node in successors:
                     if next_node.op.name != "zz":
