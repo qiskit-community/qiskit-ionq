@@ -41,11 +41,9 @@ from qiskit_ionq.rewrite_rules import (
     GPI2TwiceIsGPI,
     CompactMoreThanThreeSingleQubitGates,
     CommuteGPIsThroughMS,
-    NormalizeNativeAngles,
+    CommuteGPIsThroughZZ,
     FuseConsecutiveZZ,
     FuseConsecutiveMS,
-    ConjugateGPI2ByGPI,
-    CommuteGPI2AcrossGPI,
 )
 
 
@@ -171,12 +169,10 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             ionq_native_pm.append(CancelGPIAdjoint())
             ionq_native_pm.append(GPI2TwiceIsGPI())
             ionq_native_pm.append(CommuteGPIsThroughMS())
+            ionq_native_pm.append(CommuteGPIsThroughZZ())
             ionq_native_pm.append(CompactMoreThanThreeSingleQubitGates())
-            ionq_native_pm.append(NormalizeNativeAngles())
             ionq_native_pm.append(FuseConsecutiveZZ())
             ionq_native_pm.append(FuseConsecutiveMS())
-            ionq_native_pm.append(ConjugateGPI2ByGPI())
-            ionq_native_pm.append(CommuteGPI2AcrossGPI())
 
         # 3) Chain them correctly: preset first, then IonQ-native.
         combined_pm = PassManager()

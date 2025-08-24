@@ -573,7 +573,7 @@ class IonQJob(JobV1):
                     use_sampler=is_ideal_sim,
                     sampler_seed=sampler_seed,
                 )
-                memory = None  # self.get_memory(data[i]) if self.memory else None
+                memory = None
                 job_result[i]["data"] = {
                     "counts": counts,
                     "memory": memory,

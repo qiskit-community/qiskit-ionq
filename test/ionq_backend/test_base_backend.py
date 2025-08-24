@@ -31,6 +31,7 @@ from unittest import mock
 
 import pytest
 from qiskit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
 
@@ -311,5 +312,5 @@ def test_backend_memory(
 
     job = ionq_job.IonQJob(mock_backend, job_id)
     assert job.memory is True
-    with pytest.raises(Exception):
+    with pytest.raises(QiskitError):
         job.get_memory()

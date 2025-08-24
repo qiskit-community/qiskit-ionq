@@ -38,43 +38,6 @@ from qiskit.transpiler.basepasses import TransformationPass
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 
 
-def _is_number(x) -> bool:
-    try:
-        float(x)
-        return True
-    except (ValueError, TypeError):
-        return False
-
-
-def _mod1_turns(float_x: float) -> float:
-    """Map a real to (-0.5, 0.5] in 'turns' (1.0 == 2π)."""
-    return (float(float_x) + 0.5) % 1.0 - 0.5
-
-
-def _near(float_a: float, float_b: float, tol: float = 1e-9) -> bool:
-    return np.isclose(float_a, float_b, atol=tol)
-
-
-def _same_qubits(node_1: DAGOpNode, node_2: DAGOpNode) -> bool:
-    return set(node_1.qargs) == set(node_2.qargs)
-
-
-def _first_succ_ops_on_qubits(
-    dag: DAGCircuit, node: DAGOpNode, qubits
-) -> list[DAGOpNode]:
-    """Return the first op-node successors on each given qubit (if any)."""
-    res = []
-    for q in qubits:
-        nxt = [
-            s
-            for s in dag.quantum_successors(node)
-            if isinstance(s, DAGOpNode) and (q in s.qargs)
-        ]
-        if nxt:
-            res.append(nxt[0])
-    return res
-
-
 class CancelGPI2Adjoint(TransformationPass):
     """GPI2 times GPI2 adjoint cancels."""
 
@@ -312,74 +275,110 @@ class CommuteGPIsThroughMS(TransformationPass):
         return dag
 
 
-class NormalizeNativeAngles(TransformationPass):
-    """
-    Canonicalize native-gate parameters:
-      - GPI/GPI2 phases φ → (-0.5, 0.5]
-      - ZZ and MS angles θ → (-0.5, 0.5] (drop if ~0)
-      - MS phases (φ0, φ1) → (-0.5, 0.5]
-    Only numeric parameters are normalized (symbolic left untouched).
-    """
+class CommuteGPIsThroughZZ(TransformationPass):
+    """Recognize that certain Clifford-phase GPIs commute with ZZ entangling gates."""
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        to_remove = []
+        nodes_to_remove = set()
+
         for node in dag.topological_op_nodes():
-            name = node.op.name
-            if name == "gpi" and _is_number(node.op.params[0]):
-                phi = _mod1_turns(node.op.params[0])
-                if not _near(phi, node.op.params[0]):
-                    sub = DAGCircuit()
-                    for qreg in dag.qregs.values():
-                        sub.add_qreg(qreg)
-                    sub.apply_operation_back(GPIGate(phi), [node.qargs[0]])
-                    dag.substitute_node_with_dag(
-                        node, sub, {node.qargs[0]: node.qargs[0]}
-                    )
+            if node in nodes_to_remove:
+                continue
 
-            elif name == "gpi2" and _is_number(node.op.params[0]):
-                phi = _mod1_turns(node.op.params[0])
-                if not _near(phi, node.op.params[0]):
-                    sub = DAGCircuit()
-                    for qreg in dag.qregs.values():
-                        sub.add_qreg(qreg)
-                    sub.apply_operation_back(GPI2Gate(phi), [node.qargs[0]])
-                    dag.substitute_node_with_dag(
-                        node, sub, {node.qargs[0]: node.qargs[0]}
-                    )
+            if node.op.name in ("gpi"):
+                successors = [
+                    succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)
+                ]
+                for next_node in successors:
+                    if next_node.op.name != "zz":
+                        continue
 
-            elif name == "zz" and _is_number(node.op.params[0]):
-                theta = _mod1_turns(node.op.params[0])
-                if _near(theta, 0.0):
-                    to_remove.append(node)
-                elif not _near(theta, node.op.params[0]):
-                    sub = DAGCircuit()
-                    for qreg in dag.qregs.values():
-                        sub.add_qreg(qreg)
-                    sub.apply_operation_back(ZZGate(theta), list(node.qargs))
-                    dag.substitute_node_with_dag(node, sub, {q: q for q in node.qargs})
+                    # Only meaningful if the GPI acts on one of the ZZ qubits.
+                    if node.qargs[0] not in next_node.qargs:
+                        continue
 
-            elif name == "ms" and all(_is_number(p) for p in node.op.params[:3]):
-                phi0, phi1, theta = node.op.params[:3]
-                phi0_n = _mod1_turns(phi0)
-                phi1_n = _mod1_turns(phi1)
-                theta_n = _mod1_turns(theta)
-                if _near(theta_n, 0.0):
-                    to_remove.append(node)
-                elif (
-                    (not _near(phi0, phi0_n))
-                    or (not _near(phi1, phi1_n))
-                    or (not _near(theta, theta_n))
+                    sub_dag = DAGCircuit()
+                    for qreg in dag.qregs.values():
+                        sub_dag.add_qreg(qreg)
+
+                    zz_qubits = [next_node.qargs[0], next_node.qargs[1]]
+                    gpi_qubit = [node.qargs[0]]
+
+                    # Conjugation by X/Y (any GPI) flips Z on that qubit, so ZZ(θ) -> ZZ(-θ).
+                    theta = next_node.op.params[0]
+                    sub_dag.apply_operation_back(ZZGate(-theta), zz_qubits)
+                    sub_dag.apply_operation_back(node.op, gpi_qubit)
+
+                    wire_mapping = {qubit: qubit for qubit in zz_qubits}
+                    wire_mapping[node.qargs[0]] = node.qargs[0]
+
+                    dag.substitute_node_with_dag(next_node, sub_dag, wires=wire_mapping)
+                    nodes_to_remove.add(node)
+                    break
+
+        for node in nodes_to_remove:
+            dag.remove_op_node(node)
+
+        return dag
+
+
+class FuseConsecutiveMS(TransformationPass):
+    """Fuse adjacent MS(φ0,φ1,θ1) then MS(φ0,φ1,θ2) on the same qubits into MS(φ0,φ1,θ1+θ2)."""
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        changed = True
+        while changed:
+            changed = False
+            for node in list(dag.topological_op_nodes()):
+                if node.op.name != "ms":
+                    continue
+
+                phi0, phi1, theta1 = node.op.params[:3]
+
+                # First op-node successors touching each qubit of the pair.
+                succs = []
+                for q in node.qargs:
+                    nxts = [
+                        s
+                        for s in dag.quantum_successors(node)
+                        if isinstance(s, DAGOpNode) and q in s.qargs
+                    ]
+                    if nxts:
+                        succs.append(nxts[0])
+
+                if not (
+                    len(succs) == 2
+                    and succs[0] is succs[1]
+                    and succs[0].op.name == "ms"
+                    and set(succs[0].qargs) == set(node.qargs)
                 ):
+                    continue
+
+                nxt = succs[0]
+                phi0b, phi1b, theta2 = nxt.op.params[:3]
+                if not (
+                    np.isclose(phi0, phi0b, atol=1e-9)
+                    and np.isclose(phi1, phi1b, atol=1e-9)
+                ):
+                    continue
+
+                theta = theta1 + theta2
+                theta = (theta + 0.5) % 1.0 - 0.5  # normalize to (-0.5, 0.5]
+
+                if np.isclose(theta, 0.0, atol=1e-9):
+                    dag.remove_op_node(nxt)
+                    dag.remove_op_node(node)
+                else:
                     sub = DAGCircuit()
                     for qreg in dag.qregs.values():
                         sub.add_qreg(qreg)
-                    sub.apply_operation_back(
-                        MSGate(phi0_n, phi1_n, theta_n), list(node.qargs)
-                    )
-                    dag.substitute_node_with_dag(node, sub, {q: q for q in node.qargs})
+                    sub.apply_operation_back(MSGate(phi0, phi1, theta), list(nxt.qargs))
+                    dag.substitute_node_with_dag(nxt, sub, {q: q for q in nxt.qargs})
+                    dag.remove_op_node(node)
 
-        for n in to_remove:
-            dag.remove_op_node(n)
+                changed = True
+                break
+
         return dag
 
 
@@ -391,169 +390,44 @@ class FuseConsecutiveZZ(TransformationPass):
         while changed:
             changed = False
             for node in list(dag.topological_op_nodes()):
-                if node.op.name != "zz" or not _is_number(node.op.params[0]):
+                if node.op.name != "zz":
                     continue
-                qargs = node.qargs
-                succs = _first_succ_ops_on_qubits(dag, node, qargs)
-                if (
+
+                # First op-node successors touching each qubit of the pair.
+                succs = []
+                for q in node.qargs:
+                    nxts = [
+                        s
+                        for s in dag.quantum_successors(node)
+                        if isinstance(s, DAGOpNode) and q in s.qargs
+                    ]
+                    if nxts:
+                        succs.append(nxts[0])
+
+                if not (
                     len(succs) == 2
                     and succs[0] is succs[1]
                     and succs[0].op.name == "zz"
-                    and _same_qubits(node, succs[0])
-                ):
-                    nxt = succs[0]
-                    if not _is_number(nxt.op.params[0]):
-                        continue
-                    theta = _mod1_turns(node.op.params[0] + nxt.op.params[0])
-                    if _near(theta, 0.0):
-                        dag.remove_op_node(nxt)
-                        dag.remove_op_node(node)
-                    else:
-                        sub = DAGCircuit()
-                        for qreg in dag.qregs.values():
-                            sub.add_qreg(qreg)
-                        sub.apply_operation_back(ZZGate(theta), list(nxt.qargs))
-                        dag.substitute_node_with_dag(
-                            nxt, sub, {q: q for q in nxt.qargs}
-                        )
-                        dag.remove_op_node(node)
-                    changed = True
-                    break
-        return dag
-
-
-class FuseConsecutiveMS(TransformationPass):
-    """
-    Fuse adjacent MS(φ0,φ1,θ1) then MS(φ0,φ1,θ2) on the same pair into MS(φ0,φ1,θ1+θ2).
-    Only applies when φ0, φ1 match numerically (within tolerance).
-    """
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        changed = True
-        while changed:
-            changed = False
-            for node in list(dag.topological_op_nodes()):
-                if node.op.name != "ms" or not all(
-                    _is_number(p) for p in node.op.params[:3]
+                    and set(succs[0].qargs) == set(node.qargs)
                 ):
                     continue
-                phi0, phi1, theta1 = node.op.params[:3]
-                qargs = node.qargs
-                succs = _first_succ_ops_on_qubits(dag, node, qargs)
-                if (
-                    len(succs) == 2
-                    and succs[0] is succs[1]
-                    and succs[0].op.name == "ms"
-                    and _same_qubits(node, succs[0])
-                ):
-                    nxt = succs[0]
-                    if not all(_is_number(p) for p in nxt.op.params[:3]):
-                        continue
-                    phi0b, phi1b, theta2 = nxt.op.params[:3]
-                    if not (_near(phi0, phi0b) and _near(phi1, phi1b)):
-                        continue
-                    theta = _mod1_turns(theta1 + theta2)
-                    if _near(theta, 0.0):
-                        dag.remove_op_node(nxt)
-                        dag.remove_op_node(node)
-                    else:
-                        sub = DAGCircuit()
-                        for qreg in dag.qregs.values():
-                            sub.add_qreg(qreg)
-                        sub.apply_operation_back(
-                            MSGate(_mod1_turns(phi0), _mod1_turns(phi1), theta),
-                            list(nxt.qargs),
-                        )
-                        dag.substitute_node_with_dag(
-                            nxt, sub, {q: q for q in nxt.qargs}
-                        )
-                        dag.remove_op_node(node)
-                    changed = True
-                    break
-        return dag
 
+                nxt = succs[0]
+                theta = node.op.params[0] + nxt.op.params[0]
+                theta = (theta + 0.5) % 1.0 - 0.5  # normalize to (-0.5, 0.5]
 
-class ConjugateGPI2ByGPI(TransformationPass):
-    """
-    Collapse GPI(γ) • GPI2(α) • GPI(γ)  →  GPI2(2γ - α)  on the same wire.
-    """
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        to_remove = []
-        for mid in dag.topological_op_nodes():
-            if mid.op.name != "gpi2" or not _is_number(mid.op.params[0]):
-                continue
-            preds = [
-                p
-                for p in dag.quantum_predecessors(mid)
-                if isinstance(p, DAGOpNode) and (mid.qargs[0] in p.qargs)
-            ]
-            succs = [
-                s
-                for s in dag.quantum_successors(mid)
-                if isinstance(s, DAGOpNode) and (mid.qargs[0] in s.qargs)
-            ]
-            if not preds or not succs:
-                continue
-            left, right = preds[-1], succs[0]
-            if (
-                left.op.name == "gpi"
-                and right.op.name == "gpi"
-                and _is_number(left.op.params[0])
-                and _is_number(right.op.params[0])
-                and _near(left.op.params[0], right.op.params[0])
-            ):
-                gamma = left.op.params[0]
-                alpha = mid.op.params[0]
-                new_phi = _mod1_turns(2 * gamma - alpha)
-                sub = DAGCircuit()
-                for qreg in dag.qregs.values():
-                    sub.add_qreg(qreg)
-                sub.apply_operation_back(GPI2Gate(new_phi), [mid.qargs[0]])
-                dag.substitute_node_with_dag(mid, sub, {mid.qargs[0]: mid.qargs[0]})
-                to_remove.extend([left, right])
-        for n in to_remove:
-            if n in dag.op_nodes():
-                dag.remove_op_node(n)
-        return dag
-
-
-class CommuteGPI2AcrossGPI(TransformationPass):
-    """
-    Reorder adjacent GPI2(a) then GPI(b) on the same wire:
-        GPI2(a) • GPI(b)  →  GPI(b) • GPI2(2b - a)
-    This helps expose cancellations and shorten streaks after subsequent passes.
-    """
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        changed = True
-        while changed:
-            changed = False
-            for left in list(dag.topological_op_nodes()):
-                if left.op.name != "gpi2" or not _is_number(left.op.params[0]):
-                    continue
-                succs = [
-                    s
-                    for s in dag.quantum_successors(left)
-                    if isinstance(s, DAGOpNode) and (left.qargs[0] in s.qargs)
-                ]
-                if not succs:
-                    continue
-                right = succs[0]
-                if right.op.name == "gpi" and _is_number(right.op.params[0]):
-                    left_op = left.op.params[0]
-                    right_op = right.op.params[0]
-                    new_phi = _mod1_turns(2 * right_op - left_op)
+                if np.isclose(theta, 0.0, atol=1e-9):
+                    dag.remove_op_node(nxt)
+                    dag.remove_op_node(node)
+                else:
                     sub = DAGCircuit()
                     for qreg in dag.qregs.values():
                         sub.add_qreg(qreg)
-                    sub.apply_operation_back(GPIGate(right_op), [left.qargs[0]])
-                    sub.apply_operation_back(GPI2Gate(new_phi), [left.qargs[0]])
-                    dag.substitute_node_with_dag(
-                        left, sub, {left.qargs[0]: left.qargs[0]}
-                    )
-                    if right in dag.op_nodes():
-                        dag.remove_op_node(right)
-                    changed = True
-                    break
+                    sub.apply_operation_back(ZZGate(theta), list(nxt.qargs))
+                    dag.substitute_node_with_dag(nxt, sub, {q: q for q in nxt.qargs})
+                    dag.remove_op_node(node)
+
+                changed = True
+                break
+
         return dag
