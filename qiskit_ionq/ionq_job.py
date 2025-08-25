@@ -38,7 +38,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -261,9 +261,11 @@ class IonQJob(JobV1):
     def result(
         self,
         sharpen: bool | None = None,
+        timeout: float | None = None,
+        wait: float = 5,
+        callback: Callable | None = None,
         extra_query_params: dict | None = None,
-        **kwargs,
-    ):
+    ):  # pylint: disable=too-many-positional-arguments
         """Retrieve job result data, blocking until the job is complete.
 
         .. NOTE::
@@ -292,7 +294,7 @@ class IonQJob(JobV1):
 
         # Wait for the job to complete.
         try:
-            self.wait_for_final_state(**kwargs)
+            self.wait_for_final_state(timeout=timeout, wait=wait, callback=callback)
         except JobTimeoutError as ex:
             raise exceptions.IonQJobTimeoutError(
                 "Timed out waiting for job to complete."

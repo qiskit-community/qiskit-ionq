@@ -101,7 +101,7 @@ class BackendService:
     of backends from provider.
     """
 
-    def __init__(self, backends: list[ionq_backend.Backend]):
+    def __init__(self, backends: list[ionq_backend.IonQBackend]):
         """Initialize service
 
         Parameters:
@@ -113,7 +113,7 @@ class BackendService:
 
     def __call__(
         self, name: Optional[str] = None, filters: Optional[Callable] = None, **kwargs
-    ) -> list[ionq_backend.Backend]:
+    ) -> list[ionq_backend.IonQBackend]:
         """A listing of all backends from this provider.
 
         Parameters:

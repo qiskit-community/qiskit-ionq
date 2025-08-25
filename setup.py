@@ -61,7 +61,7 @@ setup(
     description="Qiskit provider for IonQ backends",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/qiskit-partners/qiskit-ionq",
+    url="https://github.com/qiskit-community/qiskit-ionq",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",
@@ -72,7 +72,6 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
@@ -80,7 +79,7 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     setup_requires=[],
     install_requires=REQUIREMENTS,
     extras_require={"test": TEST_REQUIREMENTS},
@@ -88,7 +87,7 @@ setup(
     include_package_data=True,
     package_data={"qiskit_ionq": ["py.typed"]},
     project_urls={
-        "Bug Tracker": "https://github.com/qiskit-partners/qiskit-ionq/issues",
-        "Source Code": "https://github.com/qiskit-partners/qiskit-ionq",
+        "Bug Tracker": "https://github.com/qiskit-community/qiskit-ionq/issues",
+        "Source Code": "https://github.com/qiskit-community/qiskit-ionq",
     },
 )

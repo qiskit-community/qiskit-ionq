@@ -31,9 +31,9 @@ The other plugin classes are intended for testing various rewrite
 rules in isolation.
 """
 
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
-from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters import circuit_to_dag
 from qiskit_ionq.rewrite_rules import (
     CancelGPI2Adjoint,
@@ -41,6 +41,9 @@ from qiskit_ionq.rewrite_rules import (
     GPI2TwiceIsGPI,
     CompactMoreThanThreeSingleQubitGates,
     CommuteGPIsThroughMS,
+    CommuteGPIsThroughZZ,
+    FuseConsecutiveZZ,
+    FuseConsecutiveMS,
 )
 
 
@@ -140,28 +143,39 @@ class TrappedIonOptimizerPluginCommuteGpi2ThroughMs(PassManagerStagePlugin):
 
 
 class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
-    """
-    This optimizer plugin is intended to be used in production.
-    """
+    """Production optimizer: Qiskit preset pass manager + IonQ-native passes."""
 
     def pass_manager(
         self,
         pass_manager_config: PassManagerConfig = None,
         optimization_level: int = 0,
     ) -> PassManager:  # pylint: disable=unused-argument
-        """
-        Creates a PassManager class with added custom transformation passes.
-        This class is meant to be used in production.
-        """
-        custom_pass_manager = CustomPassManager()
-        if optimization_level == 0:
-            pass
+        # 1) Build Qiskit’s preset pipeline for the requested level.
+        preset_pm = generate_preset_pass_manager(
+            optimization_level=optimization_level,
+            backend=getattr(pass_manager_config, "backend", None),
+            target=getattr(pass_manager_config, "target", None),
+            routing_method="none",
+            seed_transpiler=getattr(pass_manager_config, "seed_transpiler", None),
+        )
+
+        # 2) Build IonQ-native polishing passes.
+        ionq_native_pm = PassManager()
         if optimization_level >= 1:
             # Note that the TransformationPasses will be applied
             # in the order they have been added to the pass manager
-            custom_pass_manager.append(CancelGPI2Adjoint())
-            custom_pass_manager.append(CancelGPIAdjoint())
-            custom_pass_manager.append(GPI2TwiceIsGPI())
-            custom_pass_manager.append(CommuteGPIsThroughMS())
-            custom_pass_manager.append(CompactMoreThanThreeSingleQubitGates())
-        return custom_pass_manager
+            ionq_native_pm.append(CancelGPI2Adjoint())
+            ionq_native_pm.append(CancelGPIAdjoint())
+            ionq_native_pm.append(GPI2TwiceIsGPI())
+            ionq_native_pm.append(CommuteGPIsThroughMS())
+            ionq_native_pm.append(CommuteGPIsThroughZZ())
+            ionq_native_pm.append(CompactMoreThanThreeSingleQubitGates())
+            ionq_native_pm.append(FuseConsecutiveZZ())
+            ionq_native_pm.append(FuseConsecutiveMS())
+
+        # 3) Chain them correctly: preset first, then IonQ-native.
+        combined_pm = PassManager()
+        combined_pm.append(preset_pm.to_flow_controller())
+        combined_pm.append(ionq_native_pm.to_flow_controller())
+        combined_pm.append(preset_pm.to_flow_controller())
+        return combined_pm
