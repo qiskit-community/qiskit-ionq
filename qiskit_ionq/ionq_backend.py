@@ -27,15 +27,13 @@
 """IonQ provider backends."""
 
 from __future__ import annotations
-
 from typing import Literal, Sequence, TYPE_CHECKING
 import warnings
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit.library import Measure, Reset, CXGate, HGate, SGate, TGate
 from qiskit.providers import BackendV2 as Backend, Options
 from qiskit.transpiler import Target, CouplingMap
-from qiskit.circuit.library import Measure, Reset, CXGate, HGate, SGate, TGate
-from qiskit.circuit import Parameter
 
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
@@ -51,56 +49,6 @@ class IonQBackend(Backend):
 
     _client: ionq_client.IonQClient | None = None
 
-    def _make_native_target(self) -> Target:
-        """Return a Target exposing the native IonQ gates for *this* backend."""
-        n = self._num_qubits
-        phi, phi0, phi1, theta = (
-            Parameter("φ"),
-            Parameter("φ0"),
-            Parameter("φ1"),
-            Parameter("θ"),
-        )
-        tgt = Target(num_qubits=n)
-
-        # 1-qubit gates
-        tgt.add_instruction(GPIGate(phi), {(q,): None for q in range(n)})
-        tgt.add_instruction(GPI2Gate(phi), {(q,): None for q in range(n)})
-
-        # 2-qubit gate - choose MS or ZZ
-        pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
-        if (
-            "forte" in self.name.lower()
-        ):  # TODO use .gateset() to apply BE-specific gates
-            tgt.add_instruction(ZZGate(theta), pairs)
-        else:
-            tgt.add_instruction(MSGate(phi0, phi1, theta), pairs)
-
-        # Always allow measure and reset
-        for cls in (Measure, Reset):
-            tgt.add_instruction(cls(), {(q,): None for q in range(n)})
-
-        return tgt
-
-    def _make_qis_target(self) -> Target:
-        """Return a Target exposing the QIS gates for this backend."""
-        n = self._num_qubits
-        tgt = Target(num_qubits=n)
-
-        # 1-qubit gates
-        tgt.add_instruction(HGate(), {(q,): None for q in range(n)})
-        tgt.add_instruction(SGate(), {(q,): None for q in range(n)})
-        tgt.add_instruction(TGate(), {(q,): None for q in range(n)})
-
-        # 2-qubit gate
-        pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
-        tgt.add_instruction(CXGate(), pairs)
-
-        # Always allow measure and reset
-        for cls in (Measure, Reset):
-            tgt.add_instruction(cls(), {(q,): None for q in range(n)})
-
-        return tgt
-
     def __init__(
         self,
         *,
@@ -113,7 +61,7 @@ class IonQBackend(Backend):
         backend_version: str = "0.0.1",
         max_shots: int | None = None,
         max_experiments: int | None = None,
-        **option_overrides,
+        **initial_options,
     ):
         """Build a new IonQ backend instance."""
         # Register IonQ-specific gate equivalences once per process.
@@ -124,7 +72,6 @@ class IonQBackend(Backend):
             name=name,
             description=description,
             backend_version=backend_version,
-            **option_overrides,  # these must exist in _default_options()
         )
 
         # Immutable facts
@@ -135,11 +82,12 @@ class IonQBackend(Backend):
         self._max_experiments: int | None = max_experiments
         self._max_shots: int | None = max_shots
 
-        # Build or suppress a Target depending on gate-set
-        if gateset == "qis":
-            self._target = self._make_qis_target()
-        else:  # "native"
-            self._target = self._make_native_target()
+        # Target (basis & connectivity)
+        self._target = self._make_target()
+
+        # Apply initial options if any
+        if initial_options:
+            self.options.update_options(**initial_options)
 
     @classmethod
     def _default_options(cls) -> Options:
@@ -150,7 +98,7 @@ class IonQBackend(Backend):
             error_mitigation=None,
             extra_query_params={},
             extra_metadata={},
-            sampler_seed=None,  # simulator-only; harmless default for QPU
+            sampler_seed=None,  # simulator-only (harmless on QPU)
             noise_model="ideal",  # simulator-only
         )
 
@@ -163,16 +111,21 @@ class IonQBackend(Backend):
         return self._num_qubits
 
     @property
-    def max_circuits(self) -> int | None:
-        return self._max_experiments
-
-    @property
     def basis_gates(self) -> Sequence[str]:
         """Return the basis gates for this backend."""
         return self._basis_gates
 
+    @property
+    def coupling_map(self) -> CouplingMap:
+        """IonQ hardware is fully connected."""
+        return CouplingMap.from_full(self._num_qubits)
+
+    @property
+    def max_circuits(self) -> int | None:
+        return self._max_experiments
+
     def gateset(self) -> Literal["qis", "native"]:
-        """Return the active gate-set (``"qis"`` or ``"native"``)."""
+        """Active gateset (``"qis"`` or ``"native"``)."""
         return self._gateset
 
     @property
@@ -202,7 +155,14 @@ class IonQBackend(Backend):
         url = creds["url"]
         if url is None:
             raise exceptions.IonQCredentialsError("Credentials `url` may not be None!")
+
         return ionq_client.IonQClient(token, url, self._provider.custom_headers)
+
+    @property
+    def _api_backend_name(self) -> str:
+        """Backend name used by the IonQ API (e.g., `qpu.aria-1`)."""
+        # QPU names are `ionq_qpu.*` locally; API expects `qpu.*`
+        return self.name.replace("ionq_qpu", "qpu")
 
     def run(
         self, run_input: QuantumCircuit | Sequence[QuantumCircuit], **options
@@ -216,16 +176,16 @@ class IonQBackend(Backend):
         Returns:
             IonQJob: A reference to the job that was submitted.
         """
-        if not all(
-            self._has_measurements(c)
-            for c in (run_input if isinstance(run_input, list) else [run_input])
-        ):
+        circuits = run_input if isinstance(run_input, (list, tuple)) else [run_input]
+
+        if not all(self._has_measurements(c) for c in circuits):
             warnings.warn(
                 "Circuit is not measuring any qubits", UserWarning, stacklevel=2
             )
 
-        # Merge default & user-supplied options
+        # Merge default options with user overrides
         run_opts = {**self.options.__dict__, **options}
+
         job = ionq_job.IonQJob(
             backend=self,
             job_id=None,
@@ -248,30 +208,20 @@ class IonQBackend(Backend):
         """Cancel a job by its ID."""
         return self.client.cancel_job(job_id)
 
-    def cancel_jobs(self, job_ids: list[str]) -> Sequence[dict]:
+    def cancel_jobs(self, job_ids: Sequence[str]) -> Sequence[dict]:
         """Cancel a list of jobs by their IDs."""
         return [self.client.cancel_job(job_id) for job_id in job_ids]
 
     def calibration(self) -> Characterization | None:
-        """Return the characterization data for this backend."""
+        """Return the latest characterization data (None for simulator)."""
         if self._simulator:
             return None
-        name_for_api = self.name.replace("ionq_qpu", "qpu")
-        return self.client.get_calibration_data(name_for_api, limit=1)
+        return self.client.get_calibration_data(self._api_backend_name, limit=1)
 
     def status(self) -> bool:
-        """Return True if the backend is available, False otherwise."""
+        """True if the backend is currently available."""
         cal = self.calibration()
         return bool(cal and getattr(cal, "status", "available") == "available")
-
-    @property
-    def coupling_map(self) -> CouplingMap:
-        """IonQ hardware is fully connected."""
-        return CouplingMap.from_full(self._num_qubits)
-
-    @staticmethod
-    def _has_measurements(circ: QuantumCircuit) -> bool:
-        return any(inst.operation.name == "measure" for inst in circ.data)
 
     def __eq__(self, other):
         if not isinstance(other, IonQBackend):
@@ -280,6 +230,42 @@ class IonQBackend(Backend):
 
     def __hash__(self):
         return hash((self.name, self._gateset))
+
+    def _make_target(self) -> Target:
+        """Build a Target exposing either QIS or IonQ-native gates."""
+        n = self._num_qubits
+        tgt = Target(num_qubits=n)
+
+        if self._gateset == "qis":
+            # 1q: H, S, T ; 2q: CX
+            for gate in (HGate(), SGate(), TGate()):
+                tgt.add_instruction(gate, {(q,): None for q in range(n)})
+            pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
+            tgt.add_instruction(CXGate(), pairs)
+        else:
+            # 1q native: GPI(φ), GPI2(φ)
+            phi = Parameter("φ")
+            for gate in (GPIGate(phi), GPI2Gate(phi)):
+                tgt.add_instruction(gate, {(q,): None for q in range(n)})
+
+            # 2q native: MS(φ0, φ1, θ) or ZZ(θ)
+            pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
+            if "forte" in self.name.lower():
+                theta = Parameter("θ")
+                tgt.add_instruction(ZZGate(theta), pairs)
+            else:
+                phi0, phi1, theta = Parameter("φ0"), Parameter("φ1"), Parameter("θ")
+                tgt.add_instruction(MSGate(phi0, phi1, theta), pairs)
+
+        # Always allow measure/reset
+        for cls in (Measure, Reset):
+            tgt.add_instruction(cls(), {(q,): None for q in range(n)})
+
+        return tgt
+
+    @staticmethod
+    def _has_measurements(circ: QuantumCircuit) -> bool:
+        return any(inst.operation.name == "measure" for inst in circ.data)
 
 
 class IonQSimulatorBackend(IonQBackend):
@@ -304,6 +290,7 @@ class IonQSimulatorBackend(IonQBackend):
         provider: IonQProvider,
         name: str = "simulator",
         gateset: Literal["qis", "native"] = "qis",
+        **initial_options,
     ):
         backend_name = name if name.startswith("ionq_") else f"ionq_{name}"
         super().__init__(
@@ -315,6 +302,7 @@ class IonQSimulatorBackend(IonQBackend):
             simulator=True,
             max_shots=1,
             max_experiments=None,
+            **initial_options,
         )
 
     def with_name(self, name: str, **kwargs) -> IonQSimulatorBackend:
@@ -323,13 +311,14 @@ class IonQSimulatorBackend(IonQBackend):
 
 
 class IonQQPUBackend(IonQBackend):
-    """IonQ Backend for running qpu-based jobs."""
+    """IonQ trapped-ion hardware back-ends (Aria/Alpine: MS; Forte: ZZ)."""
 
     def __init__(
         self,
         provider: IonQProvider,
         name: str = "ionq_qpu",
         gateset: Literal["qis", "native"] = "qis",
+        **initial_options,
     ):
         super().__init__(
             provider=provider,
@@ -340,6 +329,7 @@ class IonQQPUBackend(IonQBackend):
             simulator=False,
             max_shots=10_000,
             max_experiments=None,
+            **initial_options,
         )
 
     def with_name(self, name: str, **kwargs) -> IonQQPUBackend:

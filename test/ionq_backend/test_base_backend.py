@@ -285,3 +285,30 @@ def test_multiexp_job(mock_backend, requests_mock):
             "sampler_seed": "None",
         },
     }
+
+
+def test_backend_memory(
+    mock_backend, requests_mock
+):  # TODO fix when BE supports memory
+    """Test that memory is handled correctly.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+
+    job_id = "mem_job"
+    probabilities = {"0": 0.4, "1": 0.1, "2": 0.1, "3": 0.4}
+    client = mock_backend.client
+    resp = conftest.dummy_job_response(job_id)
+
+    requests_mock.get(client.make_path("jobs", job_id), status_code=200, json=resp)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        status_code=200,
+        json=probabilities,
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(AttributeError):
+        job.get_memory()  # pylint: disable=no-member

@@ -55,11 +55,16 @@ class GPIGate(Gate):
         """Create new GPI gate."""
         super().__init__("gpi", 1, [phi], label=label)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the GPI gate."""
         top = np.exp(-1j * 2 * math.pi * self.params[0])
         bottom = np.exp(1j * 2 * math.pi * self.params[0])
-        return np.array([[0, top], [bottom, 0]], dtype=dtype)
+        arr = np.array([[0, top], [bottom, 0]])  # build without dtype first
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)  # avoid unnecessary copy
+        if copy is True:
+            return arr.copy()
+        return arr
 
 
 class GPI2Gate(Gate):
@@ -85,11 +90,16 @@ class GPI2Gate(Gate):
         """Create new GPI2 gate."""
         super().__init__("gpi2", 1, [phi], label=label)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the GPI2 gate."""
         top = -1j * np.exp(-1j * self.params[0] * 2 * math.pi)
         bottom = -1j * np.exp(1j * self.params[0] * 2 * math.pi)
-        return 1 / np.sqrt(2) * np.array([[1, top], [bottom, 1]], dtype=dtype)
+        arr = (1 / np.sqrt(2)) * np.array([[1, top], [bottom, 1]])
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        if copy is True:
+            return arr.copy()
+        return arr
 
 
 class MSGate(Gate):
@@ -129,23 +139,24 @@ class MSGate(Gate):
             label=label,
         )
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the MS gate."""
-        phi0 = self.params[0]
-        phi1 = self.params[1]
-        theta = self.params[2]
+        phi0, phi1, theta = self.params
         diag = np.cos(math.pi * theta)
         sin = np.sin(math.pi * theta)
-
-        return np.array(
+        arr = np.array(
             [
                 [diag, 0, 0, sin * -1j * np.exp(-1j * 2 * math.pi * (phi0 + phi1))],
                 [0, diag, sin * -1j * np.exp(1j * 2 * math.pi * (phi0 - phi1)), 0],
                 [0, sin * -1j * np.exp(-1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
                 [sin * -1j * np.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
-            ],
-            dtype=dtype,
+            ]
         )
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        if copy is True:
+            return arr.copy()
+        return arr
 
 
 class ZZGate(Gate):
@@ -172,15 +183,19 @@ class ZZGate(Gate):
         """Create new ZZ gate."""
         super().__init__("zz", 2, [theta], label=label)
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """Return a numpy array for the ZZ gate."""
         itheta2 = 1j * float(self.params[0]) * math.pi
-        return np.array(
+        arr = np.array(
             [
                 [np.exp(-itheta2), 0, 0, 0],
                 [0, np.exp(itheta2), 0, 0],
                 [0, 0, np.exp(itheta2), 0],
                 [0, 0, 0, np.exp(-itheta2)],
-            ],
-            dtype=dtype,
+            ]
         )
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        if copy is True:
+            return arr.copy()
+        return arr
