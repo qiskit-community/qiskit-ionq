@@ -458,15 +458,19 @@ def qiskit_to_ionq(
         circuit = [circuit]
 
     # Dense width used by operations (max referenced index + 1), ignoring barriers / delays.
-    dense_widths = []
-    for circ in circuit:
-        idxs = [
-            circ.qubits.index(q)
-            for inst in circ.data
-            if inst.operation.name not in ("barrier", "delay")
-            for q in inst.qubits
-        ]
-        dense_widths.append((max(idxs) + 1) if idxs else 0)
+    dense_widths = [
+        max(
+            (
+                circ.qubits.index(q)
+                for inst in circ.data
+                if inst.operation.name not in ("barrier", "delay")
+                for q in inst.qubits
+            ),
+            default=-1,
+        )
+        + 1
+        for circ in circuit
+    ]
 
     # metadata header
     metadata_list = []
