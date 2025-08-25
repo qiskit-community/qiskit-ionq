@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_backend - Qiskit IonQ Provider 1.0.0.dev0</title>
+        <title>qiskit_ionq.ionq_backend - Qiskit IonQ Provider 1.0.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.0.0.dev0</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.0.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.0.dev0</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.0</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -260,15 +260,13 @@
 <span class="sd">&quot;&quot;&quot;IonQ provider backends.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuantumCircuit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">Parameter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit.library</span><span class="w"> </span><span class="kn">import</span> <span class="n">Measure</span><span class="p">,</span> <span class="n">Reset</span><span class="p">,</span> <span class="n">CXGate</span><span class="p">,</span> <span class="n">HGate</span><span class="p">,</span> <span class="n">SGate</span><span class="p">,</span> <span class="n">TGate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BackendV2</span> <span class="k">as</span> <span class="n">Backend</span><span class="p">,</span> <span class="n">Options</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.transpiler</span><span class="w"> </span><span class="kn">import</span> <span class="n">Target</span><span class="p">,</span> <span class="n">CouplingMap</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit.library</span><span class="w"> </span><span class="kn">import</span> <span class="n">Measure</span><span class="p">,</span> <span class="n">Reset</span><span class="p">,</span> <span class="n">CXGate</span><span class="p">,</span> <span class="n">HGate</span><span class="p">,</span> <span class="n">SGate</span><span class="p">,</span> <span class="n">TGate</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parameter</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit_ionq.ionq_gates</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPIGate</span><span class="p">,</span> <span class="n">GPI2Gate</span><span class="p">,</span> <span class="n">MSGate</span><span class="p">,</span> <span class="n">ZZGate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">ionq_equivalence_library</span><span class="p">,</span> <span class="n">ionq_job</span><span class="p">,</span> <span class="n">ionq_client</span><span class="p">,</span> <span class="n">exceptions</span>
@@ -286,56 +284,6 @@
 
     <span class="n">_client</span><span class="p">:</span> <span class="n">ionq_client</span><span class="o">.</span><span class="n">IonQClient</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_make_native_target</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Target</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a Target exposing the native IonQ gates for *this* backend.&quot;&quot;&quot;</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span>
-        <span class="n">phi</span><span class="p">,</span> <span class="n">phi0</span><span class="p">,</span> <span class="n">phi1</span><span class="p">,</span> <span class="n">theta</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;φ&quot;</span><span class="p">),</span>
-            <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;φ0&quot;</span><span class="p">),</span>
-            <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;φ1&quot;</span><span class="p">),</span>
-            <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">),</span>
-        <span class="p">)</span>
-        <span class="n">tgt</span> <span class="o">=</span> <span class="n">Target</span><span class="p">(</span><span class="n">num_qubits</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
-
-        <span class="c1"># 1-qubit gates</span>
-        <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">GPIGate</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
-        <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">GPI2Gate</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
-
-        <span class="c1"># 2-qubit gate - choose MS or ZZ</span>
-        <span class="n">pairs</span> <span class="o">=</span> <span class="p">{(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">}</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="s2">&quot;forte&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="p">):</span>  <span class="c1"># TODO use .gateset() to apply BE-specific gates</span>
-            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">ZZGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">pairs</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">MSGate</span><span class="p">(</span><span class="n">phi0</span><span class="p">,</span> <span class="n">phi1</span><span class="p">,</span> <span class="n">theta</span><span class="p">),</span> <span class="n">pairs</span><span class="p">)</span>
-
-        <span class="c1"># Always allow measure and reset</span>
-        <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Measure</span><span class="p">,</span> <span class="n">Reset</span><span class="p">):</span>
-            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="bp">cls</span><span class="p">(),</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
-
-        <span class="k">return</span> <span class="n">tgt</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_make_qis_target</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Target</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a Target exposing the QIS gates for this backend.&quot;&quot;&quot;</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span>
-        <span class="n">tgt</span> <span class="o">=</span> <span class="n">Target</span><span class="p">(</span><span class="n">num_qubits</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
-
-        <span class="c1"># 1-qubit gates</span>
-        <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">HGate</span><span class="p">(),</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
-        <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">SGate</span><span class="p">(),</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
-        <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">TGate</span><span class="p">(),</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
-
-        <span class="c1"># 2-qubit gate</span>
-        <span class="n">pairs</span> <span class="o">=</span> <span class="p">{(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">}</span>
-        <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">CXGate</span><span class="p">(),</span> <span class="n">pairs</span><span class="p">)</span>
-
-        <span class="c1"># Always allow measure and reset</span>
-        <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Measure</span><span class="p">,</span> <span class="n">Reset</span><span class="p">):</span>
-            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="bp">cls</span><span class="p">(),</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
-
-        <span class="k">return</span> <span class="n">tgt</span>
-
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -348,7 +296,7 @@
         <span class="n">backend_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;0.0.1&quot;</span><span class="p">,</span>
         <span class="n">max_shots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_experiments</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">option_overrides</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">initial_options</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build a new IonQ backend instance.&quot;&quot;&quot;</span>
         <span class="c1"># Register IonQ-specific gate equivalences once per process.</span>
@@ -359,7 +307,6 @@
             <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
             <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
             <span class="n">backend_version</span><span class="o">=</span><span class="n">backend_version</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">option_overrides</span><span class="p">,</span>  <span class="c1"># these must exist in _default_options()</span>
         <span class="p">)</span>
 
         <span class="c1"># Immutable facts</span>
@@ -370,11 +317,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_max_experiments</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">max_experiments</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_max_shots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">max_shots</span>
 
-        <span class="c1"># Build or suppress a Target depending on gate-set</span>
-        <span class="k">if</span> <span class="n">gateset</span> <span class="o">==</span> <span class="s2">&quot;qis&quot;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_qis_target</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>  <span class="c1"># &quot;native&quot;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_native_target</span><span class="p">()</span>
+        <span class="c1"># Target (basis &amp; connectivity)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_target</span><span class="p">()</span>
+
+        <span class="c1"># Apply initial options if any</span>
+        <span class="k">if</span> <span class="n">initial_options</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">update_options</span><span class="p">(</span><span class="o">**</span><span class="n">initial_options</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_default_options</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Options</span><span class="p">:</span>
@@ -385,7 +333,7 @@
             <span class="n">error_mitigation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">extra_query_params</span><span class="o">=</span><span class="p">{},</span>
             <span class="n">extra_metadata</span><span class="o">=</span><span class="p">{},</span>
-            <span class="n">sampler_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># simulator-only; harmless default for QPU</span>
+            <span class="n">sampler_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># simulator-only (harmless on QPU)</span>
             <span class="n">noise_model</span><span class="o">=</span><span class="s2">&quot;ideal&quot;</span><span class="p">,</span>  <span class="c1"># simulator-only</span>
         <span class="p">)</span>
 
@@ -398,18 +346,23 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">max_circuits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_experiments</span>
-
-    <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">basis_gates</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the basis gates for this backend.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_basis_gates</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">coupling_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CouplingMap</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;IonQ hardware is fully connected.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">CouplingMap</span><span class="o">.</span><span class="n">from_full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_circuits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_experiments</span>
+
 <div class="viewcode-block" id="IonQBackend.gateset">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.gateset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">gateset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;qis&quot;</span><span class="p">,</span> <span class="s2">&quot;native&quot;</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the active gate-set (``&quot;qis&quot;`` or ``&quot;native&quot;``).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Active gateset (``&quot;qis&quot;`` or ``&quot;native&quot;``).&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span></div>
 
 
@@ -440,7 +393,14 @@
         <span class="n">url</span> <span class="o">=</span> <span class="n">creds</span><span class="p">[</span><span class="s2">&quot;url&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQCredentialsError</span><span class="p">(</span><span class="s2">&quot;Credentials `url` may not be None!&quot;</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">ionq_client</span><span class="o">.</span><span class="n">IonQClient</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_provider</span><span class="o">.</span><span class="n">custom_headers</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_api_backend_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Backend name used by the IonQ API (e.g., `qpu.aria-1`).&quot;&quot;&quot;</span>
+        <span class="c1"># QPU names are `ionq_qpu.*` locally; API expects `qpu.*`</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;ionq_qpu&quot;</span><span class="p">,</span> <span class="s2">&quot;qpu&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="IonQBackend.run">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.run">[docs]</a>
@@ -456,16 +416,16 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            IonQJob: A reference to the job that was submitted.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_has_measurements</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="n">run_input</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">run_input</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[</span><span class="n">run_input</span><span class="p">])</span>
-        <span class="p">):</span>
+        <span class="n">circuits</span> <span class="o">=</span> <span class="n">run_input</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">run_input</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">else</span> <span class="p">[</span><span class="n">run_input</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_has_measurements</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">circuits</span><span class="p">):</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                 <span class="s2">&quot;Circuit is not measuring any qubits&quot;</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
             <span class="p">)</span>
 
-        <span class="c1"># Merge default &amp; user-supplied options</span>
+        <span class="c1"># Merge default options with user overrides</span>
         <span class="n">run_opts</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">}</span>
+
         <span class="n">job</span> <span class="o">=</span> <span class="n">ionq_job</span><span class="o">.</span><span class="n">IonQJob</span><span class="p">(</span>
             <span class="n">backend</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">job_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -500,7 +460,7 @@
 
 <div class="viewcode-block" id="IonQBackend.cancel_jobs">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.cancel_jobs">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">cancel_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cancel_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Cancel a list of jobs by their IDs.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">cancel_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span> <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">job_ids</span><span class="p">]</span></div>
 
@@ -508,29 +468,19 @@
 <div class="viewcode-block" id="IonQBackend.calibration">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.calibration">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calibration</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Characterization</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the characterization data for this backend.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the latest characterization data (None for simulator).&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulator</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="n">name_for_api</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;ionq_qpu&quot;</span><span class="p">,</span> <span class="s2">&quot;qpu&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_calibration_data</span><span class="p">(</span><span class="n">name_for_api</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_calibration_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_api_backend_name</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="IonQBackend.status">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.status">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if the backend is available, False otherwise.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;True if the backend is currently available.&quot;&quot;&quot;</span>
         <span class="n">cal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="p">()</span>
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">cal</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cal</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="s2">&quot;available&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;available&quot;</span><span class="p">)</span></div>
 
-
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">coupling_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CouplingMap</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;IonQ hardware is fully connected.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">CouplingMap</span><span class="o">.</span><span class="n">from_full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span><span class="p">)</span>
-
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_has_measurements</span><span class="p">(</span><span class="n">circ</span><span class="p">:</span> <span class="n">QuantumCircuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">operation</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;measure&quot;</span> <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">circ</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">IonQBackend</span><span class="p">):</span>
@@ -538,7 +488,43 @@
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">_gateset</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_target</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Target</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build a Target exposing either QIS or IonQ-native gates.&quot;&quot;&quot;</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span>
+        <span class="n">tgt</span> <span class="o">=</span> <span class="n">Target</span><span class="p">(</span><span class="n">num_qubits</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span> <span class="o">==</span> <span class="s2">&quot;qis&quot;</span><span class="p">:</span>
+            <span class="c1"># 1q: H, S, T ; 2q: CX</span>
+            <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="p">(</span><span class="n">HGate</span><span class="p">(),</span> <span class="n">SGate</span><span class="p">(),</span> <span class="n">TGate</span><span class="p">()):</span>
+                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
+            <span class="n">pairs</span> <span class="o">=</span> <span class="p">{(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">}</span>
+            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">CXGate</span><span class="p">(),</span> <span class="n">pairs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># 1q native: GPI(φ), GPI2(φ)</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;φ&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="p">(</span><span class="n">GPIGate</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">GPI2Gate</span><span class="p">(</span><span class="n">phi</span><span class="p">)):</span>
+                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
+
+            <span class="c1"># 2q native: MS(φ0, φ1, θ) or ZZ(θ)</span>
+            <span class="n">pairs</span> <span class="o">=</span> <span class="p">{(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">}</span>
+            <span class="k">if</span> <span class="s2">&quot;forte&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="n">theta</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">)</span>
+                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">ZZGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">pairs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">phi0</span><span class="p">,</span> <span class="n">phi1</span><span class="p">,</span> <span class="n">theta</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;φ0&quot;</span><span class="p">),</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;φ1&quot;</span><span class="p">),</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">)</span>
+                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">MSGate</span><span class="p">(</span><span class="n">phi0</span><span class="p">,</span> <span class="n">phi1</span><span class="p">,</span> <span class="n">theta</span><span class="p">),</span> <span class="n">pairs</span><span class="p">)</span>
+
+        <span class="c1"># Always allow measure/reset</span>
+        <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Measure</span><span class="p">,</span> <span class="n">Reset</span><span class="p">):</span>
+            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="bp">cls</span><span class="p">(),</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
+
+        <span class="k">return</span> <span class="n">tgt</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_has_measurements</span><span class="p">(</span><span class="n">circ</span><span class="p">:</span> <span class="n">QuantumCircuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">operation</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;measure&quot;</span> <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">circ</span><span class="o">.</span><span class="n">data</span><span class="p">)</span></div>
 
 
 
@@ -566,6 +552,7 @@
         <span class="n">provider</span><span class="p">:</span> <span class="n">IonQProvider</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;simulator&quot;</span><span class="p">,</span>
         <span class="n">gateset</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;qis&quot;</span><span class="p">,</span> <span class="s2">&quot;native&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;qis&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">initial_options</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">backend_name</span> <span class="o">=</span> <span class="n">name</span> <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ionq_&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;ionq_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
@@ -577,6 +564,7 @@
             <span class="n">simulator</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">max_shots</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">max_experiments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">initial_options</span><span class="p">,</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="IonQSimulatorBackend.with_name">
@@ -591,13 +579,14 @@
 <div class="viewcode-block" id="IonQQPUBackend">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQQPUBackend">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">IonQQPUBackend</span><span class="p">(</span><span class="n">IonQBackend</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;IonQ Backend for running qpu-based jobs.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;IonQ trapped-ion hardware back-ends (Aria/Alpine: MS; Forte: ZZ).&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">provider</span><span class="p">:</span> <span class="n">IonQProvider</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ionq_qpu&quot;</span><span class="p">,</span>
         <span class="n">gateset</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;qis&quot;</span><span class="p">,</span> <span class="s2">&quot;native&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;qis&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">initial_options</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">provider</span><span class="o">=</span><span class="n">provider</span><span class="p">,</span>
@@ -608,6 +597,7 @@
             <span class="n">simulator</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">max_shots</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
             <span class="n">max_experiments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">initial_options</span><span class="p">,</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="IonQQPUBackend.with_name">
@@ -653,7 +643,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=608bb401"></script>
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>
