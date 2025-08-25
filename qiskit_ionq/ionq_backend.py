@@ -92,7 +92,6 @@ class IonQBackend(Backend):
     @classmethod
     def _default_options(cls) -> Options:
         """Dynamic (user-tuneable) backend options."""
-        # NOTE: `memory=True` enables classical memory returns in Results.
         return Options(
             shots=1024,
             job_settings=None,
@@ -101,7 +100,6 @@ class IonQBackend(Backend):
             extra_metadata={},
             sampler_seed=None,  # simulator-only (harmless on QPU)
             noise_model="ideal",  # simulator-only
-            memory=False,
         )
 
     @property
