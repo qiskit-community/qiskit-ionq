@@ -31,10 +31,15 @@ import pytest
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.compiler import transpile
+from qiskit.result import marginal_counts
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit_ionq.exceptions import IonQGateError
-from qiskit_ionq.helpers import qiskit_to_ionq, decompress_metadata_string
+from qiskit_ionq.helpers import (
+    qiskit_to_ionq,
+    decompress_metadata_string,
+    compress_to_metadata_string,
+)
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from qiskit_ionq.constants import ErrorMitigation
 
@@ -402,3 +407,47 @@ def test__error_mitigation_settings(simulator_backend, error_mitigation, expecte
     debiased = actual["settings"].get("error_mitigation", {})
 
     assert debiased == expected
+
+
+def test_counts_marginalize(simulator_backend, requests_mock):
+    """IonQ full-width counts can be marginalized to measured-only via meas_mapped."""
+    # Build circuit: two qregs/two cregs; only cr1 is measured (qr1 -> cr1).
+    qr0 = QuantumRegister(2, "qr0")
+    qr1 = QuantumRegister(2, "qr1")
+    cr0 = ClassicalRegister(2, "cr0")
+    cr1 = ClassicalRegister(2, "cr1")
+    qc = QuantumCircuit(qr0, qr1, cr0, cr1, name="layout_semantics")
+    qc.measure([qr1[0], qr1[1]], [cr1[0], cr1[1]])
+
+    shots = 512
+    meas_mapped = [None, None, 2, 3]
+    header = compress_to_metadata_string({"n_qubits": 4, "meas_mapped": meas_mapped})
+
+    # Mock IonQ API
+    client = simulator_backend._create_client()
+    job_id = "job-xyz"
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json={
+            "status": "completed",
+            "stats": {"qubits": 4, "circuits": 1},
+            "metadata": {"qiskit_header": header, "shots": str(shots)},
+            "results": {
+                "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"}
+            },
+        },
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        json={"0": 1.0},
+    )
+
+    # Run; full-width counts then marginalize using meas_mapped
+    res = simulator_backend.run(qc, shots=shots).result()
+    counts_full = res.get_counts()
+    measured = [
+        i for i, b in enumerate(res.results[0].header["meas_mapped"]) if b is not None
+    ]
+    assert counts_full == {"0000": shots}
+    assert marginal_counts(counts_full, indices=measured) == {"00": shots}

@@ -457,6 +457,17 @@ def qiskit_to_ionq(
         # normalize to list for later convenience
         circuit = [circuit]
 
+    # Dense width used by operations (max referenced index + 1), ignoring barriers / delays.
+    dense_widths = []
+    for circ in circuit:
+        idxs = [
+            circ.qubits.index(q)
+            for inst in circ.data
+            if inst.operation.name not in ("barrier", "delay")
+            for q in inst.qubits
+        ]
+        dense_widths.append((max(idxs) + 1) if idxs else 0)
+
     # metadata header
     metadata_list = []
     for idx, circ in enumerate(circuit):
@@ -465,7 +476,7 @@ def qiskit_to_ionq(
         entry = {
             "memory_slots": circ.num_clbits,
             "global_phase": circ.global_phase,
-            "n_qubits": circ.num_qubits,
+            "n_qubits": dense_widths[idx],
             "name": circ.name,
             "creg_sizes": get_register_sizes_and_labels(circ.cregs)[0],
             "clbit_labels": get_register_sizes_and_labels(circ.cregs)[1],
@@ -483,7 +494,7 @@ def qiskit_to_ionq(
     # input block
     input_block: dict[str, Any] = {
         "gateset": backend.gateset(),
-        "qubits": max(c.num_qubits for c in circuit),
+        "qubits": max(dense_widths) if dense_widths else 0,
     }
 
     if multi_circuit:

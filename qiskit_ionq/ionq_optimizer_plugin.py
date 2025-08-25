@@ -155,7 +155,6 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             optimization_level=optimization_level,
             backend=getattr(pass_manager_config, "backend", None),
             target=getattr(pass_manager_config, "target", None),
-            layout_method="trivial",
             routing_method="none",
             seed_transpiler=getattr(pass_manager_config, "seed_transpiler", None),
         )
