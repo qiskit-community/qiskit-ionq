@@ -83,7 +83,6 @@ ionq_basis_gates = [
     "mcphase",
     "mct",
     "mcx",
-    "mcx_gray",
     "measure",
     "p",
     "rx",
@@ -112,7 +111,6 @@ ionq_api_aliases = {  # todo fix alias bug
     "mcphase": "cz",
     "ccx": "cx",  # just one C for all mcx
     "mcx": "cx",  # just one C for all mcx
-    "mcx_gray": "cx",  # just one C for all mcx
     "tdg": "ti",
     "p": "z",
     "PauliEvolution": "pauliexp",
@@ -530,6 +528,7 @@ def qiskit_to_ionq(
             "shots": str(passed_args.get("shots")),
             "sampler_seed": str(passed_args.get("sampler_seed")),
             "qiskit_header": qiskit_header,
+            "user_agent": get_user_agent(),
         },
     }
 
@@ -559,7 +558,7 @@ def qiskit_to_ionq(
     return json.dumps(ionq_json, cls=SafeEncoder)
 
 
-def get_user_agent():
+def get_user_agent() -> str:
     """Generates the user agent string which is helpful in identifying
     different tools in the internet. Valid user-agent ionq_client header that
     indicates the request is from qiskit_ionq along with the system, os,

@@ -31,7 +31,40 @@ from typing import Literal, Sequence, TYPE_CHECKING
 import warnings
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import Measure, Reset, CXGate, HGate, SGate, TGate
+from qiskit.circuit.library import (
+    Measure,
+    Reset,
+    CHGate,
+    XGate,
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CSXGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    HGate,
+    IGate,
+    MCPhaseGate,
+    MCXGate,
+    PhaseGate,
+    RXGate,
+    RXXGate,
+    RYGate,
+    RYYGate,
+    RZGate,
+    RZZGate,
+    SGate,
+    SdgGate,
+    SwapGate,
+    SXGate,
+    SXdgGate,
+    TGate,
+    TdgGate,
+    ZGate,
+    PauliEvolutionGate,
+)
 from qiskit.providers import BackendV2 as Backend, Options
 from qiskit.transpiler import Target, CouplingMap
 
@@ -233,33 +266,71 @@ class IonQBackend(Backend):
 
     def _make_target(self) -> Target:
         """Build a Target exposing either QIS or IonQ-native gates."""
-        n = self._num_qubits
-        tgt = Target(num_qubits=n)
+        tgt = Target(num_qubits=self._num_qubits)
 
         if self._gateset == "qis":
-            # 1q: H, S, T ; 2q: CX
-            for gate in (HGate(), SGate(), TGate()):
-                tgt.add_instruction(gate, {(q,): None for q in range(n)})
-            pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
-            tgt.add_instruction(CXGate(), pairs)
+            theta, lam = Parameter("θ"), Parameter("λ")
+            for gate in (
+                # 1-qubit (fixed)
+                IGate(),
+                XGate(),
+                ZGate(),
+                HGate(),
+                SGate(),
+                SdgGate(),
+                SXGate(),
+                SXdgGate(),
+                TGate(),
+                TdgGate(),
+                # 1-qubit (parameterized)
+                RXGate(theta),
+                RYGate(theta),
+                RZGate(theta),
+                PhaseGate(lam),
+                # 2-qubit (fixed)
+                CXGate(),
+                CYGate(),
+                CZGate(),
+                CHGate(),
+                CSXGate(),
+                SwapGate(),
+                # 2-qubit (parameterized)
+                CRXGate(theta),
+                CRYGate(theta),
+                CRZGate(theta),
+                CPhaseGate(lam),
+                RXXGate(theta),
+                RYYGate(theta),
+                RZZGate(theta),
+            ):
+                tgt.add_instruction(gate)
+
+            # MCX with 3 controls (4 total qubits)
+            tgt.add_instruction(MCXGate(3), name="mcx")
+
+            # Multi-controlled Phase (3 total qubits)
+            tgt.add_instruction(MCPhaseGate(lam, 2), name="mcphase")
+
+            # PauliEvolutionGate
+            tgt.add_instruction(PauliEvolutionGate, name="PauliEvolution")
+
         else:
-            # 1q native: GPI(φ), GPI2(φ)
+            # 1q native
             phi = Parameter("φ")
             for gate in (GPIGate(phi), GPI2Gate(phi)):
-                tgt.add_instruction(gate, {(q,): None for q in range(n)})
+                tgt.add_instruction(gate)
 
-            # 2q native: MS(φ0, φ1, θ) or ZZ(θ)
-            pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
+            # 2q native
             if "forte" in self.name.lower():
                 theta = Parameter("θ")
-                tgt.add_instruction(ZZGate(theta), pairs)
+                tgt.add_instruction(ZZGate(theta))
             else:
                 phi0, phi1, theta = Parameter("φ0"), Parameter("φ1"), Parameter("θ")
-                tgt.add_instruction(MSGate(phi0, phi1, theta), pairs)
+                tgt.add_instruction(MSGate(phi0, phi1, theta))
 
         # Always allow measure/reset
         for cls in (Measure, Reset):
-            tgt.add_instruction(cls(), {(q,): None for q in range(n)})
+            tgt.add_instruction(cls())
 
         return tgt
 

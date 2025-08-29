@@ -39,6 +39,7 @@ from qiskit_ionq.helpers import (
     qiskit_to_ionq,
     decompress_metadata_string,
     compress_to_metadata_string,
+    get_user_agent,
 )
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from qiskit_ionq.constants import ErrorMitigation
@@ -178,7 +179,11 @@ def test_full_circuit(simulator_backend):
         "meas_mapped": [1, 0],
     }
     expected_output_map = [1, 0]
-    expected_metadata = {"shots": "200", "sampler_seed": "42"}
+    expected_metadata = {
+        "shots": "200",
+        "sampler_seed": "42",
+        "user_agent": get_user_agent(),
+    }
     expected_rest_of_payload = {
         "backend": "simulator",
         "shots": 200,
@@ -255,6 +260,7 @@ def test_multicircuit_mapping(simulator_backend):
         "metadata": {
             "shots": "1024",
             "sampler_seed": "None",
+            "user_agent": get_user_agent(),
         },
         "noise": {"model": "ideal", "seed": None},
     }
@@ -350,7 +356,12 @@ def test_full_native_circuit(simulator_backend):
         "qubit_labels": [["q", 0], ["q", 1], ["q", 2]],
         "meas_mapped": [],
     }
-    expected_metadata = {"shots": "200", "sampler_seed": "23", "iteration": "10"}
+    expected_metadata = {
+        "shots": "200",
+        "sampler_seed": "23",
+        "iteration": "10",
+        "user_agent": get_user_agent(),
+    }
     expected_rest_of_payload = {
         "backend": "simulator",
         "name": "blame_test",
