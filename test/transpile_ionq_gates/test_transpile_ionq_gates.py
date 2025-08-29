@@ -31,14 +31,10 @@ import warnings
 import numpy as np
 import pytest
 
-from qiskit import (
-    QuantumCircuit,
-    QuantumRegister,
-    transpile,
-)
+from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler import TransformationPass
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, SparsePauliOp
 from qiskit.circuit.library import (
     HGate,
     IGate,
@@ -83,6 +79,7 @@ from qiskit.circuit.library import (
     CXGate,
     CYGate,
     CZGate,
+    PauliEvolutionGate,
 )
 from qiskit_ionq import ionq_provider
 
@@ -419,3 +416,22 @@ def test_multi_qubit_transpilation(ideal_results, gates):
             f"Circuit: {circuit}"
         ),
     )
+
+
+def test_pauliexp_transpilation():
+    """Test transpiling Pauli evolution circuits."""
+    # Create a Pauli evolution circuit
+    operator = SparsePauliOp(["XX", "YY", "ZZ"], coeffs=[0.1, 0.2, 0.3])
+    evo = PauliEvolutionGate(operator, time=0.4)
+    circuit = QuantumCircuit(2)
+    circuit.append(evo, [0, 1])
+
+    # Get an IonQ QIS simulator backend
+    provider = ionq_provider.IonQProvider()
+    backend = provider.get_backend("ionq_simulator", gateset="qis")
+
+    # Ensure transpiled circuits retain pauliexp gates
+    t_circuit = transpile(circuit, backend=backend, optimization_level=3)
+    assert t_circuit.data[0].name == "PauliEvolution"
+    assert t_circuit.data[0].label == "exp(-it (XX + YY + ZZ))"
+    assert t_circuit.data[0].params == [0.4]
