@@ -27,11 +27,45 @@
 """IonQ provider backends."""
 
 from __future__ import annotations
+import itertools
 from typing import Literal, Sequence, TYPE_CHECKING
 import warnings
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import Measure, Reset, CXGate, HGate, SGate, TGate
+from qiskit.circuit.library import (
+    Measure,
+    Reset,
+    CHGate,
+    XGate,
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CSXGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    HGate,
+    IGate,
+    MCPhaseGate,
+    MCXGate,
+    PhaseGate,
+    RXGate,
+    RXXGate,
+    RYGate,
+    RYYGate,
+    RZGate,
+    RZZGate,
+    SGate,
+    SdgGate,
+    SwapGate,
+    SXGate,
+    SXdgGate,
+    TGate,
+    TdgGate,
+    ZGate,
+    PauliEvolutionGate,
+)
 from qiskit.providers import BackendV2 as Backend, Options
 from qiskit.transpiler import Target, CouplingMap
 
@@ -237,18 +271,78 @@ class IonQBackend(Backend):
         tgt = Target(num_qubits=n)
 
         if self._gateset == "qis":
-            # 1q: H, S, T ; 2q: CX
-            for gate in (HGate(), SGate(), TGate()):
+            # 1-qubit (fixed)
+            for gate in (
+                IGate(),
+                XGate(),
+                ZGate(),
+                HGate(),
+                SGate(),
+                SdgGate(),
+                SXGate(),
+                SXdgGate(),
+                TGate(),
+                TdgGate(),
+            ):
                 tgt.add_instruction(gate, {(q,): None for q in range(n)})
+
+            # 1-qubit (parameterized)
+            theta, lam = Parameter("θ"), Parameter("λ")
+            for gate in (
+                RXGate(theta),
+                RYGate(theta),
+                RZGate(theta),
+                PhaseGate(lam),
+            ):
+                tgt.add_instruction(gate, {(q,): None for q in range(n)})
+
+            # 2-qubit (all-to-all)
             pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
-            tgt.add_instruction(CXGate(), pairs)
+
+            for gate in (
+                CXGate(),
+                CYGate(),
+                CZGate(),
+                CHGate(),
+                CSXGate(),
+                SwapGate(),
+            ):
+                tgt.add_instruction(gate, pairs)
+
+            twoq_param = (
+                CRXGate(theta),
+                CRYGate(theta),
+                CRZGate(theta),
+                CPhaseGate(lam),
+                RXXGate(theta),
+                RYYGate(theta),
+                RZZGate(theta),
+            )
+            for gate in twoq_param:
+                tgt.add_instruction(gate, pairs)
+
+            # all ordered, distinct k-tuples of qubits
+            def k_tuples(k: int) -> dict[tuple[int, ...], None]:
+                if n < k:
+                    return {}
+                return {t: None for t in itertools.permutations(range(n), k)}
+
+            # MCX with 3 controls (4 total qubits)
+            tgt.add_instruction(MCXGate(3), k_tuples(4))
+
+            # Multi-controlled Phase
+            tgt.add_instruction(MCPhaseGate(lam, 2), k_tuples(3))
+
+            # PauliEvolutionGate: register by class name
+            tgt.add_instruction(PauliEvolutionGate, name="PauliEvolution")
+
         else:
-            # 1q native: GPI(φ), GPI2(φ)
+            # 1q native
             phi = Parameter("φ")
             for gate in (GPIGate(phi), GPI2Gate(phi)):
                 tgt.add_instruction(gate, {(q,): None for q in range(n)})
 
-            # 2q native: MS(φ0, φ1, θ) or ZZ(θ)
+            # 2q native
             pairs = {(i, j): None for i in range(n) for j in range(n) if i != j}
             if "forte" in self.name.lower():
                 theta = Parameter("θ")

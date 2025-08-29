@@ -33,6 +33,7 @@ import pytest
 from qiskit import QuantumCircuit
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
+from qiskit_ionq.helpers import get_user_agent
 
 from .. import conftest
 
@@ -283,6 +284,7 @@ def test_multiexp_job(mock_backend, requests_mock):
         "metadata": {
             "shots": "1024",
             "sampler_seed": "None",
+            "user_agent": get_user_agent(),
         },
     }
 
