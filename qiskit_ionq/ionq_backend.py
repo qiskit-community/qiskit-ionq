@@ -27,7 +27,6 @@
 """IonQ provider backends."""
 
 from __future__ import annotations
-import itertools
 from typing import Literal, Sequence, TYPE_CHECKING
 import warnings
 
@@ -321,16 +320,16 @@ class IonQBackend(Backend):
             for gate in twoq_param:
                 tgt.add_instruction(gate, pairs)
 
-            # all ordered, distinct k-tuples of qubits
+            # 3-qubit (continuous)
             def k_tuples(k: int) -> dict[tuple[int, ...], None]:
                 if n < k:
                     return {}
-                return {t: None for t in itertools.permutations(range(n), k)}
+                return {tuple(range(i, i + k)): None for i in range(n - k + 1)}
 
             # MCX with 3 controls (4 total qubits)
             tgt.add_instruction(MCXGate(3), k_tuples(4))
 
-            # Multi-controlled Phase
+            # Multi-controlled Phase (3 total qubits)
             tgt.add_instruction(MCPhaseGate(lam, 2), k_tuples(3))
 
             # PauliEvolutionGate: register by class name
