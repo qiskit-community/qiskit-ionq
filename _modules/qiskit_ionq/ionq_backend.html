@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_backend - Qiskit IonQ Provider 1.0.0</title>
+        <title>qiskit_ionq.ionq_backend - Qiskit IonQ Provider 1.0.1</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.0.0</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.0.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.0</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.1</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -264,7 +264,40 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">Parameter</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit.library</span><span class="w"> </span><span class="kn">import</span> <span class="n">Measure</span><span class="p">,</span> <span class="n">Reset</span><span class="p">,</span> <span class="n">CXGate</span><span class="p">,</span> <span class="n">HGate</span><span class="p">,</span> <span class="n">SGate</span><span class="p">,</span> <span class="n">TGate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit.library</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Measure</span><span class="p">,</span>
+    <span class="n">Reset</span><span class="p">,</span>
+    <span class="n">CHGate</span><span class="p">,</span>
+    <span class="n">XGate</span><span class="p">,</span>
+    <span class="n">CPhaseGate</span><span class="p">,</span>
+    <span class="n">CRXGate</span><span class="p">,</span>
+    <span class="n">CRYGate</span><span class="p">,</span>
+    <span class="n">CRZGate</span><span class="p">,</span>
+    <span class="n">CSXGate</span><span class="p">,</span>
+    <span class="n">CXGate</span><span class="p">,</span>
+    <span class="n">CYGate</span><span class="p">,</span>
+    <span class="n">CZGate</span><span class="p">,</span>
+    <span class="n">HGate</span><span class="p">,</span>
+    <span class="n">IGate</span><span class="p">,</span>
+    <span class="n">MCPhaseGate</span><span class="p">,</span>
+    <span class="n">MCXGate</span><span class="p">,</span>
+    <span class="n">PhaseGate</span><span class="p">,</span>
+    <span class="n">RXGate</span><span class="p">,</span>
+    <span class="n">RXXGate</span><span class="p">,</span>
+    <span class="n">RYGate</span><span class="p">,</span>
+    <span class="n">RYYGate</span><span class="p">,</span>
+    <span class="n">RZGate</span><span class="p">,</span>
+    <span class="n">RZZGate</span><span class="p">,</span>
+    <span class="n">SGate</span><span class="p">,</span>
+    <span class="n">SdgGate</span><span class="p">,</span>
+    <span class="n">SwapGate</span><span class="p">,</span>
+    <span class="n">SXGate</span><span class="p">,</span>
+    <span class="n">SXdgGate</span><span class="p">,</span>
+    <span class="n">TGate</span><span class="p">,</span>
+    <span class="n">TdgGate</span><span class="p">,</span>
+    <span class="n">ZGate</span><span class="p">,</span>
+    <span class="n">PauliEvolutionGate</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BackendV2</span> <span class="k">as</span> <span class="n">Backend</span><span class="p">,</span> <span class="n">Options</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.transpiler</span><span class="w"> </span><span class="kn">import</span> <span class="n">Target</span><span class="p">,</span> <span class="n">CouplingMap</span>
 
@@ -492,33 +525,71 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_make_target</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Target</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build a Target exposing either QIS or IonQ-native gates.&quot;&quot;&quot;</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span>
-        <span class="n">tgt</span> <span class="o">=</span> <span class="n">Target</span><span class="p">(</span><span class="n">num_qubits</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">tgt</span> <span class="o">=</span> <span class="n">Target</span><span class="p">(</span><span class="n">num_qubits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span> <span class="o">==</span> <span class="s2">&quot;qis&quot;</span><span class="p">:</span>
-            <span class="c1"># 1q: H, S, T ; 2q: CX</span>
-            <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="p">(</span><span class="n">HGate</span><span class="p">(),</span> <span class="n">SGate</span><span class="p">(),</span> <span class="n">TGate</span><span class="p">()):</span>
-                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
-            <span class="n">pairs</span> <span class="o">=</span> <span class="p">{(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">}</span>
-            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">CXGate</span><span class="p">(),</span> <span class="n">pairs</span><span class="p">)</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">lam</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">),</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;λ&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="c1"># 1-qubit (fixed)</span>
+                <span class="n">IGate</span><span class="p">(),</span>
+                <span class="n">XGate</span><span class="p">(),</span>
+                <span class="n">ZGate</span><span class="p">(),</span>
+                <span class="n">HGate</span><span class="p">(),</span>
+                <span class="n">SGate</span><span class="p">(),</span>
+                <span class="n">SdgGate</span><span class="p">(),</span>
+                <span class="n">SXGate</span><span class="p">(),</span>
+                <span class="n">SXdgGate</span><span class="p">(),</span>
+                <span class="n">TGate</span><span class="p">(),</span>
+                <span class="n">TdgGate</span><span class="p">(),</span>
+                <span class="c1"># 1-qubit (parameterized)</span>
+                <span class="n">RXGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+                <span class="n">RYGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+                <span class="n">RZGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+                <span class="n">PhaseGate</span><span class="p">(</span><span class="n">lam</span><span class="p">),</span>
+                <span class="c1"># 2-qubit (fixed)</span>
+                <span class="n">CXGate</span><span class="p">(),</span>
+                <span class="n">CYGate</span><span class="p">(),</span>
+                <span class="n">CZGate</span><span class="p">(),</span>
+                <span class="n">CHGate</span><span class="p">(),</span>
+                <span class="n">CSXGate</span><span class="p">(),</span>
+                <span class="n">SwapGate</span><span class="p">(),</span>
+                <span class="c1"># 2-qubit (parameterized)</span>
+                <span class="n">CRXGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+                <span class="n">CRYGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+                <span class="n">CRZGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+                <span class="n">CPhaseGate</span><span class="p">(</span><span class="n">lam</span><span class="p">),</span>
+                <span class="n">RXXGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+                <span class="n">RYYGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+                <span class="n">RZZGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+            <span class="p">):</span>
+                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+
+            <span class="c1"># MCX with 3 controls (4 total qubits)</span>
+            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">MCXGate</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;mcx&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Multi-controlled Phase (3 total qubits)</span>
+            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">MCPhaseGate</span><span class="p">(</span><span class="n">lam</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;mcphase&quot;</span><span class="p">)</span>
+
+            <span class="c1"># PauliEvolutionGate</span>
+            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">PauliEvolutionGate</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;PauliEvolution&quot;</span><span class="p">)</span>
+
         <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># 1q native: GPI(φ), GPI2(φ)</span>
+            <span class="c1"># 1q native</span>
             <span class="n">phi</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;φ&quot;</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="p">(</span><span class="n">GPIGate</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">GPI2Gate</span><span class="p">(</span><span class="n">phi</span><span class="p">)):</span>
-                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
+                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
 
-            <span class="c1"># 2q native: MS(φ0, φ1, θ) or ZZ(θ)</span>
-            <span class="n">pairs</span> <span class="o">=</span> <span class="p">{(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">}</span>
+            <span class="c1"># 2q native</span>
             <span class="k">if</span> <span class="s2">&quot;forte&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
                 <span class="n">theta</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">)</span>
-                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">ZZGate</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">pairs</span><span class="p">)</span>
+                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">ZZGate</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">phi0</span><span class="p">,</span> <span class="n">phi1</span><span class="p">,</span> <span class="n">theta</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;φ0&quot;</span><span class="p">),</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;φ1&quot;</span><span class="p">),</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">)</span>
-                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">MSGate</span><span class="p">(</span><span class="n">phi0</span><span class="p">,</span> <span class="n">phi1</span><span class="p">,</span> <span class="n">theta</span><span class="p">),</span> <span class="n">pairs</span><span class="p">)</span>
+                <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">MSGate</span><span class="p">(</span><span class="n">phi0</span><span class="p">,</span> <span class="n">phi1</span><span class="p">,</span> <span class="n">theta</span><span class="p">))</span>
 
         <span class="c1"># Always allow measure/reset</span>
         <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Measure</span><span class="p">,</span> <span class="n">Reset</span><span class="p">):</span>
-            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="bp">cls</span><span class="p">(),</span> <span class="p">{(</span><span class="n">q</span><span class="p">,):</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)})</span>
+            <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="bp">cls</span><span class="p">())</span>
 
         <span class="k">return</span> <span class="n">tgt</span>
 
@@ -643,7 +714,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/documentation_options.js?v=292eb321"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>
