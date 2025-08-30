@@ -62,6 +62,7 @@ from qiskit.circuit.library import (
     SXdgGate,
     TGate,
     TdgGate,
+    YGate,
     ZGate,
     PauliEvolutionGate,
 )
@@ -269,11 +270,12 @@ class IonQBackend(Backend):
         tgt = Target(num_qubits=self._num_qubits)
 
         if self._gateset == "qis":
-            theta, lam = Parameter("θ"), Parameter("λ")
+            theta = Parameter("θ")
             for gate in (
                 # 1-qubit (fixed)
                 IGate(),
                 XGate(),
+                YGate(),
                 ZGate(),
                 HGate(),
                 SGate(),
@@ -286,7 +288,7 @@ class IonQBackend(Backend):
                 RXGate(theta),
                 RYGate(theta),
                 RZGate(theta),
-                PhaseGate(lam),
+                PhaseGate(theta),
                 # 2-qubit (fixed)
                 CXGate(),
                 CYGate(),
@@ -298,20 +300,15 @@ class IonQBackend(Backend):
                 CRXGate(theta),
                 CRYGate(theta),
                 CRZGate(theta),
-                CPhaseGate(lam),
+                CPhaseGate(theta),
                 RXXGate(theta),
                 RYYGate(theta),
                 RZZGate(theta),
             ):
                 tgt.add_instruction(gate)
 
-            # MCX with 3 controls (4 total qubits)
-            tgt.add_instruction(MCXGate(3), name="mcx")
-
-            # Multi-controlled Phase (3 total qubits)
-            tgt.add_instruction(MCPhaseGate(lam, 2), name="mcphase")
-
-            # PauliEvolutionGate
+            tgt.add_instruction(MCXGate, name="mcx")
+            tgt.add_instruction(MCPhaseGate, name="mcphase")
             tgt.add_instruction(PauliEvolutionGate, name="PauliEvolution")
 
         else:
