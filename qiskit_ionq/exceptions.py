@@ -243,6 +243,10 @@ class IonQPauliExponentialError(IonQError):
     """Errors generated from improper usage of Pauli exponentials."""
 
 
+class IonQTranspileLevelWarning(UserWarning):
+    """Transpiler optimization level may degrade IonQ QIS results."""
+
+
 __all__ = [
     "IonQError",
     "IonQCredentialsError",
@@ -253,4 +257,6 @@ __all__ = [
     "IonQGateError",
     "IonQMidCircuitMeasurementError",
     "IonQJobTimeoutError",
+    "IonQPauliExponentialError",
+    "IonQTranspileLevelWarning",
 ]

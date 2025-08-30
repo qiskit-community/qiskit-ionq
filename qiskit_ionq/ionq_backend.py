@@ -62,6 +62,7 @@ from qiskit.circuit.library import (
     SXdgGate,
     TGate,
     TdgGate,
+    YGate,
     ZGate,
     PauliEvolutionGate,
 )
@@ -70,7 +71,7 @@ from qiskit.transpiler import Target, CouplingMap
 
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
-from .helpers import GATESET_MAP, get_n_qubits
+from .helpers import GATESET_MAP, get_n_qubits, warn_bad_transpile_level
 from .ionq_client import Characterization
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -121,6 +122,9 @@ class IonQBackend(Backend):
         # Apply initial options if any
         if initial_options:
             self.options.update_options(**initial_options)
+
+        # Warn if optimization_level is set to a bad value (for IonQ)
+        warn_bad_transpile_level()
 
     @classmethod
     def _default_options(cls) -> Options:
@@ -269,11 +273,12 @@ class IonQBackend(Backend):
         tgt = Target(num_qubits=self._num_qubits)
 
         if self._gateset == "qis":
-            theta, lam = Parameter("θ"), Parameter("λ")
+            theta = Parameter("θ")
             for gate in (
                 # 1-qubit (fixed)
                 IGate(),
                 XGate(),
+                YGate(),
                 ZGate(),
                 HGate(),
                 SGate(),
@@ -286,7 +291,7 @@ class IonQBackend(Backend):
                 RXGate(theta),
                 RYGate(theta),
                 RZGate(theta),
-                PhaseGate(lam),
+                PhaseGate(theta),
                 # 2-qubit (fixed)
                 CXGate(),
                 CYGate(),
@@ -298,20 +303,15 @@ class IonQBackend(Backend):
                 CRXGate(theta),
                 CRYGate(theta),
                 CRZGate(theta),
-                CPhaseGate(lam),
+                CPhaseGate(theta),
                 RXXGate(theta),
                 RYYGate(theta),
                 RZZGate(theta),
             ):
                 tgt.add_instruction(gate)
 
-            # MCX with 3 controls (4 total qubits)
-            tgt.add_instruction(MCXGate(3), name="mcx")
-
-            # Multi-controlled Phase (3 total qubits)
-            tgt.add_instruction(MCPhaseGate(lam, 2), name="mcphase")
-
-            # PauliEvolutionGate
+            tgt.add_instruction(MCXGate, name="mcx")
+            tgt.add_instruction(MCPhaseGate, name="mcphase")
             tgt.add_instruction(PauliEvolutionGate, name="PauliEvolution")
 
         else:

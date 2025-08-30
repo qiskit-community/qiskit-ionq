@@ -45,7 +45,8 @@ import requests
 from dotenv import dotenv_values
 
 import numpy as np
-from qiskit import __version__ as qiskit_terra_version
+from qiskit import __version__ as qiskit_version
+from qiskit.user_config import get_config
 from qiskit.circuit import (
     controlledgate as q_cgates,
     QuantumCircuit,
@@ -567,15 +568,13 @@ def get_user_agent() -> str:
     Returns:
         str: A string of generated user agent.
     """
-    # from qiskit_ionq import __version__ as qiskit_ionq_version
-
     os_string = f"os/{platform.system()}"
     provider_version_string = f"qiskit-ionq/{version('qiskit_ionq')}"
-    qiskit_terra_version_string = f"qiskit-terra/{qiskit_terra_version}"
+    qiskit_version_string = f"qiskit/{qiskit_version}"
     python_version_string = f"python/{platform.python_version()}"
     return (
         f"{provider_version_string} "
-        f"({qiskit_terra_version_string}) {os_string} "
+        f"({qiskit_version_string}) {os_string} "
         f"({python_version_string})"
     )
 
@@ -721,6 +720,20 @@ def normalize(weights):
     if total == 0:
         raise ValueError("sum of weights is zero")
     return arr / total
+
+
+def warn_bad_transpile_level():
+    """Warn if user default transpile_optimization_level is not 0 or 1."""
+    cfg = get_config() or {}
+    opt_lvl = cfg.get("transpile_optimization_level", 2)
+    if opt_lvl not in (0, 1):
+        warnings.warn(
+            f"Transpiler default optimization_level={opt_lvl}. "
+            "IonQ (QIS) recommends 0-1 to avoid aggressive re-synthesis; "
+            "use transpile(..., optimization_level=1).",
+            ionq_exceptions.IonQTranspileLevelWarning,
+            stacklevel=2,
+        )
 
 
 __all__ = [
