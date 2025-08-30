@@ -723,15 +723,15 @@ def normalize(weights):
 
 
 def warn_bad_transpile_level():
-    """Warn if user default transpile_optimization_level is 2 or 3."""
+    """Warn if user default transpile_optimization_level is not 0 or 1."""
     cfg = get_config() or {}
-    lvl = cfg.get("transpile_optimization_level")
-    if lvl not in (0, 1):
+    opt_lvl = cfg.get("transpile_optimization_level", 2)
+    if opt_lvl not in (0, 1):
         warnings.warn(
-            "IonQ note: Your Qiskit 'transpile_optimization_level' is set to "
-            f"{lvl}. For IonQ backends we recommend 0 or 1 to avoid aggressive "
-            "re-synthesis that can inflate depth and degrade fidelity.",
-            UserWarning,
+            f"Transpiler default optimization_level={opt_lvl}. "
+            "IonQ (QIS) recommends 0-1 to avoid aggressive re-synthesis; "
+            "use transpile(..., optimization_level=1).",
+            ionq_exceptions.IonQTranspileLevelWarning,
             stacklevel=2,
         )
 
