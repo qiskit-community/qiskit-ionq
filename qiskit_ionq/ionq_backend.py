@@ -71,7 +71,7 @@ from qiskit.transpiler import Target, CouplingMap
 
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
-from .helpers import GATESET_MAP, get_n_qubits
+from .helpers import GATESET_MAP, get_n_qubits, warn_bad_transpile_level
 from .ionq_client import Characterization
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -122,6 +122,9 @@ class IonQBackend(Backend):
         # Apply initial options if any
         if initial_options:
             self.options.update_options(**initial_options)
+
+        # Warn if optimization_level is set to a bad value (for IonQ)
+        warn_bad_transpile_level()
 
     @classmethod
     def _default_options(cls) -> Options:
