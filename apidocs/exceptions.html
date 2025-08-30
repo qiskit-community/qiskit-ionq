@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Helpers" href="helpers.html" /><link rel="prev" title="IonQ Result" href="result.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>Exceptions - Qiskit IonQ Provider 1.0.1</title>
+        <title>Exceptions - Qiskit IonQ Provider 1.0.2</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.0.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.0.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.1</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.2</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -491,6 +491,47 @@ set self.__traceback__ to tb and return self.</p>
 
 </dd></dl>
 
+<dl class="py exception">
+<dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQPauliExponentialError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQPauliExponentialError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQPauliExponentialError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQPauliExponentialError" title="Link to this definition">¶</a></dt>
+<dd><p>Errors generated from improper usage of Pauli exponentials.</p>
+<p>Set the error message.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQPauliExponentialError.add_note">
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQPauliExponentialError.add_note" title="Link to this definition">¶</a></dt>
+<dd><p>Exception.add_note(note) –
+add a note to the exception</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQPauliExponentialError.with_traceback">
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQPauliExponentialError.with_traceback" title="Link to this definition">¶</a></dt>
+<dd><p>Exception.with_traceback(tb) –
+set self.__traceback__ to tb and return self.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQTranspileLevelWarning">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qiskit_ionq.exceptions.</span></span><span class="sig-name descname"><span class="pre">IonQTranspileLevelWarning</span></span><a class="reference internal" href="../_modules/qiskit_ionq/exceptions.html#IonQTranspileLevelWarning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.exceptions.IonQTranspileLevelWarning" title="Link to this definition">¶</a></dt>
+<dd><p>Transpiler optimization level may degrade IonQ QIS results.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQTranspileLevelWarning.add_note">
+<span class="sig-name descname"><span class="pre">add_note</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQTranspileLevelWarning.add_note" title="Link to this definition">¶</a></dt>
+<dd><p>Exception.add_note(note) –
+add a note to the exception</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.exceptions.IonQTranspileLevelWarning.with_traceback">
+<span class="sig-name descname"><span class="pre">with_traceback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_ionq.exceptions.IonQTranspileLevelWarning.with_traceback" title="Link to this definition">¶</a></dt>
+<dd><p>Exception.with_traceback(tb) –
+set self.__traceback__ to tb and return self.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -599,6 +640,16 @@ set self.__traceback__ to tb and return self.</p>
 <li><a class="reference internal" href="#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError.with_traceback"><code class="docutils literal notranslate"><span class="pre">IonQMidCircuitMeasurementError.with_traceback()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#qiskit_ionq.exceptions.IonQPauliExponentialError"><code class="docutils literal notranslate"><span class="pre">IonQPauliExponentialError</span></code></a><ul>
+<li><a class="reference internal" href="#qiskit_ionq.exceptions.IonQPauliExponentialError.add_note"><code class="docutils literal notranslate"><span class="pre">IonQPauliExponentialError.add_note()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.exceptions.IonQPauliExponentialError.with_traceback"><code class="docutils literal notranslate"><span class="pre">IonQPauliExponentialError.with_traceback()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#qiskit_ionq.exceptions.IonQTranspileLevelWarning"><code class="docutils literal notranslate"><span class="pre">IonQTranspileLevelWarning</span></code></a><ul>
+<li><a class="reference internal" href="#qiskit_ionq.exceptions.IonQTranspileLevelWarning.add_note"><code class="docutils literal notranslate"><span class="pre">IonQTranspileLevelWarning.add_note()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.exceptions.IonQTranspileLevelWarning.with_traceback"><code class="docutils literal notranslate"><span class="pre">IonQTranspileLevelWarning.with_traceback()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -612,7 +663,7 @@ set self.__traceback__ to tb and return self.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../_static/documentation_options.js?v=1ed6394b"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
