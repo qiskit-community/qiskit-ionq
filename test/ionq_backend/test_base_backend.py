@@ -31,6 +31,7 @@ from unittest import mock
 
 import pytest
 from qiskit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
 from qiskit_ionq.helpers import get_user_agent
@@ -312,5 +313,5 @@ def test_backend_memory(
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    with pytest.raises(AttributeError):
+    with pytest.raises(QiskitError):
         job.get_memory()  # pylint: disable=no-member
