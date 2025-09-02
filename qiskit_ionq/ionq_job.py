@@ -329,7 +329,7 @@ class IonQJob(JobV1):
         if self._status is jobstatus.JobStatus.DONE:
             assert self._job_id is not None
             response = self._client.get_results(
-                results_url=self._results_url,
+                results_url=self._results_urls.get("probabilities", ""),
                 sharpen=sharpen,
                 extra_query_params=extra_query_params,
             )
@@ -391,14 +391,12 @@ class IonQJob(JobV1):
                 self._num_circuits = self._first_of(stats, "circuits", default=1)
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
-            _results_url = self._first_of(
-                response, "results", "results_url", default={}
-            )
-            self._results_url = (
-                _results_url
-                if isinstance(_results_url, str)
-                else _results_url.get("probabilities", {}).get("url")
-            )
+            results = response.get("results", {})
+            self._results_urls = {
+                k: v.get("url")
+                for k, v in results.items()
+                if isinstance(v, dict) and "url" in v
+            }
 
             # Classical-bit maps per circuit
             def _meas_map_from_header(header_dict, fallback_nq):
