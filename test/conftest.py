@@ -37,11 +37,13 @@ from qiskit_ionq.helpers import compress_to_metadata_string
 def _def_results_template(job_id):
     """A template for the results field in a job response."""
     return {
-        "probabilities": {
+        "histogram": {
             # v0.4 returns a relative path - the client prefixes it with the base URL
             # https://docs.ionq.com/api-reference/v0.4/jobs/get-job
-            "url": f"/v0.4/jobs/{job_id}/results/probabilities"
-        }
+            "url": f"/v0.4/jobs/{job_id}/results/histogram"
+        },
+        "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"},
+        "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"},
     }
 
 
@@ -327,6 +329,7 @@ def formatted_result(provider):
     # Create the request path for accessing the dummy job:
     path = client.make_path("jobs", job_id)
     results_path = client.make_path("jobs", job_id, "results", "probabilities")
+    shots_path = client.make_path("jobs", job_id, "results", "shots")
 
     # mock a job response
     with _default_requests_mock() as requests_mock:
@@ -336,6 +339,7 @@ def formatted_result(provider):
         )
 
         requests_mock.get(results_path, json={"0": 0.5, "2": 0.499999})
+        requests_mock.get(shots_path, json=617 * ["00"] + 617 * ["10"])
 
         # Create the job (this calls self.status(), which will fetch the job).
         job = ionq_job.IonQJob(backend, job_id, client)

@@ -445,13 +445,18 @@ def test_counts_marginalize(simulator_backend, requests_mock):
             "stats": {"qubits": 4, "circuits": 1},
             "metadata": {"qiskit_header": header, "shots": str(shots)},
             "results": {
-                "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"}
+                "histogram": {"url": f"/v0.4/jobs/{job_id}/results/histogram"},
+                "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"},
             },
         },
     )
     requests_mock.get(
         client.make_path("jobs", job_id, "results", "probabilities"),
         json={"0": 1.0},
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "shots"),
+        json=shots * ["0000"],
     )
 
     # Run; full-width counts then marginalize using meas_mapped

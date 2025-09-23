@@ -60,7 +60,10 @@ def _mock_job_payload(job_id, qiskit_header, circuits, children=None, qubits=3):
         # parent-level header contains all circuits
         "metadata": {"qiskit_header": compress_to_metadata_string(qiskit_header)},
         # dummy results URL so status() sets _results_url without error
-        "results": {"probabilities": {"url": f"/jobs/{job_id}/results/probabilities"}},
+        "results": {
+            "probabilities": {"url": f"/jobs/{job_id}/results/probabilities"},
+            "histogram": {"url": f"/jobs/{job_id}/results/histogram"},
+        },
     }
 
 
@@ -256,7 +259,9 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
     results_path = simulator_backend.client.make_path(
         "jobs", job_id, "results", "probabilities"
     )
+    shots_path = simulator_backend.client.make_path("jobs", job_id, "results", "shots")
     requests_mock.get(results_path, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(shots_path, json=617 * ["00"] + 617 * ["10"])
     job = ionq_job.IonQJob(simulator_backend, job_id)
 
     formatted_result = job.result()
@@ -287,7 +292,9 @@ def test_counts_and_probs_from_job(simulator_backend, requests_mock):
     results_path = simulator_backend.client.make_path(
         "jobs", job_id, "results", "probabilities"
     )
+    shots_path = simulator_backend.client.make_path("jobs", job_id, "results", "shots")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(shots_path, status_code=200, json=609 * ["00"] + 625 * ["10"])
     job = ionq_job.IonQJob(simulator_backend, job_id)
 
     counts = job.get_counts()
@@ -432,6 +439,7 @@ expected_result = {
             "data": {
                 "counts": {"00": 617, "10": 617},
                 "probabilities": {"00": 0.5, "10": 0.499999},
+                "memory": 617 * ["00"] + 617 * ["10"],
                 "metadata": {
                     "clbit_labels": [["c", 0], ["c", 1]],
                     "creg_sizes": [["c", 2]],
@@ -484,7 +492,9 @@ def test_result(mock_backend, requests_mock):
     requests_mock.get(path, status_code=200, json=job_result)
 
     results_path = client.make_path("jobs", job_id, "results", "probabilities")
+    shots_path = client.make_path("jobs", job_id, "results", "shots")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(shots_path, status_code=200, json=617 * ["00"] + 617 * ["10"])
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
@@ -511,7 +521,9 @@ def test_result__with_sharpen(mock_backend, requests_mock):
     results_path = (
         client.make_path("jobs", job_id, "results", "probabilities") + "?sharpen=false"
     )
+    shots_path = client.make_path("jobs", job_id, "results", "shots")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(shots_path, status_code=200, json=617 * ["00"] + 617 * ["10"])
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
@@ -538,7 +550,9 @@ def test_result__with_extra_payload(mock_backend, requests_mock):
     results_path = (
         client.make_path("jobs", job_id, "results", "probabilities") + "?sharpen=false"
     )
+    shots_path = client.make_path("jobs", job_id, "results", "shots")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(shots_path, status_code=200, json=617 * ["00"] + 617 * ["10"])
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
@@ -565,7 +579,9 @@ def test_result__bad_sharpen(mock_backend, requests_mock):
     requests_mock.get(fetch_path, status_code=200, json=job_response)
 
     results_path = client.make_path("jobs", job_id, "results", "probabilities")
+    shots_path = client.make_path("jobs", job_id, "results", "shots")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(shots_path, status_code=200, json=617 * ["00"] + 617 * ["10"])
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
@@ -601,7 +617,9 @@ def test_result__from_circuit(mock_backend, requests_mock):
     requests_mock.get(fetch_path, status_code=200, json=job_response)
 
     results_path = client.make_path("jobs", job_id, "results", "probabilities")
+    shots_path = client.make_path("jobs", job_id, "results", "shots")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
+    requests_mock.get(shots_path, status_code=200, json=617 * ["00"] + 617 * ["10"])
 
     # Validate the result and its format. should be the same as base case.
     res = job.result().to_dict()
@@ -640,7 +658,9 @@ def test_result__meas_mapped(mock_backend, requests_mock):
 
     # Mock the fetch from `results`
     fetch_path = client.make_path("jobs", job_id, "results", "probabilities")
+    shots_path = client.make_path("jobs", job_id, "results", "shots")
     requests_mock.get(fetch_path, status_code=200, json={"2": 1})
+    requests_mock.get(shots_path, status_code=200, json=["10", "10"])
 
     # Validate the result and its format. should be the same as base case.
     res = job.result().get_counts()
@@ -731,7 +751,9 @@ def test_status__no_job_id(mock_backend):
     assert actual_status is job._status is jobstatus.JobStatus.INITIALIZING
 
 
-def test_status__already_final_state(mock_backend, requests_mock):  # pylint: disable=invalid-name
+def test_status__already_final_state(
+    mock_backend, requests_mock
+):  # pylint: disable=invalid-name
     """Test status() returns early when the job is already completed.
 
     Args:

@@ -28,10 +28,10 @@
 # pylint: disable=redefined-outer-name
 
 from unittest import mock
+from collections import Counter
 
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.exceptions import QiskitError
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
 from qiskit_ionq.helpers import get_user_agent
@@ -290,9 +290,7 @@ def test_multiexp_job(mock_backend, requests_mock):
     }
 
 
-def test_backend_memory(
-    mock_backend, requests_mock
-):  # TODO fix when BE supports memory
+def test_backend_memory(mock_backend, requests_mock):
     """Test that memory is handled correctly.
 
     Args:
@@ -311,7 +309,12 @@ def test_backend_memory(
         status_code=200,
         json=probabilities,
     )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "shots"),
+        status_code=200,
+        json=["00", "00", "00", "00", "01", "10", "11", "11", "11", "11"],
+    )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    with pytest.raises(QiskitError):
-        job.get_memory()  # pylint: disable=no-member
+    memory = Counter(job.get_memory())
+    assert memory == Counter({"00": 4, "11": 4, "01": 1, "10": 1})
