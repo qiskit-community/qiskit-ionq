@@ -577,7 +577,8 @@ class IonQJob(JobV1):
 
         if isinstance(data, dict):
             looks_like_multi = all(
-                isinstance(v, dict) and all(isinstance(p, (int, float)) for p in v.values())
+                isinstance(v, dict)
+                and all(isinstance(p, (int, float)) for p in v.values())
                 for v in data.values()
             )
             data = list(data.values()) if looks_like_multi else [data]
