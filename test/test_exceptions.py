@@ -146,7 +146,7 @@ def test_api_error_raise_for_status():
     with pytest.raises(exceptions.IonQAPIError) as exc:
         exceptions.IonQAPIError.raise_for_status(response)
 
-    err = exc.value._cause
+    err = exc.value
     assert err.message == "an error"
     assert err.status_code == 500
     assert err.headers == {"Content-Type": "text/html"}
