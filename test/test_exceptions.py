@@ -143,7 +143,7 @@ def test_api_error_raise_for_status():
         }
     )
 
-    with pytest.raises(exceptions.IonQRetriableError) as exc:
+    with pytest.raises(exceptions.IonQAPIError) as exc:
         exceptions.IonQAPIError.raise_for_status(response)
 
     err = exc.value._cause
