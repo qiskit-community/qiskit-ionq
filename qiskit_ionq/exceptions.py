@@ -76,10 +76,10 @@ _RETRIABLE_FOR_GETS = {requests.codes.conflict}
 # Handle 52x responses from cloudflare.
 # See https://support.cloudflare.com/hc/en-us/articles/115003011431/
 _RETRIABLE_STATUS_CODES = {
-    requests.codes.internal_server_error,
-    requests.codes.bad_gateway,
-    requests.codes.service_unavailable,
-    *list(range(520, 530)),
+    requests.codes.bad_gateway,  # 502
+    requests.codes.service_unavailable,  # 503
+    requests.codes.gateway_timeout,  # 504
+    *list(range(520, 530)),  # 520–529 (Cloudflare)
 }
 # pylint: enable=no-member
 
