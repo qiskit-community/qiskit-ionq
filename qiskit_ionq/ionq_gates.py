@@ -26,7 +26,6 @@
 
 """Native gateset for IonQ hardware."""
 
-from typing import Optional
 import math
 import numpy as np
 from qiskit.circuit.gate import Gate
@@ -51,7 +50,7 @@ class GPIGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phi: ParameterValueType, label: str | None = None):
         """Create new GPI gate."""
         super().__init__("gpi", 1, [phi], label=label)
 
@@ -86,7 +85,7 @@ class GPI2Gate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phi: ParameterValueType, label: str | None = None):
         """Create new GPI2 gate."""
         super().__init__("gpi2", 1, [phi], label=label)
 
@@ -128,8 +127,8 @@ class MSGate(Gate):
         self,
         phi0: ParameterValueType,
         phi1: ParameterValueType,
-        theta: Optional[ParameterValueType] = 0.25,
-        label: Optional[str] = None,
+        theta: ParameterValueType = 0.25,
+        label: str | None = None,
     ):
         """Create new MS gate."""
         super().__init__(
@@ -179,7 +178,7 @@ class ZZGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new ZZ gate."""
         super().__init__("zz", 2, [theta], label=label)
 

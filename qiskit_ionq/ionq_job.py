@@ -38,7 +38,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Any, Optional, Callable
+from typing import TYPE_CHECKING, Any, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -46,6 +46,7 @@ from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
 from .helpers import decompress_metadata_string, normalize
+from .exceptions import IonQBackendError
 
 from . import constants, exceptions
 
@@ -144,6 +145,46 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     return counts, probabilities
 
 
+def _build_memory(
+    raw_shots: list[int | str],
+    n_qubits: int,
+    clbits: list[int] | None,
+    width: int | None = None,
+) -> list[str]:
+    """
+    Convert IonQ shot integers into Qiskit memory bitstrings, applying the same
+    classical-bit mapping (clbits) used for counts. Returns strings with MSB on
+    the left, matching Qiskit's display convention.
+
+    Args:
+        raw_shots: Iterable of per-shot outcomes from the API (ints or numeric strings).
+        n_qubits: Number of qubits used by the circuit (header n_qubits).
+        clbits: List mapping classical-bit index -> measured qubit index.
+                If None, defaults to identity [0..n_qubits-1].
+        width: Number of memory bits to display (header memory_slots). If None,
+               uses len(clbits) if available, else n_qubits.
+
+    Returns:
+        list[str]: Remapped bitstrings (e.g., "110"), one per shot, MSB-left.
+    """
+    # Default mappings / widths
+    if not clbits:
+        clbits = list(range(n_qubits))
+    out_width = int(width) if width is not None else len(clbits) if clbits else n_qubits
+
+    def remap_one(val: int | str) -> str:
+        x = int(val)
+        # IonQ integer -> per-qubit bitstring with index == qubit id (LSB at index 0)
+        raw = bin(x)[2:].rjust(n_qubits, "0")[::-1]
+        # Select in classical-bit order, then reverse to MSB-left for display
+        mapped = "".join(
+            raw[b] if b is not None and 0 <= b < n_qubits else "0" for b in clbits
+        )[::-1]
+        return mapped.rjust(out_width, "0")
+
+    return [remap_one(s) for s in raw_shots]
+
+
 class IonQJob(JobV1):
     """Representation of a Job that will run on an IonQ backend.
 
@@ -160,10 +201,10 @@ class IonQJob(JobV1):
     def __init__(
         self,
         backend: ionq_backend.IonQBackend,
-        job_id: Optional[str] = None,
-        client: Optional[ionq_client.IonQClient] = None,
-        circuit: Optional[QuantumCircuit] = None,
-        passed_args: Optional[dict] = None,
+        job_id: str | None = None,
+        client: ionq_client.IonQClient | None = None,
+        circuit: QuantumCircuit | None = None,
+        passed_args: dict | None = None,
     ):  # pylint: disable=too-many-positional-arguments
         assert (
             job_id is not None or circuit is not None
@@ -180,10 +221,12 @@ class IonQJob(JobV1):
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
             self.extra_metadata = passed_args.pop("extra_metadata", {})
+            self.memory = passed_args.pop("memory", True)
             self._passed_args = passed_args
         else:
             self.extra_query_params = {}
             self.extra_metadata = {}
+            self.memory = True
             self._passed_args = {"shots": 1024, "sampler_seed": None}
 
         # Support single or list-of-circuits submissions
@@ -223,7 +266,7 @@ class IonQJob(JobV1):
         response = self._client.submit_job(job=self)
         self._job_id = response["id"]
 
-    def get_counts(self, circuit: Optional[QuantumCircuit] = None) -> dict:
+    def get_counts(self, circuit: QuantumCircuit | None = None) -> dict:
         """Return the counts for the job.
 
         .. ATTENTION::
@@ -231,7 +274,7 @@ class IonQJob(JobV1):
             Result counts for jobs processed by
             :class:`IonQSimulatorBackend <qiskit_ionq.ionq_backend.IonQSimulatorBackend>`
             are returned from the API as probabilities, and are converted to counts via
-            simple statistical sampling that occurs on the cient side.
+            simple statistical sampling that occurs on the client side.
 
             To obtain the true probabilities, use the get_probabilties() method instead.
 
@@ -243,6 +286,23 @@ class IonQJob(JobV1):
             dict: A dictionary of counts.
         """
         return self.result().get_counts(circuit)
+
+    def get_memory(self, circuit=None):
+        """
+        Return the memory for the job.
+        Args:
+            circuit (str or QuantumCircuit or int or None): Optional.
+        Returns:
+            list: A list of memory strings.
+        """
+        if self.memory:
+            return self.result().get_memory(circuit)
+
+        raise IonQBackendError(
+            f'No memory for experiment "{circuit.name if circuit else ""}". '
+            "Please verify that you ran a job with "
+            'the memory flag set, eg., "memory=True".'
+        )
 
     def get_probabilities(self, circuit=None):  # pylint: disable=unused-argument
         """Return the probabilities (for simulators).
@@ -309,7 +369,7 @@ class IonQJob(JobV1):
         if self._status is jobstatus.JobStatus.DONE:
             assert self._job_id is not None
             response = self._client.get_results(
-                results_url=self._results_url,
+                results_url=self._results_urls.get("probabilities", ""),
                 sharpen=sharpen,
                 extra_query_params=extra_query_params,
             )
@@ -371,14 +431,12 @@ class IonQJob(JobV1):
                 self._num_circuits = self._first_of(stats, "circuits", default=1)
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
-            _results_url = self._first_of(
-                response, "results", "results_url", default={}
-            )
-            self._results_url = (
-                _results_url
-                if isinstance(_results_url, str)
-                else _results_url.get("probabilities", {}).get("url")
-            )
+            results = response.get("results", {})
+            self._results_urls = {
+                k: v.get("url")
+                for k, v in results.items()
+                if isinstance(v, dict) and "url" in v
+            }
 
             # Classical-bit maps per circuit
             def _meas_map_from_header(header_dict, fallback_nq):
@@ -519,7 +577,8 @@ class IonQJob(JobV1):
 
         if isinstance(data, dict):
             looks_like_multi = all(
-                isinstance(v, dict) and all(isinstance(p, float) for p in v.values())
+                isinstance(v, dict)
+                and all(isinstance(p, (int, float)) for p in v.values())
                 for v in data.values()
             )
             data = list(data.values()) if looks_like_multi else [data]
@@ -543,7 +602,8 @@ class IonQJob(JobV1):
         ]
         if self._status == jobstatus.JobStatus.DONE:
             for i in range(self._num_circuits):
-                (counts, probabilities) = _build_counts(
+                job_id = self._children[i] if self._children else self.job_id()
+                counts, probabilities = _build_counts(
                     data[i],
                     qiskit_header[i].get("n_qubits", self._num_qubits),
                     self._clbits[i],
@@ -551,8 +611,22 @@ class IonQJob(JobV1):
                     use_sampler=is_ideal_sim,
                     sampler_seed=sampler_seed,
                 )
+                try:
+                    memory = _build_memory(
+                        raw_shots=self._client.get_results(
+                            f"/v0.4/jobs/{job_id}/results/shots"
+                        ),
+                        n_qubits=qiskit_header[i].get("n_qubits", self._num_qubits),
+                        clbits=self._clbits[i],
+                        width=(qiskit_header[i] or {}).get(
+                            "memory_slots", len(self._clbits[i])
+                        ),
+                    )
+                except exceptions.IonQAPIError:
+                    memory = None
                 job_result[i]["data"] = {
                     "counts": counts,
+                    "memory": memory,
                     "probabilities": probabilities,
                     "metadata": qiskit_header[i] or {},
                 }

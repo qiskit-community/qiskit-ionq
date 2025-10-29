@@ -32,7 +32,7 @@ import re
 import json
 from collections import OrderedDict
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from warnings import warn
 import requests
 
@@ -55,9 +55,9 @@ class IonQClient:
 
     def __init__(
         self,
-        token: Optional[str] = None,
-        url: Optional[str] = None,
-        custom_headers: Optional[dict] = None,
+        token: str | None = None,
+        url: str | None = None,
+        custom_headers: dict | None = None,
     ):
         self._token = token
         self._custom_headers = custom_headers or {}
@@ -251,8 +251,8 @@ class IonQClient:
     def get_results(
         self,
         results_url: str,
-        sharpen: Optional[bool] = None,
-        extra_query_params: Optional[dict] = None,
+        sharpen: bool | None = None,
+        extra_query_params: dict | None = None,
     ) -> dict:
         """Retrieve job results from the IonQ API.
 
