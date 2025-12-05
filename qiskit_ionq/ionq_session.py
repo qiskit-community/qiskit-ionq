@@ -23,6 +23,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """
 Session object to both create and end sessions as well as
 use in a context manager to for automatic lifecycle management.
