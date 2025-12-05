@@ -41,11 +41,8 @@ from qiskit.primitives.containers import (
     PrimitiveResult,
     SamplerPubLike,
     SamplerPubResult,
-    EstimatorPubLike,
-    EstimatorPubResult,
 )
 from qiskit.primitives.containers.sampler_pub import SamplerPub
-from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.primitive_job import PrimitiveJob
 
 from .ionq_backend import IonQBackend
