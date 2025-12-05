@@ -41,8 +41,11 @@ from qiskit.primitives.containers import (
     PrimitiveResult,
     SamplerPubLike,
     SamplerPubResult,
+    EstimatorPubLike,
+    EstimatorPubResult,
 )
 from qiskit.primitives.containers.sampler_pub import SamplerPub
+from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.primitive_job import PrimitiveJob
 
 from .ionq_backend import IonQBackend
@@ -109,10 +112,22 @@ class IonQSampler(BaseSamplerV2):
     # internal helpers
 
     def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[SamplerPubResult]:
-        results = [self._run_pub(pub) for pub in pubs]
-        return PrimitiveResult(results, metadata={"version": 2})
+        results: list[SamplerPubResult] = []
+        ionq_job_ids: list[str | None] = []
 
-    def _run_pub(self, pub: SamplerPub) -> SamplerPubResult:
+        for pub in pubs:
+            pub_result, job_id = self._run_pub(pub)
+            results.append(pub_result)
+            ionq_job_ids.append(job_id)
+
+        metadata: dict[str, object] = {"version": 2}
+        # Only include job_ids if we actually managed to get them.
+        if any(jid is not None for jid in ionq_job_ids):
+            metadata["ionq_job_ids"] = ionq_job_ids
+
+        return PrimitiveResult(results, metadata=metadata)
+
+    def _run_pub(self, pub: SamplerPub) -> tuple[SamplerPubResult, str | None]:
         circuit = pub.circuit
         param_values = pub.parameter_values
         shots = pub.shots
@@ -136,6 +151,13 @@ class IonQSampler(BaseSamplerV2):
         ionq_job = self._backend.run(bound_circuits_list, **run_opts)
         ionq_result = ionq_job.result()
 
+        # Try to get the IonQ job_id from the underlying IonQJob.
+        ionq_job_id: str | None = None
+        if hasattr(ionq_job, "job_id"):
+            job_id_attr = ionq_job.job_id
+            # JobV1-style API uses a job_id() method.
+            ionq_job_id = job_id_attr() if callable(job_id_attr) else str(job_id_attr)
+
         # Extract counts for each bound instance.
         counts_per_bind: list[dict[str, int]] = []
         for idx in range(len(bound_circuits_list)):
@@ -144,9 +166,16 @@ class IonQSampler(BaseSamplerV2):
         # Convert counts -> BitArray(s) per classical register.
         bit_arrays = self._counts_to_bitarrays(circuit.cregs, counts_per_bind)
 
-        return SamplerPubResult(
-            DataBin(**bit_arrays, shape=pub.shape),
-            metadata={"shots": shots, "circuit_metadata": circuit.metadata},
+        metadata: dict[str, object] = {
+            "shots": shots,
+            "circuit_metadata": circuit.metadata,
+        }
+        if ionq_job_id is not None:
+            metadata["ionq_job_id"] = ionq_job_id
+
+        return (
+            SamplerPubResult(DataBin(**bit_arrays, shape=pub.shape), metadata=metadata),
+            ionq_job_id,
         )
 
     @staticmethod
