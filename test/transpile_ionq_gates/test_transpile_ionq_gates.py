@@ -82,6 +82,7 @@ from qiskit.circuit.library import (
     PauliEvolutionGate,
 )
 from qiskit_ionq import ionq_provider
+from qiskit_ionq.helpers import qiskit_circ_to_ionq_circ
 
 # Mapping from gate names to gate classes
 gate_map = {
@@ -435,3 +436,54 @@ def test_pauliexp_transpilation():
     assert t_circuit.data[0].name == "PauliEvolution"
     assert t_circuit.data[0].label == "exp(-it (XX + YY + ZZ))"
     assert t_circuit.data[0].params == [0.4]
+
+
+def test_qis_transpilation_gate_count_is_reasonable():
+    """Regression test: QIS transpilation shouldn't blow up gate count."""
+    provider = ionq_provider.IonQProvider()
+    backend = provider.get_backend("ionq_simulator", gateset="qis")
+
+    # 3‑qubit circuit using only gates in the QIS basis
+    circuit = QuantumCircuit(3, name="qis_length_regression")
+    circuit.h(0)
+    circuit.x(1)
+    circuit.y(2)
+
+    circuit.cz(1, 2)
+    circuit.cx(0, 1)
+    circuit.swap(0, 2)
+
+    circuit.rx(0.1, 0)
+    circuit.ry(0.2, 1)
+    circuit.rz(0.3, 2)
+    circuit.p(0.4, 0)
+
+    circuit.crx(0.5, 1, 2)
+    circuit.cry(0.6, 0, 1)
+
+    circuit.rxx(0.7, 0, 2)
+    circuit.ryy(0.8, 1, 2)
+    circuit.rzz(0.9, 0, 1)
+
+    # QIS-level gate count before transpilation
+    expected_qis_gates = len(qiskit_circ_to_ionq_circ(circuit)[0])
+
+    # Transpile to IonQ QIS backend with the recommended optimization level
+    transpiled = transpile(circuit, backend=backend, optimization_level=1)
+
+    # QIS-level gate count after transpilation
+    actual_qis_gates = len(qiskit_circ_to_ionq_circ(transpiled)[0])
+
+    # Allow up to 10% more QIS gates than the original circuit.
+    max_length_increase = 0.10
+    allowed_max = int(expected_qis_gates * (1 + max_length_increase))
+
+    assert actual_qis_gates <= allowed_max, (
+        "Transpiled QIS circuit has too many gates relative to the original.\n"
+        f"Expected (QIS) gate count: {expected_qis_gates}\n"
+        f"Actual (QIS) gate count: {actual_qis_gates}\n"
+        f"Allowed maximum: {allowed_max} "
+        f"({int(max_length_increase * 100)}% tolerance)\n"
+        f"Original circuit:\n{circuit}\n"
+        f"Transpiled circuit:\n{transpiled}"
+    )
