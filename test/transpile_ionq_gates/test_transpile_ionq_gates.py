@@ -438,7 +438,7 @@ def test_pauliexp_transpilation():
     assert t_circuit.data[0].params == [0.4]
 
 
-def test_qis_transpilation_gate_count_is_reasonable():
+def test_transpile_gate_count_regression():
     """Regression test: QIS transpilation shouldn't blow up gate count."""
     provider = ionq_provider.IonQProvider()
     backend = provider.get_backend("ionq_simulator", gateset="qis")
