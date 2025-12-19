@@ -1,4 +1,5 @@
 qiskit>=2.0.0
+openqasm3[parser]
 pytest
 requests-mock>=1.8.0
 pytest-cov>=2.10.1
