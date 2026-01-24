@@ -118,6 +118,8 @@ class IonQBackend(Backend):
 
         # Target (basis & connectivity)
         self._target = self._make_target()
+        # Track noise_model for native simulator target caching
+        self._cached_noise_model: str | None = None
 
         # Apply initial options if any
         if initial_options:
@@ -141,6 +143,11 @@ class IonQBackend(Backend):
 
     @property
     def target(self) -> Target | None:
+        if self._simulator and self._gateset == "native":
+            current_noise_model = getattr(self.options, "noise_model", "ideal")
+            if self._cached_noise_model != current_noise_model:
+                self._target = self._make_target()
+                self._cached_noise_model = current_noise_model
         return self._target
 
     @property
@@ -321,7 +328,14 @@ class IonQBackend(Backend):
                 tgt.add_instruction(gate)
 
             # 2q native
-            if "forte" in self.name.lower():
+            noise_model = getattr(self.options, "noise_model", "ideal")
+            name_lower = self.name.lower()
+            name_is_forte = "forte-" in name_lower or name_lower.endswith("forte")
+            noise_model_is_forte = isinstance(noise_model, str) and (
+                noise_model.lower().startswith("forte")
+            )
+            use_zz = name_is_forte or noise_model_is_forte
+            if use_zz:
                 theta = Parameter("θ")
                 tgt.add_instruction(ZZGate(theta))
             else:
