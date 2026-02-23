@@ -894,3 +894,54 @@ def test_multi_circuit_clbit_map(mock_backend, requests_mock):
 
     job = ionq_job.IonQJob(mock_backend, job_id)
     assert job._clbits == meas_maps
+
+
+def test_no_memory_skips_shots(mock_backend, requests_mock):
+    """When memory=False the shots endpoint should not be hit."""
+    job_id = "test_no_memory"
+    client = mock_backend.client
+
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        status_code=200,
+        json=conftest.dummy_job_response(job_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        status_code=200,
+        json={"0": 0.5, "2": 0.499999},
+    )
+    # Deliberately NOT mocking the shots endpoint — the global mock returns
+    # 599 for unmocked URLs, so any accidental call would raise an error.
+
+    job = ionq_job.IonQJob(
+        mock_backend,
+        job_id,
+        passed_args={"memory": False, "shots": 1024, "sampler_seed": None},
+    )
+    result = job.result()
+    assert result.data(0).get("memory") is None
+    assert result.get_counts()
+
+
+def test_ideal_sim_skips_shots(simulator_backend, requests_mock):
+    """Ideal simulator should not fetch shots even when memory=True."""
+    job_id = "test_ideal_sim"
+    client = simulator_backend.client
+
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        status_code=200,
+        json=conftest.dummy_job_response(job_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        status_code=200,
+        json={"0": 0.5, "2": 0.499999},
+    )
+    # Deliberately NOT mocking the shots endpoint.
+
+    job = ionq_job.IonQJob(simulator_backend, job_id)
+    result = job.result()
+    assert result.data(0).get("memory") is None
+    assert result.get_counts()

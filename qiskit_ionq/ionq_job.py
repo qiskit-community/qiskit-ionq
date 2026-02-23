@@ -537,6 +537,19 @@ class IonQJob(JobV1):
             "statuses": child_statuses,
         }
 
+    def _fetch_memory(self, job_id, n_qubits, clbits, header):
+        """Fetch per-shot data from the API and convert to memory bitstrings.
+
+        Returns None if the shots endpoint is unavailable.
+        """
+        try:
+            raw = self._client.get_results(f"/v0.4/jobs/{job_id}/results/shots")
+            return _build_memory(
+                raw, n_qubits, clbits, header.get("memory_slots", len(clbits))
+            )
+        except exceptions.IonQAPIError:
+            return None
+
     def _format_result(self, data):
         """Translate IonQ result format into a Qiskit `Result` instance.
 
@@ -601,34 +614,31 @@ class IonQJob(JobV1):
             for i in range(self._num_circuits)
         ]
         if self._status == jobstatus.JobStatus.DONE:
+            fetch_memory = self.memory and not is_ideal_sim
             for i in range(self._num_circuits):
                 job_id = self._children[i] if self._children else self.job_id()
+                header = qiskit_header[i] or {}
+                n_qubits = header.get("n_qubits", self._num_qubits)
+                clbits = self._clbits[i]
+
                 counts, probabilities = _build_counts(
                     data[i],
-                    qiskit_header[i].get("n_qubits", self._num_qubits),
-                    self._clbits[i],
+                    n_qubits,
+                    clbits,
                     shots,
                     use_sampler=is_ideal_sim,
                     sampler_seed=sampler_seed,
                 )
-                try:
-                    memory = _build_memory(
-                        raw_shots=self._client.get_results(
-                            f"/v0.4/jobs/{job_id}/results/shots"
-                        ),
-                        n_qubits=qiskit_header[i].get("n_qubits", self._num_qubits),
-                        clbits=self._clbits[i],
-                        width=(qiskit_header[i] or {}).get(
-                            "memory_slots", len(self._clbits[i])
-                        ),
-                    )
-                except exceptions.IonQAPIError:
-                    memory = None
+                memory = (
+                    self._fetch_memory(job_id, n_qubits, clbits, header)
+                    if fetch_memory
+                    else None
+                )
                 job_result[i]["data"] = {
                     "counts": counts,
                     "memory": memory,
                     "probabilities": probabilities,
-                    "metadata": qiskit_header[i] or {},
+                    "metadata": header,
                 }
 
         # Final Qiskit Result object
