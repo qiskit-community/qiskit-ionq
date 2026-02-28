@@ -38,7 +38,7 @@ from qiskit.circuit.library import (
     RZZGate,
     UGate,
 )
-from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
+from .ionq_gates import GPIGate, GPI2Gate, VirtualZGate, MSGate, ZZGate
 
 
 # 1q gates
@@ -79,6 +79,15 @@ def gpi2_gate_equivalence() -> None:
     circ.append(RXGate(np.pi / 2), [0])
     circ.append(RZGate(2 * phi * np.pi), [0])
     SessionEquivalenceLibrary.add_equivalence(GPI2Gate(phi), circ)
+
+
+def virtualz_gate_equivalence() -> None:
+    """VirtualZ(θ) -> RZ(θ) (for Aer/QIS simulation)."""
+    q = QuantumRegister(1, "q")
+    theta = Parameter("theta_param")
+    circ = QuantumCircuit(q)
+    circ.append(RZGate(theta), [0])
+    SessionEquivalenceLibrary.add_equivalence(VirtualZGate(theta), circ)
 
 
 # 2q native gates -> standard rotations (helps simulation & pattern matching)
@@ -126,6 +135,7 @@ def add_equivalences() -> None:
     u_gate_equivalence()
     gpi_gate_equivalence()
     gpi2_gate_equivalence()
+    virtualz_gate_equivalence()
     # 2q
     zz_gate_equivalence()
     # CX (both backends)

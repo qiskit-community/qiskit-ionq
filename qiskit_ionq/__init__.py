@@ -35,7 +35,7 @@ from .ionq_optimizer_plugin import (
     TrappedIonOptimizerPluginCommuteGpi2ThroughMs,
 )
 from .version import __version__
-from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
+from .ionq_gates import GPIGate, GPI2Gate, VirtualZGate, MSGate, ZZGate
 from .constants import ErrorMitigation
 from .ionq_equivalence_library import add_equivalences
 
@@ -50,6 +50,7 @@ __all__ = [
     "GPIGate",
     "GPI2Gate",
     "MSGate",
+    "VirtualZGate",
     "ZZGate",
     "ErrorMitigation",
     "add_equivalences",

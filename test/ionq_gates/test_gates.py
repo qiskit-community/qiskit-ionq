@@ -31,8 +31,8 @@ import numpy as np
 
 import pytest
 
-from qiskit.circuit.library import XGate, YGate, RXGate, RYGate, HGate
-from qiskit_ionq import GPIGate, GPI2Gate, MSGate, ZZGate
+from qiskit.circuit.library import XGate, YGate, RXGate, RYGate, RZGate, HGate
+from qiskit_ionq import GPIGate, GPI2Gate, VirtualZGate, MSGate, ZZGate
 
 
 @pytest.mark.parametrize("gate,phase", [(XGate(), 0), (YGate(), 0.25)])
@@ -95,6 +95,22 @@ def test_ms_inverse(params):
 
     mat = np.array(gate)
     np.testing.assert_array_almost_equal(mat.dot(mat.conj().T), np.identity(4))
+
+
+@pytest.mark.parametrize("theta", [0, 0.1, 0.4, np.pi / 2, np.pi, 2 * np.pi])
+def test_virtualz_equivalence(theta):
+    """Tests that VirtualZGate matches RZGate at various angles."""
+    gz_gate = VirtualZGate(theta)
+    rz_gate = RZGate(theta)
+    np.testing.assert_array_almost_equal(gz_gate.to_matrix(), rz_gate.to_matrix())
+
+
+@pytest.mark.parametrize("theta", [0, 0.1, 0.4, np.pi / 2, np.pi, 2 * np.pi])
+def test_gz_inverse(theta):
+    """Tests that the VirtualZ gate is unitary."""
+    gate = VirtualZGate(theta)
+    mat = np.array(gate)
+    np.testing.assert_array_almost_equal(mat.dot(mat.conj().T), np.identity(2))
 
 
 @pytest.mark.parametrize(

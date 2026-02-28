@@ -41,7 +41,7 @@ from qiskit_ionq.helpers import (
     compress_to_metadata_string,
     get_user_agent,
 )
-from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
+from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, VirtualZGate, MSGate, ZZGate
 from qiskit_ionq.constants import ErrorMitigation
 
 
@@ -320,6 +320,7 @@ def test_native_circuit_transpile(simulator_backend):
     circ.append(GPIGate(0.1), [0])
     circ.append(GPI2Gate(0.2), [1])
     circ.append(MSGate(0.2, 0.3, 0.25), [1, 2])
+    circ.append(VirtualZGate(0.3), [0])
     circ.append(ZZGate(0.4), [0, 2])
 
     with pytest.raises(TranspilerError) as exc_info:
@@ -338,6 +339,7 @@ def test_full_native_circuit(simulator_backend):
     qc.append(GPIGate(0.1), [0])
     qc.append(GPI2Gate(0.2), [1])
     qc.append(MSGate(0.2, 0.3, 0.25), [1, 2])
+    qc.append(VirtualZGate(0.3), [0])
     qc.append(ZZGate(0.4), [0, 2])
     ionq_json = qiskit_to_ionq(
         qc,
@@ -378,6 +380,7 @@ def test_full_native_circuit(simulator_backend):
                 {"gate": "gpi", "target": 0, "phase": 0.1},
                 {"gate": "gpi2", "target": 1, "phase": 0.2},
                 {"gate": "ms", "targets": [1, 2], "phases": [0.2, 0.3], "angle": 0.25},
+                {"gate": "gz", "targets": [0], "phase": 0.3},
                 {"gate": "zz", "angle": 0.4, "targets": [0, 2]},
             ],
         },

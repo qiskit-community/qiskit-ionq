@@ -127,6 +127,7 @@ ionq_api_aliases = {  # todo fix alias bug
 ionq_native_basis_gates = [
     "gpi",
     "gpi2",
+    "gz",  # VirtualZ gate (RZ)
     "ms",  # Pairwise MS gate
     "zz",  # ZZ gate
 ]

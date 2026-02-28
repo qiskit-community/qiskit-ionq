@@ -102,6 +102,43 @@ class GPI2Gate(Gate):
         return arr
 
 
+class VirtualZGate(Gate):
+    r"""Single-qubit VirtualZ (GZ) gate.
+    **Circuit symbol:**
+    .. parsed-literal::
+             ┌───────┐
+        q_0: ┤ GZ(θ) ├
+             └───────┘
+    **Matrix Representation:**
+
+    .. math::
+
+        GZ(\theta) =
+            \begin{pmatrix}
+                e^{-i\theta/2} & 0 \\
+                0 & e^{i\theta/2}
+            \end{pmatrix}
+
+    Equivalent to RZ(θ).
+    """
+
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+        """Create new VirtualZ gate."""
+        super().__init__("gz", 1, [theta], label=label)
+
+    def __array__(self, dtype=None, copy=None):
+        """Return a numpy array for the VirtualZ gate."""
+        theta = float(self.params[0])
+        arr = np.array(
+            [[np.exp(-1j * theta / 2), 0], [0, np.exp(1j * theta / 2)]]
+        )
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        if copy is True:
+            return arr.copy()
+        return arr
+
+
 class MSGate(Gate):
     r"""Entangling 2-Qubit MS gate.
     **Circuit symbol:**
