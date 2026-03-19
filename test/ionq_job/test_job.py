@@ -874,3 +874,68 @@ def test_multi_circuit_clbit_map(mock_backend, requests_mock):
 
     job = ionq_job.IonQJob(mock_backend, job_id)
     assert job._clbits == meas_maps
+
+
+def test_multicircuit_null_metadata_status(mock_backend, requests_mock):
+    """Retrieving a multicircuit job whose parent has ``metadata: null``
+    (e.g. a job submitted outside qiskit) must not crash in status().
+    """
+    job_id = "parent_null_meta"
+    child_ids = ["child_a", "child_b"]
+    parent = conftest.dummy_multicircuit_parent_response(job_id, child_ids)
+
+    client = mock_backend.client
+    requests_mock.get(
+        client.make_path("jobs", job_id), status_code=200, json=parent
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    assert job._status == jobstatus.JobStatus.DONE
+    assert job._num_circuits == 2
+    # With no qiskit_header the fallback meas-map is range(_num_qubits).
+    # _num_qubits is 0 (empty stats), so each clbits list is [].
+    assert job._clbits == [[], []]
+    assert job._results_url.endswith("/aggregated")
+
+
+def test_multicircuit_null_metadata_result(mock_backend, requests_mock):
+    """End-to-end result retrieval for a multicircuit parent with
+    ``metadata: null``.  The aggregated results endpoint returns a
+    dict-of-dicts keyed by child job id.
+    """
+    job_id = "parent_null_meta_result"
+    child_ids = ["child_r1", "child_r2"]
+    parent = conftest.dummy_multicircuit_parent_response(job_id, child_ids)
+
+    client = mock_backend.client
+    requests_mock.get(
+        client.make_path("jobs", job_id), status_code=200, json=parent
+    )
+
+    # Aggregated results keyed by child job id.
+    # Circuit 0: Bell state (keys 0 and 3 need 2 qubits).
+    # Circuit 1: X on qubit 0 (key 1 needs 1 qubit).
+    aggregated = {
+        child_ids[0]: {"0": 0.5, "3": 0.5},
+        child_ids[1]: {"1": 1.0},
+    }
+    results_path = client.make_path(
+        "jobs", job_id, "results", "probabilities", "aggregated"
+    )
+    requests_mock.get(results_path, status_code=200, json=aggregated)
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    result = job.result()
+
+    assert result.success is True
+    assert len(result.results) == 2
+
+    # Qubit count is inferred from the result keys.
+    # Circuit 0: max key 3 -> bit_length 2 -> 2-qubit bitstrings.
+    counts_0 = result.get_counts(0)
+    assert counts_0 == {"00": 512, "11": 512}
+
+    # Circuit 1: max key 1 -> bit_length 1 -> 1-qubit bitstrings.
+    counts_1 = result.get_counts(1)
+    assert counts_1 == {"1": 1024}

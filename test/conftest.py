@@ -176,6 +176,41 @@ def dummy_mapped_job_response(
     return response
 
 
+def dummy_multicircuit_parent_response(job_id, child_job_ids, status="completed"):
+    """A dummy parent response for a multicircuit job, matching the real IonQ API shape.
+
+    The IonQ API returns ``metadata: null`` and empty ``stats`` on the parent
+    job for multicircuit submissions that did not include qiskit metadata.
+
+    Args:
+        job_id (str): The parent job id.
+        child_job_ids (list[str]): Child job ids.
+        status (str): Job status string.
+
+    Returns:
+        dict: A json response dict.
+    """
+    return {
+        "id": job_id,
+        "type": "ionq.multi-circuit.v1",
+        "status": status,
+        "name": f"{len(child_job_ids)} circuits",
+        "metadata": None,
+        "backend": "simulator",
+        "child_job_ids": child_job_ids,
+        "settings": {},
+        "stats": {},
+        "results": {
+            "probabilities": {
+                "url": (
+                    f"/v0.4/jobs/{job_id}/results/probabilities/aggregated"
+                )
+            }
+        },
+        "execution_duration_ms": 0,
+    }
+
+
 def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-type-doc
     """A dummy response payload for a failed job.
 
