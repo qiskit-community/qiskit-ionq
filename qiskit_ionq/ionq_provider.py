@@ -55,6 +55,8 @@ class IonQProvider:
 
     def __init__(
         self,
+        # TODO: I would rename token to
+        # api_key, here and elsewhere
         token: Optional[str] = None,
         url: Optional[str] = None,
         custom_headers: Optional[dict] = None,

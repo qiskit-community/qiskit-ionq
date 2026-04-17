@@ -37,21 +37,25 @@
 
 from __future__ import annotations
 
+import json
+from urllib import response
 import warnings
 from typing import TYPE_CHECKING, Any, Optional, Callable
 import numpy as np
 
+from ionq_core import IonQClient
+from ionq_core.api.default import cancel_job, create_job, get_job, get_job_probabilities
+from ionq_core.models import CircuitJobCreationPayload
 from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
-from .helpers import decompress_metadata_string, normalize
+from .helpers import decompress_metadata_string, normalize, qiskit_to_ionq
 
 from . import constants, exceptions
 
 if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_backend
-    from . import ionq_client
 
 
 def map_output(data, clbits, num_qubits):
@@ -161,7 +165,7 @@ class IonQJob(JobV1):
         self,
         backend: ionq_backend.IonQBackend,
         job_id: Optional[str] = None,
-        client: Optional[ionq_client.IonQClient] = None,
+        client: Optional[IonQClient] = None,
         circuit: Optional[QuantumCircuit] = None,
         passed_args: Optional[dict] = None,
     ):  # pylint: disable=too-many-positional-arguments
@@ -207,7 +211,7 @@ class IonQJob(JobV1):
     def cancel(self) -> None:
         """Cancel this job."""
         assert self._job_id is not None, "Cannot cancel a job without a job_id."
-        self._client.cancel_job(self._job_id)
+        cancel_job.sync(uuid=self._job_id, client=self._client)
 
     def submit(self) -> None:
         """Submit a job to the IonQ API.
@@ -220,7 +224,17 @@ class IonQJob(JobV1):
                 "Cannot submit a job without a circuit. "
                 "Please create a job with a circuit and try again."
             )
-        response = self._client.submit_job(job=self)
+
+        job_json = qiskit_to_ionq(
+            self.circuit,
+            self.backend(),
+            self._passed_args,
+            self.extra_query_params,
+            self.extra_metadata,
+        )
+        job_dict = json.loads(job_json)
+        body = CircuitJobCreationPayload.from_dict(job_dict)
+        response = create_job.sync(client=self._client, body=body)
         self._job_id = response["id"]
 
     def get_counts(self, circuit: Optional[QuantumCircuit] = None) -> dict:
@@ -308,12 +322,16 @@ class IonQJob(JobV1):
 
         if self._status is jobstatus.JobStatus.DONE:
             assert self._job_id is not None
-            response = self._client.get_results(
-                results_url=self._results_url,
-                sharpen=sharpen,
-                extra_query_params=extra_query_params,
-            )
-            self._result = self._format_result(response)
+            job_response = get_job.sync(uuid=self._job_id, client=self._client)
+            if sharpen is not None:
+                probabilities = get_job_probabilities.sync(
+                    uuid=self._job_id, client=self._client, sharpen=sharpen
+                )
+                job_response.results.probabilities = probabilities
+            # extra_query_params not supported?
+            response_dict = job_response.to_dict()
+            # this is quite a mess, and currently incorrect, should look again
+            self._result = self._format_result(response_dict)
 
         return self._result
 
@@ -343,8 +361,9 @@ class IonQJob(JobV1):
             return self._children_status() if detailed else self._status
 
         # Otherwise, look up a status enum from the response.
-        response = self._client.retrieve_job(self._job_id)
-        api_response_status = response.get("status")
+        job_response = get_job.sync(uuid=self._job_id, client=self._client)
+        job_response_dict = job_response.to_dict()
+        api_response_status = job_response_dict.get("status")
 
         try:
             status_enum = constants.APIJobStatus(api_response_status)
@@ -355,14 +374,13 @@ class IonQJob(JobV1):
                 f"Unknown or unmappable job status {api_response_status}"
             ) from ex
 
+        # TODO response -> job_response_dict
         if self._status in jobstatus.JOB_FINAL_STATES:
-            self._save_metadata(response)
+            self._save_metadata(job_response_dict)
 
         if self._status == jobstatus.JobStatus.DONE:
-            stats = response.get("stats", {})
-            self._children = self._first_of(
-                response, "child_job_ids", "children", default=None
-            )
+            stats = job_response_dict.get("stats", {})
+            self._children = self.get("child_job_ids", {})
 
             # Circuit count: if we have children, prefer that length
             if self._children:
@@ -371,9 +389,7 @@ class IonQJob(JobV1):
                 self._num_circuits = self._first_of(stats, "circuits", default=1)
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
-            _results_url = self._first_of(
-                response, "results", "results_url", default={}
-            )
+            _results_url = job_response_dict.get("results", {})
             self._results_url = (
                 _results_url
                 if isinstance(_results_url, str)
@@ -392,7 +408,7 @@ class IonQJob(JobV1):
 
             # Classical-bit maps for every circuit
             header_list = decompress_metadata_string(
-                response.get("metadata", {}).get("qiskit_header")
+                job_response_dict.get("metadata", {}).get("qiskit_header")
             )
             if not isinstance(header_list, list):
                 header_list = [header_list]
@@ -406,17 +422,11 @@ class IonQJob(JobV1):
 
             # Prefer the API-supplied execution time
             self._execution_time = (
-                self._first_of(
-                    response,
-                    "execution_duration_ms",
-                    "execution_time",
-                    default=float("inf"),
-                )
-                / 1000
+                job_response_dict.get("execution_duration_ms", float("inf")) / 1000
             )
 
         if self._status == jobstatus.JobStatus.ERROR:
-            failure = response.get("failure") or {}
+            failure = job_response_dict.get("failure", False) or {}
             raise exceptions.IonQJobFailureError(
                 f"Unable to retrieve result for job {self._job_id}. "
                 f'Failure from IonQ API "{failure.get("code","")}: '
@@ -428,10 +438,11 @@ class IonQJob(JobV1):
                 f"Unable to retrieve result for job {self._job_id}. Job was cancelled"
             )
 
-        # Propagate any warnings returned by the API
-        if "warning" in response and "messages" in response["warning"]:
-            for msg in response["warning"]["messages"]:
-                warnings.warn(msg)
+        # TODO: RM
+        # # Propagate any warnings returned by the API
+        # if "warning" in response and "messages" in response["warning"]:
+        #     for msg in response["warning"]["messages"]:
+        #         warnings.warn(msg)
 
         return self._children_status() if detailed else self._status
 
@@ -447,25 +458,27 @@ class IonQJob(JobV1):
         Returns:
             dict: A dictionary containing the detailed status of the children.
         """
-        response = self._client.retrieve_job(self._job_id)
-        child_ids = self._first_of(response, "child_job_ids", "children", [])
+        job_response = get_job.sync(uuid=self._job_id, client=self._client)
+        job_response_dict = job_response.to_dict()
+
         child_statuses = []
+        if "child_job_ids" in job_response_dict:
+            for child_id in job_response_dict["child_job_ids"]:
+                child_job_response = get_job.sync(uuid=child_id, client=self._client)
+                child_job_response_dict = child_job_response.to_dict()
+                api_status = str(child_job_response_dict.get("status"))
 
-        for child_id in child_ids:
-            resp = self._client.retrieve_job(child_id)
-            api_status = resp.get("status")
+                # Map API status to JobStatus enum
+                try:
+                    status_enum = constants.APIJobStatus(api_status)
+                    status_enum = constants.JobStatusMap[status_enum.name]
+                    qiskit_status = jobstatus.JobStatus[status_enum.value]
+                except (ValueError, KeyError) as ex:
+                    raise exceptions.IonQJobError(
+                        f"Unknown or unmappable child job status {api_status}"
+                    ) from ex
 
-            # Map API status to JobStatus enum
-            try:
-                status_enum = constants.APIJobStatus(api_status)
-                status_enum = constants.JobStatusMap[status_enum.name]
-                qiskit_status = jobstatus.JobStatus[status_enum.value]
-            except (ValueError, KeyError) as ex:
-                raise exceptions.IonQJobError(
-                    f"Unknown or unmappable child job status {api_status}"
-                ) from ex
-
-            child_statuses.append(qiskit_status)
+                child_statuses.append(qiskit_status)
 
         total = len(child_statuses)
         completed = child_statuses.count(jobstatus.JobStatus.DONE)

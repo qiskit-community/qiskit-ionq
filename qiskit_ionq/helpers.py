@@ -618,8 +618,9 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     Returns:
         dict[str]: A dict with "token" and "url" keys, for use by a client.
     """
+    # TODO: some cleanup needed in the env variables used here?
     env_values = dotenv_values()
-    env_token = (
+    env_token: str | None = (
         env_values.get("QISKIT_IONQ_API_TOKEN")
         or env_values.get("IONQ_API_KEY")
         or env_values.get("IONQ_API_TOKEN")
@@ -627,7 +628,7 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
         or os.getenv("IONQ_API_KEY")
         or os.getenv("IONQ_API_TOKEN")
     )
-    env_url = (
+    env_url: str | None = (
         env_values.get("QISKIT_IONQ_API_URL")
         or env_values.get("IONQ_API_URL")
         or os.getenv("QISKIT_IONQ_API_URL")
@@ -635,7 +636,7 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     )
     return {
         "token": token or env_token,
-        "url": url or env_url or "https://api.ionq.co/v0.4",
+        "url": url or env_url,
     }
 
 
