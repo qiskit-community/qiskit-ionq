@@ -555,8 +555,7 @@ def qiskit_to_ionq(
     # user-supplied extras & final serialization
     ionq_json.update(extra_query_params)
     ionq_json["metadata"].update(extra_metadata)
-
-    return json.dumps(ionq_json, cls=SafeEncoder)
+    return ionq_json
 
 
 def get_user_agent() -> str:
