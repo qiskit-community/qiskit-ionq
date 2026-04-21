@@ -27,12 +27,13 @@
 """IonQ provider backends."""
 
 from __future__ import annotations
-from pydoc import cli
 from typing import Literal, Sequence, TYPE_CHECKING
 import warnings
 
 from ionq_core import IonQClient
-from ionq_core.api.default import cancel_job, get_job
+from ionq_core.api.default import cancel_job
+from ionq_core.api.characterizations import get_characterizations_for_backend
+from ionq_core.models import Characterization
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import (
     Measure,
@@ -73,9 +74,8 @@ from qiskit.providers import BackendV2 as Backend, Options
 from qiskit.transpiler import Target, CouplingMap
 
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
-from . import ionq_equivalence_library, ionq_job, exceptions
+from . import ionq_equivalence_library, ionq_job
 from .helpers import GATESET_MAP, get_n_qubits, warn_bad_transpile_level
-from .ionq_client import Characterization
 
 if TYPE_CHECKING:  # pragma: no cover
     from .ionq_provider import IonQProvider
@@ -233,15 +233,11 @@ class IonQBackend(Backend):
 
     def retrieve_job(self, job_id: str) -> ionq_job.IonQJob:
         """Retrieve a job by its ID."""
-        job_response = get_job.sync(uuid=job_id, client=self.client).to_dict()
-        return ionq_job.IonQJob(self, job_response)
+        return ionq_job.IonQJob(self, job_id, self.client)
 
     def retrieve_jobs(self, job_ids: Sequence[str]) -> Sequence[ionq_job.IonQJob]:
         """Retrieve multiple jobs by their IDs."""
-        return [
-            ionq_job.IonQJob(self, get_job.sync(uuid=jid, client=self.client).to_dict())
-            for jid in job_ids
-        ]
+        return [ionq_job.IonQJob(self, jid, self.client) for jid in job_ids]
 
     def cancel_job(self, job_id: str) -> dict:
         """Cancel a job by its ID."""
@@ -258,9 +254,9 @@ class IonQBackend(Backend):
         """Return the latest characterization data (None for simulator)."""
         if self._simulator:
             return None
-        # uuid?
-        # get_characterization.sync(backend=self._api_backend_name, client=self.client)
-        return self.client.get_calibration_data(self._api_backend_name, limit=1)
+        return get_characterizations_for_backend.sync(
+            backend=self._api_backend_name, client=self.client, limit=1
+        )[0]
 
     def status(self) -> bool:
         """True if the backend is currently available."""

@@ -59,7 +59,7 @@ class IonQProvider:
         # api_key, here and elsewhere
         token: Optional[str] = None,
         url: Optional[str] = None,
-        custom_headers: Optional[dict] = None,
+        custom_headers: Optional[dict[str, str]] = None,
     ):
         super().__init__()
         self.custom_headers = custom_headers
