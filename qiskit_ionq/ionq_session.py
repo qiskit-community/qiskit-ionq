@@ -30,6 +30,8 @@ use in a context manager to for automatic lifecycle management.
 
 from __future__ import annotations
 
+import warnings
+
 from .ionq_backend import IonQBackend
 
 
@@ -46,6 +48,12 @@ class Session:
         create_new: bool = True,
         session_id: str | None = None,
     ):
+        warnings.warn(
+            "qiskit_ionq.Session is deprecated and will be removed in qiskit-ionq 2.0. "
+            "Use qiskit_ionq.IonQSession instead. See MIGRATION_2.0.md.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._backend = backend
         self._client = backend.client
         self._orig_run = None

@@ -29,6 +29,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 from typing import Callable, Literal, Optional
 
@@ -60,6 +61,15 @@ class IonQProvider:
         custom_headers: Optional[dict] = None,
     ):
         super().__init__()
+        if custom_headers is not None:
+            warnings.warn(
+                "IonQProvider(custom_headers=...) is deprecated and will be removed in "
+                "qiskit-ionq 2.0. To inject extra headers, build an ionq_core.IonQClient "
+                "with a custom ClientExtension and pass it to IonQProvider directly. "
+                "See MIGRATION_2.0.md.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self.custom_headers = custom_headers
         self.credentials = resolve_credentials(token, url)
         self.backends = BackendService(

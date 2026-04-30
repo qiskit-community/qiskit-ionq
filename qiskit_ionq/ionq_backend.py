@@ -220,6 +220,28 @@ class IonQBackend(Backend):
                 "Circuit is not measuring any qubits", UserWarning, stacklevel=2
             )
 
+        for _kw, _replacement in (
+            (
+                "extra_query_params",
+                "no replacement; the API request body has no escape hatch in 2.0",
+            ),
+            (
+                "extra_metadata",
+                "no replacement; the API request body has no escape hatch in 2.0",
+            ),
+            (
+                "sampler_seed",
+                "noise_seed (drives simulator noise sampling, not client-side resampling)",
+            ),
+        ):
+            if _kw in options:
+                warnings.warn(
+                    f"backend.run({_kw}=...) is deprecated and will be removed in qiskit-ionq 2.0. "
+                    f"Replacement: {_replacement}. See MIGRATION_2.0.md.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
         # Merge default options with user overrides
         run_opts = {**self.options.__dict__, **options}
 
@@ -251,13 +273,31 @@ class IonQBackend(Backend):
 
     def calibration(self) -> Characterization | None:
         """Return the latest characterization data (None for simulator)."""
+        warnings.warn(
+            "IonQBackend.calibration() is deprecated and will be removed in qiskit-ionq 2.0. "
+            "In 2.0 the characterization is consumed internally to build Target. To fetch it "
+            "directly, use ionq_core.api.characterizations.get_characterization. "
+            "See MIGRATION_2.0.md.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._calibration()
+
+    def _calibration(self) -> Characterization | None:
         if self._simulator:
             return None
         return self.client.get_calibration_data(self._api_backend_name, limit=1)
 
     def status(self) -> bool:
         """True if the backend is currently available."""
-        cal = self.calibration()
+        warnings.warn(
+            "IonQBackend.status() is deprecated and will be removed in qiskit-ionq 2.0. "
+            "There is no direct replacement; check provider.backends() in 2.0. "
+            "See MIGRATION_2.0.md.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        cal = self._calibration()
         return bool(cal and getattr(cal, "status", "available") == "available")
 
     def __eq__(self, other):
