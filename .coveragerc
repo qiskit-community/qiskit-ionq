@@ -1,0 +1,11 @@
+[run]
+source = qiskit_ionq
+# The 2.0 foundation modules are unreachable on Python 3.10/3.11 (ionq-core
+# requires >=3.12) and live behind dedicated unit tests in tests/. Omitting
+# them from the legacy-line roll-up keeps --cov-fail-under=80 meaningful.
+omit =
+    qiskit_ionq/_result.py
+    qiskit_ionq/_submit.py
+    qiskit_ionq/_target.py
+    qiskit_ionq/_translate.py
+    qiskit_ionq/gates.py
