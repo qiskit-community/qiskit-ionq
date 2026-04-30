@@ -24,13 +24,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Native gateset for IonQ hardware."""
+"""Native gateset for IonQ hardware.
+
+Phase parameters (``phi``, ``phi0``, ``phi1``) are expressed in turns
+(fractions of 2*pi). Interaction parameters (``theta``) are in units of pi
+(0.25 = pi/4 radians). The closed-form unitaries are computed by
+``ionq_core.{gpi_matrix, gpi2_matrix, ms_matrix, zz_matrix}`` so this module
+and any other downstream consumer of those matrices stay in sync.
+"""
 
 from typing import Optional
-import math
+
 import numpy as np
+from ionq_core import gpi2_matrix, gpi_matrix, ms_matrix, zz_matrix
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
+
+
+def _coerce(arr: np.ndarray, dtype, copy) -> np.ndarray:
+    """Match the legacy dtype/copy semantics of ``Gate.__array__``."""
+    if dtype is not None:
+        arr = arr.astype(dtype, copy=False)
+    if copy is True:
+        return arr.copy()
+    return arr
 
 
 class GPIGate(Gate):
@@ -57,14 +74,7 @@ class GPIGate(Gate):
 
     def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the GPI gate."""
-        top = np.exp(-1j * 2 * math.pi * self.params[0])
-        bottom = np.exp(1j * 2 * math.pi * self.params[0])
-        arr = np.array([[0, top], [bottom, 0]])  # build without dtype first
-        if dtype is not None:
-            arr = arr.astype(dtype, copy=False)  # avoid unnecessary copy
-        if copy is True:
-            return arr.copy()
-        return arr
+        return _coerce(np.array(gpi_matrix(float(self.params[0]))), dtype, copy)
 
 
 class GPI2Gate(Gate):
@@ -92,14 +102,7 @@ class GPI2Gate(Gate):
 
     def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the GPI2 gate."""
-        top = -1j * np.exp(-1j * self.params[0] * 2 * math.pi)
-        bottom = -1j * np.exp(1j * self.params[0] * 2 * math.pi)
-        arr = (1 / np.sqrt(2)) * np.array([[1, top], [bottom, 1]])
-        if dtype is not None:
-            arr = arr.astype(dtype, copy=False)
-        if copy is True:
-            return arr.copy()
-        return arr
+        return _coerce(np.array(gpi2_matrix(float(self.params[0]))), dtype, copy)
 
 
 class MSGate(Gate):
@@ -141,22 +144,8 @@ class MSGate(Gate):
 
     def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the MS gate."""
-        phi0, phi1, theta = self.params
-        diag = np.cos(math.pi * theta)
-        sin = np.sin(math.pi * theta)
-        arr = np.array(
-            [
-                [diag, 0, 0, sin * -1j * np.exp(-1j * 2 * math.pi * (phi0 + phi1))],
-                [0, diag, sin * -1j * np.exp(1j * 2 * math.pi * (phi0 - phi1)), 0],
-                [0, sin * -1j * np.exp(-1j * 2 * math.pi * (phi0 - phi1)), diag, 0],
-                [sin * -1j * np.exp(1j * 2 * math.pi * (phi0 + phi1)), 0, 0, diag],
-            ]
-        )
-        if dtype is not None:
-            arr = arr.astype(dtype, copy=False)
-        if copy is True:
-            return arr.copy()
-        return arr
+        phi0, phi1, theta = (float(p) for p in self.params)
+        return _coerce(np.array(ms_matrix(phi0, phi1, theta)), dtype, copy)
 
 
 class ZZGate(Gate):
@@ -185,17 +174,4 @@ class ZZGate(Gate):
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """Return a numpy array for the ZZ gate."""
-        itheta2 = 1j * float(self.params[0]) * math.pi
-        arr = np.array(
-            [
-                [np.exp(-itheta2), 0, 0, 0],
-                [0, np.exp(itheta2), 0, 0],
-                [0, 0, np.exp(itheta2), 0],
-                [0, 0, 0, np.exp(-itheta2)],
-            ]
-        )
-        if dtype is not None:
-            arr = arr.astype(dtype, copy=False)
-        if copy is True:
-            return arr.copy()
-        return arr
+        return _coerce(np.array(zz_matrix(float(self.params[0]))), dtype, copy)
