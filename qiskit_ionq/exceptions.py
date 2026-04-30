@@ -105,6 +105,12 @@ class IonQAPIError(IonQError):
         self.headers = headers
         self.body = body
         self.error_type = error_type
+        # Populated by :meth:`from_ionq_core` when the source exception is an
+        # ``ionq_core.exceptions.APIError``; ``None`` for the legacy
+        # ``requests``-based path. Transitional: removed alongside the rest
+        # of this exception hierarchy when callers migrate to
+        # ``ionq_core.exceptions.APIError``.
+        self.request_id: str | None = None
 
     @classmethod
     def raise_for_status(cls, response) -> IonQAPIError | None:
@@ -159,6 +165,52 @@ class IonQAPIError(IonQError):
             message = error_data.get("message") or message
             error_type = error_data.get("type") or error_type
         return cls(message, status_code, headers, body, error_type)
+
+    @classmethod
+    def from_ionq_core(cls, exc) -> IonQAPIError:
+        """Translate an ``ionq_core.exceptions.APIError`` into an ``IonQAPIError``.
+
+        ``ionq-core`` raises a typed exception hierarchy keyed on HTTP status
+        (``BadRequestError``/``AuthenticationError``/``NotFoundError``/
+        ``RateLimitError``/``ServerError``/etc.). Code paths that route HTTP
+        through ``ionq-core`` can call this classmethod to surface those
+        failures as an ``IonQAPIError`` with the same ``message``/``status_code``/
+        ``headers``/``body``/``error_type`` shape every other ``qiskit-ionq``
+        call already produces - so ``except IonQAPIError`` keeps catching.
+
+        TODO(ionq-core): transitional bridge. Remove when callers migrate to
+        ``ionq_core.exceptions.APIError`` directly and the rest of
+        ``qiskit_ionq.exceptions`` is dismantled.
+        """
+        # Re-parse the raw body through the same three-shape parser
+        # ``from_response`` uses, so legacy and ionq-core code paths produce
+        # identical error_type/message attributes for the same HTTP body.
+        raw_body = getattr(exc, "body", None) or ""
+        try:
+            response_json = jd.JSONDecoder().decode(raw_body) if raw_body else {}
+        except jd.JSONDecodeError:
+            response_json = {"invalid_json": raw_body}
+        error_type = "internal_error"
+        message = getattr(exc, "message", None) or "No error details provided."
+        if "code" in response_json:
+            message = response_json.get("message") or message
+        elif "statusCode" in response_json:
+            message = response_json.get("message") or message
+            error_type = response_json.get("error") or error_type
+        elif "error" in response_json:
+            error_data = response_json.get("error") or {}
+            message = error_data.get("message") or message
+            error_type = error_data.get("type") or error_type
+        instance = cls(
+            message,
+            getattr(exc, "status_code", 0),
+            {},  # ionq-core APIError doesn't expose headers
+            raw_body,
+            error_type,
+        )
+        # Surface the IonQ Cloud request id for support escalation.
+        instance.request_id = getattr(exc, "request_id", None)
+        return instance
 
     def __str__(self):
         return (
