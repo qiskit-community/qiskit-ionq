@@ -27,19 +27,14 @@
 """Tests for the new IonQSession class introduced in qiskit-ionq 1.1.0.
 
 IonQSession is the migration target for the deprecated Session class. It wraps
-ionq-core's SessionManager and is only importable when ionq-core is installed
-(Python >=3.12). On older Pythons the entire module is skipped.
+ionq-core's SessionManager.
 """
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-# ionq-core requires Python >=3.12. Skip the module on older interpreters
-# rather than failing at collect-time.
-pytest.importorskip("ionq_core")
-
-from qiskit_ionq import IonQSession  # noqa: E402
+from qiskit_ionq import IonQSession
 
 
 @pytest.fixture

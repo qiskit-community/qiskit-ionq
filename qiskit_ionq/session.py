@@ -29,8 +29,6 @@
 Added in qiskit-ionq 1.1.0 as the migration target for the deprecated
 :class:`qiskit_ionq.Session`. In 2.0 this class is the only Session
 implementation and lives at the same path (qiskit_ionq/session.py).
-
-Requires Python >=3.12 (constraint inherited from ionq-core).
 """
 
 from __future__ import annotations

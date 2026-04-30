@@ -8,7 +8,7 @@ The 2.0 public surface is **not source-compatible** with 1.x. This document cove
 
 ## Python version floor
 
-`qiskit-ionq` 1.1.0 and 2.0.0 both require **Python ≥ 3.12**. Python 3.10 and 3.11 are no longer supported. (The floor is set by `ionq-core`.) If you are on 3.10 or 3.11, pin `qiskit-ionq==1.0.2` until you can upgrade Python.
+`qiskit-ionq` 1.1.0 requires **Python ≥ 3.11** (constraint inherited from `ionq-core`). 2.0.0 will bump the floor again to **3.12**. If you are on 3.10, pin `qiskit-ionq==1.0.2` until you can upgrade Python.
 
 ## Authentication and provider construction
 
@@ -100,7 +100,7 @@ with IonQSession(backend, max_jobs=10) as sess:
     sampler.run([(qc,)])
 ```
 
-- `Session` → `IonQSession`. The class is now a wrapper over `ionq_core.SessionManager`. **Already available in 1.1.0** — you can migrate today on Python >=3.12.
+- `Session` → `IonQSession`. The class is now a wrapper over `ionq_core.SessionManager`. **Already available in 1.1.0** — migrate today.
 - The monkey-patch on `backend.run` is gone. In 1.1.0 you can pass `session_id=sess.session_id` explicitly. In 2.0 you call `session.sampler().run(...)` (or pass the session into `IonQSampler(backend, session=sess)`).
 - `IonQSession.from_id(backend, "session-uuid")` reattaches to an existing session.
 
@@ -226,7 +226,7 @@ For the new sampler primitive, the result type is `PrimitiveResult[SamplerPubRes
 
 ## Quick checklist
 
-- [ ] Python ≥ 3.12.
+- [ ] Python ≥ 3.12 (1.1.0 already requires ≥ 3.11).
 - [ ] `IonQProvider(api_key=...)` (not `token=`).
 - [ ] Backend names without `ionq_` prefix.
 - [ ] `error_mitigation` is a dict, not the enum.
