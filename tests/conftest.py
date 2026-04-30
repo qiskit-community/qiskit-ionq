@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import pytest
+
+# ionq-core requires Python >= 3.12. On older Pythons it is not installed, so
+# the entire foundation-module test suite is skipped.
+pytest.importorskip("ionq_core")
+
 from ionq_core.client import AuthenticatedClient
 from ionq_core.models.backend import Backend
 from ionq_core.models.characterization import Characterization
@@ -14,7 +19,10 @@ from ionq_core.models.get_results_response import GetResultsResponse
 from ionq_core.models.json_object import JsonObject
 
 _BACKEND_DEFAULTS = dict(
-    status="available", average_queue_time=0.0, degraded=False, last_updated="2026-01-01T00:00:00Z"
+    status="available",
+    average_queue_time=0.0,
+    degraded=False,
+    last_updated="2026-01-01T00:00:00Z",
 )
 
 
@@ -50,7 +58,9 @@ def characterization():
     fidelity.additional_properties["1q"] = {"mean": 0.9995}
     fidelity.additional_properties["2q"] = {"mean": 0.985}
     timing = CharacterizationTiming(readout=100, reset=50)
-    return Characterization(backend="qpu.aria-1", qubits=25, fidelity=fidelity, timing=timing)
+    return Characterization(
+        backend="qpu.aria-1", qubits=25, fidelity=fidelity, timing=timing
+    )
 
 
 def make_probs(data: dict[str, float]) -> GetResultsResponse:
