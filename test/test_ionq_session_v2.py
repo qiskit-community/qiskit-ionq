@@ -39,7 +39,7 @@ import pytest
 # rather than failing at collect-time.
 pytest.importorskip("ionq_core")
 
-from qiskit_ionq import IonQSession
+from qiskit_ionq import IonQSession  # noqa: E402
 
 
 @pytest.fixture
@@ -72,14 +72,14 @@ def test_from_id_reattaches_without_create(backend):
 
 
 def test_session_id_property_delegates(backend):
-    with patch("qiskit_ionq.session.SessionManager") as mock_mgr:
+    with patch("qiskit_ionq.session.SessionManager"):
         sess = IonQSession(backend)
     sess._manager.session_id = "sess-1"
     assert sess.session_id == "sess-1"
 
 
 def test_status_delegates(backend):
-    with patch("qiskit_ionq.session.SessionManager") as mock_mgr:
+    with patch("qiskit_ionq.session.SessionManager"):
         sess = IonQSession(backend)
     sess._manager.status.return_value = "started"
     assert sess.status() == "started"
