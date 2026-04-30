@@ -36,7 +36,9 @@ class TestGPIGate:
 class TestGPI2Gate:
     def test_matrix_at_zero(self):
         s = 1 / math.sqrt(2)
-        assert Operator(np.array([[s, -1j * s], [-1j * s, s]])).equiv(Operator(GPI2Gate(0)))
+        assert Operator(np.array([[s, -1j * s], [-1j * s, s]])).equiv(
+            Operator(GPI2Gate(0))
+        )
 
     def test_two_gpi2_equals_gpi(self):
         phi = 0.3

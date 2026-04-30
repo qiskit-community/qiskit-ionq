@@ -28,24 +28,42 @@ def _probs_to_counts(probs: dict[int, float], shots: int) -> dict[int, int]:
     return {k: v for k, v in counts.items() if v > 0}
 
 
-def _fetch_counts(client: AuthenticatedClient, job_id: str, shots: int) -> dict[int, int]:
+def _fetch_counts(
+    client: AuthenticatedClient, job_id: str, shots: int
+) -> dict[int, int]:
     resp = get_job_probabilities.sync(uuid=job_id, client=client)
-    probs = {int(k): float(v) for k, v in resp.additional_properties.items()} if resp else {}
+    probs = (
+        {int(k): float(v) for k, v in resp.additional_properties.items()}
+        if resp
+        else {}
+    )
     return _probs_to_counts(probs, shots)
 
 
-def to_qiskit_result(client: AuthenticatedClient, job_id: str, num_qubits: int, shots: int) -> Result:
+def to_qiskit_result(
+    client: AuthenticatedClient, job_id: str, num_qubits: int, shots: int
+) -> Result:
     int_counts = _fetch_counts(client, job_id, shots)
-    bin_counts = {format(state, f"0{num_qubits}b"): count for state, count in int_counts.items()}
+    bin_counts = {
+        format(state, f"0{num_qubits}b"): count for state, count in int_counts.items()
+    }
     return Result(
         backend_name="ionq",
         backend_version="1.0.0",
         job_id=job_id,
         success=True,
-        results=[ExperimentResult(shots=shots, success=True, data=ExperimentResultData(counts=bin_counts))],
+        results=[
+            ExperimentResult(
+                shots=shots, success=True, data=ExperimentResultData(counts=bin_counts)
+            )
+        ],
     )
 
 
-def to_bitarray(client: AuthenticatedClient, job_id: str, num_qubits: int, shots: int) -> BitArray:
+def to_bitarray(
+    client: AuthenticatedClient, job_id: str, num_qubits: int, shots: int
+) -> BitArray:
     counts = _fetch_counts(client, job_id, shots)
-    return BitArray.from_counts(counts or {0: shots}, num_bits=num_qubits)  # ty: ignore[invalid-argument-type]
+    return BitArray.from_counts(
+        counts or {0: shots}, num_bits=num_qubits
+    )  # ty: ignore[invalid-argument-type]

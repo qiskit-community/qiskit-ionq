@@ -32,7 +32,11 @@ class TestTranslateToQis:
         qc = QuantumCircuit(2)
         qc.rxx(0.5, 0, 1)
         g = translate_qis_gates(qc)
-        assert g[0].gate == "xx" and g[0].targets == [0, 1] and math.isclose(g[0].rotation, 0.5)
+        assert (
+            g[0].gate == "xx"
+            and g[0].targets == [0, 1]
+            and math.isclose(g[0].rotation, 0.5)
+        )
 
     def test_measurement_and_barrier_skipped(self):
         qc = QuantumCircuit(1, 1)
@@ -91,7 +95,11 @@ class TestTranslateToNative:
         qc = QuantumCircuit(2)
         qc.append(ZZGate(0.3), [0, 1])
         g = translate_native_gates(qc)
-        assert g[0].gate == "zz" and g[0].targets == [0, 1] and math.isclose(g[0].phase, 0.3)
+        assert (
+            g[0].gate == "zz"
+            and g[0].targets == [0, 1]
+            and math.isclose(g[0].phase, 0.3)
+        )
 
     def test_measurement_skipped(self):
         qc = QuantumCircuit(1, 1)

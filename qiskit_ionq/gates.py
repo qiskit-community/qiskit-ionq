@@ -44,7 +44,9 @@ class GPI2Gate(_IonQGate):
 class MSGate(_IonQGate):
     """Two-qubit Molmer-Sorensen gate."""
 
-    def __init__(self, phi0: float, phi1: float, angle: float = 0.25, *, label: str | None = None):
+    def __init__(
+        self, phi0: float, phi1: float, angle: float = 0.25, *, label: str | None = None
+    ):
         super().__init__("ms", 2, [phi0, phi1, angle], label=label)
 
     def __array__(self, dtype=None, copy=None):

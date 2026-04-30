@@ -24,10 +24,18 @@ if TYPE_CHECKING:
     from qiskit.transpiler import Target
 
 
-def _translate_circuits(circuits: list[QuantumCircuit], gateset: str) -> list[NativeCircuit | QISCircuit]:
+def _translate_circuits(
+    circuits: list[QuantumCircuit], gateset: str
+) -> list[NativeCircuit | QISCircuit]:
     if gateset == "native":
-        return [NativeCircuit(circuit=translate_native_gates(c), qubits=c.num_qubits) for c in circuits]
-    return [QISCircuit(circuit=translate_qis_gates(c), qubits=c.num_qubits) for c in circuits]
+        return [
+            NativeCircuit(circuit=translate_native_gates(c), qubits=c.num_qubits)
+            for c in circuits
+        ]
+    return [
+        QISCircuit(circuit=translate_qis_gates(c), qubits=c.num_qubits)
+        for c in circuits
+    ]
 
 
 def submit(
@@ -47,15 +55,21 @@ def submit(
     body = mcj.JSONMultiCircuitJob(
         backend=backend,
         type_="ionq.multi-circuit.v1",
-        input_=mci.JsonMultiCircuitInput(gateset=gateset, circuits=_translate_circuits(transpiled, gateset)),
+        input_=mci.JsonMultiCircuitInput(
+            gateset=gateset, circuits=_translate_circuits(transpiled, gateset)
+        ),
         shots=shots,
         session_id=session_id or UNSET,
         settings=mcjs.JSONMultiCircuitJobSettings(
-            error_mitigation=mcjem.JSONMultiCircuitJobSettingsErrorMitigation(**error_mitigation),
+            error_mitigation=mcjem.JSONMultiCircuitJobSettingsErrorMitigation(
+                **error_mitigation
+            ),
         )
         if error_mitigation is not None
         else UNSET,
-        noise=Noise(model=noise_model, seed=noise_seed if noise_seed is not None else UNSET)
+        noise=Noise(
+            model=noise_model, seed=noise_seed if noise_seed is not None else UNSET
+        )
         if noise_model is not None
         else UNSET,
     )

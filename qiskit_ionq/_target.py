@@ -36,7 +36,12 @@ from .gates import GPI2Gate, GPIGate, MSGate, ZZGate
 if TYPE_CHECKING:
     from ionq_core.client import AuthenticatedClient
 
-_t, _p0, _p1, _a = Parameter("theta"), Parameter("phi0"), Parameter("phi1"), Parameter("angle")
+_t, _p0, _p1, _a = (
+    Parameter("theta"),
+    Parameter("phi0"),
+    Parameter("phi1"),
+    Parameter("angle"),
+)
 
 _GATESETS = {
     "qis": (
@@ -68,7 +73,9 @@ def _fetch_characterization(backend_info: Backend, client: AuthenticatedClient):
     char_id = backend_info.characterization_id
     if isinstance(char_id, Unset) or char_id is None:
         return None
-    return get_characterization.sync(backend=backend_info.backend, uuid=UUID(char_id), client=client)  # ty: ignore[invalid-argument-type]
+    return get_characterization.sync(
+        backend=backend_info.backend, uuid=UUID(char_id), client=client
+    )  # ty: ignore[invalid-argument-type]
 
 
 def _get_error(char, key: str) -> float | None:
@@ -82,7 +89,9 @@ def _get_error(char, key: str) -> float | None:
     return (1 - fidelity) if fidelity is not None else None
 
 
-def build_target(backend_info: Backend, client: AuthenticatedClient, gateset: str = "qis") -> Target:
+def build_target(
+    backend_info: Backend, client: AuthenticatedClient, gateset: str = "qis"
+) -> Target:
     nq = backend_info.qubits
     gates_1q, gates_2q = _GATESETS[gateset]
     target = Target(num_qubits=nq)
@@ -96,11 +105,20 @@ def build_target(backend_info: Backend, client: AuthenticatedClient, gateset: st
         props_1q = {(q,): InstructionProperties(error=error_1q) for q in range(nq)}
         for gate in gates_1q:
             target.add_instruction(gate, props_1q)
-        props_2q = {(i, j): InstructionProperties(error=error_2q) for i in range(nq) for j in range(nq) if i != j}
+        props_2q = {
+            (i, j): InstructionProperties(error=error_2q)
+            for i in range(nq)
+            for j in range(nq)
+            if i != j
+        }
         for gate in gates_2q:
             target.add_instruction(gate, props_2q)
         target.add_instruction(
-            Measure(), {(q,): InstructionProperties(error=_get_error(char, "spam")) for q in range(nq)}
+            Measure(),
+            {
+                (q,): InstructionProperties(error=_get_error(char, "spam"))
+                for q in range(nq)
+            },
         )
 
     return target

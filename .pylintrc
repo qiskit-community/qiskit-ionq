@@ -13,7 +13,9 @@ ignore=CVS
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
-ignore-patterns=
+ignore-patterns=^_(result|submit|target|translate)\.py$,
+                ^gates\.py$,
+                ^test_deprecation_warnings\.py$
 
 # Pickle collected data for later comparisons.
 persistent=yes

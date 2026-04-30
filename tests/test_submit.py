@@ -17,7 +17,9 @@ def qis_target(client, simulator_backend_info):
 
 
 def _mock_resp(mock, job_id="job-1"):
-    mock.sync.return_value = JobCreationResponse(id=job_id, status="submitted", session_id=None)
+    mock.sync.return_value = JobCreationResponse(
+        id=job_id, status="submitted", session_id=None
+    )
 
 
 def _body(mock):
@@ -76,7 +78,9 @@ class TestSubmit:
         qc = QuantumCircuit(1)
         qc.h(0)
         qc.measure_all()
-        _submit(client, qis_target, [qc], shots=1024, error_mitigation={"debiasing": True})
+        _submit(
+            client, qis_target, [qc], shots=1024, error_mitigation={"debiasing": True}
+        )
         assert _body(mock).settings.error_mitigation.debiasing is True
 
     @patch("qiskit_ionq._submit.create_job")
@@ -85,7 +89,9 @@ class TestSubmit:
         qc = QuantumCircuit(1)
         qc.h(0)
         qc.measure_all()
-        _submit(client, qis_target, [qc], shots=1024, noise_model="aria-1", noise_seed=42)
+        _submit(
+            client, qis_target, [qc], shots=1024, noise_model="aria-1", noise_seed=42
+        )
         noise = _body(mock).noise
         assert noise.model == "aria-1" and noise.seed == 42
 

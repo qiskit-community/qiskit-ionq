@@ -20,7 +20,9 @@ class TestSimulatorTarget:
 
 class TestQPUTarget:
     @patch("qiskit_ionq._target.get_characterization")
-    def test_per_qubit_properties(self, mock_get_char, client, qpu_backend_info, characterization):
+    def test_per_qubit_properties(
+        self, mock_get_char, client, qpu_backend_info, characterization
+    ):
         mock_get_char.sync.return_value = characterization
         target = build_target(qpu_backend_info, client, "qis")
         assert target.num_qubits == 25
