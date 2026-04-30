@@ -100,8 +100,8 @@ with IonQSession(backend, max_jobs=10) as sess:
     sampler.run([(qc,)])
 ```
 
-- `Session` → `IonQSession`. The class is now a wrapper over `ionq_core.SessionManager`.
-- The monkey-patch on `backend.run` is gone. You must explicitly call `session.sampler().run(...)` (or pass the session into `IonQSampler(backend, session=sess)`).
+- `Session` → `IonQSession`. The class is now a wrapper over `ionq_core.SessionManager`. **Already available in 1.1.0** — you can migrate today on Python >=3.12.
+- The monkey-patch on `backend.run` is gone. In 1.1.0 you can pass `session_id=sess.session_id` explicitly. In 2.0 you call `session.sampler().run(...)` (or pass the session into `IonQSampler(backend, session=sess)`).
 - `IonQSession.from_id(backend, "session-uuid")` reattaches to an existing session.
 
 ## Native gates

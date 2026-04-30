@@ -54,3 +54,14 @@ __all__ = [
     "ErrorMitigation",
     "add_equivalences",
 ]
+
+# IonQSession is the 2.0 migration target for the deprecated Session class.
+# It uses ionq-core's SessionManager under the hood and is only importable on
+# Python >=3.12 (where ionq-core is installed). On older Pythons the symbol is
+# absent and the deprecated Session keeps working unchanged.
+try:
+    from .session import IonQSession  # noqa: F401
+
+    __all__.append("IonQSession")
+except ImportError:
+    pass

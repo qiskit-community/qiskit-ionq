@@ -13,7 +13,8 @@ ignore=CVS
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
-ignore-patterns=^test_deprecation_warnings\.py$
+ignore-patterns=^test_deprecation_warnings\.py$,
+                ^test_ionq_session_v2\.py$
 
 # Pickle collected data for later comparisons.
 persistent=yes
