@@ -24,88 +24,56 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test basic request_mock behavior."""
+"""Test the test-infrastructure shim that maps the legacy ``requests_mock``
+fixture API onto pytest-httpx now that all qiskit-ionq HTTP calls run through
+ionq-core (and therefore through ``httpx``)."""
 
 import unittest
 
+import httpx
 import pytest
-import requests
-from requests_mock import adapter as rm_adapter
-
-
-def test_global_mock():
-    """test the global requests mock"""
-    response = requests.get("https://www.google.com", timeout=30)
-    assert response.text == "UNHANDLED REQUEST. PLEASE MOCK WITH requests_mock."
 
 
 def test_fixture_mock(requests_mock):
-    """Test a function-scoped mock overrides the global.
+    """Test a function-scoped mock returns the registered text body.
 
     Args:
-        requests_mock (:class:`requests_mock.Mocker`): A requests mocker.
+        requests_mock (_RequestsMockShim): The shim fixture (see ``test/conftest.py``).
     """
     requests_mock.get("https://www.google.com", text="function mock")
-    response = requests.get("https://www.google.com", timeout=30)
+    response = httpx.get("https://www.google.com", timeout=30)
     assert response.text == "function mock"
 
 
 class TestUnittestCompatibility(unittest.TestCase):
-    """An example of how to use `requests_mock` with a class.
-
-    Attributes:
-        requests_mock (:class:`requests_mock.Mocker`): A requests mocker.
-    """
+    """The legacy ``requests_mock`` shim should be wireable into a unittest
+    ``TestCase`` via ``init_requests_mock``."""
 
     requests_mock = None
 
     @pytest.fixture(autouse=True)
     def init_requests_mock(self, requests_mock):
-        """Initialize a :class:`requests_mock.Mocker` for this class.
-
-        .. NOTE::
-           Because this is cached on a class, it means all requests made
-           from any methods on this class will use the same registered mocks.
+        """Initialize the shim mocker for this class.
 
         Args:
-            requests_mock (:class:`requests_mock.Mocker`):
-                A requests_mock fixture.
+            requests_mock (_RequestsMockShim): The shim fixture from
+                ``test/conftest.py``.
         """
         self.requests_mock = requests_mock
 
-        # Register any URIs you want to mock for the entire class here:
-        self.requests_mock.register_uri(
-            rm_adapter.ANY,
-            rm_adapter.ANY,
-            response_list=[
-                {
-                    "status_code": 599,
-                    "text": "class fixture mock",
-                }
-            ],
-        )
-
-    def test_class_mock(self):
-        """
-        Test the class-scoped requests mock, which is setup
-        in :meth:`init_requests_mock`
-        """
-        response = requests.get("https://www.google.com", timeout=30)
-        self.assertEqual(response.text, "class fixture mock")
-
     def test_method_mock(self):
-        """Test a method-scoped mock overrides the global."""
+        """Test a method-scoped mock returns its registered body."""
         self.requests_mock.get(
             "https://www.google.com", text="instance method fixture mock"
         )
-        response = requests.get("https://www.google.com", timeout=30)
+        response = httpx.get("https://www.google.com", timeout=30)
         self.assertEqual(response.text, "instance method fixture mock")
 
     def test_another_method_mock(self):
-        """Test a second method-scoped mock overrides the global."""
+        """Test a second method-scoped mock returns its registered body."""
         self.requests_mock.get(
             "https://www.google.com",
             text="another instance method fixture mock",
         )
-        response = requests.get("https://www.google.com", timeout=30)
+        response = httpx.get("https://www.google.com", timeout=30)
         self.assertEqual(response.text, "another instance method fixture mock")

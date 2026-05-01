@@ -27,7 +27,6 @@
 """Test the helper functions."""
 
 import re
-from unittest.mock import patch, MagicMock
 from qiskit_ionq.ionq_client import IonQClient
 from qiskit_ionq.helpers import get_n_qubits, retry
 
@@ -51,11 +50,13 @@ def test_user_agent_header():
     assert all_user_agent_keywords_avail and has_all_version_strings
 
 
-def test_get_n_qubits_success():
+def test_get_n_qubits_success(httpx_mock):
     """Test get_n_qubits returns correct number of qubits and checks correct URL."""
-    with patch("requests.get") as mock_get:
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
+    expected_url = "https://api.ionq.co/v0.4/backends/qpu.aria-1"
+    httpx_mock.add_response(
+        url=expected_url,
+        method="GET",
+        json={
             "backend": "qpu.aria-1",
             "status": "unavailable",
             "degraded": False,
@@ -63,42 +64,30 @@ def test_get_n_qubits_success():
             "average_queue_time": 375478,
             "last_updated": "2025-07-08T17:17:28Z",
             "characterization_id": "b9b31a31-8d11-47c1-9156-87bd87954f7f",
-        }
-        mock_get.return_value = mock_response
+        },
+    )
 
-        backend = "ionq_qpu.aria-1"
-        result = get_n_qubits(backend)
+    result = get_n_qubits("ionq_qpu.aria-1")
 
-        expected_url = "https://api.ionq.co/v0.4/backends/qpu.aria-1"
-
-        # Check the arguments of the last call to `requests.get`
-        mock_get.assert_called()
-        args, kwargs = mock_get.call_args
-        actual_url = kwargs.get("url", args[0] if args else None)
-        assert (
-            actual_url == expected_url
-        ), f"Expected URL {expected_url}, but got {actual_url}"
-
-        assert result == 25, f"Expected 25 qubits, but got {result}"
+    requests = httpx_mock.get_requests()
+    assert requests, "Expected get_n_qubits to call the IonQ API"
+    actual_url = str(requests[-1].url)
+    assert actual_url == expected_url, f"Expected URL {expected_url}, got {actual_url}"
+    assert result == 25, f"Expected 25 qubits, got {result}"
 
 
-def test_get_n_qubits_fallback():
+def test_get_n_qubits_fallback(httpx_mock):
     """Test get_n_qubits returns fallback number of qubits and checks correct URL on failure."""
-    with patch("requests.get", side_effect=Exception("Network error")) as mock_get:
-        backend = "aria-1"
-        result = get_n_qubits(backend)
+    expected_url = "https://api.ionq.co/v0.4/backends/qpu.aria-1"
+    httpx_mock.add_exception(Exception("Network error"), url=expected_url, method="GET")
 
-        expected_url = "https://api.ionq.co/v0.4/backends/qpu.aria-1"
+    result = get_n_qubits("aria-1")
 
-        # Check the arguments of the last call to `requests.get`
-        mock_get.assert_called()
-        args, kwargs = mock_get.call_args
-        actual_url = kwargs.get("url", args[0] if args else None)
-        assert (
-            actual_url == expected_url
-        ), f"Expected URL {expected_url}, but got {actual_url}"
-
-        assert result == 4, f"Expected fallback of 4 qubits, but got {result}"
+    requests = httpx_mock.get_requests()
+    assert requests, "Expected get_n_qubits to call the IonQ API"
+    actual_url = str(requests[-1].url)
+    assert actual_url == expected_url, f"Expected URL {expected_url}, got {actual_url}"
+    assert result == 4, f"Expected fallback of 4 qubits, got {result}"
 
 
 def test_retry():

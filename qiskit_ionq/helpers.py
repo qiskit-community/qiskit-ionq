@@ -41,7 +41,6 @@ from typing import Literal, Any
 import functools
 import time
 import random
-import requests
 from dotenv import dotenv_values
 
 import numpy as np
@@ -639,25 +638,52 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     }
 
 
+@functools.lru_cache(maxsize=None)
 def get_n_qubits(backend, fallback=4):
-    """Get the number of qubits for a given backend."""
-    backend = backend.removeprefix("ionq_")
-    backend = (
-        backend
-        if backend == "simulator" or backend.startswith("qpu.")
-        else f"qpu.{backend}"
+    """Get the number of qubits for a given backend.
+
+    Reaches the IonQ API through ``ionq-core``'s typed
+    ``GET /backends/<name>`` endpoint. Returns ``fallback`` on any error
+    (transport failure, missing key, simulator stub, etc.). Results are
+    memoized for the lifetime of the process - backend qubit counts do
+    not change at runtime, and the cache keeps repeated provider/backend
+    constructions from issuing redundant API calls (which also dominates
+    test-suite latency when no real key is configured).
+    """
+    # Local import: avoid circular import at module load time and keep this
+    # helper cheap when callers never invoke it.
+    from ionq_core import IonQClient as _IonQCoreClient
+    from ionq_core.api.backends import get_backend as _ionq_get_backend
+
+    api_name = backend.removeprefix("ionq_")
+    api_name = (
+        api_name
+        if api_name == "simulator" or api_name.startswith("qpu.")
+        else f"qpu.{api_name}"
     )
+    creds = resolve_credentials()
     try:
-        return (
-            requests.get(
-                f"{resolve_credentials()['url']}/backends/{backend}", timeout=5
-            )
-            .json()
-            .get("qubits", fallback)
+        # ``max_retries=0`` keeps this introspection cheap when the API is
+        # unreachable (test runs without a real key, offline development),
+        # since callers always have a sensible ``fallback`` qubit count.
+        core_client = _IonQCoreClient(
+            api_key=creds.get("token") or "MISSING_API_KEY",
+            base_url=creds["url"],
+            max_retries=0,
         )
+        response = _ionq_get_backend.sync_detailed(
+            backend=api_name,  # ty: ignore[invalid-argument-type]
+            client=core_client,
+        )
+        if response.status_code != 200 or response.parsed is None:
+            raise RuntimeError(
+                f"GET /backends/{api_name} returned {response.status_code}"
+            )
+        qubits = getattr(response.parsed, "qubits", None)
+        return int(qubits) if qubits is not None else fallback
     except Exception as exception:  # pylint: disable=broad-except
         warnings.warn(
-            f"Failed to get qubits for {backend}: {exception}. Using {fallback}"
+            f"Failed to get qubits for {api_name}: {exception}. Using {fallback}"
         )
         return fallback
 
