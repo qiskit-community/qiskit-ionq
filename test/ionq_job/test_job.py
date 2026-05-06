@@ -913,7 +913,7 @@ def _dry_run_job_response(job_id, target="qpu.forte-1"):
     }
 
 
-def test_dry_run_status_does_not_set_results_url(mock_backend, requests_mock):
+def test_dry_run_no_results_url(mock_backend, requests_mock):
     """Dry-run jobs should reach DONE without a results URL crash."""
     job_id = "dry_run_id"
     fetch_path = mock_backend.client.make_path("jobs", job_id)
@@ -927,7 +927,7 @@ def test_dry_run_status_does_not_set_results_url(mock_backend, requests_mock):
     assert job._results_url is None
 
 
-def test_dry_run_result_raises_friendly_error(mock_backend, requests_mock):
+def test_dry_run_result_raises(mock_backend, requests_mock):
     """Calling .result() on a dry-run job should raise a clear IonQJobError
     instead of the cryptic TypeError from passing None into make_path()."""
     job_id = "dry_run_id"
@@ -940,7 +940,7 @@ def test_dry_run_result_raises_friendly_error(mock_backend, requests_mock):
         job.result()
 
 
-def test_dry_run_compiled_circuit_native(mock_backend, requests_mock):
+def test_dry_run_compiled_native(mock_backend, requests_mock):
     """compiled_circuit(lang='native') hits /jobs/<id>/circuits/native and
     returns the JSON-decoded body as a string."""
     job_id = "dry_run_id"
@@ -949,7 +949,9 @@ def test_dry_run_compiled_circuit_native(mock_backend, requests_mock):
         json=_dry_run_job_response(job_id),
     )
 
-    native_body = '{"gateset":"native","circuit":[{"gate":"gpi2","target":0,"phase":0.0}]}'
+    native_body = (
+        '{"gateset":"native","circuit":[{"gate":"gpi2","target":0,"phase":0.0}]}'
+    )
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id, "circuits", "native"),
         json=native_body,
@@ -960,7 +962,7 @@ def test_dry_run_compiled_circuit_native(mock_backend, requests_mock):
     assert job.compiled_circuit(lang="native") == native_body
 
 
-def test_dry_run_compiled_circuit_qasm3(mock_backend, requests_mock):
+def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
     """compiled_circuit(lang='qasm3') returns the OpenQASM 3 string."""
     job_id = "dry_run_id"
     requests_mock.get(
@@ -978,7 +980,7 @@ def test_dry_run_compiled_circuit_qasm3(mock_backend, requests_mock):
     assert job.compiled_circuit(lang="qasm3") == qasm3
 
 
-def test_compiled_circuit_rejects_bad_lang(mock_backend, requests_mock):
+def test_compiled_bad_lang(mock_backend, requests_mock):
     """Unknown lang values must raise ValueError before any HTTP call."""
     job_id = "dry_run_id"
     requests_mock.get(
@@ -990,7 +992,7 @@ def test_compiled_circuit_rejects_bad_lang(mock_backend, requests_mock):
         job.compiled_circuit(lang="qasm")  # qasm2 / qasm are NOT valid
 
 
-def test_dry_run_property_default_false(mock_backend, requests_mock):
+def test_dry_run_property_false(mock_backend, requests_mock):
     """A regular (non-dry-run) job exposes dry_run=False."""
     job_id = "regular_job"
     fetch_path = mock_backend.client.make_path("jobs", job_id)

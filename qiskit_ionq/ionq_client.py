@@ -272,9 +272,7 @@ class IonQClient:
             circuit representation in native gates.
         """
         if lang not in ("native", "qasm3"):
-            raise ValueError(
-                f"lang must be 'native' or 'qasm3', got {lang!r}."
-            )
+            raise ValueError(f"lang must be 'native' or 'qasm3', got {lang!r}.")
         req_path = self.make_path("jobs", job_id, "circuits", lang)
         res = self.get_with_retry(req_path, headers=self.api_headers)
         exceptions.IonQAPIError.raise_for_status(res)
