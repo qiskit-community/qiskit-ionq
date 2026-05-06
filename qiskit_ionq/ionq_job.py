@@ -247,6 +247,41 @@ class IonQJob(JobV1):
         assert self._job_id is not None
         return self._client.get_compiled_circuit(self._job_id, lang=lang)
 
+    def compiled_qiskit_circuit(self) -> QuantumCircuit:
+        """Return the server-compiled circuit as a Qiskit ``QuantumCircuit``.
+
+        Convenience wrapper over :meth:`compiled_circuit` that fetches the
+        OpenQASM 3 representation of the compiled program and parses it back
+        into a ``QuantumCircuit``, so the user can inspect, draw, count gates,
+        or compose with other Qiskit objects.
+
+        Raises:
+            IonQJobStateError: If the job has not reached a final state yet.
+            IonQJobFailureError: If the job failed before compilation completed.
+            IonQJobError: If the API returned text the Qiskit OpenQASM 3
+                importer cannot parse (typically because the compiled output
+                uses gate declarations Qiskit's parser does not recognise).
+                Use :meth:`compiled_circuit` with ``lang="qasm3"`` to get the
+                raw text in that case.
+
+        Returns:
+            QuantumCircuit: The compiled circuit, parsed from QASM 3.
+        """
+        # Imported here rather than at module load so the qasm3 importer is
+        # only paid for when this method is actually called.
+        from qiskit.qasm3 import loads as _qasm3_loads, QASM3ImporterError
+        from openqasm3.parser import QASM3ParsingError
+
+        qasm3_text = self.compiled_circuit(lang="qasm3")
+        try:
+            return _qasm3_loads(qasm3_text)
+        except (QASM3ImporterError, QASM3ParsingError) as exc:
+            raise exceptions.IonQJobError(
+                f"Could not parse compiled QASM 3 for job {self._job_id} into a "
+                "QuantumCircuit. Use job.compiled_circuit(lang='qasm3') to get "
+                f"the raw text. Underlying error: {exc}"
+            ) from exc
+
     def cancel(self) -> None:
         """Cancel this job."""
         assert self._job_id is not None, "Cannot cancel a job without a job_id."

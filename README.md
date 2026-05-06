@@ -106,6 +106,14 @@ qasm3       = job.compiled_circuit(lang="qasm3")    # OpenQASM 3
 
 Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
 
+For `lang="qasm3"` you can also call `job.compiled_qiskit_circuit()` to get the result back as a Qiskit `QuantumCircuit` ready for inspection, drawing, or further composition:
+
+```python
+qc_compiled = job.compiled_qiskit_circuit()
+qc_compiled.draw("text")
+qc_compiled.count_ops()
+```
+
 ### Basis gates and transpilation
 
 The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. The current supported gates can be found [on our docs site](https://docs.ionq.com/#tag/quantum_programs).
