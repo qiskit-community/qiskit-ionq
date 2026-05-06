@@ -275,12 +275,17 @@ def qiskit_circ_to_ionq_circ(
             )
 
         if instruction_name == "pauliexp":
+            operator = instruction.operator
+            # Patch for Qiskit 1.2+: Convert SparseObservable to SparsePauliOp
+            if not hasattr(operator, "to_list"):
+                from qiskit.quantum_info import SparsePauliOp
+                operator = SparsePauliOp.from_sparse_observable(operator)
             imag_coeff = any(coeff.imag for coeff in instruction.operator.coeffs)
             assert not imag_coeff, (
                 "PauliEvolution gate must have real coefficients, "
                 f"but got {imag_coeff}"
             )
-            terms = [term[0] for term in instruction.operator.to_list()]
+            terms = [term[0] for term in operator.to_list()]
             if not ionq_compiler_synthesis and not paulis_commute(terms):
                 raise ionq_exceptions.IonQPauliExponentialError(
                     f"You have included a PauliEvolutionGate with non-commuting terms: {terms}."
