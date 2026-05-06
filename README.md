@@ -88,6 +88,24 @@ print(job.result(sharpen=True).get_counts())
 print(job.result().get_probabilities())
 ```
 
+### Compilation as a service (`dry_run`)
+
+IonQ Cloud can compile a circuit and return the result _without_ executing it on a QPU. This is useful for inspecting the post-compilation circuit, estimating gate counts, or validating native-gate output before paying for shots.
+
+Set `dry_run=True` on `backend.run(...)` and then read the compiled circuit back via `job.compiled_circuit(...)`:
+
+```python
+backend = provider.get_backend("ionq_qpu.forte-1")
+
+job = backend.run(qc, dry_run=True)
+job.wait_for_final_state()
+
+native_json = job.compiled_circuit(lang="native")   # IonQ-native JSON
+qasm3       = job.compiled_circuit(lang="qasm3")    # OpenQASM 3
+```
+
+Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
+
 ### Basis gates and transpilation
 
 The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. The current supported gates can be found [on our docs site](https://docs.ionq.com/#tag/quantum_programs).

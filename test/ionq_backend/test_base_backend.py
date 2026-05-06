@@ -314,3 +314,54 @@ def test_backend_memory(
     job = ionq_job.IonQJob(mock_backend, job_id)
     with pytest.raises(AttributeError):
         job.get_memory()  # pylint: disable=no-member
+
+
+def test_run_dry_run_sets_top_level_field(mock_backend, requests_mock):
+    """`backend.run(qc, dry_run=True)` must put `dry_run: true` at the top
+    level of the request body. Compilation-as-a-service uses this to compile
+    the circuit without executing it on the QPU."""
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    mock_backend.run(qc, dry_run=True)
+
+    assert len(requests_mock.request_history) == 1
+    request_json = requests_mock.request_history[0].json()
+    assert request_json["dry_run"] is True
+
+
+def test_run_dry_run_default_is_omitted(mock_backend, requests_mock):
+    """When `dry_run` is not supplied, the field must NOT be in the request
+    body at all (so the API behaves identically to pre-1.x clients)."""
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    mock_backend.run(qc)
+
+    request_json = requests_mock.request_history[0].json()
+    assert "dry_run" not in request_json
+
+
+def test_run_dry_run_via_extra_query_params_still_works(mock_backend, requests_mock):
+    """Back-compat: the pre-existing
+    `extra_query_params={"dry_run": True}` workaround must keep working
+    after the first-class kwarg is added."""
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    mock_backend.run(qc, extra_query_params={"dry_run": True})
+
+    request_json = requests_mock.request_history[0].json()
+    assert request_json["dry_run"] is True

@@ -874,3 +874,127 @@ def test_multi_circuit_clbit_map(mock_backend, requests_mock):
 
     job = ionq_job.IonQJob(mock_backend, job_id)
     assert job._clbits == meas_maps
+
+
+# ---------------------------------------------------------------------------
+# dry_run / compilation-as-a-service
+# ---------------------------------------------------------------------------
+
+
+def _dry_run_job_response(job_id, target="qpu.forte-1"):
+    """Mimic the API response for a completed dry-run job.
+
+    Per the v0.4 spec, the top-level ``dry_run`` boolean is echoed back, and
+    ``results`` is null because no measurement data is produced.
+    """
+    qiskit_header = compress_to_metadata_string(
+        {
+            "qubit_labels": [["q", 0], ["q", 1]],
+            "n_qubits": 2,
+            "qreg_sizes": [["q", 2]],
+            "clbit_labels": [["c", 0], ["c", 1]],
+            "memory_slots": 2,
+            "creg_sizes": [["c", 2]],
+            "name": job_id,
+            "global_phase": 0,
+        }
+    )
+    return {
+        "id": job_id,
+        "status": "completed",
+        "type": "ionq.circuit.v1",
+        "backend": target,
+        "dry_run": True,
+        "shots": 1024,
+        "metadata": {"qiskit_header": qiskit_header, "shots": "1024"},
+        "stats": {"qubits": 2, "circuits": 1},
+        # Per v0.4 spec, dry-run jobs have results=null.
+        "results": None,
+    }
+
+
+def test_dry_run_status_does_not_set_results_url(mock_backend, requests_mock):
+    """Dry-run jobs should reach DONE without a results URL crash."""
+    job_id = "dry_run_id"
+    fetch_path = mock_backend.client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, json=_dry_run_job_response(job_id))
+
+    # status() runs as part of __init__ when job_id is supplied
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    assert job.status() == jobstatus.JobStatus.DONE
+    assert job.dry_run is True
+    assert job._results_url is None
+
+
+def test_dry_run_result_raises_friendly_error(mock_backend, requests_mock):
+    """Calling .result() on a dry-run job should raise a clear IonQJobError
+    instead of the cryptic TypeError from passing None into make_path()."""
+    job_id = "dry_run_id"
+    fetch_path = mock_backend.client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, json=_dry_run_job_response(job_id))
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    with pytest.raises(exceptions.IonQJobError, match="dry_run=True"):
+        job.result()
+
+
+def test_dry_run_compiled_circuit_native(mock_backend, requests_mock):
+    """compiled_circuit(lang='native') hits /jobs/<id>/circuits/native and
+    returns the JSON-decoded body as a string."""
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+
+    native_body = '{"gateset":"native","circuit":[{"gate":"gpi2","target":0,"phase":0.0}]}'
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "native"),
+        json=native_body,
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.compiled_circuit() == native_body
+    assert job.compiled_circuit(lang="native") == native_body
+
+
+def test_dry_run_compiled_circuit_qasm3(mock_backend, requests_mock):
+    """compiled_circuit(lang='qasm3') returns the OpenQASM 3 string."""
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+
+    qasm3 = "OPENQASM 3.0;\ngate gpi2(p) q { } // ...\n"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "qasm3"),
+        json=qasm3,
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.compiled_circuit(lang="qasm3") == qasm3
+
+
+def test_compiled_circuit_rejects_bad_lang(mock_backend, requests_mock):
+    """Unknown lang values must raise ValueError before any HTTP call."""
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(ValueError, match="lang must be"):
+        job.compiled_circuit(lang="qasm")  # qasm2 / qasm are NOT valid
+
+
+def test_dry_run_property_default_false(mock_backend, requests_mock):
+    """A regular (non-dry-run) job exposes dry_run=False."""
+    job_id = "regular_job"
+    fetch_path = mock_backend.client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, json=conftest.dummy_job_response(job_id))
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.dry_run is False

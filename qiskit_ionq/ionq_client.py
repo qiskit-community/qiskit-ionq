@@ -248,6 +248,44 @@ class IonQClient:
         )
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
+    def get_compiled_circuit(self, job_id: str, lang: str = "native") -> str:
+        """Retrieve the server-compiled circuit for a job.
+
+        Hits ``GET /v0.4/jobs/{UUID}/circuits/{lang}``, which is populated by the
+        IonQ Cloud compiler-as-a-service for jobs submitted with ``dry_run=True``
+        (and, for fully-executed jobs, the post-compilation circuit actually run
+        on hardware).
+
+        Args:
+            job_id (str): The ID of the job whose compiled circuit to fetch.
+            lang (str): Output language; one of ``"native"`` or ``"qasm3"``.
+                Defaults to ``"native"``.
+
+        Raises:
+            IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
+            ValueError: If ``lang`` is not one of the supported values.
+
+        Returns:
+            str: The compiled circuit as a string. For ``lang="qasm3"`` this is
+            an OpenQASM 3 program; for ``lang="native"`` this is the IonQ JSON
+            circuit representation in native gates.
+        """
+        if lang not in ("native", "qasm3"):
+            raise ValueError(
+                f"lang must be 'native' or 'qasm3', got {lang!r}."
+            )
+        req_path = self.make_path("jobs", job_id, "circuits", lang)
+        res = self.get_with_retry(req_path, headers=self.api_headers)
+        exceptions.IonQAPIError.raise_for_status(res)
+        # The API returns a JSON-encoded string body; .json() unwraps the outer
+        # quotes and returns a plain Python str.
+        try:
+            return res.json()
+        except ValueError:
+            return res.text
+
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_results(
         self,
         results_url: str,
