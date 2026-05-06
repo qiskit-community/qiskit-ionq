@@ -225,13 +225,17 @@ class IonQJob(JobV1):
         actually run on hardware after IonQ's compiler resynthesizes the input.
 
         Args:
-            lang (str): One of ``"native"`` or ``"qasm3"``. Defaults to
-                ``"native"``.
+            lang (str): Output language. ``"native"`` (default) returns the
+                IonQ-native gate JSON; ``"qasm3"`` returns OpenQASM 3 source.
+                Other values may be accepted depending on organization
+                entitlement; the API rejects unsupported or non-entitled
+                values with a ``4xx`` response surfaced here as
+                :class:`~qiskit_ionq.exceptions.IonQAPIError`.
 
         Raises:
             IonQJobStateError: If the job has not reached a final state yet.
             IonQJobFailureError: If the job failed before compilation completed.
-            ValueError: If ``lang`` is not a supported value.
+            IonQAPIError: If the API rejects the ``lang`` value.
 
         Returns:
             str: The compiled circuit as a string (IonQ-native JSON or OpenQASM 3).

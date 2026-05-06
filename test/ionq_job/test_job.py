@@ -980,16 +980,47 @@ def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
     assert job.compiled_circuit(lang="qasm3") == qasm3
 
 
-def test_compiled_bad_lang(mock_backend, requests_mock):
-    """Unknown lang values must raise ValueError before any HTTP call."""
+def test_compiled_lang_passthrough(mock_backend, requests_mock):
+    """Any string is forwarded to the API as-is.
+
+    The server is the source of truth for which lang values are accepted
+    and which are gated behind per-organization entitlement; the SDK does
+    not duplicate that policy. This test mocks the request URL with a
+    non-default lang and confirms it is reached.
+    """
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
         json=_dry_run_job_response(job_id),
     )
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "future-lang"),
+        json="some-payload",
+    )
     job = ionq_job.IonQJob(mock_backend, job_id)
-    with pytest.raises(ValueError, match="lang must be"):
-        job.compiled_circuit(lang="qasm")  # qasm2 / qasm are NOT valid
+    assert job.compiled_circuit(lang="future-lang") == "some-payload"
+
+
+def test_compiled_lang_api_error(mock_backend, requests_mock):
+    """Server-side rejection of an unsupported / non-entitled lang surfaces
+    as IonQAPIError, matching every other non-2xx API response."""
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "nope"),
+        status_code=403,
+        json={
+            "statusCode": 403,
+            "error": "Forbidden",
+            "message": "Organization does not have access to this compiled language",
+        },
+    )
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(exceptions.IonQAPIError):
+        job.compiled_circuit(lang="nope")
 
 
 def test_dry_run_property_false(mock_backend, requests_mock):
