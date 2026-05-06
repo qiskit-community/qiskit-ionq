@@ -78,6 +78,13 @@ if TYPE_CHECKING:  # pragma: no cover
     from .ionq_provider import IonQProvider
 
 
+# Backend-name fragments whose native two-qubit gate is ZZ rather than MS.
+# Used by IonQBackend._make_target to pick the right entangler when building
+# the native-gateset Target. New ZZ-class backends should be appended here
+# until /backends exposes the native gate set per system.
+_ZZ_NATIVE_BACKENDS: tuple[str, ...] = ("forte", "tempo")
+
+
 class IonQBackend(Backend):
     """Common functionality for all IonQ backends (simulator and QPU)."""
 
@@ -321,8 +328,13 @@ class IonQBackend(Backend):
             for gate in (GPIGate(phi), GPI2Gate(phi)):
                 tgt.add_instruction(gate)
 
-            # 2q native
-            if "forte" in self.name.lower():
+            # 2q native: backend-dependent.
+            # ZZ-class systems (Forte, Tempo) use ZZGate; MS-class systems
+            # (Aria) use the parameterised MSGate. Driven by the backend
+            # name suffix because the API does not yet expose this in the
+            # /backends payload (tracked separately under the SDK topology
+            # work item).
+            if any(name in self.name.lower() for name in _ZZ_NATIVE_BACKENDS):
                 theta = Parameter("θ")
                 tgt.add_instruction(ZZGate(theta))
             else:
