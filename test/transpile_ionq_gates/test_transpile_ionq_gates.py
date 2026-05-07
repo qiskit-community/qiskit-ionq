@@ -437,7 +437,7 @@ def test_pauliexp_transpilation():
     assert t_circuit.data[0].params == [0.4]
 
 
-def test_qis_transpile_gate_count_regression():
+def test_qis_gate_count_regression():
     """Regression: Qiskit-side QIS transpilation must not explode gate counts.
 
     The IonQ QIS ``Target`` enumerates which Qiskit gates the IonQ Cloud
@@ -456,24 +456,31 @@ def test_qis_transpile_gate_count_regression():
     gate was removed from ``IonQBackend._make_target`` or whether Qiskit's
     synthesis for one of these gates regressed.
     """
-    backend = ionq_provider.IonQProvider().get_backend(
-        "ionq_simulator", gateset="qis"
-    )
+    backend = ionq_provider.IonQProvider().get_backend("ionq_simulator", gateset="qis")
 
     qc = QuantumCircuit(4)
-    # 1q + 2q QIS-basis gates (PR #232 surface)
-    qc.h(0); qc.x(1); qc.y(2); qc.z(3)
-    qc.rx(0.1, 0); qc.ry(0.2, 1); qc.rz(0.3, 2); qc.p(0.4, 3)
-    qc.cx(0, 1); qc.cz(2, 3); qc.swap(0, 3)
-    qc.rxx(0.5, 0, 1); qc.ryy(0.6, 2, 3); qc.rzz(0.7, 1, 2)
-    qc.crx(0.8, 0, 2); qc.cry(0.9, 1, 3)
+    # 1q + 2q QIS-basis gates (PR #232 surface).
+    qc.h(0)
+    qc.x(1)
+    qc.y(2)
+    qc.z(3)
+    qc.rx(0.1, 0)
+    qc.ry(0.2, 1)
+    qc.rz(0.3, 2)
+    qc.p(0.4, 3)
+    qc.cx(0, 1)
+    qc.cz(2, 3)
+    qc.swap(0, 3)
+    qc.rxx(0.5, 0, 1)
+    qc.ryy(0.6, 2, 3)
+    qc.rzz(0.7, 1, 2)
+    qc.crx(0.8, 0, 2)
+    qc.cry(0.9, 1, 3)
     # Multi-controlled gates registered by PR #233.
     qc.mcx([0, 1, 2], 3)
     qc.mcp(0.5, [0, 1], 2)
 
-    transpiled = transpile(
-        qc, backend=backend, optimization_level=1, seed_transpiler=0
-    )
+    transpiled = transpile(qc, backend=backend, optimization_level=1, seed_transpiler=0)
 
     # Snapshot ceiling: today the count is 17. 25 leaves headroom for benign
     # Qiskit synthesis drift while still firing loudly on either historical bug.
