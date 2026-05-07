@@ -137,6 +137,24 @@ GATESET_MAP = {
     "native": ionq_native_basis_gates,
 }
 
+# Native 2-qubit entangling gate by IonQ device family. Add a row when a
+# new family ships; consulted by IonQBackend._make_target().
+NATIVE_2Q_BY_FAMILY: dict[str, Literal["ms", "zz"]] = {
+    "aria": "ms",
+    "forte": "zz",
+}
+
+
+def native_2q_gate(value: str | None) -> Literal["ms", "zz"] | None:
+    """Pick "ms"/"zz" implied by a backend name or noise_model, else None."""
+    if not isinstance(value, str):
+        return None
+    value = value.lower()
+    for fam, gate in NATIVE_2Q_BY_FAMILY.items():
+        if value == fam or f"{fam}-" in value or value.endswith((f".{fam}", f"_{fam}")):
+            return gate
+    return None
+
 
 def qiskit_circ_to_ionq_circ(
     input_circuit: QuantumCircuit,
