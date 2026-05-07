@@ -390,18 +390,20 @@ def compress_to_metadata_string(
 
 
 def decompress_metadata_string(
-    input_string: str,
-) -> dict | list:  # pylint: disable=invalid-name
+    input_string: str | None,
+) -> dict | list | None:  # pylint: disable=invalid-name
     """
     Convert compact string format (dumped, gzipped, base64 encoded) from
     IonQ API metadata back into a dict or list of dicts relevant to building
     the results object on a returned job.
 
     Parameters:
-        input_string (str): compressed string format of metadata dict
+        input_string (str | None): compressed string format of metadata dict,
+            or None when the API omitted metadata.
 
     Returns:
-        dict or list: decompressed metadata dict or list of dicts
+        dict or list or None: decompressed metadata, or None if the input
+        was None.
     """
     if input_string is None:
         return None
