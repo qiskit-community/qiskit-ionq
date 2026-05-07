@@ -172,7 +172,7 @@ def test_qasm3_export():
     qasm3_loads(qasm3_str)
 
 
-def test_qasm_export_from_transpiled_circuit():
+def test_qasm_export_transpiled():
     """Tests QASM export and parse after transpiling to native gateset."""
     import qiskit
     import qiskit.qasm2
