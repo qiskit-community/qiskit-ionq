@@ -71,7 +71,7 @@ from qiskit.transpiler import Target, CouplingMap
 
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
-from .helpers import GATESET_MAP, get_n_qubits, warn_bad_transpile_level
+from .helpers import GATESET_MAP, get_n_qubits, native_2q_gate, warn_bad_transpile_level
 from .ionq_client import Characterization
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -327,15 +327,13 @@ class IonQBackend(Backend):
             for gate in (GPIGate(phi), GPI2Gate(phi)):
                 tgt.add_instruction(gate)
 
-            # 2q native
-            noise_model = getattr(self.options, "noise_model", "ideal")
-            name_lower = self.name.lower()
-            name_is_forte = "forte-" in name_lower or name_lower.endswith("forte")
-            noise_model_is_forte = isinstance(noise_model, str) and (
-                noise_model.lower().startswith("forte")
+            # 2q native: per family (see helpers.NATIVE_2Q_BY_FAMILY).
+            gate = (
+                native_2q_gate(self.name)
+                or native_2q_gate(getattr(self.options, "noise_model", None))
+                or "ms"
             )
-            use_zz = name_is_forte or noise_model_is_forte
-            if use_zz:
+            if gate == "zz":
                 theta = Parameter("θ")
                 tgt.add_instruction(ZZGate(theta))
             else:
