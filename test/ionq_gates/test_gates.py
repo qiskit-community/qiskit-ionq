@@ -33,7 +33,7 @@ import pytest
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import XGate, YGate, RXGate, RYGate, HGate
-from qiskit.qasm3 import dumps as qasm3_dumps
+from qiskit.qasm3 import dumps as qasm3_dumps, loads as qasm3_loads
 from qiskit.quantum_info import Operator
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate, ZZGate
 
@@ -153,8 +153,6 @@ def test_zz_definition(angle):
 
 def test_qasm3_export():
     """Tests that circuits with IonQ native gates can be exported and parsed as QASM3."""
-    import openqasm3.parser
-
     circuit = QuantumCircuit(2)
     circuit.append(GPIGate(0.25), [0])
     circuit.append(GPI2Gate(0.5), [0])
@@ -170,13 +168,12 @@ def test_qasm3_export():
     assert "gate ms" in qasm3_str
     assert "gate zz" in qasm3_str
 
-    # Should not raise QASM3ParserError (issue #217).
-    openqasm3.parser.parse(qasm3_str)
+    # Should round-trip without raising (issue #217).
+    qasm3_loads(qasm3_str)
 
 
 def test_qasm_export_from_transpiled_circuit():
     """Tests QASM export and parse after transpiling to native gateset."""
-    import openqasm3.parser
     import qiskit
     import qiskit.qasm2
     import qiskit.qasm3
@@ -197,4 +194,4 @@ def test_qasm_export_from_transpiled_circuit():
     # QASM3 export and parse should work (issue #218).
     qasm3_str = qiskit.qasm3.dumps(transpiled)
     assert "gate gpi(" in qasm3_str or "gate gpi2(" in qasm3_str
-    openqasm3.parser.parse(qasm3_str)  # Should not raise QASM3ParserError
+    qasm3_loads(qasm3_str)  # Should round-trip without raising
