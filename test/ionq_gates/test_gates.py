@@ -193,8 +193,8 @@ def test_qasm_export_from_transpiled_circuit():
 
     # QASM2 export should work.
     qasm2_str = qiskit.qasm2.dumps(transpiled)
-    assert "gate gpi" in qasm2_str or "gate gpi2" in qasm2_str
+    assert "gate gpi(" in qasm2_str or "gate gpi2(" in qasm2_str
     # QASM3 export and parse should work (issue #218).
     qasm3_str = qiskit.qasm3.dumps(transpiled)
-    assert "gate gpi" in qasm3_str or "gate gpi2" in qasm3_str
+    assert "gate gpi(" in qasm3_str or "gate gpi2(" in qasm3_str
     openqasm3.parser.parse(qasm3_str)  # Should not raise QASM3ParserError
