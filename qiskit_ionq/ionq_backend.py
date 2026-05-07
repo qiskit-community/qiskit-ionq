@@ -118,12 +118,8 @@ class IonQBackend(Backend):
 
         # Target (basis & connectivity)
         self._target = self._make_target()
-        # Track noise_model for native simulator target caching. Seeded with
-        # the same default _make_target() just used so the cache reflects
-        # actual state and we don't rebuild on the first .target access.
-        self._cached_noise_model: str | None = getattr(
-            self.options, "noise_model", "ideal"
-        )
+        # Track noise_model for native simulator target caching
+        self._cached_noise_model: str | None = None
 
         # Apply initial options if any
         if initial_options:
@@ -147,9 +143,6 @@ class IonQBackend(Backend):
 
     @property
     def target(self) -> Target | None:
-        # noise_model is a runtime option (settable via set_options after
-        # construction), so for native simulators the 2q basis gate (MS vs ZZ)
-        # can change post-__init__. Rebuild the Target lazily when it does.
         if self._simulator and self._gateset == "native":
             current_noise_model = getattr(self.options, "noise_model", "ideal")
             if self._cached_noise_model != current_noise_model:
@@ -334,11 +327,15 @@ class IonQBackend(Backend):
             for gate in (GPIGate(phi), GPI2Gate(phi)):
                 tgt.add_instruction(gate)
 
-            # 2q native: ZZ for Forte family, MS otherwise. Forte can be
-            # signaled either by the backend name (QPU) or by the noise_model
-            # option (simulator).
+            # 2q native
             noise_model = getattr(self.options, "noise_model", "ideal")
-            if self._is_forte(self.name) or self._is_forte(noise_model):
+            name_lower = self.name.lower()
+            name_is_forte = "forte-" in name_lower or name_lower.endswith("forte")
+            noise_model_is_forte = isinstance(noise_model, str) and (
+                noise_model.lower().startswith("forte")
+            )
+            use_zz = name_is_forte or noise_model_is_forte
+            if use_zz:
                 theta = Parameter("θ")
                 tgt.add_instruction(ZZGate(theta))
             else:
@@ -354,24 +351,6 @@ class IonQBackend(Backend):
     @staticmethod
     def _has_measurements(circ: QuantumCircuit) -> bool:
         return any(inst.operation.name == "measure" for inst in circ.data)
-
-    @staticmethod
-    def _is_forte(value: str | None) -> bool:
-        """Whether ``value`` names a Forte backend or noise model.
-
-        Matches ``forte-1``, ``forte-enterprise-1``, ``qpu.forte-1``, and the
-        bare token ``forte``; does not match unrelated substrings.
-
-        Args:
-            value (str | None): A backend name or noise_model string.
-
-        Returns:
-            bool: True if ``value`` denotes the Forte family.
-        """
-        if not isinstance(value, str):
-            return False
-        value = value.lower()
-        return value.startswith("forte") or "forte-" in value or value.endswith("forte")
 
 
 class IonQSimulatorBackend(IonQBackend):
