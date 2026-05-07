@@ -316,11 +316,11 @@ def test_backend_memory(
         job.get_memory()  # pylint: disable=no-member
 
 
-def test_simulator_native_target_respects_noise_model(provider):
+def test_native_sim_target_noise(provider):
     """Test that simulator native target uses ZZ gate for Forte noise models.
 
     Args:
-        provider: A test IonQProvider.
+        provider (IonQProvider): A test IonQProvider.
     """
     sim_backend = provider.get_backend("ionq_simulator", gateset="native")
 
@@ -339,13 +339,13 @@ def test_simulator_native_target_respects_noise_model(provider):
     assert "zz" not in target_ops
 
 
-def test_forte_noise_model_transpiles_rzz_to_zz(provider):
+def test_forte_rzz_transpiles_to_zz(provider):
     """Test that rzz gates transpile to zz (not ms) with Forte noise model.
 
     Regression test for issue #210.
 
     Args:
-        provider: A test IonQProvider.
+        provider (IonQProvider): A test IonQProvider.
     """
     native_simulator = provider.get_backend("ionq_simulator", gateset="native")
     native_simulator.set_options(noise_model="forte-1")
