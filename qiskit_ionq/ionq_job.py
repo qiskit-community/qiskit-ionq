@@ -391,14 +391,14 @@ class IonQJob(JobV1):
                 return mmap
 
             # Classical-bit maps for every circuit
-            header_list = decompress_metadata_string(
-                (response.get("metadata") or {}).get("qiskit_header")
+            metadata = response.get("metadata") or {}
+            header_list = (
+                decompress_metadata_string(metadata.get("qiskit_header")) or {}
             )
             if not isinstance(header_list, list):
                 header_list = [header_list]
             self._clbits = [
-                _meas_map_from_header(h or {}, self._num_qubits)
-                for h in header_list
+                _meas_map_from_header(h, self._num_qubits) for h in header_list
             ]
 
             # Ensure one map per circuit
@@ -508,7 +508,7 @@ class IonQJob(JobV1):
             if metadata.get("sampler_seed", "").isdigit()
             else None
         )
-        qiskit_header = decompress_metadata_string(metadata.get("qiskit_header"))
+        qiskit_header = decompress_metadata_string(metadata.get("qiskit_header")) or {}
         if not isinstance(qiskit_header, list):
             qiskit_header = [qiskit_header]
 
@@ -544,21 +544,16 @@ class IonQJob(JobV1):
         ]
         if self._status == jobstatus.JobStatus.DONE:
             for i in range(self._num_circuits):
-                n_qubits = (qiskit_header[i] or {}).get(
-                    "n_qubits", self._num_qubits
-                )
+                # Infer clbits from result keys when metadata is absent
+                # (e.g. job submitted outside qiskit); map_output returns
+                # nothing for an empty clbits list.
                 clbits = self._clbits[i]
-
-                # When metadata is absent (e.g. job submitted outside qiskit),
-                # infer the qubit count from the highest result key so that the
-                # measurement map is not empty.
                 if not clbits and data[i]:
                     n_qubits = max(int(k) for k in data[i]).bit_length() or 1
                     clbits = list(range(n_qubits))
-
                 (counts, probabilities) = _build_counts(
                     data[i],
-                    n_qubits,
+                    qiskit_header[i].get("n_qubits", len(clbits) or self._num_qubits),
                     clbits,
                     shots,
                     use_sampler=is_ideal_sim,

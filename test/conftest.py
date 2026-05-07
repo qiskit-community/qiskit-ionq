@@ -176,11 +176,9 @@ def dummy_mapped_job_response(
     return response
 
 
-def dummy_multicircuit_parent_response(job_id, child_job_ids, status="completed"):
-    """A dummy parent response for a multicircuit job, matching the real IonQ API shape.
-
-    The IonQ API returns ``metadata: null`` and empty ``stats`` on the parent
-    job for multicircuit submissions that did not include qiskit metadata.
+def dummy_multi_parent_response(job_id, child_job_ids, status="completed"):
+    """Multicircuit parent response with ``metadata: null`` and empty ``stats``,
+    matching the wire shape returned for jobs submitted outside qiskit.
 
     Args:
         job_id (str): The parent job id.
@@ -190,6 +188,7 @@ def dummy_multicircuit_parent_response(job_id, child_job_ids, status="completed"
     Returns:
         dict: A json response dict.
     """
+    url = f"/v0.4/jobs/{job_id}/results/probabilities/aggregated"
     return {
         "id": job_id,
         "type": "ionq.multi-circuit.v1",
@@ -200,13 +199,7 @@ def dummy_multicircuit_parent_response(job_id, child_job_ids, status="completed"
         "child_job_ids": child_job_ids,
         "settings": {},
         "stats": {},
-        "results": {
-            "probabilities": {
-                "url": (
-                    f"/v0.4/jobs/{job_id}/results/probabilities/aggregated"
-                )
-            }
-        },
+        "results": {"probabilities": {"url": url}},
         "execution_duration_ms": 0,
     }
 
