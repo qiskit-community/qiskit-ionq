@@ -53,6 +53,7 @@ from qiskit.circuit import (
     QuantumRegister,
     ClassicalRegister,
 )
+from qiskit.quantum_info import SparsePauliOp
 
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
@@ -277,8 +278,6 @@ def qiskit_circ_to_ionq_circ(
         if instruction_name == "pauliexp":
             operator = instruction.operator
             if not hasattr(operator, "to_list"):
-                from qiskit.quantum_info import SparsePauliOp
-
                 operator = SparsePauliOp.from_sparse_observable(operator)
             imag_coeff = any(coeff.imag for coeff in operator.coeffs)
             assert not imag_coeff, (
