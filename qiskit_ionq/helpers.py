@@ -280,7 +280,7 @@ def qiskit_circ_to_ionq_circ(
             if not hasattr(operator, "to_list"):
                 from qiskit.quantum_info import SparsePauliOp
                 operator = SparsePauliOp.from_sparse_observable(operator)
-            imag_coeff = any(coeff.imag for coeff in instruction.operator.coeffs)
+            imag_coeff = any(coeff.imag for coeff in operator.coeffs)
             assert not imag_coeff, (
                 "PauliEvolution gate must have real coefficients, "
                 f"but got {imag_coeff}"
@@ -296,7 +296,7 @@ def qiskit_circ_to_ionq_circ(
                 input_circuit.qubits.index(qargs[i])
                 for i in range(instruction.num_qubits)
             ]
-            coefficients = [coeff.real for coeff in instruction.operator.coeffs]
+            coefficients = [coeff.real for coeff in operator.coeffs]
             gate = {
                 "gate": instruction_name,
                 "targets": targets,

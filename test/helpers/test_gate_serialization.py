@@ -36,7 +36,7 @@ from qiskit.circuit import (
     Parameter,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp, SparseObservable
 
 from qiskit_ionq import exceptions
 from qiskit_ionq.helpers import qiskit_circ_to_ionq_circ
@@ -226,6 +226,27 @@ def test_pauliexp_circuit():
     """Test structure of circuits with a Pauli evolution gate."""
     # build the evolution gate
     operator = SparsePauliOp(["XX", "YY", "ZZ"], coeffs=[0.1, 0.2, 0.3])
+    evo = PauliEvolutionGate(operator, time=0.4)
+    # append it to a circuit
+    circuit = QuantumCircuit(3)
+    circuit.append(evo, [1, 2])
+    expected = [
+        {
+            "gate": "pauliexp",
+            "targets": [1, 2],
+            "terms": ["XX", "YY", "ZZ"],
+            "coefficients": [0.1, 0.2, 0.3],
+            "time": 0.4,
+        }
+    ]
+    built, _, _ = qiskit_circ_to_ionq_circ(circuit)
+    assert built == expected
+    
+
+def test_pauliexp_circuit_sparse_observable():
+    """Test structure of circuits with a Pauli evolution gate built from SparseObservable."""
+    # build the evolution gate directly from SparseObservable
+    operator = SparseObservable.from_list([("XX", 0.1), ("YY", 0.2), ("ZZ", 0.3)])
     evo = PauliEvolutionGate(operator, time=0.4)
     # append it to a circuit
     circuit = QuantumCircuit(3)
