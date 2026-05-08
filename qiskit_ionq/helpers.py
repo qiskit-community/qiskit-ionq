@@ -53,6 +53,7 @@ from qiskit.circuit import (
     QuantumRegister,
     ClassicalRegister,
 )
+from qiskit.quantum_info import SparsePauliOp
 
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
@@ -293,12 +294,15 @@ def qiskit_circ_to_ionq_circ(
             )
 
         if instruction_name == "pauliexp":
-            imag_coeff = any(coeff.imag for coeff in instruction.operator.coeffs)
+            operator = instruction.operator
+            if not hasattr(operator, "to_list"):
+                operator = SparsePauliOp.from_sparse_observable(operator)
+            imag_coeff = any(coeff.imag for coeff in operator.coeffs)
             assert not imag_coeff, (
                 "PauliEvolution gate must have real coefficients, "
                 f"but got {imag_coeff}"
             )
-            terms = [term[0] for term in instruction.operator.to_list()]
+            terms = [term[0] for term in operator.to_list()]
             if not ionq_compiler_synthesis and not paulis_commute(terms):
                 raise ionq_exceptions.IonQPauliExponentialError(
                     f"You have included a PauliEvolutionGate with non-commuting terms: {terms}."
@@ -309,7 +313,7 @@ def qiskit_circ_to_ionq_circ(
                 input_circuit.qubits.index(qargs[i])
                 for i in range(instruction.num_qubits)
             ]
-            coefficients = [coeff.real for coeff in instruction.operator.coeffs]
+            coefficients = [coeff.real for coeff in operator.coeffs]
             gate = {
                 "gate": instruction_name,
                 "targets": targets,
