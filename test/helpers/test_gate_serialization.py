@@ -241,7 +241,7 @@ def test_pauliexp_circuit():
     ]
     built, _, _ = qiskit_circ_to_ionq_circ(circuit)
     assert built == expected
-    
+
 
 def test_pauliexp_circuit_sparse_observable():
     """Test structure of circuits with a Pauli evolution gate built from SparseObservable."""
@@ -257,6 +257,25 @@ def test_pauliexp_circuit_sparse_observable():
             "targets": [1, 2],
             "terms": ["XX", "YY", "ZZ"],
             "coefficients": [0.1, 0.2, 0.3],
+            "time": 0.4,
+        }
+    ]
+    built, _, _ = qiskit_circ_to_ionq_circ(circuit)
+    assert built == expected
+
+
+def test_pauliexp_sparse_observable_expand():
+    """Projector terms in a SparseObservable expand; coeff/term lengths must stay aligned."""
+    operator = SparseObservable.from_list([("+I", 0.7), ("XX", 0.5)])
+    evo = PauliEvolutionGate(operator, time=0.4)
+    circuit = QuantumCircuit(2)
+    circuit.append(evo, [0, 1])
+    expected = [
+        {
+            "gate": "pauliexp",
+            "targets": [0, 1],
+            "terms": ["II", "XI", "XX"],
+            "coefficients": [0.35, 0.35, 0.5],
             "time": 0.4,
         }
     ]
