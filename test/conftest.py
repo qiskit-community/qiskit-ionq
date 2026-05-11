@@ -24,11 +24,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+# pylint: disable=redefined-outer-name
+
 """global pytest fixtures"""
 
 import pytest
-import requests_mock as _requests_mock
-from requests_mock import adapter as rm_adapter
+from requests_mock import Mocker, adapter as rm_adapter
 
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
 from qiskit_ionq.helpers import compress_to_metadata_string
@@ -48,7 +50,7 @@ def _def_results_template(job_id):
 class MockBackend(ionq_backend.IonQBackend):
     """A mock backend for testing super-class behavior in isolation."""
 
-    def __init__(self, provider, *, name: str = "ionq_mock_backend"):  # pylint: disable=redefined-outer-name
+    def __init__(self, provider, *, name: str = "ionq_mock_backend"):
         """
         Build a minimal mock backend that satisfies BackendV2.
         """
@@ -204,12 +206,11 @@ def dummy_multi_parent_response(job_id, child_job_ids, status="completed"):
     }
 
 
-def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-type-doc
+def dummy_failed_job(job_id):
     """A dummy response payload for a failed job.
 
     Args:
         job_id (str): An arbitrary job id.
-        status (str): A provided status string.
 
     Returns:
         dict: A json response dict.
@@ -250,7 +251,7 @@ def _default_requests_mock(**kwargs):
         :class:`request_mock.Mocker`: A requests mocker.
     """
     mocker_kwargs = {"real_http": False, **kwargs}
-    mocker = _requests_mock.Mocker(**mocker_kwargs)
+    mocker = Mocker(**mocker_kwargs)
     return mocker
 
 
@@ -291,7 +292,7 @@ def provider():
 
 
 @pytest.fixture()
-def mock_backend(provider):  # pylint: disable=redefined-outer-name
+def mock_backend(provider):
     """A fixture instance of the :class:`MockBackend`.
 
     Args:
@@ -303,7 +304,6 @@ def mock_backend(provider):  # pylint: disable=redefined-outer-name
     return MockBackend(provider)
 
 
-# pylint: disable=redefined-outer-name
 @pytest.fixture()
 def qpu_backend(provider):
     """Get the QPU backend from a provider.
@@ -317,7 +317,6 @@ def qpu_backend(provider):
     return provider.get_backend("ionq_qpu")
 
 
-# pylint: disable=redefined-outer-name
 @pytest.fixture()
 def simulator_backend(provider):
     """Get the QPU backend from a provider.
@@ -331,7 +330,6 @@ def simulator_backend(provider):
     return provider.get_backend("ionq_simulator")
 
 
-# pylint: disable=redefined-outer-name
 @pytest.fixture()
 def formatted_result(provider):
     """Fixture for auto-injecting a formatted IonQJob result object into a
