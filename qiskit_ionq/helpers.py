@@ -53,6 +53,7 @@ from qiskit.circuit import (
     QuantumRegister,
     ClassicalRegister,
 )
+from qiskit.quantum_info import SparsePauliOp
 
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
@@ -136,6 +137,24 @@ GATESET_MAP = {
     "qis": ionq_basis_gates,
     "native": ionq_native_basis_gates,
 }
+
+# Native 2-qubit entangling gate by IonQ device family. Add a row when a
+# new family ships; consulted by IonQBackend._make_target().
+NATIVE_2Q_BY_FAMILY: dict[str, Literal["ms", "zz"]] = {
+    "aria": "ms",
+    "forte": "zz",
+}
+
+
+def native_2q_gate(value: str | None) -> Literal["ms", "zz"] | None:
+    """Pick "ms"/"zz" implied by a backend name or noise_model, else None."""
+    if not isinstance(value, str):
+        return None
+    value = value.lower()
+    for fam, gate in NATIVE_2Q_BY_FAMILY.items():
+        if value == fam or f"{fam}-" in value or value.endswith((f".{fam}", f"_{fam}")):
+            return gate
+    return None
 
 
 def qiskit_circ_to_ionq_circ(
@@ -275,12 +294,15 @@ def qiskit_circ_to_ionq_circ(
             )
 
         if instruction_name == "pauliexp":
-            imag_coeff = any(coeff.imag for coeff in instruction.operator.coeffs)
+            operator = instruction.operator
+            if not hasattr(operator, "to_list"):
+                operator = SparsePauliOp.from_sparse_observable(operator)
+            imag_coeff = any(coeff.imag for coeff in operator.coeffs)
             assert not imag_coeff, (
                 "PauliEvolution gate must have real coefficients, "
                 f"but got {imag_coeff}"
             )
-            terms = [term[0] for term in instruction.operator.to_list()]
+            terms = [term[0] for term in operator.to_list()]
             if not ionq_compiler_synthesis and not paulis_commute(terms):
                 raise ionq_exceptions.IonQPauliExponentialError(
                     f"You have included a PauliEvolutionGate with non-commuting terms: {terms}."
@@ -291,7 +313,7 @@ def qiskit_circ_to_ionq_circ(
                 input_circuit.qubits.index(qargs[i])
                 for i in range(instruction.num_qubits)
             ]
-            coefficients = [coeff.real for coeff in instruction.operator.coeffs]
+            coefficients = [coeff.real for coeff in operator.coeffs]
             gate = {
                 "gate": instruction_name,
                 "targets": targets,
@@ -390,18 +412,20 @@ def compress_to_metadata_string(
 
 
 def decompress_metadata_string(
-    input_string: str,
-) -> dict | list:  # pylint: disable=invalid-name
+    input_string: str | None,
+) -> dict | list | None:  # pylint: disable=invalid-name
     """
     Convert compact string format (dumped, gzipped, base64 encoded) from
     IonQ API metadata back into a dict or list of dicts relevant to building
     the results object on a returned job.
 
     Parameters:
-        input_string (str): compressed string format of metadata dict
+        input_string (str | None): compressed string format of metadata dict,
+            or None when the API omitted metadata.
 
     Returns:
-        dict or list: decompressed metadata dict or list of dicts
+        dict or list or None: decompressed metadata, or None if the input
+        was None.
     """
     if input_string is None:
         return None

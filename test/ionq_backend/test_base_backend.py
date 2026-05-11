@@ -30,7 +30,7 @@
 from unittest import mock
 
 import pytest
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
 from qiskit_ionq.helpers import get_user_agent
@@ -365,3 +365,47 @@ def test_dry_run_via_extra_params(mock_backend, requests_mock):
 
     request_json = requests_mock.request_history[0].json()
     assert request_json["dry_run"] is True
+
+
+def test_native_sim_target_noise(provider):
+    """Test that simulator native target uses ZZ gate for Forte noise models.
+
+    Args:
+        provider (IonQProvider): A test IonQProvider.
+    """
+    sim_backend = provider.get_backend("ionq_simulator", gateset="native")
+
+    target_ops = [op.name for op in sim_backend.target.operations]
+    assert "ms" in target_ops
+    assert "zz" not in target_ops
+
+    sim_backend.set_options(noise_model="forte-1")
+    target_ops = [op.name for op in sim_backend.target.operations]
+    assert "zz" in target_ops
+    assert "ms" not in target_ops
+
+    sim_backend.set_options(noise_model="aria-1")
+    target_ops = [op.name for op in sim_backend.target.operations]
+    assert "ms" in target_ops
+    assert "zz" not in target_ops
+
+
+def test_forte_rzz_transpiles_to_zz(provider):
+    """Test that rzz gates transpile to zz (not ms) with Forte noise model.
+
+    Regression test for issue #210.
+
+    Args:
+        provider (IonQProvider): A test IonQProvider.
+    """
+    native_simulator = provider.get_backend("ionq_simulator", gateset="native")
+    native_simulator.set_options(noise_model="forte-1")
+
+    qc = QuantumCircuit(2)
+    qc.rzz(1, 0, 1)
+
+    transpiled_qc = transpile(qc, backend=native_simulator, optimization_level=3)
+    ops = transpiled_qc.count_ops()
+
+    assert "zz" in ops
+    assert "ms" not in ops

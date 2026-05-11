@@ -1031,3 +1031,28 @@ def test_dry_run_property_false(mock_backend, requests_mock):
 
     job = ionq_job.IonQJob(mock_backend, job_id)
     assert job.dry_run is False
+
+
+def test_multi_null_meta_result(mock_backend, requests_mock):
+    """Multicircuit parent with ``metadata: null`` (raw-submitted) must not
+    crash on retrieval; qubit count is inferred from result keys.
+    """
+    job_id = "parent_null_meta"
+    child_ids = ["child_a", "child_b"]
+    parent = conftest.dummy_multi_parent_response(job_id, child_ids)
+    aggregated = {child_ids[0]: {"0": 0.5, "3": 0.5}, child_ids[1]: {"1": 1.0}}
+
+    client = mock_backend.client
+    requests_mock.get(client.make_path("jobs", job_id), json=parent)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities", "aggregated"),
+        json=aggregated,
+    )
+
+    result = ionq_job.IonQJob(mock_backend, job_id).result()
+
+    assert result.success is True
+    # Bell: max key 3 -> 2 qubits inferred -> 2-char bitstrings.
+    assert result.get_counts(0) == {"00": 512, "11": 512}
+    # X: max key 1 -> 1 qubit inferred -> 1-char bitstrings.
+    assert result.get_counts(1) == {"1": 1024}
