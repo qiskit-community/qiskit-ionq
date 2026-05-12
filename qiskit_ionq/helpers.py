@@ -576,6 +576,11 @@ def qiskit_to_ionq(
     if settings:
         ionq_json["settings"] = settings
 
+    # dry-run flag (compilation-as-a-service); only emit when truthy so we
+    # don't clobber a user-supplied extra_query_params={"dry_run": True}.
+    if passed_args.get("dry_run"):
+        ionq_json["dry_run"] = True
+
     # user-supplied extras & final serialization
     ionq_json.update(extra_query_params)
     ionq_json["metadata"].update(extra_metadata)

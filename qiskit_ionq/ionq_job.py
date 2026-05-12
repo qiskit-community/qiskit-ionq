@@ -175,6 +175,8 @@ class IonQJob(JobV1):
         self._result = None
         self._status = None
         self._execution_time = None
+        self._dry_run: bool = False
+        self._results_url: str | None = None
         self._metadata: dict[str, Any] = {}
 
         if passed_args is not None:
@@ -203,6 +205,51 @@ class IonQJob(JobV1):
             if k in mapping and mapping[k] is not None:
                 return mapping[k]
         return default
+
+    @property
+    def dry_run(self) -> bool:
+        """Whether this job was submitted with ``dry_run=True``.
+
+        Dry-run jobs are compiled by the IonQ Cloud compiler-as-a-service but
+        not executed - they produce no measurement results. Use
+        :meth:`compiled_circuit` to retrieve the compiled circuit instead of
+        :meth:`result`.
+        """
+        return self._dry_run
+
+    def compiled_circuit(self, lang: str = "native") -> str:
+        """Fetch the server-compiled circuit for this job.
+
+        Useful for jobs submitted with ``dry_run=True`` (compilation as a
+        service) but also works for any completed job to inspect what was
+        actually run on hardware after IonQ's compiler resynthesizes the input.
+
+        Args:
+            lang (str): Output language. ``"native"`` (default) returns the
+                IonQ-native gate JSON; ``"qasm3"`` returns OpenQASM 3 source.
+                Other values may be accepted depending on organization
+                entitlement; the API rejects unsupported or non-entitled
+                values with a ``4xx`` response surfaced here as
+                :class:`~qiskit_ionq.exceptions.IonQAPIError`.
+
+        Raises:
+            IonQJobStateError: If the job has not reached a final state yet.
+            IonQJobFailureError: If the job failed before compilation completed.
+            IonQAPIError: If the API rejects the ``lang`` value.
+
+        Returns:
+            str: The compiled circuit as a string (IonQ-native JSON or OpenQASM 3).
+        """
+        # Make sure we're in a final state and the job-id is known. status()
+        # raises IonQJobFailureError on failure, which is the right behavior.
+        self.status()
+        if self._status not in jobstatus.JOB_FINAL_STATES:
+            raise exceptions.IonQJobStateError(
+                "Cannot fetch compiled circuit until the job reaches a final state. "
+                "Call wait_for_final_state() first."
+            )
+        assert self._job_id is not None
+        return self._client.get_compiled_circuit(self._job_id, lang=lang)
 
     def cancel(self) -> None:
         """Cancel this job."""
@@ -308,6 +355,13 @@ class IonQJob(JobV1):
 
         if self._status is jobstatus.JobStatus.DONE:
             assert self._job_id is not None
+            if self._dry_run:
+                raise exceptions.IonQJobError(
+                    f"Job {self._job_id} was submitted with dry_run=True; "
+                    "no measurement results are produced. Use "
+                    "job.compiled_circuit(lang='native' or 'qasm3') to "
+                    "retrieve the compiled circuit instead."
+                )
             response = self._client.get_results(
                 results_url=self._results_url,
                 sharpen=sharpen,
@@ -359,6 +413,10 @@ class IonQJob(JobV1):
             self._save_metadata(response)
 
         if self._status == jobstatus.JobStatus.DONE:
+            # Track dry-run regardless of source; the API echoes it as a
+            # top-level boolean on the job response.
+            self._dry_run = bool(response.get("dry_run", False))
+
             stats = response.get("stats", {})
             self._children = self._first_of(
                 response, "child_job_ids", "children", default=None
@@ -371,18 +429,27 @@ class IonQJob(JobV1):
                 self._num_circuits = self._first_of(stats, "circuits", default=1)
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
-            _results_url = self._first_of(
-                response, "results", "results_url", default={}
-            )
-            self._results_url = (
-                _results_url
-                if isinstance(_results_url, str)
-                else _results_url.get("probabilities", {}).get("url")
-            )
+
+            # Dry-run jobs never produce a results URL; skip extraction so we
+            # don't fall through to a None _results_url that would later crash
+            # in IonQClient.make_path().
+            if not self._dry_run:
+                _results_url = self._first_of(
+                    response, "results", "results_url", default={}
+                )
+                self._results_url = (
+                    _results_url
+                    if isinstance(_results_url, str)
+                    else _results_url.get("probabilities", {}).get("url")
+                )
 
             # Classical-bit maps per circuit
             def _meas_map_from_header(header_dict, fallback_nq):
                 """Return meas_mapped list or a default 0-based map."""
+                # Header may be missing entirely (e.g. for dry-run jobs that
+                # skip the qiskit metadata roundtrip); fall back to a 0..N map.
+                if not isinstance(header_dict, dict):
+                    return list(range(fallback_nq))
                 mmap = header_dict.get("meas_mapped")
                 if mmap is None or (
                     isinstance(mmap, list) and all(b is None for b in mmap)
