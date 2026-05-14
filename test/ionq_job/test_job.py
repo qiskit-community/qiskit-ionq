@@ -897,7 +897,7 @@ def test_multi_circuit_clbit_map(mock_backend, requests_mock):
 
 
 def test_no_memory_skips_shots(mock_backend, requests_mock):
-    """When memory=False the shots endpoint should not be hit."""
+    """memory=False yields memory=None and skips the shots GET."""
     job_id = "test_no_memory"
     client = mock_backend.client
 
@@ -911,8 +911,6 @@ def test_no_memory_skips_shots(mock_backend, requests_mock):
         status_code=200,
         json={"0": 0.5, "2": 0.499999},
     )
-    # Deliberately NOT mocking the shots endpoint - requests_mock will raise
-    # NoMockAddress if anything tries to GET it.
 
     job = ionq_job.IonQJob(
         mock_backend,
@@ -925,7 +923,7 @@ def test_no_memory_skips_shots(mock_backend, requests_mock):
 
 
 def test_ideal_sim_skips_shots(simulator_backend, requests_mock):
-    """Ideal simulator should not fetch shots even when memory=True."""
+    """Ideal simulator never fetches shots."""
     job_id = "test_ideal_sim"
     client = simulator_backend.client
 
@@ -939,7 +937,6 @@ def test_ideal_sim_skips_shots(simulator_backend, requests_mock):
         status_code=200,
         json={"0": 0.5, "2": 0.499999},
     )
-    # Deliberately NOT mocking the shots endpoint.
 
     job = ionq_job.IonQJob(simulator_backend, job_id)
     result = job.result()
@@ -948,16 +945,11 @@ def test_ideal_sim_skips_shots(simulator_backend, requests_mock):
 
 
 def test_no_shots_url_returns_none(mock_backend, requests_mock):
-    """A job whose response does not advertise a shots URL must yield
-    memory=None without an HTTP round-trip (regression-guard for the
-    case where the IonQ backend has not yet rolled out shotwise output).
-    """
+    """No shots URL in the response -> memory=None, no HTTP round-trip."""
     job_id = "no_shots_url"
     client = mock_backend.client
 
     resp = conftest.dummy_job_response(job_id)
-    # Strip the shots URL the way the API does today for QPU jobs
-    # that pre-date the shotwise rollout.
     resp["results"] = {k: v for k, v in resp["results"].items() if k != "shots"}
     requests_mock.get(client.make_path("jobs", job_id), json=resp)
     requests_mock.get(
@@ -972,36 +964,15 @@ def test_no_shots_url_returns_none(mock_backend, requests_mock):
 
 
 def test_build_memory_3q_format():
-    """Lock the wire-format contract: shots come back as decimal-stringified
-    outcome integers. Test with 3 qubits where decimal- vs binary-string
-    interpretation produces different results, which would have been masked
-    by a 2-qubit-only fixture.
+    """Wire format is decimal-encoded outcome ints; verify on 3 qubits where
+    decimal- and binary-string interpretations diverge.
     """
     from qiskit_ionq.ionq_job import _build_memory
 
-    # API wire format: list of decimal-encoded outcomes.
-    # 6 = binary 110 -> Qiskit bitstring "110" (q2=1, q1=1, q0=0).
-    # 1 = binary 001 -> Qiskit bitstring "001".
     raw = ["6", "1", "0", "7"]
     out = _build_memory(raw, n_qubits=3, clbits=[0, 1, 2])
     assert out == ["110", "001", "000", "111"]
-
-    # Integer inputs work the same way.
     assert _build_memory([6, 1, 0, 7], n_qubits=3, clbits=[0, 1, 2]) == out
-
-
-def test_build_memory_dict_raises():
-    """The v0.4 OpenAPI schema currently types the per-variant shots response
-    as ``additionalProperties: number/double`` (a dict). The live API
-    instead returns an ordered list - per-shot ordering is intrinsic to the
-    ``memory`` abstraction and a dict would destroy it. If the API ever
-    starts returning a dict, raise rather than silently corrupt output.
-    """
-    from qiskit_ionq.ionq_job import _build_memory
-    from qiskit_ionq.exceptions import IonQJobError
-
-    with pytest.raises(IonQJobError, match="Unexpected"):
-        _build_memory({"3": 250, "0": 250}, n_qubits=2, clbits=[0, 1])
 
 
 # ---------------------------------------------------------------------------

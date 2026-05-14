@@ -108,14 +108,14 @@ Dry-run jobs produce no measurement results, so calling `job.result()` on one ra
 
 ### Per-shot memory (`memory`)
 
-IonQ Cloud returns per-shot measurement outcomes for QPU and noisy-simulator jobs. Use `job.get_memory()` (or `result.get_memory()`) to retrieve them as a flat list of bitstrings (MSB-on-the-left, one entry per shot):
+QPU and noisy-simulator jobs return per-shot measurement outcomes. Use `job.get_memory()` to retrieve them as a list of MSB-left bitstrings, one per shot:
 
 ```python
 job = backend.run(qc, shots=1000)
 memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 ```
 
-Memory is fetched lazily from the server-supplied `results.shots.url` and is enabled by default. Pass `memory=False` on `backend.run(...)` to skip the extra round-trip if you only need counts/probabilities. The ideal simulator does not produce per-shot data, so `get_memory()` on an ideal-sim job returns `None`.
+Pass `memory=False` on `backend.run(...)` to skip the fetch if you only need counts. The ideal simulator does not produce per-shot data.
 
 ### Basis gates and transpilation
 

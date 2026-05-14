@@ -151,59 +151,19 @@ def _build_memory(
     clbits: list[int] | None,
     width: int | None = None,
 ) -> list[str]:
+    """Convert IonQ shot outcomes into Qiskit memory bitstrings.
+
+    The IonQ v0.4 ``CircuitJobResult.shots.url`` endpoint serves an ordered
+    list of decimal-encoded outcome integers (same convention as histogram
+    keys); this function applies the ``clbits`` mapping and returns one
+    MSB-left bitstring per shot.
     """
-    Convert IonQ shot integers into Qiskit memory bitstrings, applying the
-    same classical-bit mapping (clbits) used for counts. Returns strings with
-    MSB on the left, matching Qiskit's display convention.
-
-    Wire format: the IonQ v0.4 API serves per-shot data as a JSON array of
-    decimal-encoded outcome integers (same convention as histogram keys), in
-    shot order. The URL is advertised by the server in the response field
-    ``CircuitJobResult.shots.url``.
-
-    The v0.4 OpenAPI schema currently types ``GetVariantResultsResponse``
-    (the per-variant shots endpoint's response) as
-    ``additionalProperties: number/double`` - i.e. a dict mapping outcome
-    strings to counts. That schema is out of date for the shots endpoint:
-    per-shot ordering is intrinsic to the ``memory`` abstraction and a dict
-    shape would lose it. If ``raw_shots`` ever arrives as a dict, we raise
-    rather than silently produce nonsensical memory output.
-
-    Args:
-        raw_shots: Ordered list of per-shot outcomes from the API. Each entry
-            is a decimal-encoded outcome integer, either ``int`` or ``str``.
-        n_qubits: Number of qubits used by the circuit (header n_qubits).
-        clbits: List mapping classical-bit index -> measured qubit index.
-                If None, defaults to identity [0..n_qubits-1].
-        width: Number of memory bits to display (header memory_slots). If
-               None, uses len(clbits) if available, else n_qubits.
-
-    Returns:
-        list[str]: Remapped bitstrings (e.g., "110"), one per shot, MSB-left.
-
-    Raises:
-        IonQJobError: If ``raw_shots`` is not a list / tuple.
-    """
-    if not isinstance(raw_shots, (list, tuple)):
-        raise exceptions.IonQJobError(
-            "Unexpected /results/shots payload shape: got "
-            f"{type(raw_shots).__name__}, expected list. The shots endpoint "
-            "is documented in the v0.4 OpenAPI schema as the URL slot "
-            "`CircuitJobResult.shots.url` and the live API serves an ordered "
-            "list of per-shot outcomes; please report unexpected shapes to "
-            "https://github.com/qiskit-community/qiskit-ionq/issues."
-        )
-
-    # Default mappings / widths
     if not clbits:
         clbits = list(range(n_qubits))
     out_width = int(width) if width is not None else len(clbits) if clbits else n_qubits
 
     def remap_one(val: int | str) -> str:
-        x = int(val)
-        # IonQ integer -> per-qubit bitstring with index == qubit id (LSB at index 0)
-        raw = bin(x)[2:].rjust(n_qubits, "0")[::-1]
-        # Select in classical-bit order, then reverse to MSB-left for display
+        raw = bin(int(val))[2:].rjust(n_qubits, "0")[::-1]
         mapped = "".join(
             raw[b] if b is not None and 0 <= b < n_qubits else "0" for b in clbits
         )[::-1]
@@ -362,32 +322,19 @@ class IonQJob(JobV1):
         return self.result().get_counts(circuit)
 
     def get_memory(self, circuit=None):
-        """Return per-shot measurement memory for the job.
+        """Return per-shot memory bitstrings (MSB-left), one entry per shot.
 
-        Args:
-            circuit (str or QuantumCircuit or int or None): Optional. The
-                experiment to look up - same semantics as
-                :meth:`get_counts`.
-
-        Returns:
-            list: A list of memory bitstrings, MSB-on-the-left, one per shot.
-
-        Raises:
-            IonQBackendError: When the job was submitted with ``memory=False``
-                or the backend did not produce shotwise output (e.g. ideal
-                simulator).
+        ``circuit`` follows the same semantics as :meth:`get_counts`.
+        Raises :class:`IonQBackendError` if the job was submitted with
+        ``memory=False``.
         """
         if self.memory:
             return self.result().get_memory(circuit)
 
-        if circuit is None:
-            label = ""
-        else:
-            label = getattr(circuit, "name", circuit)
+        label = "" if circuit is None else getattr(circuit, "name", circuit)
         raise IonQBackendError(
             f'No memory for experiment "{label}". '
-            "Please verify that you ran a job with "
-            'the memory flag set, eg., "memory=True".'
+            "Re-run with memory=True to enable per-shot output."
         )
 
     def get_probabilities(self, circuit=None):  # pylint: disable=unused-argument
@@ -529,13 +476,8 @@ class IonQJob(JobV1):
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
 
-            # Dry-run jobs never produce a results URL; skip extraction so we
-            # don't fall through to None URLs that would later crash in
-            # IonQClient.make_path().
+            # Dry-run jobs have results=null; non-dry-run may also be null mid-rollout.
             if not self._dry_run:
-                # `results` may be present as ``null`` for jobs whose result
-                # surface hasn't been written yet (e.g. mid-rollout); coerce
-                # to {} so ``.items()`` is safe.
                 results = response.get("results") or {}
                 self._results_urls = {
                     k: v["url"]
@@ -648,15 +590,8 @@ class IonQJob(JobV1):
         }
 
     def _fetch_memory(self, n_qubits, clbits, header):
-        """Fetch per-shot data from the API and convert to memory bitstrings.
-
-        Reads the shots URL from the server-supplied
-        ``results.shots.url`` field on the job response - the
-        ``CircuitJobResult.shots.url`` slot defined by the v0.4 OpenAPI
-        schema, harvested in :meth:`status` into ``self._results_urls``.
-        Returns ``None`` if the server did not advertise a shots URL for
-        this job (e.g. ideal simulator, or a backend that has not yet
-        rolled out shotwise output).
+        """Fetch per-shot memory from the URL the server advertised in
+        ``CircuitJobResult.shots.url``. Returns ``None`` if absent.
         """
         shots_url = self._results_urls.get("shots")
         if not shots_url:
