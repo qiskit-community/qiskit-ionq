@@ -975,6 +975,84 @@ def test_build_memory_3q_format():
     assert _build_memory([6, 1, 0, 7], n_qubits=3, clbits=[0, 1, 2]) == out
 
 
+def test_get_memory_raises_when_off(mock_backend, requests_mock):
+    """get_memory() raises IonQBackendError if the job ran with memory=False."""
+    job_id = "memory_off"
+    client = mock_backend.client
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        status_code=200,
+        json=conftest.dummy_job_response(job_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        status_code=200,
+        json={"0": 0.5, "2": 0.499999},
+    )
+    job = ionq_job.IonQJob(
+        mock_backend,
+        job_id,
+        passed_args={"memory": False, "shots": 1024, "sampler_seed": None},
+    )
+    with pytest.raises(exceptions.IonQBackendError, match="memory=True"):
+        job.get_memory()
+
+
+def test_multi_circuit_skips_memory(mock_backend, requests_mock):
+    """Multi-circuit jobs warn and emit memory=None even when a shots URL
+    is advertised; the flat top-level /shots payload cannot be split per
+    circuit, so the client declines rather than mis-assign.
+    """
+    job_id = "multi_mem"
+    child_ids = ["child_a", "child_b"]
+    parent = conftest.dummy_multi_parent_response(job_id, child_ids)
+    # advertise a shots URL: the skip must fire even when one is present
+    parent["results"]["shots"] = {"url": f"/v0.4/jobs/{job_id}/results/shots"}
+
+    client = mock_backend.client
+    requests_mock.get(client.make_path("jobs", job_id), json=parent)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities", "aggregated"),
+        json={child_ids[0]: {"0": 0.5, "3": 0.5}, child_ids[1]: {"1": 1.0}},
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.warns(UserWarning, match="multi-circuit"):
+        result = job.result()
+    assert result.data(0).get("memory") is None
+    assert result.data(1).get("memory") is None
+    # confirm no HTTP fetch was made to /results/shots
+    shots_path = client.make_path("jobs", job_id, "results", "shots")
+    assert not any(
+        req.url.endswith(shots_path) for req in requests_mock.request_history
+    )
+
+
+def test_shots_fetch_warns_on_error(mock_backend, requests_mock):
+    """A 5xx on /results/shots surfaces a UserWarning and yields memory=None
+    rather than failing silently.
+    """
+    job_id = "shots_500"
+    client = mock_backend.client
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=conftest.dummy_job_response(job_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        json={"0": 0.5, "2": 0.5},
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "shots"),
+        status_code=500,
+        json={"error": {"type": "InternalServerError", "message": "boom"}},
+    )
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.warns(UserWarning, match="Failed to fetch per-shot memory"):
+        result = job.result()
+    assert result.data(0).get("memory") is None
+
+
 # ---------------------------------------------------------------------------
 # dry_run / compilation-as-a-service
 # ---------------------------------------------------------------------------
@@ -1012,7 +1090,7 @@ def _dry_run_job_response(job_id, target="qpu.forte-1"):
     }
 
 
-def test_dry_run_no_results_url(mock_backend, requests_mock):
+def test_dry_run_no_results_urls(mock_backend, requests_mock):
     """Dry-run jobs should reach DONE without a results URL crash."""
     job_id = "dry_run_id"
     fetch_path = mock_backend.client.make_path("jobs", job_id)
@@ -1148,7 +1226,9 @@ def test_multi_null_meta_result(mock_backend, requests_mock):
         json=aggregated,
     )
 
-    result = ionq_job.IonQJob(mock_backend, job_id).result()
+    # Multi-circuit + memory=True (default) warns and skips the shots fetch.
+    with pytest.warns(UserWarning, match="multi-circuit"):
+        result = ionq_job.IonQJob(mock_backend, job_id).result()
 
     assert result.success is True
     # Bell: max key 3 -> 2 qubits inferred -> 2-char bitstrings.

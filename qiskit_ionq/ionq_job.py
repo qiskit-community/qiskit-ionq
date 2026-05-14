@@ -589,21 +589,24 @@ class IonQJob(JobV1):
             "statuses": child_statuses,
         }
 
-    def _fetch_memory(self, n_qubits, clbits, header):
-        """Fetch per-shot memory from the URL the server advertised in
-        ``CircuitJobResult.shots.url``. Returns ``None`` if absent.
+    def _fetch_raw_shots(self):
+        """GET the URL the server advertised in ``CircuitJobResult.shots.url``.
+
+        Returns the raw list of decimal-encoded outcome integers, or ``None``
+        if no URL was advertised. Surfaces fetch failures as a ``UserWarning``
+        so callers debugging a missing ``memory`` field can see why.
         """
         shots_url = self._results_urls.get("shots")
         if not shots_url:
             return None
         try:
-            raw = self._client.get_results(shots_url)
-        except exceptions.IonQAPIError:
+            return self._client.get_results(shots_url)
+        except exceptions.IonQAPIError as err:
+            warnings.warn(
+                f"Failed to fetch per-shot memory ({err!r}); memory will be None.",
+                UserWarning,
+            )
             return None
-        memory_slots = header.get("memory_slots") if isinstance(header, dict) else None
-        if memory_slots is None:
-            memory_slots = len(clbits or [])
-        return _build_memory(raw, n_qubits, clbits, memory_slots)
 
     def _format_result(self, data):
         """Translate IonQ result format into a Qiskit `Result` instance.
@@ -669,7 +672,22 @@ class IonQJob(JobV1):
             for i in range(self._num_circuits)
         ]
         if self._status == jobstatus.JobStatus.DONE:
-            fetch_memory = self.memory and not is_ideal_sim
+            # Fetch shots once (or skip) before the per-circuit loop. The v0.4
+            # ``CircuitJobResult.shots.url`` slot is a single top-level URL;
+            # for multi-circuit jobs there is no documented way to split a
+            # flat shot list per circuit (only per-variant URLs exist), so we
+            # decline rather than mis-assign.
+            raw_shots = None
+            if self.memory and not is_ideal_sim:
+                if self._num_circuits > 1:
+                    warnings.warn(
+                        "Per-shot memory is not supported for multi-circuit "
+                        "jobs; results[*].data.memory will be None.",
+                        UserWarning,
+                    )
+                else:
+                    raw_shots = self._fetch_raw_shots()
+
             for i in range(self._num_circuits):
                 header = qiskit_header[i] or {}
                 # Infer clbits from result keys when metadata is absent
@@ -689,11 +707,11 @@ class IonQJob(JobV1):
                     use_sampler=is_ideal_sim,
                     sampler_seed=sampler_seed,
                 )
-                memory = (
-                    self._fetch_memory(n_qubits, clbits, header)
-                    if fetch_memory
-                    else None
-                )
+                if raw_shots is not None:
+                    memory_slots = header.get("memory_slots") or len(clbits or [])
+                    memory = _build_memory(raw_shots, n_qubits, clbits, memory_slots)
+                else:
+                    memory = None
                 job_result[i]["data"] = {
                     "counts": counts,
                     "memory": memory,
