@@ -31,7 +31,10 @@ import numpy as np
 
 import pytest
 
+from qiskit import QuantumCircuit
 from qiskit.circuit.library import XGate, YGate, RXGate, RYGate, HGate
+from qiskit.qasm3 import dumps as qasm3_dumps, loads as qasm3_loads
+from qiskit.quantum_info import Operator
 from qiskit_ionq import GPIGate, GPI2Gate, MSGate, ZZGate
 
 
@@ -69,6 +72,15 @@ def test_gpi_inverse(phase):
     np.testing.assert_array_almost_equal(mat.dot(mat.conj().T), np.identity(2))
 
 
+@pytest.mark.parametrize("phase", [-0.5, -0.25, 0, 0.1, 0.25, 0.5, 0.75, 1.0])
+def test_gpi_definition(phase):
+    """Tests equivalence of the GPI gate matrix and its decomposition."""
+    gate = GPIGate(phase)
+    direct_mat = np.array(gate)
+    decomp_mat = Operator(gate.definition).data
+    np.testing.assert_array_almost_equal(direct_mat, decomp_mat)
+
+
 @pytest.mark.parametrize("phase", [0, 0.1, 0.4, np.pi / 2, np.pi, 2 * np.pi])
 def test_gpi2_inverse(phase):
     """Tests that the GPI2 gate is unitary."""
@@ -76,6 +88,15 @@ def test_gpi2_inverse(phase):
 
     mat = np.array(gate)
     np.testing.assert_array_almost_equal(mat.dot(mat.conj().T), np.identity(2))
+
+
+@pytest.mark.parametrize("phase", [-0.5, -0.25, 0, 0.1, 0.25, 0.5, 0.75, 1.0])
+def test_gpi2_definition(phase):
+    """Tests equivalence of the GPI2 gate matrix and its decomposition."""
+    gate = GPI2Gate(phase)
+    direct_mat = np.array(gate)
+    decomp_mat = Operator(gate.definition).data
+    np.testing.assert_array_almost_equal(direct_mat, decomp_mat)
 
 
 @pytest.mark.parametrize(
@@ -98,6 +119,18 @@ def test_ms_inverse(params):
 
 
 @pytest.mark.parametrize(
+    "params",
+    [(0, 0, 0.25), (0.1, 0.2, 0.25), (0.5, 0.5, 0.125)],
+)
+def test_ms_definition(params):
+    """Tests equivalence of the MS gate matrix and its decomposition."""
+    gate = MSGate(params[0], params[1], params[2])
+    direct_mat = np.array(gate)
+    decomp_mat = Operator(gate.definition).data
+    np.testing.assert_array_almost_equal(direct_mat, decomp_mat)
+
+
+@pytest.mark.parametrize(
     "angle",
     [0, 0.1, 0.4, np.pi / 2, np.pi, 2 * np.pi],
 )
@@ -107,3 +140,58 @@ def test_zz_inverse(angle):
 
     mat = np.array(gate)
     np.testing.assert_array_almost_equal(mat.dot(mat.conj().T), np.identity(4))
+
+
+@pytest.mark.parametrize("angle", [-0.5, -0.25, 0, 0.1, 0.25, 0.5, 0.75, 1.0])
+def test_zz_definition(angle):
+    """Tests equivalence of the ZZ gate matrix and its decomposition."""
+    gate = ZZGate(angle)
+    direct_mat = np.array(gate)
+    decomp_mat = Operator(gate.definition).data
+    np.testing.assert_array_almost_equal(direct_mat, decomp_mat)
+
+
+def test_qasm3_export():
+    """Tests that circuits with IonQ native gates can be exported and parsed as QASM3."""
+    circuit = QuantumCircuit(2)
+    circuit.append(GPIGate(0.25), [0])
+    circuit.append(GPI2Gate(0.5), [0])
+    circuit.append(MSGate(0.1, 0.2), [0, 1])
+    circuit.append(ZZGate(0.3), [0, 1])
+
+    # Should not raise QASM3ExporterError
+    qasm3_str = qasm3_dumps(circuit)
+
+    # Verify the output contains our gate definitions
+    assert "gate gpi" in qasm3_str
+    assert "gate gpi2" in qasm3_str
+    assert "gate ms" in qasm3_str
+    assert "gate zz" in qasm3_str
+
+    # Should round-trip without raising (issue #217).
+    qasm3_loads(qasm3_str)
+
+
+def test_qasm_export_transpiled():
+    """Tests QASM export and parse after transpiling to native gateset."""
+    import qiskit
+    import qiskit.qasm2
+    import qiskit.qasm3
+    from qiskit_ionq import IonQProvider
+
+    # Repro case from issue #217.
+    circuit = qiskit.QuantumCircuit(1)
+    circuit.u(0.1, 0.2, 0.3, 0)
+
+    provider = IonQProvider()
+    backend = provider.get_backend("simulator", gateset="native")
+
+    transpiled = qiskit.transpile(circuit, backend=backend, optimization_level=1)
+
+    # QASM2 export should work.
+    qasm2_str = qiskit.qasm2.dumps(transpiled)
+    assert "gate gpi(" in qasm2_str or "gate gpi2(" in qasm2_str
+    # QASM3 export and parse should work (issue #218).
+    qasm3_str = qiskit.qasm3.dumps(transpiled)
+    assert "gate gpi(" in qasm3_str or "gate gpi2(" in qasm3_str
+    qasm3_loads(qasm3_str)  # Should round-trip without raising

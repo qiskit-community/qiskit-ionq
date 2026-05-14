@@ -911,8 +911,8 @@ def test_no_memory_skips_shots(mock_backend, requests_mock):
         status_code=200,
         json={"0": 0.5, "2": 0.499999},
     )
-    # Deliberately NOT mocking the shots endpoint — the global mock returns
-    # 599 for unmocked URLs, so any accidental call would raise an error.
+    # Deliberately NOT mocking the shots endpoint - requests_mock will raise
+    # NoMockAddress if anything tries to GET it.
 
     job = ionq_job.IonQJob(
         mock_backend,
@@ -945,3 +945,228 @@ def test_ideal_sim_skips_shots(simulator_backend, requests_mock):
     result = job.result()
     assert result.data(0).get("memory") is None
     assert result.get_counts()
+
+
+def test_no_shots_url_returns_none(mock_backend, requests_mock):
+    """A job whose response does not advertise a shots URL must yield
+    memory=None without an HTTP round-trip (regression-guard for the
+    case where the IonQ backend has not yet rolled out shotwise output).
+    """
+    job_id = "no_shots_url"
+    client = mock_backend.client
+
+    resp = conftest.dummy_job_response(job_id)
+    # Strip the shots URL the way the API does today for QPU jobs
+    # that pre-date the shotwise rollout.
+    resp["results"] = {k: v for k, v in resp["results"].items() if k != "shots"}
+    requests_mock.get(client.make_path("jobs", job_id), json=resp)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        json={"0": 0.5, "2": 0.499999},
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    result = job.result()
+    assert result.data(0).get("memory") is None
+    assert result.get_counts()
+
+
+def test_build_memory_3q_wire_format():
+    """Lock the wire-format contract: shots come back as decimal-stringified
+    outcome integers. Test with 3 qubits where decimal- vs binary-string
+    interpretation produces different results, which would have been masked
+    by a 2-qubit-only fixture.
+    """
+    from qiskit_ionq.ionq_job import _build_memory
+
+    # API wire format: list of decimal-encoded outcomes.
+    # 6 = binary 110 -> Qiskit bitstring "110" (q2=1, q1=1, q0=0).
+    # 1 = binary 001 -> Qiskit bitstring "001".
+    raw = ["6", "1", "0", "7"]
+    out = _build_memory(raw, n_qubits=3, clbits=[0, 1, 2])
+    assert out == ["110", "001", "000", "111"]
+
+    # Integer inputs work the same way.
+    assert _build_memory([6, 1, 0, 7], n_qubits=3, clbits=[0, 1, 2]) == out
+
+
+# ---------------------------------------------------------------------------
+# dry_run / compilation-as-a-service
+# ---------------------------------------------------------------------------
+
+
+def _dry_run_job_response(job_id, target="qpu.forte-1"):
+    """Mimic the API response for a completed dry-run job.
+
+    Per the v0.4 spec, the top-level ``dry_run`` boolean is echoed back, and
+    ``results`` is null because no measurement data is produced.
+    """
+    qiskit_header = compress_to_metadata_string(
+        {
+            "qubit_labels": [["q", 0], ["q", 1]],
+            "n_qubits": 2,
+            "qreg_sizes": [["q", 2]],
+            "clbit_labels": [["c", 0], ["c", 1]],
+            "memory_slots": 2,
+            "creg_sizes": [["c", 2]],
+            "name": job_id,
+            "global_phase": 0,
+        }
+    )
+    return {
+        "id": job_id,
+        "status": "completed",
+        "type": "ionq.circuit.v1",
+        "backend": target,
+        "dry_run": True,
+        "shots": 1024,
+        "metadata": {"qiskit_header": qiskit_header, "shots": "1024"},
+        "stats": {"qubits": 2, "circuits": 1},
+        # Per v0.4 spec, dry-run jobs have results=null.
+        "results": None,
+    }
+
+
+def test_dry_run_no_results_url(mock_backend, requests_mock):
+    """Dry-run jobs should reach DONE without a results URL crash."""
+    job_id = "dry_run_id"
+    fetch_path = mock_backend.client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, json=_dry_run_job_response(job_id))
+
+    # status() runs as part of __init__ when job_id is supplied
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    assert job.status() == jobstatus.JobStatus.DONE
+    assert job.dry_run is True
+    assert job._results_urls == {}
+
+
+def test_dry_run_result_raises(mock_backend, requests_mock):
+    """Calling .result() on a dry-run job should raise a clear IonQJobError
+    instead of the cryptic TypeError from passing None into make_path()."""
+    job_id = "dry_run_id"
+    fetch_path = mock_backend.client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, json=_dry_run_job_response(job_id))
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    with pytest.raises(exceptions.IonQJobError, match="dry_run=True"):
+        job.result()
+
+
+def test_dry_run_compiled_native(mock_backend, requests_mock):
+    """compiled_circuit(lang='native') hits /jobs/<id>/circuits/native and
+    returns the JSON-decoded body as a string."""
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+
+    native_body = (
+        '{"gateset":"native","circuit":[{"gate":"gpi2","target":0,"phase":0.0}]}'
+    )
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "native"),
+        json=native_body,
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.compiled_circuit() == native_body
+    assert job.compiled_circuit(lang="native") == native_body
+
+
+def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
+    """compiled_circuit(lang='qasm3') returns the OpenQASM 3 string."""
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+
+    qasm3 = "OPENQASM 3.0;\ngate gpi2(p) q { } // ...\n"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "qasm3"),
+        json=qasm3,
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.compiled_circuit(lang="qasm3") == qasm3
+
+
+def test_compiled_lang_passthrough(mock_backend, requests_mock):
+    """Any string is forwarded to the API as-is.
+
+    The server is the source of truth for which lang values are accepted
+    and which are gated behind per-organization entitlement; the SDK does
+    not duplicate that policy. This test mocks the request URL with a
+    non-default lang and confirms it is reached.
+    """
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "future-lang"),
+        json="some-payload",
+    )
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.compiled_circuit(lang="future-lang") == "some-payload"
+
+
+def test_compiled_lang_api_error(mock_backend, requests_mock):
+    """Server-side rejection of an unsupported / non-entitled lang surfaces
+    as IonQAPIError, matching every other non-2xx API response."""
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "nope"),
+        status_code=403,
+        json={
+            "statusCode": 403,
+            "error": "Forbidden",
+            "message": "Organization does not have access to this compiled language",
+        },
+    )
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(exceptions.IonQAPIError):
+        job.compiled_circuit(lang="nope")
+
+
+def test_dry_run_property_false(mock_backend, requests_mock):
+    """A regular (non-dry-run) job exposes dry_run=False."""
+    job_id = "regular_job"
+    fetch_path = mock_backend.client.make_path("jobs", job_id)
+    requests_mock.get(fetch_path, json=conftest.dummy_job_response(job_id))
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.dry_run is False
+
+
+def test_multi_null_meta_result(mock_backend, requests_mock):
+    """Multicircuit parent with ``metadata: null`` (raw-submitted) must not
+    crash on retrieval; qubit count is inferred from result keys.
+    """
+    job_id = "parent_null_meta"
+    child_ids = ["child_a", "child_b"]
+    parent = conftest.dummy_multi_parent_response(job_id, child_ids)
+    aggregated = {child_ids[0]: {"0": 0.5, "3": 0.5}, child_ids[1]: {"1": 1.0}}
+
+    client = mock_backend.client
+    requests_mock.get(client.make_path("jobs", job_id), json=parent)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities", "aggregated"),
+        json=aggregated,
+    )
+
+    result = ionq_job.IonQJob(mock_backend, job_id).result()
+
+    assert result.success is True
+    # Bell: max key 3 -> 2 qubits inferred -> 2-char bitstrings.
+    assert result.get_counts(0) == {"00": 512, "11": 512}
+    # X: max key 1 -> 1 qubit inferred -> 1-char bitstrings.
+    assert result.get_counts(1) == {"1": 1024}

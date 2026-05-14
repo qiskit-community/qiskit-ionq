@@ -216,6 +216,8 @@ class IonQJob(JobV1):
         self._result = None
         self._status = None
         self._execution_time = None
+        self._dry_run: bool = False
+        self._results_urls: dict[str, str | None] = {}
         self._metadata: dict[str, Any] = {}
 
         if passed_args is not None:
@@ -246,6 +248,51 @@ class IonQJob(JobV1):
             if k in mapping and mapping[k] is not None:
                 return mapping[k]
         return default
+
+    @property
+    def dry_run(self) -> bool:
+        """Whether this job was submitted with ``dry_run=True``.
+
+        Dry-run jobs are compiled by the IonQ Cloud compiler-as-a-service but
+        not executed - they produce no measurement results. Use
+        :meth:`compiled_circuit` to retrieve the compiled circuit instead of
+        :meth:`result`.
+        """
+        return self._dry_run
+
+    def compiled_circuit(self, lang: str = "native") -> str:
+        """Fetch the server-compiled circuit for this job.
+
+        Useful for jobs submitted with ``dry_run=True`` (compilation as a
+        service) but also works for any completed job to inspect what was
+        actually run on hardware after IonQ's compiler resynthesizes the input.
+
+        Args:
+            lang (str): Output language. ``"native"`` (default) returns the
+                IonQ-native gate JSON; ``"qasm3"`` returns OpenQASM 3 source.
+                Other values may be accepted depending on organization
+                entitlement; the API rejects unsupported or non-entitled
+                values with a ``4xx`` response surfaced here as
+                :class:`~qiskit_ionq.exceptions.IonQAPIError`.
+
+        Raises:
+            IonQJobStateError: If the job has not reached a final state yet.
+            IonQJobFailureError: If the job failed before compilation completed.
+            IonQAPIError: If the API rejects the ``lang`` value.
+
+        Returns:
+            str: The compiled circuit as a string (IonQ-native JSON or OpenQASM 3).
+        """
+        # Make sure we're in a final state and the job-id is known. status()
+        # raises IonQJobFailureError on failure, which is the right behavior.
+        self.status()
+        if self._status not in jobstatus.JOB_FINAL_STATES:
+            raise exceptions.IonQJobStateError(
+                "Cannot fetch compiled circuit until the job reaches a final state. "
+                "Call wait_for_final_state() first."
+            )
+        assert self._job_id is not None
+        return self._client.get_compiled_circuit(self._job_id, lang=lang)
 
     def cancel(self) -> None:
         """Cancel this job."""
@@ -288,18 +335,30 @@ class IonQJob(JobV1):
         return self.result().get_counts(circuit)
 
     def get_memory(self, circuit=None):
-        """
-        Return the memory for the job.
+        """Return per-shot measurement memory for the job.
+
         Args:
-            circuit (str or QuantumCircuit or int or None): Optional.
+            circuit (str or QuantumCircuit or int or None): Optional. The
+                experiment to look up - same semantics as
+                :meth:`get_counts`.
+
         Returns:
-            list: A list of memory strings.
+            list: A list of memory bitstrings, MSB-on-the-left, one per shot.
+
+        Raises:
+            IonQBackendError: When the job was submitted with ``memory=False``
+                or the backend did not produce shotwise output (e.g. ideal
+                simulator).
         """
         if self.memory:
             return self.result().get_memory(circuit)
 
+        if circuit is None:
+            label = ""
+        else:
+            label = getattr(circuit, "name", circuit)
         raise IonQBackendError(
-            f'No memory for experiment "{circuit.name if circuit else ""}". '
+            f'No memory for experiment "{label}". '
             "Please verify that you ran a job with "
             'the memory flag set, eg., "memory=True".'
         )
@@ -368,6 +427,13 @@ class IonQJob(JobV1):
 
         if self._status is jobstatus.JobStatus.DONE:
             assert self._job_id is not None
+            if self._dry_run:
+                raise exceptions.IonQJobError(
+                    f"Job {self._job_id} was submitted with dry_run=True; "
+                    "no measurement results are produced. Use "
+                    "job.compiled_circuit(lang='native' or 'qasm3') to "
+                    "retrieve the compiled circuit instead."
+                )
             response = self._client.get_results(
                 results_url=self._results_urls.get("probabilities", ""),
                 sharpen=sharpen,
@@ -419,6 +485,10 @@ class IonQJob(JobV1):
             self._save_metadata(response)
 
         if self._status == jobstatus.JobStatus.DONE:
+            # Track dry-run regardless of source; the API echoes it as a
+            # top-level boolean on the job response.
+            self._dry_run = bool(response.get("dry_run", False))
+
             stats = response.get("stats", {})
             self._children = self._first_of(
                 response, "child_job_ids", "children", default=None
@@ -431,16 +501,28 @@ class IonQJob(JobV1):
                 self._num_circuits = self._first_of(stats, "circuits", default=1)
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
-            results = response.get("results", {})
-            self._results_urls = {
-                k: v.get("url")
-                for k, v in results.items()
-                if isinstance(v, dict) and "url" in v
-            }
+
+            # Dry-run jobs never produce a results URL; skip extraction so we
+            # don't fall through to None URLs that would later crash in
+            # IonQClient.make_path().
+            if not self._dry_run:
+                # `results` may be present as ``null`` for jobs whose result
+                # surface hasn't been written yet (e.g. mid-rollout); coerce
+                # to {} so ``.items()`` is safe.
+                results = response.get("results") or {}
+                self._results_urls = {
+                    k: v["url"]
+                    for k, v in results.items()
+                    if isinstance(v, dict) and isinstance(v.get("url"), str)
+                }
 
             # Classical-bit maps per circuit
             def _meas_map_from_header(header_dict, fallback_nq):
                 """Return meas_mapped list or a default 0-based map."""
+                # Header may be missing entirely (e.g. for dry-run jobs that
+                # skip the qiskit metadata roundtrip); fall back to a 0..N map.
+                if not isinstance(header_dict, dict):
+                    return list(range(fallback_nq))
                 mmap = header_dict.get("meas_mapped")
                 if mmap is None or (
                     isinstance(mmap, list) and all(b is None for b in mmap)
@@ -449,8 +531,9 @@ class IonQJob(JobV1):
                 return mmap
 
             # Classical-bit maps for every circuit
-            header_list = decompress_metadata_string(
-                response.get("metadata", {}).get("qiskit_header")
+            metadata = response.get("metadata") or {}
+            header_list = (
+                decompress_metadata_string(metadata.get("qiskit_header")) or {}
             )
             if not isinstance(header_list, list):
                 header_list = [header_list]
@@ -537,18 +620,26 @@ class IonQJob(JobV1):
             "statuses": child_statuses,
         }
 
-    def _fetch_memory(self, job_id, n_qubits, clbits, header):
+    def _fetch_memory(self, n_qubits, clbits, header):
         """Fetch per-shot data from the API and convert to memory bitstrings.
 
-        Returns None if the shots endpoint is unavailable.
+        The shots endpoint URL is taken from the server-supplied
+        ``results.shots.url`` field on the job response (harvested in
+        :meth:`status`). Returns ``None`` if the server did not advertise a
+        shots URL for this job (e.g. ideal simulator, or a backend that has
+        not yet rolled out shotwise output).
         """
+        shots_url = self._results_urls.get("shots")
+        if not shots_url:
+            return None
         try:
-            raw = self._client.get_results(f"/v0.4/jobs/{job_id}/results/shots")
-            return _build_memory(
-                raw, n_qubits, clbits, header.get("memory_slots", len(clbits))
-            )
+            raw = self._client.get_results(shots_url)
         except exceptions.IonQAPIError:
             return None
+        memory_slots = header.get("memory_slots") if isinstance(header, dict) else None
+        if memory_slots is None:
+            memory_slots = len(clbits or [])
+        return _build_memory(raw, n_qubits, clbits, memory_slots)
 
     def _format_result(self, data):
         """Translate IonQ result format into a Qiskit `Result` instance.
@@ -578,7 +669,7 @@ class IonQJob(JobV1):
             if metadata.get("sampler_seed", "").isdigit()
             else None
         )
-        qiskit_header = decompress_metadata_string(metadata.get("qiskit_header"))
+        qiskit_header = decompress_metadata_string(metadata.get("qiskit_header")) or {}
         if not isinstance(qiskit_header, list):
             qiskit_header = [qiskit_header]
 
@@ -616,10 +707,15 @@ class IonQJob(JobV1):
         if self._status == jobstatus.JobStatus.DONE:
             fetch_memory = self.memory and not is_ideal_sim
             for i in range(self._num_circuits):
-                job_id = self._children[i] if self._children else self.job_id()
                 header = qiskit_header[i] or {}
-                n_qubits = header.get("n_qubits", self._num_qubits)
+                # Infer clbits from result keys when metadata is absent
+                # (e.g. job submitted outside qiskit); map_output returns
+                # nothing for an empty clbits list.
                 clbits = self._clbits[i]
+                if not clbits and data[i]:
+                    inferred_nq = max(int(k) for k in data[i]).bit_length() or 1
+                    clbits = list(range(inferred_nq))
+                n_qubits = header.get("n_qubits", len(clbits) or self._num_qubits)
 
                 counts, probabilities = _build_counts(
                     data[i],
@@ -630,7 +726,7 @@ class IonQJob(JobV1):
                     sampler_seed=sampler_seed,
                 )
                 memory = (
-                    self._fetch_memory(job_id, n_qubits, clbits, header)
+                    self._fetch_memory(n_qubits, clbits, header)
                     if fetch_memory
                     else None
                 )

@@ -28,6 +28,7 @@
 
 import math
 import numpy as np
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 
@@ -53,6 +54,13 @@ class GPIGate(Gate):
     def __init__(self, phi: ParameterValueType, label: str | None = None):
         """Create new GPI gate."""
         super().__init__("gpi", 1, [phi], label=label)
+
+    def _define(self):
+        """Define the GPI gate in terms of standard gates for QASM export."""
+        qc = QuantumCircuit(1, name=self.name)
+        phi = self.params[0]
+        qc.u(math.pi, 2 * math.pi * phi, math.pi - 2 * math.pi * phi, 0)
+        self.definition = qc
 
     def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the GPI gate."""
@@ -88,6 +96,18 @@ class GPI2Gate(Gate):
     def __init__(self, phi: ParameterValueType, label: str | None = None):
         """Create new GPI2 gate."""
         super().__init__("gpi2", 1, [phi], label=label)
+
+    def _define(self):
+        """Define the GPI2 gate in terms of standard gates for QASM export."""
+        qc = QuantumCircuit(1, name=self.name)
+        phi = self.params[0]
+        qc.u(
+            math.pi / 2,
+            2 * math.pi * phi - math.pi / 2,
+            math.pi / 2 - 2 * math.pi * phi,
+            0,
+        )
+        self.definition = qc
 
     def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the GPI2 gate."""
@@ -138,6 +158,17 @@ class MSGate(Gate):
             label=label,
         )
 
+    def _define(self):
+        """Define the MS gate in terms of standard gates for QASM export."""
+        qc = QuantumCircuit(2, name=self.name)
+        phi0, phi1, theta = self.params
+        qc.rz(-2 * math.pi * phi0, 0)
+        qc.rz(-2 * math.pi * phi1, 1)
+        qc.rxx(2 * math.pi * theta, 0, 1)
+        qc.rz(2 * math.pi * phi0, 0)
+        qc.rz(2 * math.pi * phi1, 1)
+        self.definition = qc
+
     def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the MS gate."""
         phi0, phi1, theta = self.params
@@ -181,6 +212,13 @@ class ZZGate(Gate):
     def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new ZZ gate."""
         super().__init__("zz", 2, [theta], label=label)
+
+    def _define(self):
+        """Define the ZZ gate in terms of standard gates for QASM export."""
+        qc = QuantumCircuit(2, name=self.name)
+        theta = self.params[0]
+        qc.rzz(2 * math.pi * theta, 0, 1)
+        self.definition = qc
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """Return a numpy array for the ZZ gate."""
