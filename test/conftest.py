@@ -357,7 +357,6 @@ def formatted_result(provider):
     # Create the request path for accessing the dummy job:
     path = client.make_path("jobs", job_id)
     results_path = client.make_path("jobs", job_id, "results", "probabilities")
-    shots_path = client.make_path("jobs", job_id, "results", "shots")
 
     # mock a job response
     with _default_requests_mock() as requests_mock:
@@ -367,7 +366,6 @@ def formatted_result(provider):
         )
 
         requests_mock.get(results_path, json={"0": 0.5, "2": 0.499999})
-        requests_mock.get(shots_path, json=617 * ["00"] + 617 * ["10"])
 
         # Create the job (this calls self.status(), which will fetch the job).
         job = ionq_job.IonQJob(backend, job_id, client)

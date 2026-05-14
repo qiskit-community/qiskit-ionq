@@ -318,7 +318,11 @@ def test_backend_memory(mock_backend, requests_mock):
         json=["0", "0", "0", "0", "1", "2", "3", "3", "3", "3"],
     )
 
-    job = ionq_job.IonQJob(mock_backend, job_id)
+    job = ionq_job.IonQJob(
+        mock_backend,
+        job_id,
+        passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
+    )
     memory = Counter(job.get_memory())
     assert memory == Counter({"00": 4, "11": 4, "01": 1, "10": 1})
 

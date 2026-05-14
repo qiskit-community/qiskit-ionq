@@ -139,7 +139,7 @@ class IonQBackend(Backend):
             extra_metadata={},
             sampler_seed=None,  # simulator-only (harmless on QPU)
             noise_model="ideal",  # simulator-only
-            memory=True,
+            memory=False,
             dry_run=False,  # if True, the API compiles but does not execute
         )
 

@@ -108,14 +108,14 @@ Dry-run jobs produce no measurement results, so calling `job.result()` on one ra
 
 ### Per-shot memory (`memory`)
 
-QPU and noisy-simulator jobs return per-shot measurement outcomes. Use `job.get_memory()` to retrieve them as a list of MSB-left bitstrings, one per shot:
+QPU and noisy-simulator jobs can return per-shot measurement outcomes. Pass `memory=True` on `backend.run(...)` to opt in (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention), then call `job.get_memory()` to retrieve the per-shot bitstrings:
 
 ```python
-job = backend.run(qc, shots=1000)
+job = backend.run(qc, shots=1000, memory=True)
 memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 ```
 
-Pass `memory=False` on `backend.run(...)` to skip the fetch if you only need counts. The ideal simulator does not produce per-shot data.
+The ideal simulator does not produce per-shot data; calling `get_memory()` on a job submitted without `memory=True` raises `IonQBackendError`.
 
 ### Basis gates and transpilation
 
