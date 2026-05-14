@@ -990,6 +990,20 @@ def test_build_memory_3q_format():
     assert _build_memory([6, 1, 0, 7], n_qubits=3, clbits=[0, 1, 2]) == out
 
 
+def test_build_memory_dict_raises():
+    """The v0.4 OpenAPI schema currently types the per-variant shots response
+    as ``additionalProperties: number/double`` (a dict). The live API
+    instead returns an ordered list - per-shot ordering is intrinsic to the
+    ``memory`` abstraction and a dict would destroy it. If the API ever
+    starts returning a dict, raise rather than silently corrupt output.
+    """
+    from qiskit_ionq.ionq_job import _build_memory
+    from qiskit_ionq.exceptions import IonQJobError
+
+    with pytest.raises(IonQJobError, match="Unexpected"):
+        _build_memory({"3": 250, "0": 250}, n_qubits=2, clbits=[0, 1])
+
+
 # ---------------------------------------------------------------------------
 # dry_run / compilation-as-a-service
 # ---------------------------------------------------------------------------

@@ -152,21 +152,48 @@ def _build_memory(
     width: int | None = None,
 ) -> list[str]:
     """
-    Convert IonQ shot integers into Qiskit memory bitstrings, applying the same
-    classical-bit mapping (clbits) used for counts. Returns strings with MSB on
-    the left, matching Qiskit's display convention.
+    Convert IonQ shot integers into Qiskit memory bitstrings, applying the
+    same classical-bit mapping (clbits) used for counts. Returns strings with
+    MSB on the left, matching Qiskit's display convention.
+
+    Wire format: the IonQ v0.4 API serves per-shot data as a JSON array of
+    decimal-encoded outcome integers (same convention as histogram keys), in
+    shot order. The URL is advertised by the server in the response field
+    ``CircuitJobResult.shots.url``.
+
+    The v0.4 OpenAPI schema currently types ``GetVariantResultsResponse``
+    (the per-variant shots endpoint's response) as
+    ``additionalProperties: number/double`` - i.e. a dict mapping outcome
+    strings to counts. That schema is out of date for the shots endpoint:
+    per-shot ordering is intrinsic to the ``memory`` abstraction and a dict
+    shape would lose it. If ``raw_shots`` ever arrives as a dict, we raise
+    rather than silently produce nonsensical memory output.
 
     Args:
-        raw_shots: Iterable of per-shot outcomes from the API (ints or numeric strings).
+        raw_shots: Ordered list of per-shot outcomes from the API. Each entry
+            is a decimal-encoded outcome integer, either ``int`` or ``str``.
         n_qubits: Number of qubits used by the circuit (header n_qubits).
         clbits: List mapping classical-bit index -> measured qubit index.
                 If None, defaults to identity [0..n_qubits-1].
-        width: Number of memory bits to display (header memory_slots). If None,
-               uses len(clbits) if available, else n_qubits.
+        width: Number of memory bits to display (header memory_slots). If
+               None, uses len(clbits) if available, else n_qubits.
 
     Returns:
         list[str]: Remapped bitstrings (e.g., "110"), one per shot, MSB-left.
+
+    Raises:
+        IonQJobError: If ``raw_shots`` is not a list / tuple.
     """
+    if not isinstance(raw_shots, (list, tuple)):
+        raise exceptions.IonQJobError(
+            "Unexpected /results/shots payload shape: got "
+            f"{type(raw_shots).__name__}, expected list. The shots endpoint "
+            "is documented in the v0.4 OpenAPI schema as the URL slot "
+            "`CircuitJobResult.shots.url` and the live API serves an ordered "
+            "list of per-shot outcomes; please report unexpected shapes to "
+            "https://github.com/qiskit-community/qiskit-ionq/issues."
+        )
+
     # Default mappings / widths
     if not clbits:
         clbits = list(range(n_qubits))
@@ -623,11 +650,13 @@ class IonQJob(JobV1):
     def _fetch_memory(self, n_qubits, clbits, header):
         """Fetch per-shot data from the API and convert to memory bitstrings.
 
-        The shots endpoint URL is taken from the server-supplied
-        ``results.shots.url`` field on the job response (harvested in
-        :meth:`status`). Returns ``None`` if the server did not advertise a
-        shots URL for this job (e.g. ideal simulator, or a backend that has
-        not yet rolled out shotwise output).
+        Reads the shots URL from the server-supplied
+        ``results.shots.url`` field on the job response - the
+        ``CircuitJobResult.shots.url`` slot defined by the v0.4 OpenAPI
+        schema, harvested in :meth:`status` into ``self._results_urls``.
+        Returns ``None`` if the server did not advertise a shots URL for
+        this job (e.g. ideal simulator, or a backend that has not yet
+        rolled out shotwise output).
         """
         shots_url = self._results_urls.get("shots")
         if not shots_url:
