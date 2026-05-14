@@ -971,7 +971,7 @@ def test_no_shots_url_returns_none(mock_backend, requests_mock):
     assert result.get_counts()
 
 
-def test_build_memory_3q_wire_format():
+def test_build_memory_3q_format():
     """Lock the wire-format contract: shots come back as decimal-stringified
     outcome integers. Test with 3 qubits where decimal- vs binary-string
     interpretation produces different results, which would have been masked
