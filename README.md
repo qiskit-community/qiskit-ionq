@@ -88,6 +88,35 @@ print(job.result(sharpen=True).get_counts())
 print(job.result().get_probabilities())
 ```
 
+### Compilation as a service (`dry_run`)
+
+IonQ Cloud can compile a circuit and return the result _without_ executing it on a QPU. This is useful for inspecting the post-compilation circuit, estimating gate counts, or validating native-gate output before paying for shots.
+
+Set `dry_run=True` on `backend.run(...)` and then read the compiled circuit back via `job.compiled_circuit(...)`:
+
+```python
+backend = provider.get_backend("ionq_qpu.forte-1")
+
+job = backend.run(qc, dry_run=True)
+job.wait_for_final_state()
+
+native_json = job.compiled_circuit(lang="native")   # IonQ-native JSON
+qasm3       = job.compiled_circuit(lang="qasm3")    # OpenQASM 3
+```
+
+Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
+
+### Per-shot memory (`memory`)
+
+QPU and noisy-simulator jobs can return per-shot measurement outcomes. Pass `memory=True` on `backend.run(...)` to opt in (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention), then call `job.get_memory()` to retrieve the per-shot bitstrings:
+
+```python
+job = backend.run(qc, shots=1000, memory=True)
+memory = job.get_memory()       # ['11', '00', '11', '00', ...]
+```
+
+The ideal simulator does not produce per-shot data; calling `get_memory()` on a job submitted without `memory=True` raises `IonQBackendError`.
+
 ### Basis gates and transpilation
 
 The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. The current supported gates can be found [on our docs site](https://docs.ionq.com/#tag/quantum_programs).

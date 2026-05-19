@@ -26,9 +26,9 @@
 
 """Native gateset for IonQ hardware."""
 
-from typing import Optional
 import math
 import numpy as np
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 
@@ -51,9 +51,16 @@ class GPIGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phi: ParameterValueType, label: str | None = None):
         """Create new GPI gate."""
         super().__init__("gpi", 1, [phi], label=label)
+
+    def _define(self):
+        """Define the GPI gate in terms of standard gates for QASM export."""
+        qc = QuantumCircuit(1, name=self.name)
+        phi = self.params[0]
+        qc.u(math.pi, 2 * math.pi * phi, math.pi - 2 * math.pi * phi, 0)
+        self.definition = qc
 
     def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the GPI gate."""
@@ -86,9 +93,21 @@ class GPI2Gate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phi: ParameterValueType, label: str | None = None):
         """Create new GPI2 gate."""
         super().__init__("gpi2", 1, [phi], label=label)
+
+    def _define(self):
+        """Define the GPI2 gate in terms of standard gates for QASM export."""
+        qc = QuantumCircuit(1, name=self.name)
+        phi = self.params[0]
+        qc.u(
+            math.pi / 2,
+            2 * math.pi * phi - math.pi / 2,
+            math.pi / 2 - 2 * math.pi * phi,
+            0,
+        )
+        self.definition = qc
 
     def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the GPI2 gate."""
@@ -128,8 +147,8 @@ class MSGate(Gate):
         self,
         phi0: ParameterValueType,
         phi1: ParameterValueType,
-        theta: Optional[ParameterValueType] = 0.25,
-        label: Optional[str] = None,
+        theta: ParameterValueType = 0.25,
+        label: str | None = None,
     ):
         """Create new MS gate."""
         super().__init__(
@@ -138,6 +157,17 @@ class MSGate(Gate):
             [phi0, phi1, theta],
             label=label,
         )
+
+    def _define(self):
+        """Define the MS gate in terms of standard gates for QASM export."""
+        qc = QuantumCircuit(2, name=self.name)
+        phi0, phi1, theta = self.params
+        qc.rz(-2 * math.pi * phi0, 0)
+        qc.rz(-2 * math.pi * phi1, 1)
+        qc.rxx(2 * math.pi * theta, 0, 1)
+        qc.rz(2 * math.pi * phi0, 0)
+        qc.rz(2 * math.pi * phi1, 1)
+        self.definition = qc
 
     def __array__(self, dtype=None, copy=None):
         """Return a numpy array for the MS gate."""
@@ -179,9 +209,16 @@ class ZZGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new ZZ gate."""
         super().__init__("zz", 2, [theta], label=label)
+
+    def _define(self):
+        """Define the ZZ gate in terms of standard gates for QASM export."""
+        qc = QuantumCircuit(2, name=self.name)
+        theta = self.params[0]
+        qc.rzz(2 * math.pi * theta, 0, 1)
+        self.definition = qc
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """Return a numpy array for the ZZ gate."""

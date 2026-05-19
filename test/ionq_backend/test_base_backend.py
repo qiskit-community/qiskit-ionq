@@ -28,9 +28,10 @@
 # pylint: disable=redefined-outer-name
 
 from unittest import mock
+from collections import Counter
 
 import pytest
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 
 from qiskit_ionq import exceptions, ionq_client, ionq_job
 from qiskit_ionq.helpers import get_user_agent
@@ -289,9 +290,7 @@ def test_multiexp_job(mock_backend, requests_mock):
     }
 
 
-def test_backend_memory(
-    mock_backend, requests_mock
-):  # TODO fix when BE supports memory
+def test_backend_memory(mock_backend, requests_mock):
     """Test that memory is handled correctly.
 
     Args:
@@ -310,7 +309,114 @@ def test_backend_memory(
         status_code=200,
         json=probabilities,
     )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "shots"),
+        status_code=200,
+        # The IonQ /results/shots endpoint returns a list of decimal-encoded
+        # outcome integers (same convention as histogram keys), NOT preformatted
+        # bitstrings. e.g. "3" means binary 11 on 2 qubits.
+        json=["0", "0", "0", "0", "1", "2", "3", "3", "3", "3"],
+    )
 
-    job = ionq_job.IonQJob(mock_backend, job_id)
-    with pytest.raises(AttributeError):
-        job.get_memory()  # pylint: disable=no-member
+    job = ionq_job.IonQJob(
+        mock_backend,
+        job_id,
+        passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
+    )
+    memory = Counter(job.get_memory())
+    assert memory == Counter({"00": 4, "11": 4, "01": 1, "10": 1})
+
+
+def test_run_dry_run_sends_flag(mock_backend, requests_mock):
+    """`backend.run(qc, dry_run=True)` must put `dry_run: true` at the top
+    level of the request body. Compilation-as-a-service uses this to compile
+    the circuit without executing it on the QPU."""
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    mock_backend.run(qc, dry_run=True)
+
+    assert len(requests_mock.request_history) == 1
+    request_json = requests_mock.request_history[0].json()
+    assert request_json["dry_run"] is True
+
+
+def test_run_no_dry_run_omits_flag(mock_backend, requests_mock):
+    """When `dry_run` is not supplied, the field must NOT be in the request
+    body at all (so the API behaves identically to pre-1.x clients)."""
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    mock_backend.run(qc)
+
+    request_json = requests_mock.request_history[0].json()
+    assert "dry_run" not in request_json
+
+
+def test_dry_run_via_extra_params(mock_backend, requests_mock):
+    """Back-compat: the pre-existing
+    `extra_query_params={"dry_run": True}` workaround must keep working
+    after the first-class kwarg is added."""
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    mock_backend.run(qc, extra_query_params={"dry_run": True})
+
+    request_json = requests_mock.request_history[0].json()
+    assert request_json["dry_run"] is True
+
+
+def test_native_sim_target_noise(provider):
+    """Test that simulator native target uses ZZ gate for Forte noise models.
+
+    Args:
+        provider (IonQProvider): A test IonQProvider.
+    """
+    sim_backend = provider.get_backend("ionq_simulator", gateset="native")
+
+    target_ops = [op.name for op in sim_backend.target.operations]
+    assert "ms" in target_ops
+    assert "zz" not in target_ops
+
+    sim_backend.set_options(noise_model="forte-1")
+    target_ops = [op.name for op in sim_backend.target.operations]
+    assert "zz" in target_ops
+    assert "ms" not in target_ops
+
+    sim_backend.set_options(noise_model="aria-1")
+    target_ops = [op.name for op in sim_backend.target.operations]
+    assert "ms" in target_ops
+    assert "zz" not in target_ops
+
+
+def test_forte_rzz_transpiles_to_zz(provider):
+    """Test that rzz gates transpile to zz (not ms) with Forte noise model.
+
+    Regression test for issue #210.
+
+    Args:
+        provider (IonQProvider): A test IonQProvider.
+    """
+    native_simulator = provider.get_backend("ionq_simulator", gateset="native")
+    native_simulator.set_options(noise_model="forte-1")
+
+    qc = QuantumCircuit(2)
+    qc.rzz(1, 0, 1)
+
+    transpiled_qc = transpile(qc, backend=native_simulator, optimization_level=3)
+    ops = transpiled_qc.count_ops()
+
+    assert "zz" in ops
+    assert "ms" not in ops

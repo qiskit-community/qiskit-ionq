@@ -32,7 +32,7 @@ import re
 import json
 from collections import OrderedDict
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from warnings import warn
 import requests
 
@@ -55,9 +55,9 @@ class IonQClient:
 
     def __init__(
         self,
-        token: Optional[str] = None,
-        url: Optional[str] = None,
-        custom_headers: Optional[dict] = None,
+        token: str | None = None,
+        url: str | None = None,
+        custom_headers: dict | None = None,
     ):
         self._token = token
         self._custom_headers = custom_headers or {}
@@ -248,11 +248,50 @@ class IonQClient:
         )
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
+    def get_compiled_circuit(self, job_id: str, lang: str = "native") -> str:
+        """Retrieve the server-compiled circuit for a job.
+
+        Hits ``GET /v0.4/jobs/{UUID}/circuits/{lang}``, which is populated by the
+        IonQ Cloud compiler-as-a-service for jobs submitted with ``dry_run=True``
+        (and, for fully-executed jobs, the post-compilation circuit actually run
+        on hardware).
+
+        Args:
+            job_id (str): The ID of the job whose compiled circuit to fetch.
+            lang (str): Output language. ``"native"`` (default) returns the
+                IonQ-native gate JSON; ``"qasm3"`` returns OpenQASM 3 source.
+                Other values may be accepted depending on organization
+                entitlement; consult the IonQ API reference for the current
+                set. Unsupported or non-entitled values are rejected by the
+                API with a ``4xx`` response.
+
+        Raises:
+            IonQAPIError: When the API returns a non-2xx status code (this
+                covers both unsupported ``lang`` values and per-organization
+                entitlement rejections).
+            IonQRetriableError: When a retriable error occurs during the request.
+
+        Returns:
+            str: The compiled circuit as a string. For ``lang="qasm3"`` this is
+            an OpenQASM 3 program; for ``lang="native"`` this is the IonQ JSON
+            circuit representation in native gates.
+        """
+        req_path = self.make_path("jobs", job_id, "circuits", lang)
+        res = self.get_with_retry(req_path, headers=self.api_headers)
+        exceptions.IonQAPIError.raise_for_status(res)
+        # The API returns a JSON-encoded string body; .json() unwraps the outer
+        # quotes and returns a plain Python str.
+        try:
+            return res.json()
+        except ValueError:
+            return res.text
+
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_results(
         self,
         results_url: str,
-        sharpen: Optional[bool] = None,
-        extra_query_params: Optional[dict] = None,
+        sharpen: bool | None = None,
+        extra_query_params: dict | None = None,
     ) -> dict:
         """Retrieve job results from the IonQ API.
 

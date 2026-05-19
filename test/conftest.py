@@ -24,11 +24,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+# pylint: disable=redefined-outer-name
+
 """global pytest fixtures"""
 
 import pytest
-import requests_mock as _requests_mock
-from requests_mock import adapter as rm_adapter
+from requests_mock import Mocker, adapter as rm_adapter
 
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
 from qiskit_ionq.helpers import compress_to_metadata_string
@@ -37,18 +39,20 @@ from qiskit_ionq.helpers import compress_to_metadata_string
 def _def_results_template(job_id):
     """A template for the results field in a job response."""
     return {
-        "probabilities": {
+        "histogram": {
             # v0.4 returns a relative path - the client prefixes it with the base URL
             # https://docs.ionq.com/api-reference/v0.4/jobs/get-job
-            "url": f"/v0.4/jobs/{job_id}/results/probabilities"
-        }
+            "url": f"/v0.4/jobs/{job_id}/results/histogram"
+        },
+        "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"},
+        "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"},
     }
 
 
 class MockBackend(ionq_backend.IonQBackend):
     """A mock backend for testing super-class behavior in isolation."""
 
-    def __init__(self, provider, *, name: str = "ionq_mock_backend"):  # pylint: disable=redefined-outer-name
+    def __init__(self, provider, *, name: str = "ionq_mock_backend"):
         """
         Build a minimal mock backend that satisfies BackendV2.
         """
@@ -176,12 +180,39 @@ def dummy_mapped_job_response(
     return response
 
 
-def dummy_failed_job(job_id):  # pylint: disable=differing-param-doc,differing-type-doc
+def dummy_multi_parent_response(job_id, child_job_ids, status="completed"):
+    """Multicircuit parent response with ``metadata: null`` and empty ``stats``,
+    matching the wire shape returned for jobs submitted outside qiskit.
+
+    Args:
+        job_id (str): The parent job id.
+        child_job_ids (list[str]): Child job ids.
+        status (str): Job status string.
+
+    Returns:
+        dict: A json response dict.
+    """
+    url = f"/v0.4/jobs/{job_id}/results/probabilities/aggregated"
+    return {
+        "id": job_id,
+        "type": "ionq.multi-circuit.v1",
+        "status": status,
+        "name": f"{len(child_job_ids)} circuits",
+        "metadata": None,
+        "backend": "simulator",
+        "child_job_ids": child_job_ids,
+        "settings": {},
+        "stats": {},
+        "results": {"probabilities": {"url": url}},
+        "execution_duration_ms": 0,
+    }
+
+
+def dummy_failed_job(job_id):
     """A dummy response payload for a failed job.
 
     Args:
         job_id (str): An arbitrary job id.
-        status (str): A provided status string.
 
     Returns:
         dict: A json response dict.
@@ -222,7 +253,7 @@ def _default_requests_mock(**kwargs):
         :class:`request_mock.Mocker`: A requests mocker.
     """
     mocker_kwargs = {"real_http": False, **kwargs}
-    mocker = _requests_mock.Mocker(**mocker_kwargs)
+    mocker = Mocker(**mocker_kwargs)
     return mocker
 
 
@@ -263,7 +294,7 @@ def provider():
 
 
 @pytest.fixture()
-def mock_backend(provider):  # pylint: disable=redefined-outer-name
+def mock_backend(provider):
     """A fixture instance of the :class:`MockBackend`.
 
     Args:
@@ -275,7 +306,6 @@ def mock_backend(provider):  # pylint: disable=redefined-outer-name
     return MockBackend(provider)
 
 
-# pylint: disable=redefined-outer-name
 @pytest.fixture()
 def qpu_backend(provider):
     """Get the QPU backend from a provider.
@@ -289,7 +319,6 @@ def qpu_backend(provider):
     return provider.get_backend("ionq_qpu")
 
 
-# pylint: disable=redefined-outer-name
 @pytest.fixture()
 def simulator_backend(provider):
     """Get the QPU backend from a provider.
@@ -303,7 +332,6 @@ def simulator_backend(provider):
     return provider.get_backend("ionq_simulator")
 
 
-# pylint: disable=redefined-outer-name
 @pytest.fixture()
 def formatted_result(provider):
     """Fixture for auto-injecting a formatted IonQJob result object into a
