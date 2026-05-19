@@ -409,3 +409,74 @@ def test_forte_rzz_transpiles_to_zz(provider):
 
     assert "zz" in ops
     assert "ms" not in ops
+
+
+# ---------------------------------------------------------------------------
+# Compilation settings (`compilation=` kwarg -> settings.compilation block)
+# ---------------------------------------------------------------------------
+
+
+def test_run_compilation_kwarg(mock_backend, requests_mock):
+    """`backend.run(qc, compilation={...})` must end up at settings.compilation
+    in the API request body."""
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    mock_backend.run(
+        qc,
+        compilation={
+            "service_version": "v2",
+            "opt": 0.5,
+            "precision": "high",
+            "gate_basis": "native",
+        },
+    )
+
+    body = requests_mock.request_history[0].json()
+    assert body["settings"]["compilation"] == {
+        "service_version": "v2",
+        "opt": 0.5,
+        "precision": "high",
+        "gate_basis": "native",
+    }
+
+
+def test_run_no_compilation_omits(mock_backend, requests_mock):
+    """When no compilation kwarg is passed, the settings block should not
+    contain a compilation entry (so we don't shadow server-side defaults)."""
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    mock_backend.run(qc)
+
+    body = requests_mock.request_history[0].json()
+    assert "compilation" not in body.get("settings", {})
+
+
+def test_compilation_overrides(mock_backend, requests_mock):
+    """If the user passes both job_settings={'compilation': {...}} and the
+    explicit compilation kwarg, the kwarg wins for overlapping keys, while
+    non-overlapping keys from job_settings are preserved."""
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(1)
+    qc.measure_all()
+    mock_backend.run(
+        qc,
+        job_settings={"compilation": {"opt": 0.1, "precision": "low"}},
+        compilation={"opt": 0.9},
+    )
+
+    compilation = requests_mock.request_history[0].json()["settings"]["compilation"]
+    assert compilation == {"opt": 0.9, "precision": "low"}

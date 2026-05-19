@@ -574,6 +574,16 @@ def qiskit_to_ionq(
     if isinstance(error_mitigation, ErrorMitigation):
         settings["error_mitigation"] = error_mitigation.value
 
+    # Compilation settings: explicit `compilation=` kwarg wins over anything
+    # the user may have placed under job_settings["compilation"]. Merged
+    # shallowly so callers can override individual fields without restating
+    # the whole block.
+    compilation = passed_args.get("compilation")
+    if compilation:
+        existing = dict(settings.get("compilation") or {})
+        existing.update(compilation)
+        settings["compilation"] = existing
+
     if settings:
         ionq_json["settings"] = settings
 
