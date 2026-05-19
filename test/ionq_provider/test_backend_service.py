@@ -25,6 +25,8 @@
 # limitations under the License.
 """Test basic provider API methods."""
 
+import pytest
+
 from qiskit_ionq import IonQProvider
 
 
@@ -60,3 +62,35 @@ def test_backend_eq():
     assert sub1 != sub2
     assert also_sub1 != sub2
     assert sub1 != simulator
+
+
+# ---------------------------------------------------------------------------
+# Native-gateset two-qubit instruction selection
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "name,expected_2q",
+    [
+        # ZZ-class
+        ("ionq_qpu.forte-1", "zz"),
+        ("ionq_qpu.forte-enterprise-1", "zz"),
+        ("ionq_qpu.tempo-1", "zz"),
+        # MS-class
+        ("ionq_qpu.aria-1", "ms"),
+        ("ionq_qpu.aria-2", "ms"),
+        # Generic / unrecognised falls back to MS, matching pre-existing behaviour
+        ("ionq_qpu.unknown-1", "ms"),
+    ],
+)
+def test_native_2q_gate(name, expected_2q):
+    """The native-gateset Target should expose ZZ on Forte/Tempo and MS on Aria."""
+    pro = IonQProvider("123456")
+    backend = pro.get_backend(name, gateset="native")
+    instr_names = set(backend.target.operation_names)
+    assert (
+        expected_2q in instr_names
+    ), f"{name}: expected {expected_2q!r} in target ops, got {instr_names}"
+    # And the *other* 2q native gate must NOT be present, to keep the Target unambiguous.
+    other = "ms" if expected_2q == "zz" else "zz"
+    assert other not in instr_names, f"{name}: unexpected {other!r} in target ops"
