@@ -985,16 +985,14 @@ def test_get_memory_raises_when_off(mock_backend, requests_mock):
         job.get_memory()
 
 
-def test_multi_circuit_skips_memory(mock_backend, requests_mock):
-    """Multi-circuit jobs warn and emit memory=None even when a shots URL
-    is advertised; the flat top-level /shots payload cannot be split per
-    circuit, so the client declines rather than mis-assign.
+def test_multi_mem_per_child(mock_backend, requests_mock):
+    """Multi-circuit jobs assemble per-shot memory by fetching each child's
+    own ``results.shots.url``. The parent only advertises aggregated
+    probabilities, but every child carries a shots payload.
     """
     job_id = "multi_mem"
     child_ids = ["child_a", "child_b"]
     parent = conftest.dummy_multi_parent_response(job_id, child_ids)
-    # advertise a shots URL: the skip must fire even when one is present
-    parent["results"]["shots"] = {"url": f"/v0.4/jobs/{job_id}/results/shots"}
 
     client = mock_backend.client
     requests_mock.get(client.make_path("jobs", job_id), json=parent)
@@ -1002,21 +1000,84 @@ def test_multi_circuit_skips_memory(mock_backend, requests_mock):
         client.make_path("jobs", job_id, "results", "probabilities", "aggregated"),
         json={child_ids[0]: {"0": 0.5, "3": 0.5}, child_ids[1]: {"1": 1.0}},
     )
+    # Each child advertises its own shots URL on retrieval.
+    for cid in child_ids:
+        requests_mock.get(
+            client.make_path("jobs", cid),
+            json={
+                "id": cid,
+                "status": "completed",
+                "metadata": {},
+                "results": {"shots": {"url": f"/v0.4/jobs/{cid}/results/shots"}},
+            },
+        )
+    requests_mock.get(
+        client.make_path("jobs", child_ids[0], "results", "shots"),
+        json=[0, 3, 0, 3],
+    )
+    requests_mock.get(
+        client.make_path("jobs", child_ids[1], "results", "shots"),
+        json=[1, 1, 1],
+    )
 
     job = ionq_job.IonQJob(
         mock_backend,
         job_id,
         passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
     )
-    with pytest.warns(UserWarning, match="multi-circuit"):
-        result = job.result()
-    assert result.data(0).get("memory") is None
-    assert result.data(1).get("memory") is None
-    # confirm no HTTP fetch was made to /results/shots
-    shots_path = client.make_path("jobs", job_id, "results", "shots")
-    assert not any(
-        req.url.endswith(shots_path) for req in requests_mock.request_history
+    result = job.result()
+
+    # Bell-like child: outcomes 0 and 3 on 2 inferred qubits -> '00' / '11'.
+    assert result.data(0).get("memory") == ["00", "11", "00", "11"]
+    # X-like child: outcome 1 on 1 inferred qubit -> '1'.
+    assert result.data(1).get("memory") == ["1", "1", "1"]
+
+
+def test_multi_mem_partial(mock_backend, requests_mock):
+    """If one child lacks a shots URL, only that circuit's memory is ``None``;
+    the others still assemble.
+    """
+    job_id = "multi_mem_partial"
+    child_ids = ["child_ok", "child_no_shots"]
+    parent = conftest.dummy_multi_parent_response(job_id, child_ids)
+
+    client = mock_backend.client
+    requests_mock.get(client.make_path("jobs", job_id), json=parent)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities", "aggregated"),
+        json={child_ids[0]: {"0": 0.5, "3": 0.5}, child_ids[1]: {"1": 1.0}},
     )
+    requests_mock.get(
+        client.make_path("jobs", child_ids[0]),
+        json={
+            "id": child_ids[0],
+            "status": "completed",
+            "metadata": {},
+            "results": {"shots": {"url": f"/v0.4/jobs/{child_ids[0]}/results/shots"}},
+        },
+    )
+    requests_mock.get(
+        client.make_path("jobs", child_ids[1]),
+        json={
+            "id": child_ids[1],
+            "status": "completed",
+            "metadata": {},
+            "results": {},
+        },
+    )
+    requests_mock.get(
+        client.make_path("jobs", child_ids[0], "results", "shots"),
+        json=[0, 3],
+    )
+
+    job = ionq_job.IonQJob(
+        mock_backend,
+        job_id,
+        passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
+    )
+    result = job.result()
+    assert result.data(0).get("memory") == ["00", "11"]
+    assert result.data(1).get("memory") is None
 
 
 def test_shots_fetch_warns_on_error(mock_backend, requests_mock):
@@ -1221,14 +1282,13 @@ def test_multi_null_meta_result(mock_backend, requests_mock):
         json=aggregated,
     )
 
-    # Multi-circuit + memory=True warns and skips the shots fetch.
+    # Null-meta handling is the focus here; memory is exercised separately.
     job = ionq_job.IonQJob(
         mock_backend,
         job_id,
-        passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
+        passed_args={"memory": False, "shots": 1024, "sampler_seed": None},
     )
-    with pytest.warns(UserWarning, match="multi-circuit"):
-        result = job.result()
+    result = job.result()
 
     assert result.success is True
     # Bell: max key 3 -> 2 qubits inferred -> 2-char bitstrings.

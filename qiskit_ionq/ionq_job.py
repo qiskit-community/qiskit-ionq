@@ -589,24 +589,54 @@ class IonQJob(JobV1):
             "statuses": child_statuses,
         }
 
-    def _fetch_raw_shots(self):
-        """GET the URL the server advertised in ``CircuitJobResult.shots.url``.
+    def _fetch_raw_shots(self, shots_url: str | None, ctx: str = "") -> list | None:
+        """GET a ``CircuitJobResult.shots.url`` and return its decimal-encoded
+        outcome list, or ``None`` if no URL was given or the fetch failed.
 
-        Returns the raw list of decimal-encoded outcome integers, or ``None``
-        if no URL was advertised. Surfaces fetch failures as a ``UserWarning``
-        so callers debugging a missing ``memory`` field can see why.
+        ``ctx`` is appended to the failure warning so callers can identify
+        which circuit's memory went missing in a multi-circuit job.
         """
-        shots_url = self._results_urls.get("shots")
         if not shots_url:
             return None
         try:
             return self._client.get_results(shots_url)
         except exceptions.IonQAPIError as err:
+            suffix = f" for {ctx}" if ctx else ""
             warnings.warn(
-                f"Failed to fetch per-shot memory ({err!r}); memory will be None.",
+                f"Failed to fetch per-shot memory{suffix} ({err!r}); "
+                "memory will be None.",
                 UserWarning,
             )
             return None
+
+    def _raw_shots_per_circuit(self) -> list[list | None]:
+        """Return one raw-shots list per circuit (or ``None`` per slot).
+
+        Single-circuit jobs read the top-level ``results.shots.url`` recorded
+        in :attr:`_results_urls` during :meth:`status`. Multi-circuit jobs
+        iterate :attr:`_children` and fetch each child's own ``shots.url``
+        (the parent only carries aggregated probabilities). Failures degrade
+        per-circuit -- one bad child does not poison the whole result.
+        """
+        if self._num_circuits == 1 or not self._children:
+            return [self._fetch_raw_shots(self._results_urls.get("shots"))]
+
+        per_circuit: list[list | None] = []
+        for child_id in self._children:
+            try:
+                resp = self._client.retrieve_job(child_id)
+            except exceptions.IonQAPIError as err:
+                warnings.warn(
+                    f"Failed to retrieve child {child_id} for per-shot memory "
+                    f"({err!r}); memory for this circuit will be None.",
+                    UserWarning,
+                )
+                per_circuit.append(None)
+                continue
+            shots = (resp.get("results") or {}).get("shots") or {}
+            url = shots.get("url") if isinstance(shots, dict) else None
+            per_circuit.append(self._fetch_raw_shots(url, ctx=f"child {child_id}"))
+        return per_circuit
 
     def _format_result(self, data):
         """Translate IonQ result format into a Qiskit `Result` instance.
@@ -672,21 +702,13 @@ class IonQJob(JobV1):
             for i in range(self._num_circuits)
         ]
         if self._status == jobstatus.JobStatus.DONE:
-            # Fetch shots once (or skip) before the per-circuit loop. The v0.4
-            # ``CircuitJobResult.shots.url`` slot is a single top-level URL;
-            # for multi-circuit jobs there is no documented way to split a
-            # flat shot list per circuit (only per-variant URLs exist), so we
-            # decline rather than mis-assign.
-            raw_shots = None
+            # Resolve per-circuit shots before the loop. For multi-circuit
+            # jobs the parent only advertises aggregated probabilities, so
+            # each child's own ``shots.url`` is fetched individually.
             if self.memory and not is_ideal_sim:
-                if self._num_circuits > 1:
-                    warnings.warn(
-                        "Per-shot memory is not supported for multi-circuit "
-                        "jobs; results[*].data.memory will be None.",
-                        UserWarning,
-                    )
-                else:
-                    raw_shots = self._fetch_raw_shots()
+                raw_shots_per_circuit = self._raw_shots_per_circuit()
+            else:
+                raw_shots_per_circuit = [None] * self._num_circuits
 
             for i in range(self._num_circuits):
                 header = qiskit_header[i] or {}
@@ -706,6 +728,9 @@ class IonQJob(JobV1):
                     shots,
                     use_sampler=is_ideal_sim,
                     sampler_seed=sampler_seed,
+                )
+                raw_shots = (
+                    raw_shots_per_circuit[i] if i < len(raw_shots_per_circuit) else None
                 )
                 if raw_shots is not None:
                     memory_slots = header.get("memory_slots") or len(clbits or [])
