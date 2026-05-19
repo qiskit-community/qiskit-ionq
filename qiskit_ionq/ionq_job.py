@@ -285,12 +285,22 @@ class IonQJob(JobV1):
         """
         # Imported here rather than at module load so the qasm3 importer is
         # only paid for when this method is actually called.
-        from qiskit.qasm3 import loads as _qasm3_loads, QASM3ImporterError
-        from openqasm3.parser import QASM3ParsingError
+        from qiskit.qasm3 import (  # pylint: disable=import-outside-toplevel
+            loads as _qasm3_loads,
+            QASM3ImporterError,
+        )
+        from openqasm3.parser import (  # pylint: disable=import-outside-toplevel
+            QASM3ParsingError,
+        )
+        from .ionq_annotations import (  # pylint: disable=import-outside-toplevel
+            ionq_annotation_handlers,
+        )
 
         qasm3_text = self.compiled_circuit_text(lang="qasm3")
         try:
-            return _qasm3_loads(qasm3_text)
+            return _qasm3_loads(
+                qasm3_text, annotation_handlers=ionq_annotation_handlers()
+            )
         except (QASM3ImporterError, QASM3ParsingError) as exc:
             raise exceptions.IonQJobError(
                 f"Could not parse compiled QASM 3 for job {self._job_id} into a "

@@ -38,6 +38,12 @@ from .version import __version__
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from .constants import ErrorMitigation
 from .ionq_equivalence_library import add_equivalences
+from .ionq_annotations import (
+    IONQ_ARRANGE_NAMESPACE,
+    IonQArrangeAnnotation,
+    IonQArrangeSerializer,
+    ionq_annotation_handlers,
+)
 
 __all__ = [
     "__version__",
@@ -52,5 +58,9 @@ __all__ = [
     "MSGate",
     "ZZGate",
     "ErrorMitigation",
+    "IONQ_ARRANGE_NAMESPACE",
+    "IonQArrangeAnnotation",
+    "IonQArrangeSerializer",
+    "ionq_annotation_handlers",
     "add_equivalences",
 ]
