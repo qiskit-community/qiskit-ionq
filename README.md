@@ -92,7 +92,7 @@ print(job.result().get_probabilities())
 
 IonQ Cloud can compile a circuit and return the result _without_ executing it on a QPU. This is useful for inspecting the post-compilation circuit, estimating gate counts, or validating native-gate output before paying for shots.
 
-Set `dry_run=True` on `backend.run(...)` and then read the compiled circuit back via `job.compiled_circuit(...)`:
+Set `dry_run=True` on `backend.run(...)` and then read the compiled circuit back via `job.compiled_circuit()` (Qiskit `QuantumCircuit`) or `job.compiled_circuit_text(...)` (raw string in the chosen format):
 
 ```python
 backend = provider.get_backend("ionq_qpu.forte-1")
@@ -100,21 +100,17 @@ backend = provider.get_backend("ionq_qpu.forte-1")
 job = backend.run(qc, dry_run=True)
 job.wait_for_final_state()
 
-native_json = job.compiled_circuit(lang="native")   # IonQ-native JSON
-qasm3       = job.compiled_circuit(lang="qasm3")    # OpenQASM 3
-```
-
-Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
-
-For `lang="qasm3"` you can also call `job.compiled_qiskit_circuit()` to get the result back as a Qiskit `QuantumCircuit` ready for inspection, drawing, or further composition:
-
-```python
-qc_compiled = job.compiled_qiskit_circuit()
+qc_compiled = job.compiled_circuit()                     # QuantumCircuit (from QASM 3)
 qc_compiled.draw("text")
 qc_compiled.count_ops()
+
+native_json = job.compiled_circuit_text(lang="native")   # IonQ-native JSON
+qasm3       = job.compiled_circuit_text(lang="qasm3")    # OpenQASM 3
 ```
 
-Compilation-side knobs (compiler version, optimisation level, output basis, precision) are forwarded to the API's `settings.compilation` block via a `compilation=` kwarg:
+Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit()` / `compiled_circuit_text(...)`.
+
+Compilation knobs (compiler version, optimisation level, output basis, precision) are forwarded to the API's `settings.compilation` block via a `compilation=` kwarg:
 
 ```python
 job = backend.run(
@@ -124,7 +120,7 @@ job = backend.run(
 )
 ```
 
-Fields are passed through verbatim; refer to the IonQ API reference for the supported values.
+Fields are passed through verbatim; refer to the [IonQ API reference](https://docs.ionq.com/api-reference/v0.4/jobs/create-job) for the supported values. When both `compilation=` and `job_settings={"compilation": {...}}` are passed, the explicit `compilation=` kwarg wins on overlapping keys; non-overlapping keys from `job_settings` are preserved.
 
 ### Basis gates and transpilation
 

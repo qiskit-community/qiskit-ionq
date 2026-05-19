@@ -333,8 +333,9 @@ class IonQBackend(Backend):
             # ZZ-class systems (Forte, Tempo) use ZZGate; MS-class systems
             # (Aria) use the parameterised MSGate. Driven by the backend
             # name suffix because the API does not yet expose this in the
-            # /backends payload (tracked separately under the SDK topology
-            # work item).
+            # /backends payload.
+            # TODO: drop the name-suffix dispatch once the SDK topology work
+            # item lands a `native_2q_gate` field on the /backends response.
             if any(name in self.name.lower() for name in _ZZ_NATIVE_BACKENDS):
                 theta = Parameter("θ")
                 tgt.add_instruction(ZZGate(theta))

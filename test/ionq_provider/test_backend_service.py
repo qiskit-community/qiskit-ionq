@@ -88,9 +88,7 @@ def test_native_2q_gate(name, expected_2q):
     pro = IonQProvider("123456")
     backend = pro.get_backend(name, gateset="native")
     instr_names = set(backend.target.operation_names)
-    assert (
-        expected_2q in instr_names
-    ), f"{name}: expected {expected_2q!r} in target ops, got {instr_names}"
+    assert expected_2q in instr_names
     # And the *other* 2q native gate must NOT be present, to keep the Target unambiguous.
     other = "ms" if expected_2q == "zz" else "zz"
-    assert other not in instr_names, f"{name}: unexpected {other!r} in target ops"
+    assert other not in instr_names

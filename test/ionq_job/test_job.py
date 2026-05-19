@@ -941,8 +941,8 @@ def test_dry_run_result_raises(mock_backend, requests_mock):
 
 
 def test_dry_run_compiled_native(mock_backend, requests_mock):
-    """compiled_circuit(lang='native') hits /jobs/<id>/circuits/native and
-    returns the JSON-decoded body as a string."""
+    """compiled_circuit_text(lang='native') hits /jobs/<id>/circuits/native
+    and returns the JSON-decoded body as a string."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
@@ -958,12 +958,12 @@ def test_dry_run_compiled_native(mock_backend, requests_mock):
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.compiled_circuit() == native_body
-    assert job.compiled_circuit(lang="native") == native_body
+    assert job.compiled_circuit_text() == native_body
+    assert job.compiled_circuit_text(lang="native") == native_body
 
 
 def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
-    """compiled_circuit(lang='qasm3') returns the OpenQASM 3 string."""
+    """compiled_circuit_text(lang='qasm3') returns the OpenQASM 3 string."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
@@ -977,7 +977,7 @@ def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.compiled_circuit(lang="qasm3") == qasm3
+    assert job.compiled_circuit_text(lang="qasm3") == qasm3
 
 
 def test_compiled_bad_lang(mock_backend, requests_mock):
@@ -989,7 +989,7 @@ def test_compiled_bad_lang(mock_backend, requests_mock):
     )
     job = ionq_job.IonQJob(mock_backend, job_id)
     with pytest.raises(ValueError, match="lang must be"):
-        job.compiled_circuit(lang="qasm")  # qasm2 / qasm are NOT valid
+        job.compiled_circuit_text(lang="qasm")  # qasm2 / qasm are NOT valid
 
 
 def test_dry_run_property_false(mock_backend, requests_mock):
@@ -1003,7 +1003,7 @@ def test_dry_run_property_false(mock_backend, requests_mock):
 
 
 # ---------------------------------------------------------------------------
-# compiled_qiskit_circuit (QASM 3 -> QuantumCircuit)
+# compiled_circuit (QASM 3 -> QuantumCircuit)
 # ---------------------------------------------------------------------------
 
 _QASM3_BELL = """OPENQASM 3.0;
@@ -1017,8 +1017,8 @@ c[1] = measure q[1];
 """
 
 
-def test_compiled_qiskit_circuit(mock_backend, requests_mock):
-    """compiled_qiskit_circuit() should fetch QASM 3 and parse it into a
+def test_compiled_circuit(mock_backend, requests_mock):
+    """compiled_circuit() should fetch QASM 3 and parse it into a
     Qiskit QuantumCircuit ready for further inspection."""
     job_id = "dry_run_id"
     requests_mock.get(
@@ -1031,7 +1031,7 @@ def test_compiled_qiskit_circuit(mock_backend, requests_mock):
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    qc = job.compiled_qiskit_circuit()
+    qc = job.compiled_circuit()
 
     # Round-trip sanity: type is QuantumCircuit, gates are recognisable.
     assert isinstance(qc, QuantumCircuit)
@@ -1044,7 +1044,8 @@ def test_compiled_qiskit_circuit(mock_backend, requests_mock):
 
 def test_compiled_qc_unparseable(mock_backend, requests_mock):
     """If the API returns text the QASM 3 importer cannot parse, the user
-    should get a clear IonQJobError pointing back to compiled_circuit()."""
+    should get a clear IonQJobError pointing back to
+    compiled_circuit_text()."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
@@ -1057,4 +1058,4 @@ def test_compiled_qc_unparseable(mock_backend, requests_mock):
 
     job = ionq_job.IonQJob(mock_backend, job_id)
     with pytest.raises(exceptions.IonQJobError, match="QASM 3"):
-        job.compiled_qiskit_circuit()
+        job.compiled_circuit()
