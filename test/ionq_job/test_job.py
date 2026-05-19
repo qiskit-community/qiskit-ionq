@@ -1056,3 +1056,61 @@ def test_multi_null_meta_result(mock_backend, requests_mock):
     assert result.get_counts(0) == {"00": 512, "11": 512}
     # X: max key 1 -> 1 qubit inferred -> 1-char bitstrings.
     assert result.get_counts(1) == {"1": 1024}
+
+
+# ---------------------------------------------------------------------------
+# compiled_qiskit_circuit (QASM 3 -> QuantumCircuit)
+# ---------------------------------------------------------------------------
+
+_QASM3_BELL = """OPENQASM 3.0;
+include "stdgates.inc";
+qubit[2] q;
+bit[2] c;
+h q[0];
+cx q[0], q[1];
+c[0] = measure q[0];
+c[1] = measure q[1];
+"""
+
+
+def test_compiled_qiskit_circuit(mock_backend, requests_mock):
+    """compiled_qiskit_circuit() should fetch QASM 3 and parse it into a
+    Qiskit QuantumCircuit ready for further inspection."""
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "qasm3"),
+        json=_QASM3_BELL,
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    qc = job.compiled_qiskit_circuit()
+
+    # Round-trip sanity: type is QuantumCircuit, gates are recognisable.
+    assert isinstance(qc, QuantumCircuit)
+    assert qc.num_qubits == 2
+    ops = qc.count_ops()
+    assert ops.get("h") == 1
+    assert ops.get("cx") == 1
+    assert ops.get("measure") == 2
+
+
+def test_compiled_qc_unparseable(mock_backend, requests_mock):
+    """If the API returns text the QASM 3 importer cannot parse, the user
+    should get a clear IonQJobError pointing back to compiled_circuit()."""
+    job_id = "dry_run_id"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=_dry_run_job_response(job_id),
+    )
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id, "circuits", "qasm3"),
+        json="this is not openqasm",
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(exceptions.IonQJobError, match="QASM 3"):
+        job.compiled_qiskit_circuit()
