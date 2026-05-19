@@ -149,7 +149,7 @@ def _build_memory(
     raw_shots: list[int | str],
     n_qubits: int,
     clbits: list[int] | None,
-    width: int | None = None,
+    memory_slots: int | None = None,
 ) -> list[str]:
     """Convert IonQ shot outcomes into Qiskit memory bitstrings.
 
@@ -158,18 +158,20 @@ def _build_memory(
     keys); this function applies the ``clbits`` mapping and returns one
     MSB-left bitstring per shot.
     """
-    if not clbits:
+    if clbits is None:
         clbits = list(range(n_qubits))
-    out_width = int(width) if width is not None else len(clbits) if clbits else n_qubits
+    out_width = (
+        int(memory_slots) if memory_slots is not None else (len(clbits) or n_qubits)
+    )
 
-    def remap_one(val: int | str) -> str:
+    def remap_raw_shot(val: int | str) -> str:
         raw = bin(int(val))[2:].rjust(n_qubits, "0")[::-1]
         mapped = "".join(
             raw[b] if b is not None and 0 <= b < n_qubits else "0" for b in clbits
         )[::-1]
         return mapped.rjust(out_width, "0")
 
-    return [remap_one(s) for s in raw_shots]
+    return [remap_raw_shot(s) for s in raw_shots]
 
 
 class IonQJob(JobV1):
@@ -642,14 +644,26 @@ class IonQJob(JobV1):
         """Translate IonQ result format into a Qiskit `Result` instance.
 
         Args:
-            result (dict): A JSON body response from a REST API call.
+            data: Deserialized probabilities payload from
+                ``GET /v0.4/jobs/<id>/results/probabilities`` (or
+                ``.../aggregated`` for multi-circuit jobs). Accepted shapes:
+
+                - ``dict[str, float]`` -- single circuit; outcome int (as str)
+                  to probability.
+                - ``dict[str, dict[str, float]]`` -- multi-circuit, outer keyed
+                  by child job id; inner shaped as the single-circuit case.
+                - ``list[dict[str, float]]`` -- one entry per circuit (used by
+                  tests; otherwise unusual on the wire).
+
+                Probability values may be ``int`` (e.g. exact ``0``/``1`` from
+                a noiseless simulator) or ``float``; both are accepted.
 
         Returns:
-            Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
+            Result: A Qiskit :class:`Result <qiskit.result.Result>`
+                representation of this job.
 
         Raises:
-            IonQJobFailureError: If the remote job has an error status.
-            IonQJobStateError: If the job was cancelled before this method fetches it.
+            IonQJobError: If ``data`` is not one of the shapes above.
         """
         backend = self.backend()
         backend_name = backend.name
