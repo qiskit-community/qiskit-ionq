@@ -28,6 +28,7 @@
 # pylint: disable=redefined-outer-name
 
 from unittest import mock
+from collections import Counter
 
 import pytest
 from qiskit import QuantumCircuit, transpile
@@ -289,9 +290,7 @@ def test_multiexp_job(mock_backend, requests_mock):
     }
 
 
-def test_backend_memory(
-    mock_backend, requests_mock
-):  # TODO fix when BE supports memory
+def test_backend_memory(mock_backend, requests_mock):
     """Test that memory is handled correctly.
 
     Args:
@@ -310,10 +309,22 @@ def test_backend_memory(
         status_code=200,
         json=probabilities,
     )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "shots"),
+        status_code=200,
+        # The IonQ /results/shots endpoint returns a list of decimal-encoded
+        # outcome integers (same convention as histogram keys), NOT preformatted
+        # bitstrings. e.g. "3" means binary 11 on 2 qubits.
+        json=["0", "0", "0", "0", "1", "2", "3", "3", "3", "3"],
+    )
 
-    job = ionq_job.IonQJob(mock_backend, job_id)
-    with pytest.raises(AttributeError):
-        job.get_memory()  # pylint: disable=no-member
+    job = ionq_job.IonQJob(
+        mock_backend,
+        job_id,
+        passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
+    )
+    memory = Counter(job.get_memory())
+    assert memory == Counter({"00": 4, "11": 4, "01": 1, "10": 1})
 
 
 def test_run_dry_run_sends_flag(mock_backend, requests_mock):

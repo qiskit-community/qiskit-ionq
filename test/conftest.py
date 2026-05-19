@@ -39,11 +39,13 @@ from qiskit_ionq.helpers import compress_to_metadata_string
 def _def_results_template(job_id):
     """A template for the results field in a job response."""
     return {
-        "probabilities": {
+        "histogram": {
             # v0.4 returns a relative path - the client prefixes it with the base URL
             # https://docs.ionq.com/api-reference/v0.4/jobs/get-job
-            "url": f"/v0.4/jobs/{job_id}/results/probabilities"
-        }
+            "url": f"/v0.4/jobs/{job_id}/results/histogram"
+        },
+        "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"},
+        "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"},
     }
 
 
