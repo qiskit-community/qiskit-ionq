@@ -122,6 +122,81 @@ job = backend.run(
 
 Fields are passed through verbatim; refer to the [IonQ API reference](https://docs.ionq.com/api-reference/v0.4/jobs/create-job) for the supported values. When both `compilation=` and `job_settings={"compilation": {...}}` are passed, the explicit `compilation=` kwarg wins on overlapping keys; non-overlapping keys from `job_settings` are preserved.
 
+### Tempo backends (mid-circuit measurement, `verbatim`, shot-wise results)
+
+Tempo-class backends (`ionq_qpu.tempo-1`, `ionq_qpu.tempo-2`, …) speak a new payload schema, `ionq.circuit.v2`, served under the same `/v0.4/jobs` endpoint as the existing backends. The provider routes Tempo submissions automatically based on the backend name; Aria/Forte/simulator paths are unchanged.
+
+The v2 schema natively supports **mid-circuit measurement**, **named classical registers**, and three Tempo-specific settings — `verbatim`, `include_leakage`, and `symmetry_verification`:
+
+```python
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+backend = provider.get_backend("ionq_qpu.tempo-1")
+
+q = QuantumRegister(1, "q")
+mid = ClassicalRegister(1, "mid")
+out = ClassicalRegister(1, "output_all")
+qc = QuantumCircuit(q, mid, out)
+qc.h(0)
+qc.measure(0, mid[0])           # mid-circuit measurement
+qc.x(0)
+qc.measure(0, out[0])
+
+job = backend.run(qc, shots=1000)
+```
+
+Results expose three new endpoints — `/results/shots`, `/results/probabilities`, `/results/histogram` — keyed by classical-register name (the IonQ system always appends a final "measure all qubits" readout under the reserved register name `output_all`):
+
+```python
+result = job.result()
+
+# Backward-compatible default: counts over output_all.
+result.get_counts()                       # {"0": 500, "1": 500}
+
+# Per-register data:
+result.probabilities_by_register()
+# {"mid": {"0": 0.49, "1": 0.51}, "output_all": {"0": 0.50, "1": 0.50}}
+
+# Lazy fetches of the other two endpoints:
+job.shots()      # list of per-shot {register_name: [[bits], ...]}
+job.histogram()  # {register_name: {bitstring: count}}
+```
+
+**Verbatim** mode skips the IonQ compiler — useful for hand-optimised native-gate circuits. Pass `verbatim=True` along with `gateset="native"`; the client rejects QIS gates locally before the wire:
+
+```python
+from qiskit_ionq import GPI2Gate, ZZGate
+
+backend = provider.get_backend("ionq_qpu.tempo-1", gateset="native")
+qc = QuantumCircuit(2, 2)
+qc.append(GPI2Gate(0.25), [0])
+qc.append(ZZGate(0.25), [0, 1])
+qc.measure([0, 1], [0, 1])
+job = backend.run(qc, shots=500, verbatim=True)
+```
+
+**Subspace-leakage** reporting (per-shot leakage flags) is opt-in via `include_leakage=True`; access via `result.get_leakage()`. **Symmetry verification** post-processing is opt-in via `symmetry_verification=True`.
+
+#### Inspecting the compiled circuit (`ARRANGE`)
+
+Under `dry_run=True`, `job.compiled_circuit()` returns the post-compilation circuit as a Qiskit `QuantumCircuit`. The Cypress compiler emits ion-parcel rearrangement directives as `@ionq.arrange` annotations on empty `box { }` statements (the OpenQASM 3.1 spec-blessed shape for position-sensitive vendor metadata); these ride through to the returned `QuantumCircuit` as `IonQArrangeAnnotation` instances on the corresponding `BoxOp`s:
+
+```python
+from qiskit_ionq import IonQArrangeAnnotation
+
+job = backend.run(qc, dry_run=True)
+job.wait_for_final_state()
+compiled = job.compiled_circuit()
+
+for inst in compiled.data:
+    if inst.operation.name == "box":
+        for ann in inst.operation.annotations:
+            if isinstance(ann, IonQArrangeAnnotation):
+                print(f"arrange {ann.from_label} -> {ann.to_label} on {ann.targets}")
+```
+
+`ARRANGE` is compiler-only; it cannot be submitted by external users. `verbatim=True` rejects any unrecognised gate label client-side.
+
 ### Basis gates and transpilation
 
 The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. The current supported gates can be found [on our docs site](https://docs.ionq.com/#tag/quantum_programs).

@@ -58,7 +58,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any
 
 from qiskit.circuit.annotation import Annotation, OpenQASM3Serializer
 
@@ -102,13 +102,14 @@ class IonQArrangeSerializer(OpenQASM3Serializer):
     consumers).
     """
 
-    def dump(self, annotation: Annotation) -> str | Literal[NotImplemented]:
+    def dump(self, annotation: Annotation) -> Any:
         """Emit ``{"from": <str>, "to": <str>, "targets": [<int>, ...]}``.
 
         Called by :func:`qiskit.qasm3.dumps` when emitting a circuit that
         contains an :class:`IonQArrangeAnnotation`. Returns
         :data:`NotImplemented` for any other annotation namespace so Qiskit
-        can route to the right serializer.
+        can route to the right serializer; otherwise returns a single-line
+        JSON string.
         """
         if not isinstance(annotation, IonQArrangeAnnotation):
             return NotImplemented
@@ -121,9 +122,7 @@ class IonQArrangeSerializer(OpenQASM3Serializer):
             separators=(",", ":"),
         )
 
-    def load(
-        self, namespace: str, payload: str
-    ) -> Annotation | Literal[NotImplemented]:
+    def load(self, namespace: str, payload: str) -> Any:
         """Parse a JSON ``@ionq.arrange`` payload into an :class:`IonQArrangeAnnotation`.
 
         Called by :func:`qiskit.qasm3.loads` (or :func:`qiskit_qasm3_import.parse`)

@@ -34,7 +34,11 @@ from typing import List
 pkg_parent = pathlib.Path(__file__).parent.parent.absolute()
 
 # major, minor, patch
-VERSION_INFO = ".".join(map(str, (1, 0, 3)))
+# 1.1.0 adds Tempo / ionq.circuit.v2 support: OpenQASM 3 submission,
+# mid-circuit measurement, per-register results (shots / probabilities /
+# histogram endpoints), verbatim mode, subspace-leakage reporting,
+# symmetry verification, and @ionq.arrange annotation round-trip.
+VERSION_INFO = ".".join(map(str, (1, 1, 0)))
 
 
 def _minimal_ext_cmd(cmd: List[str]) -> bytes:
