@@ -40,6 +40,12 @@ class IonQResult(Result):
 
     The primary reason this class extends the base Qiskit result object is to
     provide an API for retrieving result probabilities directly.
+
+    Tempo-class (``ionq.circuit.v2``) jobs additionally expose per-register
+    data via :meth:`probabilities_by_register` and per-shot leakage via
+    :meth:`get_leakage`. The standard :meth:`get_counts` /
+    :meth:`get_probabilities` accessors continue to return the ``output_all``
+    distribution for backward compatibility with v1 result-handling code.
     """
 
     def get_probabilities(self, experiment=None):
@@ -92,3 +98,47 @@ class IonQResult(Result):
         if len(dict_list) == 1:
             return dict_list[0]
         return dict_list
+
+    def probabilities_by_register(self, experiment=None) -> dict:
+        """Per-register probability distributions for v2 (Tempo) results.
+
+        Returns a dict keyed by classical-register name (as declared in the
+        submitted OpenQASM 3), where each value is a ``{bitstring: prob}``
+        dict. The reserved register ``output_all`` carries the final
+        "measure all qubits" readout the system appends.
+
+        Args:
+            experiment (int | None): Experiment index. v2 is single-circuit
+                only; this is accepted for API symmetry with the rest of
+                :class:`Result`.
+
+        Raises:
+            IonQJobError: If the experiment has no v2 per-register data
+                (e.g. it was submitted to an Aria/Forte backend).
+
+        Returns:
+            dict[str, dict[str, float]]: ``{register_name: {bitstring: prob}}``.
+        """
+        key = 0 if experiment is None else experiment
+        data = self.data(key)
+        if "probabilities_by_register" not in data:
+            raise exceptions.IonQJobError(
+                f'No per-register probabilities for experiment "{key!r}". This '
+                "endpoint is only populated for Tempo-class (v2) jobs."
+            )
+        return data["probabilities_by_register"]
+
+    def get_leakage(self, experiment=None):
+        """Per-shot subspace-leakage flags for v2 jobs run with ``include_leakage=True``.
+
+        Returns whatever shape the API published under
+        ``output.error_mitigation.leakage``. If the job did not request
+        leakage data, returns ``None``.
+
+        Args:
+            experiment (int | None): Experiment index. v2 is single-circuit
+                only; this is accepted for API symmetry with the rest of
+                :class:`Result`.
+        """
+        key = 0 if experiment is None else experiment
+        return self.data(key).get("leakage")

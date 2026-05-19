@@ -45,7 +45,7 @@ from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
-from .helpers import decompress_metadata_string, normalize
+from .helpers import decompress_metadata_string, is_v2_backend, normalize
 
 from . import constants, exceptions
 
@@ -177,6 +177,12 @@ class IonQJob(JobV1):
         self._execution_time = None
         self._dry_run: bool = False
         self._results_url: str | None = None
+        # v2-only: URLs for the new per-format endpoints. Populated alongside
+        # _results_url when the API response carries
+        # ``type == "ionq.circuit.v2"``.
+        self._shots_url: str | None = None
+        self._histogram_url: str | None = None
+        self._is_v2: bool = False
         self._metadata: dict[str, Any] = {}
 
         if passed_args is not None:
@@ -409,9 +415,75 @@ class IonQJob(JobV1):
                 sharpen=sharpen,
                 extra_query_params=extra_query_params,
             )
-            self._result = self._format_result(response)
+            if self._is_v2:
+                self._result = self._format_result_v2(response)
+            else:
+                self._result = self._format_result(response)
 
         return self._result
+
+    def shots(self, extra_query_params: dict | None = None) -> list[dict]:
+        """Fetch shot-wise results from a Tempo-class (v2) job.
+
+        Hits ``GET /v0.4/jobs/{id}/results/shots`` and returns the ``shots``
+        list verbatim: each entry is a dict keyed by classical-register name
+        (as declared in the submitted OpenQASM 3 source), with the value
+        being a list of bit-lists - one snapshot per assignment to that
+        register during the shot. The reserved register ``output_all``
+        always carries the final "measure all qubits" readout the system
+        appends.
+
+        Raises:
+            IonQJobStateError: If the job has not reached a final state.
+            IonQClientError: If the backend is not a v2 (Tempo-class) backend
+                or the API did not publish a shots URL for this job.
+
+        Returns:
+            list[dict]: The raw ``shots`` array. See the MCM output format
+            for the structure.
+        """
+        return self._fetch_v2_endpoint("shots", extra_query_params)
+
+    def histogram(self, extra_query_params: dict | None = None) -> dict:
+        """Fetch the per-register aggregated histogram from a v2 job.
+
+        Hits ``GET /v0.4/jobs/{id}/results/histogram`` and returns the
+        ``histogram`` block verbatim - a dict keyed by register name, each
+        value mapping bitstring -> shot count.
+
+        Raises:
+            IonQJobStateError: If the job has not reached a final state.
+            IonQClientError: If the backend is not a v2 (Tempo-class) backend
+                or the API did not publish a histogram URL for this job.
+
+        Returns:
+            dict: The ``histogram`` block.
+        """
+        return self._fetch_v2_endpoint("histogram", extra_query_params)
+
+    def _fetch_v2_endpoint(self, kind: str, extra_query_params: dict | None) -> Any:
+        """Common gatekeeping + fetch for ``shots`` and ``histogram``."""
+        self.status()
+        if self._status not in jobstatus.JOB_FINAL_STATES:
+            raise exceptions.IonQJobStateError(
+                f"Cannot fetch {kind} until the job reaches a final state. "
+                "Call wait_for_final_state() first."
+            )
+        url = self._shots_url if kind == "shots" else self._histogram_url
+        if not url:
+            raise exceptions.IonQClientError(
+                f"This job has no {kind} URL. The /results/{kind} endpoint "
+                "is only published for Tempo-class (ionq.circuit.v2) jobs."
+            )
+        response = self._client.get_results(
+            results_url=url,
+            extra_query_params=extra_query_params,
+        )
+        # The endpoint nests payload under its kind name, e.g.
+        # {"shots": [...]} or {"histogram": {...}}.
+        if isinstance(response, dict) and kind in response:
+            return response[kind]
+        return response
 
     def status(self, detailed: bool = False) -> jobstatus.JobStatus | dict:
         """Retrieve the status of a job.
@@ -472,6 +544,11 @@ class IonQJob(JobV1):
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
 
+            # Detect the payload type once; v2 carries per-register results.
+            self._is_v2 = response.get("type") == "ionq.circuit.v2" or is_v2_backend(
+                response.get("backend")
+            )
+
             # Dry-run jobs never produce a results URL; skip extraction so we
             # don't fall through to a None _results_url that would later crash
             # in IonQClient.make_path().
@@ -479,11 +556,15 @@ class IonQJob(JobV1):
                 _results_url = self._first_of(
                     response, "results", "results_url", default={}
                 )
-                self._results_url = (
-                    _results_url
-                    if isinstance(_results_url, str)
-                    else _results_url.get("probabilities", {}).get("url")
-                )
+                if isinstance(_results_url, str):
+                    self._results_url = _results_url
+                else:
+                    self._results_url = _results_url.get("probabilities", {}).get("url")
+                    # v2 also publishes /shots and /histogram alongside the
+                    # probabilities URL. Either may be absent in the v1 case;
+                    # leave them None if so.
+                    self._shots_url = _results_url.get("shots", {}).get("url")
+                    self._histogram_url = _results_url.get("histogram", {}).get("url")
 
             # Classical-bit maps per circuit
             def _meas_map_from_header(header_dict, fallback_nq):
@@ -681,6 +762,109 @@ class IonQJob(JobV1):
                 "job_id": self.job_id(),
                 "backend_name": backend_name,
                 "backend_version": backend_version,
+                "qobj_id": metadata.get("qobj_id"),
+                "success": success,
+                "time_taken": self._execution_time,
+            }
+        )
+
+    def _format_result_v2(self, data):  # pylint: disable=too-many-locals
+        """Translate a v2 (Tempo) probabilities payload into a Qiskit ``Result``.
+
+        The v2 ``/results/probabilities`` endpoint returns a dict keyed by
+        classical-register name, where each value is a dict mapping
+        bitstring -> probability. The reserved register ``output_all``
+        always carries the final "measure all qubits" readout the system
+        appends.
+
+        For Qiskit-compatible ``get_counts()`` behaviour we surface the
+        ``output_all`` distribution as the experiment's primary counts and
+        probabilities (matching the v1 contract). The per-register data
+        rides alongside under ``data["probabilities_by_register"]`` so
+        :meth:`IonQResult.probabilities_by_register` can serve it without a
+        second fetch.
+
+        Args:
+            data (dict): JSON body of ``/results/probabilities``. May be
+                either the raw ``{"probabilities": {...}}`` wrapper or the
+                inner dict, depending on how the client unwraps the response.
+        """
+        backend = self.backend()
+        success = self._status == jobstatus.JobStatus.DONE
+        metadata = self._metadata.get("metadata") or {}
+        qiskit_header = decompress_metadata_string(metadata.get("qiskit_header")) or {}
+        if isinstance(qiskit_header, list):
+            # v2 is single-circuit only; pick the first header if a list slipped in.
+            qiskit_header = qiskit_header[0] if qiskit_header else {}
+        shots = (
+            int(metadata.get("shots", 1024))
+            if str(metadata.get("shots", "1024")).isdigit()
+            else 1024
+        )
+
+        # Unwrap if the payload still has the outer key.
+        per_register = data.get("probabilities", data) if isinstance(data, dict) else {}
+        if not isinstance(per_register, dict):
+            per_register = {}
+
+        # output_all drives the primary counts; bitstrings come back
+        # big-endian / right-most-bit-is-qubit-0 in the v2 spec, matching the
+        # MCM doc examples.
+        output_all = per_register.get("output_all", {}) or {}
+        counts: dict[str, int] = {}
+        probabilities: dict[str, float] = {}
+        for bitstring, prob in output_all.items():
+            cnt = round(float(prob) * shots)
+            if cnt:
+                counts[bitstring] = int(cnt)
+                probabilities[bitstring] = float(prob)
+
+        # Qiskit's Counts class splits the bitstring across the header's
+        # creg_sizes; for get_counts() we present output_all as the single
+        # register, so per-register data does not bleed into the formatted
+        # bitstrings. Per-register access is available via
+        # IonQResult.probabilities_by_register().
+        output_all_width = (
+            max(len(b) for b in output_all)
+            if output_all
+            else qiskit_header.get("memory_slots", 0)
+        )
+        counts_header = dict(qiskit_header or {})
+        counts_header["creg_sizes"] = [["output_all", output_all_width]]
+        counts_header["memory_slots"] = output_all_width
+        counts_header["clbit_labels"] = [
+            ["output_all", i] for i in range(output_all_width)
+        ]
+
+        # Any per-register leakage data the API surfaces top-level under
+        # ``output.error_mitigation.leakage`` when include_leakage=True.
+        leakage = (
+            ((data or {}).get("output") or {})
+            .get("error_mitigation", {})
+            .get("leakage")
+        )
+
+        job_result = [
+            {
+                "data": {
+                    "counts": counts,
+                    "probabilities": probabilities,
+                    "probabilities_by_register": per_register,
+                    "metadata": qiskit_header or {},
+                    **({"leakage": leakage} if leakage is not None else {}),
+                },
+                "shots": shots,
+                "header": counts_header,
+                "success": success,
+            }
+        ]
+
+        return Result.from_dict(
+            {
+                "results": job_result,
+                "job_id": self.job_id(),
+                "backend_name": backend.name,
+                "backend_version": backend.backend_version,
                 "qobj_id": metadata.get("qobj_id"),
                 "success": success,
                 "time_taken": self._execution_time,
