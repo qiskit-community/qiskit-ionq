@@ -114,6 +114,18 @@ qc_compiled.draw("text")
 qc_compiled.count_ops()
 ```
 
+Compilation-side knobs (compiler version, optimisation level, output basis, precision) are forwarded to the API's `settings.compilation` block via a `compilation=` kwarg:
+
+```python
+job = backend.run(
+    qc,
+    dry_run=True,
+    compilation={"service_version": "v2", "opt": 0.7, "gate_basis": "native"},
+)
+```
+
+Fields are passed through verbatim; refer to the IonQ API reference for the supported values.
+
 ### Basis gates and transpilation
 
 The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. The current supported gates can be found [on our docs site](https://docs.ionq.com/#tag/quantum_programs).
