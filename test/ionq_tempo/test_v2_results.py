@@ -170,7 +170,7 @@ def test_v2_probs_by_register(tempo_job):
     assert per_reg["output_all"] == {"0": 0.50, "1": 0.50}
 
 
-def test_v1_probs_by_register_raises(formatted_result):
+def test_v1_probs_by_reg_raises(formatted_result):
     """V1 results don't have per-register data; the accessor raises clearly."""
     with pytest.raises(IonQJobError, match="per-register"):
         formatted_result.probabilities_by_register()
