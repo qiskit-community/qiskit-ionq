@@ -329,7 +329,11 @@ class IonQBackend(Backend):
             for gate in (GPIGate(phi), GPI2Gate(phi)):
                 tgt.add_instruction(gate)
 
-            # 2q native: per family (see helpers.NATIVE_2Q_BY_FAMILY).
+            # 2q native: per family (see helpers.NATIVE_2Q_BY_FAMILY). Driven
+            # by backend name / noise_model because the API does not yet
+            # expose the native 2q gate in the /backends payload.
+            # TODO: drop the name-suffix dispatch once the SDK topology work
+            # item lands a `native_2q_gate` field on the /backends response.
             gate = (
                 native_2q_gate(self.name)
                 or native_2q_gate(getattr(self.options, "noise_model", None))

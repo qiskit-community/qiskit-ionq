@@ -212,17 +212,21 @@ class IonQJob(JobV1):
 
         Dry-run jobs are compiled by the IonQ Cloud compiler-as-a-service but
         not executed - they produce no measurement results. Use
-        :meth:`compiled_circuit` to retrieve the compiled circuit instead of
-        :meth:`result`.
+        :meth:`compiled_circuit` (or :meth:`compiled_circuit_text` for the raw
+        IonQ-native JSON / OpenQASM 3 text) to retrieve the compiled circuit
+        instead of :meth:`result`.
         """
         return self._dry_run
 
-    def compiled_circuit(self, lang: str = "native") -> str:
-        """Fetch the server-compiled circuit for this job.
+    def compiled_circuit_text(self, lang: str = "native") -> str:
+        """Fetch the server-compiled circuit as a string in the chosen format.
 
         Useful for jobs submitted with ``dry_run=True`` (compilation as a
         service) but also works for any completed job to inspect what was
         actually run on hardware after IonQ's compiler resynthesizes the input.
+
+        For a parsed Qiskit ``QuantumCircuit`` instead of raw text, call
+        :meth:`compiled_circuit` (no args).
 
         Args:
             lang (str): Output language. ``"native"`` (default) returns the
@@ -251,13 +255,15 @@ class IonQJob(JobV1):
         assert self._job_id is not None
         return self._client.get_compiled_circuit(self._job_id, lang=lang)
 
-    def compiled_qiskit_circuit(self) -> QuantumCircuit:
+    def compiled_circuit(self) -> QuantumCircuit:
         """Return the server-compiled circuit as a Qiskit ``QuantumCircuit``.
 
-        Convenience wrapper over :meth:`compiled_circuit` that fetches the
-        OpenQASM 3 representation of the compiled program and parses it back
-        into a ``QuantumCircuit``, so the user can inspect, draw, count gates,
-        or compose with other Qiskit objects.
+        Fetches the OpenQASM 3 representation of the compiled program and
+        parses it back into a ``QuantumCircuit``, so the user can inspect,
+        draw, count gates, or compose with other Qiskit objects.
+
+        For the raw IonQ-native JSON or OpenQASM 3 text (e.g. to feed into
+        another tool), use :meth:`compiled_circuit_text`.
 
         Raises:
             IonQJobStateError: If the job has not reached a final state yet.
@@ -265,8 +271,8 @@ class IonQJob(JobV1):
             IonQJobError: If the API returned text the Qiskit OpenQASM 3
                 importer cannot parse (typically because the compiled output
                 uses gate declarations Qiskit's parser does not recognise).
-                Use :meth:`compiled_circuit` with ``lang="qasm3"`` to get the
-                raw text in that case.
+                Fall back to :meth:`compiled_circuit_text` with
+                ``lang="qasm3"`` to inspect the raw text in that case.
 
         Returns:
             QuantumCircuit: The compiled circuit, parsed from QASM 3.
@@ -276,14 +282,14 @@ class IonQJob(JobV1):
         from qiskit.qasm3 import loads as _qasm3_loads, QASM3ImporterError
         from openqasm3.parser import QASM3ParsingError
 
-        qasm3_text = self.compiled_circuit(lang="qasm3")
+        qasm3_text = self.compiled_circuit_text(lang="qasm3")
         try:
             return _qasm3_loads(qasm3_text)
         except (QASM3ImporterError, QASM3ParsingError) as exc:
             raise exceptions.IonQJobError(
                 f"Could not parse compiled QASM 3 for job {self._job_id} into a "
-                "QuantumCircuit. Use job.compiled_circuit(lang='qasm3') to get "
-                f"the raw text. Underlying error: {exc}"
+                "QuantumCircuit. Use job.compiled_circuit_text(lang='qasm3') "
+                f"to get the raw text. Underlying error: {exc}"
             ) from exc
 
     def cancel(self) -> None:
@@ -394,8 +400,9 @@ class IonQJob(JobV1):
                 raise exceptions.IonQJobError(
                     f"Job {self._job_id} was submitted with dry_run=True; "
                     "no measurement results are produced. Use "
-                    "job.compiled_circuit(lang='native' or 'qasm3') to "
-                    "retrieve the compiled circuit instead."
+                    "job.compiled_circuit() for a Qiskit QuantumCircuit, or "
+                    "job.compiled_circuit_text(lang='native' or 'qasm3') "
+                    "for the raw text, to retrieve the compiled circuit."
                 )
             response = self._client.get_results(
                 results_url=self._results_url,
