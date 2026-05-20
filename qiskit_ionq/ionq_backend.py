@@ -141,6 +141,10 @@ class IonQBackend(Backend):
             noise_model="ideal",  # simulator-only
             dry_run=False,  # if True, the API compiles but does not execute
             compilation=None,  # forwarded to settings.compilation block
+            # v2 / Tempo settings (ignored on v1 backends).
+            verbatim=False,  # bypass compiler passes; requires native gates
+            include_leakage=None,  # return subspace-leakage flags per shot
+            symmetry_verification=None,  # EM strategy applied in post-processing
         )
 
     @property

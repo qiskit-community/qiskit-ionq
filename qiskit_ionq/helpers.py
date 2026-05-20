@@ -158,6 +158,26 @@ def native_2q_gate(value: str | None) -> Literal["ms", "zz"] | None:
     return None
 
 
+# Backend-name fragments that select the ``ionq.circuit.v2`` payload schema
+# instead of the v1 JSON dict. v2 carries an OpenQASM 3 string in ``input``
+# and supports mid-circuit measurement, named classical registers, and the
+# Tempo-class settings (verbatim, include_leakage, symmetry_verification).
+# New v2 backend families should be appended here.
+V2_BACKEND_FAMILIES: tuple[str, ...] = ("tempo",)
+
+
+def is_v2_backend(name: str | None) -> bool:
+    """True when the named backend takes the ``ionq.circuit.v2`` payload.
+
+    Accepts any of the local (``ionq_qpu.tempo-1``), API (``qpu.tempo-1``),
+    or bare (``tempo-1``) name forms.
+    """
+    if not isinstance(name, str):
+        return False
+    lowered = name.lower()
+    return any(fam in lowered for fam in V2_BACKEND_FAMILIES)
+
+
 def qiskit_circ_to_ionq_circ(
     input_circuit: QuantumCircuit,
     gateset: Literal["qis", "native"] = "qis",
@@ -436,6 +456,155 @@ def decompress_metadata_string(
     return json.loads(decompressed)
 
 
+# Native-gate names accepted under ``verbatim=True`` (Cypress external
+# gateset, per the v2 spec). ``barrier`` and ``id`` are stripped by the
+# qasm3 exporter / Cypress respectively and are always permitted.
+_VERBATIM_ALLOWED_GATES: frozenset[str] = frozenset(
+    {"gpi", "gpi2", "ms", "zz", "measure", "barrier", "id"}
+)
+
+
+def _to_qasm3_input(circuit: QuantumCircuit) -> str:
+    """Serialize a Qiskit circuit to an OpenQASM 3 string for v2 submission.
+
+    Uses :func:`qiskit.qasm3.dumps` so IonQ native gates ride through as
+    declared ``gate`` blocks (see :mod:`qiskit_ionq.ionq_gates` for the
+    standard-gate definitions used as the body) and standard QIS gates
+    come from ``stdgates.inc``. Mid-circuit measurement is preserved.
+    """
+    # Imported lazily so the qasm3 exporter is only paid for when v2 is used.
+    from qiskit.qasm3 import dumps as _qasm3_dumps  # pylint: disable=import-outside-toplevel
+
+    return _qasm3_dumps(circuit)
+
+
+def _validate_verbatim_circuit(circuit: QuantumCircuit) -> None:
+    """Reject circuits that use gates outside the verbatim gateset.
+
+    Per the v2 spec, ``verbatim=True`` skips compiler passes and demands
+    native gates only. We catch the common case (a user submitting a QIS
+    circuit with ``verbatim=True``) client-side rather than letting the
+    server reject the whole job after the queue.
+
+    Raises:
+        IonQGateError: if any instruction's name is not in
+            :data:`_VERBATIM_ALLOWED_GATES`.
+    """
+    for inst in circuit.data:
+        name = inst.operation.name
+        if name not in _VERBATIM_ALLOWED_GATES:
+            raise ionq_exceptions.IonQGateError(name, "native")
+
+
+def _qiskit_to_ionq_v2(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-many-branches
+    circuit,
+    backend,
+    backend_name: str,
+    passed_args: dict,
+    extra_query_params: dict,
+    extra_metadata: dict,
+) -> str:
+    """Build the ``ionq.circuit.v2`` payload for Tempo-class backends.
+
+    The v2 schema (defined alongside the MCM output format, served under
+    the existing ``/v0.4/jobs`` endpoint) carries an OpenQASM 3 string in
+    ``input`` and surfaces three new top-level settings:
+    ``verbatim``, ``include_leakage``, and
+    ``error_mitigation.symmetry_verification``.
+
+    Multi-circuit submissions are not supported under v2 (the
+    ``ionq.multi-circuit.v2`` schema is not yet defined); callers passing
+    a list of circuits get a clear :class:`IonQJobError`.
+    """
+    if isinstance(circuit, (list, tuple)):
+        raise ionq_exceptions.IonQJobError(
+            "Multi-circuit submission is not yet supported on Tempo-class "
+            "backends. Submit each circuit as its own job."
+        )
+
+    # Settings block: start from any user-provided job_settings, then layer
+    # the explicit kwargs on top so the kwargs win on overlap (same rule
+    # as the v1 path documents).
+    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
+
+    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
+        "error_mitigation"
+    )
+    if isinstance(error_mitigation, ErrorMitigation):
+        em_block = dict(settings.get("error_mitigation") or {})
+        em_block.update(error_mitigation.value)
+        settings["error_mitigation"] = em_block
+
+    # symmetry_verification rides under settings.error_mitigation alongside
+    # debiasing, matching the v2 spec.
+    symmetry_verification = passed_args.get(
+        "symmetry_verification"
+    ) or backend.options.get("symmetry_verification")
+    if symmetry_verification is not None:
+        em_block = dict(settings.get("error_mitigation") or {})
+        em_block["symmetry_verification"] = bool(symmetry_verification)
+        settings["error_mitigation"] = em_block
+
+    verbatim = passed_args.get("verbatim")
+    if verbatim is None:
+        verbatim = backend.options.get("verbatim")
+    if verbatim:
+        _validate_verbatim_circuit(circuit)
+        settings["verbatim"] = True
+
+    include_leakage = passed_args.get("include_leakage")
+    if include_leakage is None:
+        include_leakage = backend.options.get("include_leakage")
+    if include_leakage is not None:
+        settings["include_leakage"] = bool(include_leakage)
+
+    # Compilation kwarg (existing v1 feature, also accepted on v2).
+    compilation = passed_args.get("compilation")
+    if compilation:
+        existing = dict(settings.get("compilation") or {})
+        existing.update(compilation)
+        settings["compilation"] = existing
+
+    ionq_json: dict[str, Any] = {
+        "type": "ionq.circuit.v2",
+        "backend": backend_name,
+        "shots": passed_args.get("shots"),
+        "name": passed_args.get("name") or circuit.name,
+        "input": _to_qasm3_input(circuit),
+        "metadata": {
+            "shots": str(passed_args.get("shots")),
+            "qiskit_header": compress_to_metadata_string(
+                {
+                    "memory_slots": circuit.num_clbits,
+                    "global_phase": circuit.global_phase,
+                    "n_qubits": circuit.num_qubits,
+                    "name": circuit.name,
+                    "creg_sizes": get_register_sizes_and_labels(circuit.cregs)[0],
+                    "clbit_labels": get_register_sizes_and_labels(circuit.cregs)[1],
+                    "qreg_sizes": get_register_sizes_and_labels(circuit.qregs)[0],
+                    "qubit_labels": get_register_sizes_and_labels(circuit.qregs)[1],
+                    **({"metadata": circuit.metadata} if circuit.metadata else {}),
+                }
+            ),
+            "user_agent": get_user_agent(),
+        },
+    }
+
+    if passed_args.get("session_id") is not None:
+        ionq_json["session_id"] = passed_args["session_id"]
+
+    if settings:
+        ionq_json["settings"] = settings
+
+    if passed_args.get("dry_run"):
+        ionq_json["dry_run"] = True
+
+    ionq_json.update(extra_query_params)
+    ionq_json["metadata"].update(extra_metadata)
+
+    return json.dumps(ionq_json, cls=SafeEncoder)
+
+
 def qiskit_to_ionq(
     circuit,
     backend,
@@ -458,6 +627,24 @@ def qiskit_to_ionq(
     passed_args = passed_args or {}
     extra_query_params = extra_query_params or {}
     extra_metadata = extra_metadata or {}
+
+    # Tempo-class backends speak the ``ionq.circuit.v2`` payload schema, which
+    # carries an OpenQASM 3 string in ``input`` and supports mid-circuit
+    # measurement, named classical registers, and the verbatim /
+    # include_leakage / symmetry_verification settings. Route those before
+    # touching the legacy v1 dict builder.
+    backend_name_for_dispatch = (
+        backend.name[5:] if backend.name.startswith("ionq") else backend.name
+    )
+    if is_v2_backend(backend_name_for_dispatch):
+        return _qiskit_to_ionq_v2(
+            circuit,
+            backend,
+            backend_name_for_dispatch,
+            passed_args,
+            extra_query_params,
+            extra_metadata,
+        )
 
     # build the (multi-)circuit block
     ionq_circs: list[Any] | Any = []
