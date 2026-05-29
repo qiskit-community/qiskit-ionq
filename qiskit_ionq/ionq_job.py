@@ -213,6 +213,7 @@ class IonQJob(JobV1):
             self.extra_query_params = passed_args.pop("extra_query_params", {})
             self.extra_metadata = passed_args.pop("extra_metadata", {})
             self.memory = passed_args.pop("memory", False)
+            self._dry_run = bool(passed_args.get("dry_run", False))
             self._passed_args = passed_args
         else:
             self.extra_query_params = {}
