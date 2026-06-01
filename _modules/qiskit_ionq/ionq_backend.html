@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_backend - Qiskit IonQ Provider 1.0.2</title>
+        <title>qiskit_ionq.ionq_backend - Qiskit IonQ Provider 1.0.3</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.0.2</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.0.3</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.2</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.3</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -304,7 +304,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit_ionq.ionq_gates</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPIGate</span><span class="p">,</span> <span class="n">GPI2Gate</span><span class="p">,</span> <span class="n">MSGate</span><span class="p">,</span> <span class="n">ZZGate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">ionq_equivalence_library</span><span class="p">,</span> <span class="n">ionq_job</span><span class="p">,</span> <span class="n">ionq_client</span><span class="p">,</span> <span class="n">exceptions</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GATESET_MAP</span><span class="p">,</span> <span class="n">get_n_qubits</span><span class="p">,</span> <span class="n">warn_bad_transpile_level</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GATESET_MAP</span><span class="p">,</span> <span class="n">get_n_qubits</span><span class="p">,</span> <span class="n">native_2q_gate</span><span class="p">,</span> <span class="n">warn_bad_transpile_level</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.ionq_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Characterization</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
@@ -353,6 +353,8 @@
 
         <span class="c1"># Target (basis &amp; connectivity)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_target</span><span class="p">()</span>
+        <span class="c1"># Track noise_model for native simulator target caching</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_noise_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># Apply initial options if any</span>
         <span class="k">if</span> <span class="n">initial_options</span><span class="p">:</span>
@@ -372,10 +374,17 @@
             <span class="n">extra_metadata</span><span class="o">=</span><span class="p">{},</span>
             <span class="n">sampler_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># simulator-only (harmless on QPU)</span>
             <span class="n">noise_model</span><span class="o">=</span><span class="s2">&quot;ideal&quot;</span><span class="p">,</span>  <span class="c1"># simulator-only</span>
+            <span class="n">memory</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># if True, the API compiles but does not execute</span>
         <span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Target</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulator</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gateset</span> <span class="o">==</span> <span class="s2">&quot;native&quot;</span><span class="p">:</span>
+            <span class="n">current_noise_model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;noise_model&quot;</span><span class="p">,</span> <span class="s2">&quot;ideal&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_noise_model</span> <span class="o">!=</span> <span class="n">current_noise_model</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_target</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cached_noise_model</span> <span class="o">=</span> <span class="n">current_noise_model</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span>
 
     <span class="nd">@property</span>
@@ -508,13 +517,19 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the latest characterization data (None for simulator).&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulator</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_calibration_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_api_backend_name</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_latest_calibration</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_api_backend_name</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="IonQBackend.status">
 <a class="viewcode-back" href="../../apidocs/backends.html#qiskit_ionq.ionq_backend.IonQBackend.status">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;True if the backend is currently available.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;True if the backend is currently available.</span>
+
+<span class="sd">        Simulators short-circuit to ``True``: they have no characterization</span>
+<span class="sd">        endpoint but are reachable whenever the API is.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulator</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
         <span class="n">cal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="p">()</span>
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">cal</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cal</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="s2">&quot;available&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;available&quot;</span><span class="p">)</span></div>
 
@@ -579,8 +594,13 @@
             <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="p">(</span><span class="n">GPIGate</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">GPI2Gate</span><span class="p">(</span><span class="n">phi</span><span class="p">)):</span>
                 <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
 
-            <span class="c1"># 2q native</span>
-            <span class="k">if</span> <span class="s2">&quot;forte&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="c1"># 2q native: per family (see helpers.NATIVE_2Q_BY_FAMILY).</span>
+            <span class="n">gate</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">native_2q_gate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">native_2q_gate</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;noise_model&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+                <span class="ow">or</span> <span class="s2">&quot;ms&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">gate</span> <span class="o">==</span> <span class="s2">&quot;zz&quot;</span><span class="p">:</span>
                 <span class="n">theta</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">)</span>
                 <span class="n">tgt</span><span class="o">.</span><span class="n">add_instruction</span><span class="p">(</span><span class="n">ZZGate</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
@@ -714,7 +734,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=1ed6394b"></script>
+    <script src="../../_static/documentation_options.js?v=baaebd52"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>
