@@ -40,9 +40,7 @@ from .. import conftest
 
 
 def test_simulator_status_is_true(mock_backend):
-    """``status()`` must not conflate "has calibration data" with "is
-    available". MockBackend is ``simulator=True``.
-    """
+    """Simulator ``status()`` returns ``True`` (short-circuits before HTTP)."""
     assert mock_backend.status() is True
 
 
