@@ -265,7 +265,15 @@ class IonQBackend(Backend):
         return self.client.get_calibration_data(self._api_backend_name, limit=1)
 
     def status(self) -> bool:
-        """True if the backend is currently available."""
+        """True if the backend is currently available.
+
+        For simulators we short-circuit to ``True`` because ``calibration()``
+        returns ``None`` by design (the simulator has no characterization
+        endpoint), and the simulator is always available as long as the API
+        itself is reachable.
+        """
+        if self._simulator:
+            return True
         cal = self.calibration()
         return bool(cal and getattr(cal, "status", "available") == "available")
 

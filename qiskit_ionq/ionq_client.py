@@ -221,7 +221,7 @@ class IonQClient:
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_calibration_data(
         self, backend_name: str, limit: int | None = None
-    ) -> Characterization | list[Characterization]:
+    ) -> Characterization | list[Characterization] | None:
         """Retrieve calibration data for a specified backend.
 
         Args:
@@ -233,19 +233,24 @@ class IonQClient:
             IonQRetriableError: When a retriable error occurs during the request.
 
         Returns:
-            Characterization: An instance of Characterization containing the calibration data
-            or a list of Characterization instances if multiple results are returned.
+            Characterization: A single instance when ``limit == 1`` and data
+            exists, ``None`` when ``limit == 1`` but the backend has no
+            characterizations (e.g. the simulator or the generic ``qpu.qpu``
+            meta-backend), or a list of Characterization instances otherwise.
+            The API may return ``{"characterizations": null}`` for backends
+            with no measurement data despite the OpenAPI spec declaring the
+            field non-nullable, so we coerce to an empty list defensively.
         """
         params = {"limit": limit} if limit else None
         url = self.make_path("backends", backend_name, "characterizations")
         res = self.get_with_retry(url, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
-        chars = res.json().get("characterizations", [])
-        return (
-            Characterization(chars[0])
-            if limit == 1
-            else [Characterization(item) for item in chars]
-        )
+        # API returns {"characterizations": null} for backends with no data,
+        # so dict.get(key, []) won't substitute the default. Use `or []`.
+        chars = res.json().get("characterizations") or []
+        if limit == 1:
+            return Characterization(chars[0]) if chars else None
+        return [Characterization(item) for item in chars]
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_compiled_circuit(self, job_id: str, lang: str = "native") -> str:
@@ -422,8 +427,14 @@ class Characterization:
 
     @property
     def status(self) -> str:
-        """Status of the characterization, e.g. `"available"`."""
-        return self._data["status"]
+        """Status of the characterization, e.g. ``"available"``.
+
+        The IonQ v0.4 ``Characterization`` schema does not currently include
+        a ``status`` field; we fall back to ``"available"`` so that callers
+        (notably :meth:`IonQBackend.status`) don't crash with ``KeyError``
+        when the upstream payload omits it.
+        """
+        return self._data.get("status", "available")
 
     @property
     def date(self) -> datetime:

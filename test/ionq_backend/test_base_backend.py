@@ -39,15 +39,63 @@ from qiskit_ionq.helpers import get_user_agent
 from .. import conftest
 
 
-def test_status_dummy_response(mock_backend):
-    """Test that the IonQBackend returns an aribtrary backend status.
-
-    Args:
-        mock_backend (MockBackend): A fake/mock IonQBackend.
+def test_simulator_status_is_true(mock_backend):
+    """Simulator backends are always available; ``calibration()`` returns
+    ``None`` for them by design, but ``status()`` must not conflate "has
+    calibration data" with "is available". MockBackend is ``simulator=True``
+    so this exercises the simulator short-circuit.
     """
-    # TODO mock the client status call
-    status = mock_backend.status()
-    assert status is False
+    assert mock_backend.status() is True
+
+
+def test_qpu_status_with_real_cal(qpu_backend, requests_mock):
+    """For a real QPU, ``Characterization`` payloads have no ``status``
+    field per the v0.4 spec — only ``{backend, connectivity, date, fidelity,
+    id, qubits, timing}``. The deprecated ``Characterization.status``
+    property must fall back to ``"available"`` rather than raise
+    ``KeyError``, so ``IonQBackend.status()`` doesn't crash on every real
+    QPU backend.
+    """
+    client = qpu_backend.client
+    url = client.make_path(
+        "backends", qpu_backend._api_backend_name, "characterizations"
+    )
+    requests_mock.get(
+        url,
+        json={
+            "characterizations": [
+                {
+                    "id": "abc-123",
+                    "backend": qpu_backend._api_backend_name,
+                    "date": "2026-01-01T00:00:00Z",
+                    "qubits": 25,
+                    "connectivity": [[0, 1], [0, 2]],
+                    "fidelity": {"spam": {"median": 0.99}},
+                    "timing": {},
+                }
+            ],
+            "pages": 0,
+        },
+    )
+    assert qpu_backend.status() is True
+
+
+def test_get_cal_data_no_chars(qpu_backend, requests_mock):
+    """The characterizations endpoint returns ``{"characterizations": null}``
+    for backends with no measurement data (e.g. the generic ``qpu.qpu``
+    meta-backend). With ``limit=1`` we must return ``None`` instead of
+    crashing with ``TypeError: 'NoneType' object is not subscriptable``.
+    """
+    client = qpu_backend.client
+    url = client.make_path(
+        "backends", qpu_backend._api_backend_name, "characterizations"
+    )
+    requests_mock.get(url, json={"characterizations": None, "pages": 0})
+    result = client.get_calibration_data(qpu_backend._api_backend_name, limit=1)
+    assert result is None
+    # ...and qpu_backend.status() must surface that as False rather than
+    # crashing.
+    assert qpu_backend.status() is False
 
 
 def test_client_property(mock_backend):
