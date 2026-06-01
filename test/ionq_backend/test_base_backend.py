@@ -40,21 +40,15 @@ from .. import conftest
 
 
 def test_simulator_status_is_true(mock_backend):
-    """Simulator backends are always available; ``calibration()`` returns
-    ``None`` for them by design, but ``status()`` must not conflate "has
-    calibration data" with "is available". MockBackend is ``simulator=True``
-    so this exercises the simulator short-circuit.
+    """``status()`` must not conflate "has calibration data" with "is
+    available". MockBackend is ``simulator=True``.
     """
     assert mock_backend.status() is True
 
 
 def test_qpu_status_with_real_cal(qpu_backend, requests_mock):
-    """For a real QPU, ``Characterization`` payloads have no ``status``
-    field per the v0.4 spec — only ``{backend, connectivity, date, fidelity,
-    id, qubits, timing}``. The deprecated ``Characterization.status``
-    property must fall back to ``"available"`` rather than raise
-    ``KeyError``, so ``IonQBackend.status()`` doesn't crash on every real
-    QPU backend.
+    """Real-QPU ``Characterization`` payloads omit ``status`` per the v0.4
+    spec, so ``Characterization.status`` must fall back, not ``KeyError``.
     """
     client = qpu_backend.client
     url = client.make_path(
@@ -81,10 +75,8 @@ def test_qpu_status_with_real_cal(qpu_backend, requests_mock):
 
 
 def test_get_cal_data_no_chars(qpu_backend, requests_mock):
-    """The characterizations endpoint returns ``{"characterizations": null}``
-    for backends with no measurement data (e.g. the generic ``qpu.qpu``
-    meta-backend). With ``limit=1`` we must return ``None`` instead of
-    crashing with ``TypeError: 'NoneType' object is not subscriptable``.
+    """``{"characterizations": null}`` (seen on backends without data like
+    ``qpu.qpu``) must yield ``None`` for ``limit=1``, not ``TypeError``.
     """
     client = qpu_backend.client
     url = client.make_path(
@@ -93,8 +85,7 @@ def test_get_cal_data_no_chars(qpu_backend, requests_mock):
     requests_mock.get(url, json={"characterizations": None, "pages": 0})
     result = client.get_calibration_data(qpu_backend._api_backend_name, limit=1)
     assert result is None
-    # ...and qpu_backend.status() must surface that as False rather than
-    # crashing.
+    # Backend.status() should surface that as False, not crash.
     assert qpu_backend.status() is False
 
 

@@ -233,20 +233,15 @@ class IonQClient:
             IonQRetriableError: When a retriable error occurs during the request.
 
         Returns:
-            Characterization: A single instance when ``limit == 1`` and data
+            A single ``Characterization`` when ``limit == 1`` and data
             exists, ``None`` when ``limit == 1`` but the backend has no
-            characterizations (e.g. the simulator or the generic ``qpu.qpu``
-            meta-backend), or a list of Characterization instances otherwise.
-            The API may return ``{"characterizations": null}`` for backends
-            with no measurement data despite the OpenAPI spec declaring the
-            field non-nullable, so we coerce to an empty list defensively.
+            data (e.g. simulator, ``qpu.qpu``), or a list otherwise.
         """
         params = {"limit": limit} if limit else None
         url = self.make_path("backends", backend_name, "characterizations")
         res = self.get_with_retry(url, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
-        # API returns {"characterizations": null} for backends with no data,
-        # so dict.get(key, []) won't substitute the default. Use `or []`.
+        # API may ship ``null`` here; dict.get(k, []) won't substitute the default.
         chars = res.json().get("characterizations") or []
         if limit == 1:
             return Characterization(chars[0]) if chars else None
@@ -429,10 +424,8 @@ class Characterization:
     def status(self) -> str:
         """Status of the characterization, e.g. ``"available"``.
 
-        The IonQ v0.4 ``Characterization`` schema does not currently include
-        a ``status`` field; we fall back to ``"available"`` so that callers
-        (notably :meth:`IonQBackend.status`) don't crash with ``KeyError``
-        when the upstream payload omits it.
+        The v0.4 schema omits ``status``; fall back so callers like
+        :meth:`IonQBackend.status` don't ``KeyError``.
         """
         return self._data.get("status", "available")
 

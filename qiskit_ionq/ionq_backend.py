@@ -267,10 +267,8 @@ class IonQBackend(Backend):
     def status(self) -> bool:
         """True if the backend is currently available.
 
-        For simulators we short-circuit to ``True`` because ``calibration()``
-        returns ``None`` by design (the simulator has no characterization
-        endpoint), and the simulator is always available as long as the API
-        itself is reachable.
+        Simulators short-circuit to ``True``: they have no characterization
+        endpoint but are reachable whenever the API is.
         """
         if self._simulator:
             return True
