@@ -117,6 +117,31 @@ memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 
 The ideal simulator does not produce per-shot data; calling `get_memory()` on a job submitted without `memory=True` raises `IonQBackendError`.
 
+### Mid-circuit measurement
+
+Circuits that reuse a qubit after measuring it — plus mid-circuit `reset` and classical control flow — are submitted automatically as OpenQASM 3 (`ionq.qasm3.v1`); no extra flags needed. Outcomes are reported per declared classical register, matching Qiskit's usual register-split formatting. Single-circuit submissions only; pass `error_mitigation`/`symmetry_verification`, `include_leakage`, or `verbatim` via `job_settings`.
+
+```python
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+qr = QuantumRegister(1, "q")
+mid = ClassicalRegister(1, "mid")
+result = ClassicalRegister(2, "result")
+qc = QuantumCircuit(qr, mid, result)
+
+qc.h(0)
+qc.measure(0, mid[0])      # mid-circuit measurement
+qc.x(0)
+qc.measure(0, result[0])   # qubit reused after measurement
+qc.x(0)
+qc.measure(0, result[1])
+
+job = backend.run(qc, shots=100, memory=True)
+result = job.result()
+result.get_counts()        # split across registers, e.g. {'00 0': 75, '01 1': 25}
+result.get_memory()        # per-shot, e.g. ['00 0', '01 1', ...]
+```
+
 ### Basis gates and transpilation
 
 The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. The current supported gates can be found [on our docs site](https://docs.ionq.com/#tag/quantum_programs).

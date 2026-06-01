@@ -340,6 +340,30 @@ class IonQClient:
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
         return json.loads(res.text, object_pairs_hook=OrderedDict)
 
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
+    def get_artifact(
+        self,
+        job_id: str,
+        artifact_id: str,
+        extra_query_params: dict | None = None,
+    ) -> dict:
+        """Retrieve a result artifact from ``/jobs/{id}/artifacts/{aid}``.
+
+        Fetches the per-register shots (``ionq.result.shots.json.v2``) for
+        mid-circuit measurement jobs, whose ``results`` block advertises an
+        artifact ``id`` rather than a ``url``.
+
+        Raises:
+            IonQAPIError: When the API returns a non-200 status code.
+            IonQRetriableError: When a retriable error occurs during the request.
+        """
+        req_path = self.make_path("jobs", job_id, "artifacts", artifact_id)
+        res = self.get_with_retry(
+            req_path, headers=self.api_headers, params=extra_query_params or None
+        )
+        exceptions.IonQAPIError.raise_for_status(res)
+        return json.loads(res.text, object_pairs_hook=OrderedDict)
+
     def estimate_job(
         self,
         *,

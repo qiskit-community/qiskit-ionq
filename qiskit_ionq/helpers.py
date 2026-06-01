@@ -157,6 +157,33 @@ def native_2q_gate(value: str | None) -> Literal["ms", "zz"] | None:
     return None
 
 
+def circuit_requires_qasm3(input_circuit: QuantumCircuit) -> bool:
+    """Whether a circuit needs the ``ionq.qasm3.v1`` path.
+
+    The flat ``ionq.circuit.v1`` gate list can't express mid-circuit
+    measurement (an op on a qubit after it was measured), mid-circuit
+    ``reset``, or classical control flow; such circuits go out as OpenQASM 3.
+    """
+    control_flow = {"if_else", "while_loop", "for_loop", "switch_case"}
+    measured: set[int] = set()
+    for inst in input_circuit.data:
+        operation = inst.operation
+        name = operation.name
+        if name in ("barrier", "delay"):
+            continue
+        if name in control_flow or getattr(operation, "condition", None) is not None:
+            return True
+        if name == "reset":
+            return True
+        qubit_indices = [input_circuit.qubits.index(q) for q in inst.qubits]
+        if name == "measure":
+            measured.update(qubit_indices)
+            continue
+        if measured.intersection(qubit_indices):
+            return True
+    return False
+
+
 def qiskit_circ_to_ionq_circ(
     input_circuit: QuantumCircuit,
     gateset: Literal["qis", "native"] = "qis",
@@ -435,6 +462,95 @@ def decompress_metadata_string(
     return json.loads(decompressed)
 
 
+def _to_qasm3(circuit: QuantumCircuit) -> str:
+    """OpenQASM 3 string for ``ionq.qasm3.v1`` submission (lazy qasm3 import)."""
+    from qiskit.qasm3 import (  # pylint: disable=import-outside-toplevel
+        dumps as _qasm3_dumps,
+    )
+
+    return _qasm3_dumps(circuit)
+
+
+def _qiskit_to_qasm3_json(  # pylint: disable=too-many-positional-arguments
+    circuit: QuantumCircuit,
+    backend,
+    backend_name: str,
+    passed_args: dict,
+    extra_query_params: dict,
+    extra_metadata: dict,
+) -> str:
+    """Build the ``ionq.qasm3.v1`` payload for a single circuit.
+
+    Used for mid-circuit measurement / reset / control-flow circuits (see
+    :func:`circuit_requires_qasm3`). ``input`` carries the OpenQASM 3 string
+    and qubit count; results return per declared classical register.
+    """
+    qiskit_header = compress_to_metadata_string(
+        {
+            "memory_slots": circuit.num_clbits,
+            "global_phase": circuit.global_phase,
+            "n_qubits": circuit.num_qubits,
+            "name": circuit.name,
+            "creg_sizes": get_register_sizes_and_labels(circuit.cregs)[0],
+            "clbit_labels": get_register_sizes_and_labels(circuit.cregs)[1],
+            "qreg_sizes": get_register_sizes_and_labels(circuit.qregs)[0],
+            "qubit_labels": get_register_sizes_and_labels(circuit.qregs)[1],
+            **({"metadata": circuit.metadata} if circuit.metadata else {}),
+        }
+    )
+
+    ionq_json: dict[str, Any] = {
+        "type": "ionq.qasm3.v1",
+        "backend": backend_name,
+        "shots": passed_args.get("shots"),
+        "name": passed_args.get("name") or circuit.name,
+        "input": {
+            "qubits": circuit.num_qubits,
+            "data": _to_qasm3(circuit),
+        },
+        **(
+            {"session_id": passed_args["session_id"]}
+            if passed_args.get("session_id") is not None
+            else {}
+        ),
+        "metadata": {
+            "shots": str(passed_args.get("shots")),
+            "sampler_seed": str(passed_args.get("sampler_seed")),
+            "qiskit_header": qiskit_header,
+            "user_agent": get_user_agent(),
+        },
+    }
+
+    # simulator noise model (matches the v1 path)
+    if backend_name == "simulator":
+        ionq_json["noise"] = {
+            "model": passed_args.get("noise_model") or backend.options.noise_model,
+            "seed": backend.options.sampler_seed,
+        }
+
+    # Start from user job_settings (so compilation, include_leakage, verbatim,
+    # error_mitigation.symmetry_verification, ... pass through), then layer the
+    # ErrorMitigation enum onto any error_mitigation block.
+    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
+    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
+        "error_mitigation"
+    )
+    if isinstance(error_mitigation, ErrorMitigation):
+        em_block = dict(settings.get("error_mitigation") or {})
+        em_block.update(error_mitigation.value)
+        settings["error_mitigation"] = em_block
+    if settings:
+        ionq_json["settings"] = settings
+
+    if passed_args.get("dry_run"):
+        ionq_json["dry_run"] = True
+
+    ionq_json.update(extra_query_params)
+    ionq_json["metadata"].update(extra_metadata)
+
+    return json.dumps(ionq_json, cls=SafeEncoder)
+
+
 def qiskit_to_ionq(
     circuit,
     backend,
@@ -458,10 +574,32 @@ def qiskit_to_ionq(
     extra_query_params = extra_query_params or {}
     extra_metadata = extra_metadata or {}
 
+    backend_name = backend.name[5:] if backend.name.startswith("ionq") else backend.name
+
+    multi_circuit = isinstance(circuit, (list, tuple))
+
+    # MCM, reset, and control flow can't be expressed in the flat
+    # ionq.circuit.v1 gate list; route them to ionq.qasm3.v1.
+    circuits_to_check = circuit if multi_circuit else [circuit]
+    if any(circuit_requires_qasm3(c) for c in circuits_to_check):
+        if multi_circuit:
+            raise ionq_exceptions.IonQJobError(
+                "Mid-circuit measurement, reset, and classical control flow are "
+                "only supported for single-circuit submissions. Submit each such "
+                "circuit as its own job."
+            )
+        return _qiskit_to_qasm3_json(
+            circuit,
+            backend,
+            backend_name,
+            passed_args,
+            extra_query_params,
+            extra_metadata,
+        )
+
     # build the (multi-)circuit block
     ionq_circs: list[Any] | Any = []
     meas_map: list[int] | None = None
-    multi_circuit = isinstance(circuit, (list, tuple))
 
     if multi_circuit:
         for circ in circuit:
@@ -536,7 +674,6 @@ def qiskit_to_ionq(
         input_block["circuit"] = ionq_circs
 
     # top-level fields
-    backend_name = backend.name[5:] if backend.name.startswith("ionq") else backend.name
     ionq_json: dict[str, Any] = {
         "type": "ionq.multi-circuit.v1" if multi_circuit else "ionq.circuit.v1",
         "backend": backend_name,
@@ -768,6 +905,7 @@ def warn_bad_transpile_level():
 __all__ = [
     "qiskit_to_ionq",
     "qiskit_circ_to_ionq_circ",
+    "circuit_requires_qasm3",
     "compress_to_metadata_string",
     "decompress_metadata_string",
     "get_user_agent",

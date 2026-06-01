@@ -30,7 +30,7 @@ from unittest import mock
 import warnings
 
 import pytest
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
 from qiskit.result import MeasLevel
@@ -1312,3 +1312,101 @@ def test_multi_null_meta_result(mock_backend, requests_mock):
     assert result.get_counts(0) == {"00": 512, "11": 512}
     # X: max key 1 -> 1 qubit inferred -> 1-char bitstrings.
     assert result.get_counts(1) == {"1": 1024}
+
+
+def _mcm_circuit():
+    """1-qubit mid-circuit-measurement circuit (the API schema example)."""
+    qr = QuantumRegister(1, "q")
+    mid = ClassicalRegister(1, "mid")
+    result = ClassicalRegister(2, "result")
+    qc = QuantumCircuit(qr, mid, result, name="mcm")
+    qc.h(0)
+    qc.measure(0, mid[0])
+    qc.x(0)
+    qc.measure(0, result[0])
+    qc.x(0)
+    qc.measure(0, result[1])
+    return qc
+
+
+def _qasm3_job_response(job_id, shots_artifact_id):
+    """Completed ionq.qasm3.v1 response: v1 result URLs + a v2 shots artifact id."""
+    header = compress_to_metadata_string(
+        {
+            "memory_slots": 3,
+            "creg_sizes": [["mid", 1], ["result", 2]],
+            "clbit_labels": [["mid", 0], ["result", 0], ["result", 1]],
+            "qreg_sizes": [["q", 1]],
+            "qubit_labels": [["q", 0]],
+            "n_qubits": 1,
+            "name": "mcm",
+            "global_phase": 0,
+        }
+    )
+    return {
+        "id": job_id,
+        "type": "ionq.qasm3.v1",
+        "status": "completed",
+        "stats": {"qubits": 1, "circuits": 1},
+        "metadata": {"qiskit_header": header, "shots": "4"},
+        "results": {
+            "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"},
+            "histogram": {"url": f"/v0.4/jobs/{job_id}/results/histogram"},
+            "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"},
+            "ionq.result.shots.json.v2": {
+                "id": shots_artifact_id,
+                "format": "ionq.result.shots.json.v2",
+                "media_type": "application/json",
+            },
+        },
+        "execution_duration_ms": 0,
+    }
+
+
+# Per-register shot-wise artifact (ionq.result.shots.json.v2): 3 shots of
+# mid=0/result=00 and 1 shot of mid=1/result=10. output_all is system-appended.
+_QASM3_SHOTS = {
+    "shots": [
+        {"registers": {"mid": [0], "result": [0, 0], "output_all": [1]}},
+        {"registers": {"mid": [0], "result": [0, 0], "output_all": [0]}},
+        {"registers": {"mid": [0], "result": [0, 0], "output_all": [1]}},
+        {"registers": {"mid": [1], "result": [1, 0], "output_all": [0]}},
+    ]
+}
+
+
+def test_qasm3_result_counts(mock_backend, requests_mock):
+    """MCM jobs fold per-register shots into register-split counts + memory."""
+    job_id = "mcm_job"
+    artifact_id = "shots-v2-uuid"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_qasm3_job_response(job_id, artifact_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json=_QASM3_SHOTS,
+    )
+
+    job = mock_backend.run(_mcm_circuit(), shots=4, memory=True)
+    res = job.result()
+
+    # Qiskit splits as "result mid": mid=1,result=10 -> "01 1".
+    assert res.get_counts() == {"00 0": 3, "01 1": 1}
+    assert res.get_memory() == ["00 0", "00 0", "00 0", "01 1"]
+
+
+def test_qasm3_no_shots_artifact(mock_backend, requests_mock):
+    """A qasm3 job missing its v2 shots artifact raises a clear error."""
+    job_id = "mcm_job_2"
+    response = _qasm3_job_response(job_id, "unused")
+    response["results"].pop("ionq.result.shots.json.v2")
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(client.make_path("jobs", job_id), json=response)
+
+    job = mock_backend.run(_mcm_circuit(), shots=4)
+    with pytest.raises(exceptions.IonQJobError, match="shots artifact"):
+        job.result()
