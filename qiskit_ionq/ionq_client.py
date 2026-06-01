@@ -221,31 +221,39 @@ class IonQClient:
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_calibration_data(
         self, backend_name: str, limit: int | None = None
-    ) -> Characterization | list[Characterization]:
+    ) -> list[Characterization]:
         """Retrieve calibration data for a specified backend.
+
+        Always returns a list. Use :meth:`get_latest_calibration` for the
+        single most recent entry.
 
         Args:
             backend_name (str): The IonQ backend to fetch data for.
-            limit (int, optional): Limit the number of results returned.
+            limit (int, optional): Cap on how many entries to return (API
+                accepts 1–10, default 10).
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
             IonQRetriableError: When a retriable error occurs during the request.
 
         Returns:
-            Characterization: An instance of Characterization containing the calibration data
-            or a list of Characterization instances if multiple results are returned.
+            A list of ``Characterization`` instances, empty if the backend
+            has no characterization data (e.g. simulator, ``qpu.qpu``).
         """
         params = {"limit": limit} if limit else None
         url = self.make_path("backends", backend_name, "characterizations")
         res = self.get_with_retry(url, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
-        chars = res.json().get("characterizations", [])
-        return (
-            Characterization(chars[0])
-            if limit == 1
-            else [Characterization(item) for item in chars]
-        )
+        # API may ship ``null`` here; dict.get(k, []) won't substitute the default.
+        chars = res.json().get("characterizations") or []
+        return [Characterization(item) for item in chars]
+
+    def get_latest_calibration(self, backend_name: str) -> Characterization | None:
+        """Return the most recent ``Characterization`` for a backend, or
+        ``None`` if the backend has no characterization data.
+        """
+        chars = self.get_calibration_data(backend_name, limit=1)
+        return chars[0] if chars else None
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_compiled_circuit(self, job_id: str, lang: str = "native") -> str:
@@ -422,8 +430,12 @@ class Characterization:
 
     @property
     def status(self) -> str:
-        """Status of the characterization, e.g. `"available"`."""
-        return self._data["status"]
+        """Status of the characterization, e.g. ``"available"``.
+
+        The v0.4 schema omits ``status``; fall back so callers like
+        :meth:`IonQBackend.status` don't ``KeyError``.
+        """
+        return self._data.get("status", "available")
 
     @property
     def date(self) -> datetime:

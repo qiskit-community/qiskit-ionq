@@ -39,15 +39,81 @@ from qiskit_ionq.helpers import get_user_agent
 from .. import conftest
 
 
-def test_status_dummy_response(mock_backend):
-    """Test that the IonQBackend returns an aribtrary backend status.
+def test_simulator_status_is_true(mock_backend):
+    """Simulator ``status()`` returns ``True`` (short-circuits before HTTP)."""
+    assert mock_backend.status() is True
 
-    Args:
-        mock_backend (MockBackend): A fake/mock IonQBackend.
+
+def test_qpu_status_with_real_cal(qpu_backend, requests_mock):
+    """Real-QPU ``Characterization`` payloads omit ``status`` per the v0.4
+    spec, so ``Characterization.status`` must fall back, not ``KeyError``.
     """
-    # TODO mock the client status call
-    status = mock_backend.status()
-    assert status is False
+    client = qpu_backend.client
+    url = client.make_path(
+        "backends", qpu_backend._api_backend_name, "characterizations"
+    )
+    requests_mock.get(
+        url,
+        json={
+            "characterizations": [
+                {
+                    "id": "abc-123",
+                    "backend": qpu_backend._api_backend_name,
+                    "date": "2026-01-01T00:00:00Z",
+                    "qubits": 25,
+                    "connectivity": [[0, 1], [0, 2]],
+                    "fidelity": {"spam": {"median": 0.99}},
+                    "timing": {},
+                }
+            ],
+            "pages": 0,
+        },
+    )
+    assert qpu_backend.status() is True
+
+
+def test_get_cal_data_no_chars(qpu_backend, requests_mock):
+    """``{"characterizations": null}`` (seen on backends without data like
+    ``qpu.qpu``) must yield ``[]``, not ``TypeError``. The convenience
+    wrapper returns ``None`` in the same situation. Backend.status() must
+    surface that as ``False``, not crash.
+    """
+    client = qpu_backend.client
+    name = qpu_backend._api_backend_name
+    url = client.make_path("backends", name, "characterizations")
+    requests_mock.get(url, json={"characterizations": None, "pages": 0})
+    assert client.get_calibration_data(name, limit=1) == []
+    assert client.get_latest_calibration(name) is None
+    assert qpu_backend.status() is False
+
+
+def test_get_cal_data_always_list(qpu_backend, requests_mock):
+    """``get_calibration_data`` returns a list regardless of ``limit``;
+    ``get_latest_calibration`` is the way to ask for a single entry.
+    """
+    client = qpu_backend.client
+    name = qpu_backend._api_backend_name
+    url = client.make_path("backends", name, "characterizations")
+
+    def _cal(uid):
+        return {
+            "id": uid,
+            "backend": name,
+            "date": "2026-01-01T00:00:00Z",
+            "qubits": 25,
+            "connectivity": [[0, 1]],
+            "fidelity": {},
+            "timing": {},
+        }
+
+    requests_mock.get(
+        url,
+        json={"characterizations": [_cal("a"), _cal("b")], "pages": 1},
+    )
+    chars = client.get_calibration_data(name, limit=2)
+    assert isinstance(chars, list) and len(chars) == 2
+    latest = client.get_latest_calibration(name)
+    assert latest is not None and latest.id == "a"
 
 
 def test_client_property(mock_backend):
