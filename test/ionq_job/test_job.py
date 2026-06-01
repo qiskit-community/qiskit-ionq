@@ -1146,6 +1146,23 @@ def _dry_run_job_response(job_id, target="qpu.forte-1"):
     }
 
 
+def test_dry_run_set_before_poll(mock_backend):
+    """`dry_run=True` must be reflected on the job immediately, not only after
+    the first status() poll. The v0.4 ``JobCreationResponse`` (POST /jobs 201)
+    only carries ``{id, status, session_id}`` and omits ``dry_run``, so we
+    must mirror the kwarg into ``self._dry_run`` at construction."""
+    job = ionq_job.IonQJob(
+        mock_backend,
+        None,
+        circuit=QuantumCircuit(1, 1),
+        passed_args={"dry_run": True, "shots": 64},
+    )
+    assert job.dry_run is True
+    # ...and the flag must remain in _passed_args so the wire payload still
+    # includes it (helpers.qiskit_to_ionq reads it via .get()).
+    assert job._passed_args.get("dry_run") is True
+
+
 def test_dry_run_no_results_urls(mock_backend, requests_mock):
     """Dry-run jobs should reach DONE without a results URL crash."""
     job_id = "dry_run_id"
