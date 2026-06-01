@@ -221,21 +221,24 @@ class IonQClient:
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_calibration_data(
         self, backend_name: str, limit: int | None = None
-    ) -> Characterization | list[Characterization] | None:
+    ) -> list[Characterization]:
         """Retrieve calibration data for a specified backend.
+
+        Always returns a list. Use :meth:`get_latest_calibration` for the
+        single most recent entry.
 
         Args:
             backend_name (str): The IonQ backend to fetch data for.
-            limit (int, optional): Limit the number of results returned.
+            limit (int, optional): Cap on how many entries to return (API
+                accepts 1–10, default 10).
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
             IonQRetriableError: When a retriable error occurs during the request.
 
         Returns:
-            A single ``Characterization`` when ``limit == 1`` and data
-            exists, ``None`` when ``limit == 1`` but the backend has no
-            data (e.g. simulator, ``qpu.qpu``), or a list otherwise.
+            A list of ``Characterization`` instances, empty if the backend
+            has no characterization data (e.g. simulator, ``qpu.qpu``).
         """
         params = {"limit": limit} if limit else None
         url = self.make_path("backends", backend_name, "characterizations")
@@ -243,9 +246,14 @@ class IonQClient:
         exceptions.IonQAPIError.raise_for_status(res)
         # API may ship ``null`` here; dict.get(k, []) won't substitute the default.
         chars = res.json().get("characterizations") or []
-        if limit == 1:
-            return Characterization(chars[0]) if chars else None
         return [Characterization(item) for item in chars]
+
+    def get_latest_calibration(self, backend_name: str) -> Characterization | None:
+        """Return the most recent ``Characterization`` for a backend, or
+        ``None`` if the backend has no characterization data.
+        """
+        chars = self.get_calibration_data(backend_name, limit=1)
+        return chars[0] if chars else None
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_compiled_circuit(self, job_id: str, lang: str = "native") -> str:

@@ -262,7 +262,7 @@ class IonQBackend(Backend):
         """Return the latest characterization data (None for simulator)."""
         if self._simulator:
             return None
-        return self.client.get_calibration_data(self._api_backend_name, limit=1)
+        return self.client.get_latest_calibration(self._api_backend_name)
 
     def status(self) -> bool:
         """True if the backend is currently available.
