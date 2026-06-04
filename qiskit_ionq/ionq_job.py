@@ -254,28 +254,51 @@ class IonQJob(JobV1):
         """
         return self._dry_run
 
-    def compiled_circuit(self, lang: str = "native") -> str:
+    @staticmethod
+    def _resolve_compiled_format(lang: str, available: dict) -> str | None:
+        """Map a ``lang`` hint to an available compiled-circuit format key.
+
+        Accepts an exact format key, or a short name matched against the
+        dotted format (``"native"`` -> ``"ionq.native.v1"``). Only keys whose
+        artifact carries an ``id`` are considered.
+        """
+
+        def has_id(key: str) -> bool:
+            entry = available.get(key)
+            return isinstance(entry, dict) and bool(entry.get("id"))
+
+        if has_id(lang):
+            return lang
+        return next((k for k in available if lang in k.split(".") and has_id(k)), None)
+
+    def compiled_circuit(self, lang: str = "native"):
         """Fetch the server-compiled circuit for this job.
 
         Useful for jobs submitted with ``dry_run=True`` (compilation as a
         service) but also works for any completed job to inspect what was
         actually run on hardware after IonQ's compiler resynthesizes the input.
+        The IonQ Cloud publishes each compiled representation as an artifact
+        under ``output.compilation.compiled_circuits``; this resolves the one
+        matching ``lang`` and fetches it from the artifacts endpoint.
 
         Args:
-            lang (str): Output language. ``"native"`` (default) returns the
-                IonQ-native gate JSON; ``"qasm3"`` returns OpenQASM 3 source.
-                Other values may be accepted depending on organization
-                entitlement; the API rejects unsupported or non-entitled
-                values with a ``4xx`` response surfaced here as
-                :class:`~qiskit_ionq.exceptions.IonQAPIError`.
+            lang (str): Which compiled representation to fetch. Accepts a short
+                name matched against the available format keys (e.g.
+                ``"native"`` -> ``"ionq.native.v1"``, ``"qasm3"`` ->
+                ``"ionq.qasm3.v1"``) or an exact format key. The set of
+                available formats varies by job and compiler.
 
         Raises:
             IonQJobStateError: If the job has not reached a final state yet.
             IonQJobFailureError: If the job failed before compilation completed.
-            IonQAPIError: If the API rejects the ``lang`` value.
+            IonQJobError: If the job publishes no compiled circuit matching
+                ``lang`` (the message lists the formats it does publish).
+            IonQAPIError: If the artifact fetch is rejected (e.g. per-org
+                entitlement).
 
         Returns:
-            str: The compiled circuit as a string (IonQ-native JSON or OpenQASM 3).
+            The compiled circuit parsed from its JSON artifact: a ``dict`` for
+            native/IR JSON formats, a ``str`` for text formats (OpenQASM).
         """
         # Make sure we're in a final state and the job-id is known. status()
         # raises IonQJobFailureError on failure, which is the right behavior.
@@ -286,7 +309,17 @@ class IonQJob(JobV1):
                 "Call wait_for_final_state() first."
             )
         assert self._job_id is not None
-        return self._client.get_compiled_circuit(self._job_id, lang=lang)
+        circuits = ((self._metadata.get("output") or {}).get("compilation") or {}).get(
+            "compiled_circuits"
+        ) or {}
+        fmt = self._resolve_compiled_format(lang, circuits)
+        if fmt is None:
+            available = ", ".join(sorted(circuits)) or "none"
+            raise exceptions.IonQJobError(
+                f"No compiled circuit matching {lang!r} for job {self._job_id}. "
+                f"Available formats: {available}."
+            )
+        return self._client.get_artifact(self._job_id, circuits[fmt]["id"])
 
     def cancel(self) -> None:
         """Cancel this job."""

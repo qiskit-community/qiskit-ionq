@@ -100,11 +100,11 @@ backend = provider.get_backend("ionq_qpu.forte-1")
 job = backend.run(qc, dry_run=True)
 job.wait_for_final_state()
 
-native_json = job.compiled_circuit(lang="native")   # IonQ-native JSON
-qasm3       = job.compiled_circuit(lang="qasm3")    # OpenQASM 3
+native = job.compiled_circuit(lang="native")   # IonQ-native gate JSON (dict)
+qasm3  = job.compiled_circuit(lang="qasm3")    # OpenQASM 3 source (str)
 ```
 
-Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
+The compiled circuit is fetched from the job's published artifacts (`output.compilation.compiled_circuits`); `lang` is matched against the available format keys (e.g. `"native"` → `ionq.native.v1`). The available formats vary by job and compiler — if the requested one isn't published, `IonQJobError` lists what is. Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
 
 ### Per-shot memory (`memory`)
 

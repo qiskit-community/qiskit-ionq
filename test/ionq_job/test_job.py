@@ -1141,6 +1141,28 @@ def _dry_run_job_response(job_id, target="qpu.forte-1"):
         "shots": 1024,
         "metadata": {"qiskit_header": qiskit_header, "shots": "1024"},
         "stats": {"qubits": 2, "circuits": 1},
+        # Compiled circuits are published as artifacts keyed by format under
+        # output.compilation.compiled_circuits; fetched via /artifacts/{id}.
+        "output": {
+            "compilation": {
+                "opt": 1,
+                "precision": "1E-3",
+                "gate_basis": "ZZ",
+                "service_version": "v0.4",
+                "compiled_circuits": {
+                    "ionq.native.v1": {
+                        "id": "native-aid",
+                        "format": "ionq.native.v1",
+                        "media_type": "application/json",
+                    },
+                    "ionq.qasm3.v1": {
+                        "id": "qasm3-aid",
+                        "format": "ionq.qasm3.v1",
+                        "media_type": "application/json",
+                    },
+                },
+            }
+        },
         # Per v0.4 spec, dry-run jobs have results=null.
         "results": None,
     }
@@ -1191,29 +1213,28 @@ def test_dry_run_result_raises(mock_backend, requests_mock):
 
 
 def test_dry_run_compiled_native(mock_backend, requests_mock):
-    """compiled_circuit(lang='native') hits /jobs/<id>/circuits/native and
-    returns the JSON-decoded body as a string."""
+    """compiled_circuit('native') resolves ionq.native.v1 and fetches the artifact."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
         json=_dry_run_job_response(job_id),
     )
 
-    native_body = (
-        '{"gateset":"native","circuit":[{"gate":"gpi2","target":0,"phase":0.0}]}'
-    )
+    native = {"gateset": "native", "circuit": [{"gate": "gpi2", "target": 0}]}
     requests_mock.get(
-        mock_backend.client.make_path("jobs", job_id, "circuits", "native"),
-        json=native_body,
+        mock_backend.client.make_path("jobs", job_id, "artifacts", "native-aid"),
+        json=native,
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.compiled_circuit() == native_body
-    assert job.compiled_circuit(lang="native") == native_body
+    assert job.compiled_circuit() == native
+    assert job.compiled_circuit(lang="native") == native
+    # An exact format key resolves too.
+    assert job.compiled_circuit(lang="ionq.native.v1") == native
 
 
 def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
-    """compiled_circuit(lang='qasm3') returns the OpenQASM 3 string."""
+    """compiled_circuit('qasm3') returns the OpenQASM 3 string from its artifact."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
@@ -1222,7 +1243,7 @@ def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
 
     qasm3 = "OPENQASM 3.0;\ngate gpi2(p) q { } // ...\n"
     requests_mock.get(
-        mock_backend.client.make_path("jobs", job_id, "circuits", "qasm3"),
+        mock_backend.client.make_path("jobs", job_id, "artifacts", "qasm3-aid"),
         json=qasm3,
     )
 
@@ -1230,47 +1251,37 @@ def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
     assert job.compiled_circuit(lang="qasm3") == qasm3
 
 
-def test_compiled_lang_passthrough(mock_backend, requests_mock):
-    """Any string is forwarded to the API as-is.
-
-    The server is the source of truth for which lang values are accepted
-    and which are gated behind per-organization entitlement; the SDK does
-    not duplicate that policy. This test mocks the request URL with a
-    non-default lang and confirms it is reached.
-    """
+def test_compiled_unknown_format(mock_backend, requests_mock):
+    """A lang with no matching artifact raises, listing what is available."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
         json=_dry_run_job_response(job_id),
-    )
-    requests_mock.get(
-        mock_backend.client.make_path("jobs", job_id, "circuits", "future-lang"),
-        json="some-payload",
     )
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.compiled_circuit(lang="future-lang") == "some-payload"
+    with pytest.raises(exceptions.IonQJobError, match="Available formats"):
+        job.compiled_circuit(lang="mir")
 
 
-def test_compiled_lang_api_error(mock_backend, requests_mock):
-    """Server-side rejection of an unsupported / non-entitled lang surfaces
-    as IonQAPIError, matching every other non-2xx API response."""
+def test_compiled_artifact_api_error(mock_backend, requests_mock):
+    """A non-2xx on the artifact fetch (e.g. entitlement) surfaces as IonQAPIError."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
         json=_dry_run_job_response(job_id),
     )
     requests_mock.get(
-        mock_backend.client.make_path("jobs", job_id, "circuits", "nope"),
+        mock_backend.client.make_path("jobs", job_id, "artifacts", "native-aid"),
         status_code=403,
         json={
             "statusCode": 403,
             "error": "Forbidden",
-            "message": "Organization does not have access to this compiled language",
+            "message": "Organization does not have access to this artifact",
         },
     )
     job = ionq_job.IonQJob(mock_backend, job_id)
     with pytest.raises(exceptions.IonQAPIError):
-        job.compiled_circuit(lang="nope")
+        job.compiled_circuit(lang="native")
 
 
 def test_dry_run_property_false(mock_backend, requests_mock):
