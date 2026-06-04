@@ -50,6 +50,7 @@ from qiskit import __version__ as qiskit_version
 from qiskit.user_config import get_config
 from qiskit.circuit import (
     controlledgate as q_cgates,
+    ControlFlowOp,
     QuantumCircuit,
     QuantumRegister,
     ClassicalRegister,
@@ -162,13 +163,13 @@ def circuit_requires_qasm3(input_circuit: QuantumCircuit) -> bool:
     """True for mid-circuit measurement, reset, or control flow (not
     expressible as a flat v1 gate list, so submitted as OpenQASM 3).
     """
-    control_flow = {"if_else", "while_loop", "for_loop", "switch_case"}
     measured: set[int] = set()
     for inst in input_circuit.data:
-        name = inst.operation.name
+        operation = inst.operation
+        name = operation.name
         if name in ("barrier", "delay"):
             continue
-        if name in control_flow:
+        if isinstance(operation, ControlFlowOp):
             return True
         if name == "reset":
             return True
@@ -476,7 +477,7 @@ def _qasm3_data(circuit: QuantumCircuit) -> str:
     if renamed:
         raise ionq_exceptions.IonQJobError(
             f"Classical register name(s) {renamed} are OpenQASM 3 reserved "
-            "words and get renamed on export; rename them and resubmit."
+            "words; rename them and resubmit."
         )
     return data
 
@@ -594,8 +595,8 @@ def qiskit_to_ionq(
         if multi_circuit:
             raise ionq_exceptions.IonQJobError(
                 "Mid-circuit measurement, reset, and classical control flow are "
-                "only supported for single-circuit submissions. Submit each such "
-                "circuit as its own job."
+                "only supported for single-circuit submissions. Submit such "
+                "circuits in separate jobs."
             )
         return _qiskit_to_qasm3_json(
             circuit,

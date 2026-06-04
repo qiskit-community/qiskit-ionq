@@ -270,13 +270,14 @@ class IonQJob(JobV1):
             None,
         )
 
-    def compiled_circuit(self, lang: str = "native") -> dict | list | str:
+    def compiled_circuit(self, lang: str = "native") -> dict | list | str | bytes:
         """Fetch the server-compiled circuit, parsed from its published artifact.
 
-        ``lang`` is a short name (``"native"``) or exact format key matched
-        against ``output.compilation.compiled_circuits``; raises
-        ``IonQJobError`` if none match. Returns a ``dict`` (native/IR JSON) or
-        ``str`` (OpenQASM).
+        ``lang`` is a short name -- ``"native"`` or ``"ore"`` (QIS jobs),
+        ``"mir"`` (OpenQASM 3 jobs) -- or an exact format key, matched against
+        ``output.compilation.compiled_circuits``; raises ``IonQJobError`` if
+        none match. Returns a ``dict``/``list`` for JSON formats or ``bytes``
+        for binary ones (``ionq.mir.v1``).
         """
         self.status()
         if self._status not in jobstatus.JOB_FINAL_STATES:
@@ -421,7 +422,7 @@ class IonQJob(JobV1):
                 raise exceptions.IonQJobError(
                     f"Job {self._job_id} was submitted with dry_run=True; "
                     "no measurement results are produced. Use "
-                    "job.compiled_circuit(lang='native' or 'qasm3') to "
+                    "job.compiled_circuit(...) to "
                     "retrieve the compiled circuit instead."
                 )
             if self._is_qasm3:
@@ -509,7 +510,10 @@ class IonQJob(JobV1):
                     if isinstance(v, dict) and isinstance(v.get("url"), str)
                 }
                 if self._is_qasm3:
-                    self._shots_artifact_id = self._find_shots_v2_id(results)
+                    shots = results.get(constants.ResultFormat.SHOTS_V2)
+                    self._shots_artifact_id = (
+                        shots.get("id") if isinstance(shots, dict) else None
+                    )
 
             # Classical-bit maps per circuit
             def _meas_map_from_header(header_dict, fallback_nq):
@@ -663,16 +667,6 @@ class IonQJob(JobV1):
             url = shots.get("url") if isinstance(shots, dict) else None
             per_circuit.append(self._fetch_raw_shots(url, ctx=f"child {child_id}"))
         return per_circuit
-
-    @staticmethod
-    def _find_shots_v2_id(results: dict) -> str | None:
-        """Artifact id of the v2 per-register shots, or ``None``."""
-        for value in results.values():
-            if isinstance(value, dict) and str(value.get("format", "")).endswith(
-                "shots.json.v2"
-            ):
-                return value.get("id")
-        return None
 
     def _fetch_qasm3_shots(self, extra_query_params: dict | None = None) -> list:
         """Fetch the per-register shots array for a qasm3 (MCM) job."""

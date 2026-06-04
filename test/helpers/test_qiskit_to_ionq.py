@@ -514,6 +514,27 @@ def test_requires_qasm3_plain():
     assert circuit_requires_qasm3(qc) is False
 
 
+def test_requires_qasm3_if_else():
+    """An if/else block (both branches) requires the qasm3 path."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    with qc.if_test((qc.cregs[0], 1)) as else_:
+        qc.x(0)
+    with else_:
+        qc.z(0)
+    assert circuit_requires_qasm3(qc) is True
+
+
+def test_requires_qasm3_reuse():
+    """A gate after a measurement (qubit reuse) requires the qasm3 path."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    qc.x(0)
+    assert circuit_requires_qasm3(qc) is True
+
+
 def test_qasm3_payload_shape(qpu_backend):
     """MCM circuits serialize to an ionq.qasm3.v1 payload with QASM 3 input."""
     ionq_json = qiskit_to_ionq(_mcm_circuit(), qpu_backend, passed_args={"shots": 10})
@@ -524,6 +545,10 @@ def test_qasm3_payload_shape(qpu_backend):
     assert data.startswith("OPENQASM 3.0;")
     # Don't assert qiskit's exact qasm3 spelling; just the structure.
     assert "measure" in data and "mid" in data and "result" in data
+    # Exactly the gates we built (1 H, 2 X, 3 measure) and nothing injected.
+    assert data.count("measure") == 3
+    assert data.count("h q") == 1
+    assert data.count("x q") == 2
     header = decompress_metadata_string(payload["metadata"]["qiskit_header"])
     assert header["creg_sizes"] == [["mid", 1], ["result", 2]]
     assert header["memory_slots"] == 3

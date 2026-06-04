@@ -307,13 +307,20 @@ class IonQClient:
         job_id: str,
         artifact_id: str,
         extra_query_params: dict | None = None,
-    ) -> dict:
-        """GET a result artifact by id (``/jobs/{id}/artifacts/{aid}``)."""
+    ) -> dict | list | str | bytes:
+        """GET a result artifact by id (``/jobs/{id}/artifacts/{aid}``).
+
+        JSON artifacts decode to order-preserving objects; binary ones (the
+        ``ionq.mir.v1`` compiled circuit, ``application/octet-stream``) return
+        as raw ``bytes``.
+        """
         req_path = self.make_path("jobs", job_id, "artifacts", artifact_id)
         res = self.get_with_retry(
             req_path, headers=self.api_headers, params=extra_query_params or None
         )
         exceptions.IonQAPIError.raise_for_status(res)
+        if "octet-stream" in res.headers.get("Content-Type", "").lower():
+            return res.content
         return json.loads(res.text, object_pairs_hook=OrderedDict)
 
     def estimate_job(

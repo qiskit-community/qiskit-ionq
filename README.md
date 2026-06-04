@@ -101,7 +101,7 @@ job = backend.run(qc, dry_run=True)
 job.wait_for_final_state()
 
 native = job.compiled_circuit(lang="native")   # IonQ-native gate JSON (dict)
-qasm3  = job.compiled_circuit(lang="qasm3")    # OpenQASM 3 source (str)
+ore    = job.compiled_circuit(lang="ore")      # lower-level ORE JSON (dict)
 ```
 
 The compiled circuit is fetched from the job's published artifacts (`output.compilation.compiled_circuits`); `lang` is matched against the available format keys (e.g. `"native"` → `ionq.native.v1`). The available formats vary by job and compiler — if the requested one isn't published, `IonQJobError` lists what is. Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
@@ -117,9 +117,11 @@ memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 
 The ideal simulator does not produce per-shot data; calling `get_memory()` on a job submitted without `memory=True` raises `IonQBackendError`.
 
-### Mid-circuit measurement
+### Mid-circuit measurements
 
-Circuits that reuse a qubit after measuring it — plus mid-circuit `reset` and classical control flow — are submitted automatically as OpenQASM 3 (`ionq.qasm3.v1`); no extra flags needed. Outcomes are reported per declared classical register, matching Qiskit's usual register-split formatting. Single-circuit submissions only; pass `error_mitigation`/`symmetry_verification`, `include_leakage`, or `verbatim` via `job_settings`. OpenQASM 3 jobs run on the simulator and mid-circuit-measurement-capable QPUs (Tempo); other targets reject them server-side. Classical-register names that collide with OpenQASM 3 reserved words (e.g. `output`, `input`, `measure`) are rejected at submission — rename them.
+The IonQ provider supports circuits with mid-circuit measurements, qubit reuse after measurement, mid-circuit `reset`, and classical control flow. Outcomes are reported per declared classical register, matching Qiskit's usual register-split formatting. Single-circuit submissions only; pass `error_mitigation`/`symmetry_verification`, `include_leakage`, or `verbatim` via `job_settings`.
+
+Such circuits are submitted automatically as OpenQASM 3 (`ionq.qasm3.v1`) — no extra flags needed. OpenQASM 3 jobs run on the simulator and mid-circuit-measurement-capable QPUs (Tempo); other targets reject them server-side. Classical-register names that collide with OpenQASM 3 reserved words (e.g. `output`, `input`, `measure`) are rejected at submission — rename them.
 
 ```python
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -130,16 +132,17 @@ result = ClassicalRegister(2, "result")
 qc = QuantumCircuit(qr, mid, result)
 
 qc.h(0)
-qc.measure(0, mid[0])      # mid-circuit measurement
-qc.x(0)
-qc.measure(0, result[0])   # qubit reused after measurement
+qc.measure(0, mid[0])          # mid-circuit measurement
+with qc.if_test((mid, 1)):      # classical control flow on the outcome
+    qc.x(0)
+qc.measure(0, result[0])       # qubit reused after measurement
 qc.x(0)
 qc.measure(0, result[1])
 
 job = backend.run(qc, shots=100, memory=True)
 result = job.result()
-result.get_counts()        # split across registers, e.g. {'00 0': 75, '01 1': 25}
-result.get_memory()        # per-shot, e.g. ['00 0', '01 1', ...]
+result.get_counts()        # split across registers, e.g. {'10 0': 50, '10 1': 50}
+result.get_memory()        # per-shot, e.g. ['10 0', '10 1', ...]
 ```
 
 ### Basis gates and transpilation

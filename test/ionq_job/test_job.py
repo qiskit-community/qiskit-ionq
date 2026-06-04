@@ -1154,9 +1154,9 @@ def _dry_run_job_response(job_id, target="qpu.forte-1"):
                         "format": "ionq.native.v1",
                         "media_type": "application/json",
                     },
-                    "ionq.qasm3.v1": {
-                        "id": "qasm3-aid",
-                        "format": "ionq.qasm3.v1",
+                    "ionq.ore.v1": {
+                        "id": "ore-aid",
+                        "format": "ionq.ore.v1",
                         "media_type": "application/json",
                     },
                 },
@@ -1232,22 +1232,53 @@ def test_dry_run_compiled_native(mock_backend, requests_mock):
     assert job.compiled_circuit(lang="ionq.native.v1") == native
 
 
-def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
-    """compiled_circuit('qasm3') returns the OpenQASM 3 string from its artifact."""
+def test_dry_run_compiled_ore(mock_backend, requests_mock):
+    """compiled_circuit('ore') resolves ionq.ore.v1 and fetches the artifact."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
         json=_dry_run_job_response(job_id),
     )
 
-    qasm3 = "OPENQASM 3.0;\ngate gpi2(p) q { } // ...\n"
+    ore = {"format": "ore", "circuit": [{"op": "rz", "target": 0, "angle": 0.5}]}
     requests_mock.get(
-        mock_backend.client.make_path("jobs", job_id, "artifacts", "qasm3-aid"),
-        json=qasm3,
+        mock_backend.client.make_path("jobs", job_id, "artifacts", "ore-aid"),
+        json=ore,
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.compiled_circuit(lang="qasm3") == qasm3
+    assert job.compiled_circuit(lang="ore") == ore
+    assert job.compiled_circuit(lang="ionq.ore.v1") == ore
+
+
+def test_compiled_mir_bytes(mock_backend, requests_mock):
+    """A qasm3 job's ionq.mir.v1 (octet-stream) returns raw bytes, not JSON."""
+    job_id = "mcm_mir"
+    response = _qasm3_job_response(job_id, "unused")
+    response["output"] = {
+        "compilation": {
+            "compiled_circuits": {
+                "ionq.mir.v1": {
+                    "id": "mir-aid",
+                    "format": "ionq.mir.v1",
+                    "media_type": "application/octet-stream",
+                }
+            }
+        }
+    }
+    client = mock_backend.client
+    requests_mock.get(client.make_path("jobs", job_id), json=response)
+    blob = b"\x00\x01MIR\xff"
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", "mir-aid"),
+        content=blob,
+        headers={"Content-Type": "application/octet-stream"},
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.compiled_circuit(lang="mir") == blob
+    with pytest.raises(exceptions.IonQJobError, match="Available formats"):
+        job.compiled_circuit()
 
 
 def _strip_native_id(response):

@@ -71,4 +71,18 @@ class ErrorMitigation(enum.Enum):
     NO_DEBIASING = {"debiasing": False}
 
 
-__all__ = ["APIJobStatus", "JobStatusMap", "ErrorMitigation"]
+class ResultFormat(str, enum.Enum):
+    """Format keys for the id-addressed v2 result artifacts in a job's
+    ``results`` map (fetched via ``GET /jobs/{id}/artifacts/{id}``).
+
+    Subclasses ``str`` so a member is usable directly as a dict key, e.g.
+    ``results.get(ResultFormat.SHOTS_V2)`` (``enum.StrEnum`` is 3.11+; the
+    repo floor is 3.10).
+    """
+
+    SHOTS_V2 = "ionq.result.shots.json.v2"
+    HISTOGRAM_V2 = "ionq.result.histogram.json.v2"
+    PROBABILITIES_V2 = "ionq.result.probabilities.json.v2"
+
+
+__all__ = ["APIJobStatus", "JobStatusMap", "ErrorMitigation", "ResultFormat"]
