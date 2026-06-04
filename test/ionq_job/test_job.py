@@ -1263,7 +1263,7 @@ def test_compiled_unknown_format(mock_backend, requests_mock):
         job.compiled_circuit(lang="mir")
 
 
-def test_compiled_artifact_api_error(mock_backend, requests_mock):
+def test_compiled_artifact_error(mock_backend, requests_mock):
     """A non-2xx on the artifact fetch (e.g. entitlement) surfaces as IonQAPIError."""
     job_id = "dry_run_id"
     requests_mock.get(
@@ -1421,3 +1421,72 @@ def test_qasm3_no_shots_artifact(mock_backend, requests_mock):
     job = mock_backend.run(_mcm_circuit(), shots=4)
     with pytest.raises(exceptions.IonQJobError, match="shots artifact"):
         job.result()
+
+
+def test_qasm3_high_bit(mock_backend, requests_mock):
+    """A set high-order register bit (result[1]) folds to the MSB position."""
+    job_id = "mcm_hi"
+    artifact_id = "shots-hi"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_qasm3_job_response(job_id, artifact_id),
+    )
+    # result[1] is clbit index 2 -> MSB of the 3-bit word; expect "10 0".
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json={"shots": [{"registers": {"mid": [0], "result": [0, 1]}}]},
+    )
+
+    job = mock_backend.run(_mcm_circuit(), shots=1)
+    assert job.result().get_counts() == {"10 0": 1}
+
+
+def test_qasm3_memory_false(mock_backend, requests_mock):
+    """Without memory=True, MCM counts still decode but get_memory() raises."""
+    job_id = "mcm_nomem"
+    artifact_id = "shots-nomem"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_qasm3_job_response(job_id, artifact_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json=_QASM3_SHOTS,
+    )
+
+    job = mock_backend.run(_mcm_circuit(), shots=4)  # memory defaults to False
+    res = job.result()
+    assert res.get_counts() == {"00 0": 3, "01 1": 1}
+    assert res.data(0).get("memory") is None
+    with pytest.raises(exceptions.IonQBackendError, match="memory=True"):
+        job.get_memory()
+
+
+def test_compiled_no_output(mock_backend, requests_mock):
+    """A job with no published compiled_circuits raises a clear IonQJobError."""
+    job_id = "dry_run_id"
+    response = _dry_run_job_response(job_id)
+    response["output"] = None  # prod mid-rollout: endpoint 410'd, artifacts absent
+    requests_mock.get(mock_backend.client.make_path("jobs", job_id), json=response)
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(exceptions.IonQJobError, match="Available formats: none"):
+        job.compiled_circuit()
+
+
+def test_compiled_format_no_id(mock_backend, requests_mock):
+    """A published format whose artifact lacks an id is treated as unavailable."""
+    job_id = "dry_run_id"
+    response = _dry_run_job_response(job_id)
+    response["output"]["compilation"]["compiled_circuits"] = {
+        "ionq.native.v1": {"format": "ionq.native.v1", "media_type": "application/json"}
+    }
+    requests_mock.get(mock_backend.client.make_path("jobs", job_id), json=response)
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(exceptions.IonQJobError, match="Available formats"):
+        job.compiled_circuit(lang="native")

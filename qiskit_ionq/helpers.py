@@ -32,6 +32,7 @@ to IonQ REST API compatible values.
 from __future__ import annotations
 
 import json
+import re
 import gzip
 import base64
 import platform
@@ -167,11 +168,10 @@ def circuit_requires_qasm3(input_circuit: QuantumCircuit) -> bool:
     control_flow = {"if_else", "while_loop", "for_loop", "switch_case"}
     measured: set[int] = set()
     for inst in input_circuit.data:
-        operation = inst.operation
-        name = operation.name
+        name = inst.operation.name
         if name in ("barrier", "delay"):
             continue
-        if name in control_flow or getattr(operation, "condition", None) is not None:
+        if name in control_flow:
             return True
         if name == "reset":
             return True
@@ -462,13 +462,50 @@ def decompress_metadata_string(
     return json.loads(decompressed)
 
 
-def _to_qasm3(circuit: QuantumCircuit) -> str:
-    """OpenQASM 3 string for ``ionq.qasm3.v1`` submission (lazy qasm3 import)."""
+def _qasm3_data(circuit: QuantumCircuit) -> str:
+    """OpenQASM 3 string for ``ionq.qasm3.v1`` submission.
+
+    Rejects circuits whose classical-register names get renamed on export:
+    ``qiskit.qasm3.dumps`` rewrites names that collide with OpenQASM 3 reserved
+    words (e.g. ``output`` -> ``output_0``). The server keys per-register
+    results by the emitted name while the result decoder maps by the circuit's
+    register names, so a silent rename would zero out that register's outcomes.
+    Failing fast with the offending names is better than wrong counts.
+    """
     from qiskit.qasm3 import (  # pylint: disable=import-outside-toplevel
         dumps as _qasm3_dumps,
     )
 
-    return _qasm3_dumps(circuit)
+    data = _qasm3_dumps(circuit)
+    emitted = set(re.findall(r"\bbit(?:\[\d+\])?\s+(\w+)\s*;", data))
+    renamed = [creg.name for creg in circuit.cregs if creg.name not in emitted]
+    if renamed:
+        raise ionq_exceptions.IonQJobError(
+            f"Classical register name(s) {renamed} collide with OpenQASM 3 "
+            "reserved words and are renamed on export, which would corrupt "
+            "per-register results. Rename the register(s) and resubmit."
+        )
+    return data
+
+
+def _build_settings(passed_args: dict, backend) -> dict[str, Any]:
+    """Assemble the job ``settings`` block (shared by all submission formats).
+
+    Starts from the user's ``job_settings`` so the full v0.4 surface
+    (compilation, include_leakage, verbatim, error_mitigation.*, ...) passes
+    through, then merges the :class:`ErrorMitigation` enum into the
+    ``error_mitigation`` sub-block so e.g. a user-set ``symmetry_verification``
+    survives alongside ``debiasing``.
+    """
+    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
+    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
+        "error_mitigation"
+    )
+    if isinstance(error_mitigation, ErrorMitigation):
+        em_block = dict(settings.get("error_mitigation") or {})
+        em_block.update(error_mitigation.value)
+        settings["error_mitigation"] = em_block
+    return settings
 
 
 def _qiskit_to_qasm3_json(  # pylint: disable=too-many-positional-arguments
@@ -506,7 +543,7 @@ def _qiskit_to_qasm3_json(  # pylint: disable=too-many-positional-arguments
         "name": passed_args.get("name") or circuit.name,
         "input": {
             "qubits": circuit.num_qubits,
-            "data": _to_qasm3(circuit),
+            "data": _qasm3_data(circuit),
         },
         **(
             {"session_id": passed_args["session_id"]}
@@ -528,17 +565,7 @@ def _qiskit_to_qasm3_json(  # pylint: disable=too-many-positional-arguments
             "seed": backend.options.sampler_seed,
         }
 
-    # Start from user job_settings (so compilation, include_leakage, verbatim,
-    # error_mitigation.symmetry_verification, ... pass through), then layer the
-    # ErrorMitigation enum onto any error_mitigation block.
-    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
-    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
-        "error_mitigation"
-    )
-    if isinstance(error_mitigation, ErrorMitigation):
-        em_block = dict(settings.get("error_mitigation") or {})
-        em_block.update(error_mitigation.value)
-        settings["error_mitigation"] = em_block
+    settings = _build_settings(passed_args, backend)
     if settings:
         ionq_json["settings"] = settings
 
@@ -702,14 +729,7 @@ def qiskit_to_ionq(
         }
 
     # settings / error mitigation
-    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
-    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
-        "error_mitigation"
-    )
-
-    if isinstance(error_mitigation, ErrorMitigation):
-        settings["error_mitigation"] = error_mitigation.value
-
+    settings = _build_settings(passed_args, backend)
     if settings:
         ionq_json["settings"] = settings
 

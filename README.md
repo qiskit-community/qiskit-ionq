@@ -119,7 +119,7 @@ The ideal simulator does not produce per-shot data; calling `get_memory()` on a 
 
 ### Mid-circuit measurement
 
-Circuits that reuse a qubit after measuring it — plus mid-circuit `reset` and classical control flow — are submitted automatically as OpenQASM 3 (`ionq.qasm3.v1`); no extra flags needed. Outcomes are reported per declared classical register, matching Qiskit's usual register-split formatting. Single-circuit submissions only; pass `error_mitigation`/`symmetry_verification`, `include_leakage`, or `verbatim` via `job_settings`.
+Circuits that reuse a qubit after measuring it — plus mid-circuit `reset` and classical control flow — are submitted automatically as OpenQASM 3 (`ionq.qasm3.v1`); no extra flags needed. Outcomes are reported per declared classical register, matching Qiskit's usual register-split formatting. Single-circuit submissions only; pass `error_mitigation`/`symmetry_verification`, `include_leakage`, or `verbatim` via `job_settings`. OpenQASM 3 jobs run on the simulator and mid-circuit-measurement-capable QPUs (Tempo); other targets reject them server-side. Classical-register names that collide with OpenQASM 3 reserved words (e.g. `output`, `input`, `measure`) are rejected at submission — rename them.
 
 ```python
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister

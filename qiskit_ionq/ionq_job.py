@@ -258,9 +258,11 @@ class IonQJob(JobV1):
     def _resolve_compiled_format(lang: str, available: dict) -> str | None:
         """Map a ``lang`` hint to an available compiled-circuit format key.
 
-        Accepts an exact format key, or a short name matched against the
-        dotted format (``"native"`` -> ``"ionq.native.v1"``). Only keys whose
-        artifact carries an ``id`` are considered.
+        Accepts an exact format key, or a short representation name matched
+        against the ``ionq.<name>.vN`` format (``"native"`` ->
+        ``"ionq.native.v1"``). Only the representation segment is matched, so
+        generic tokens like ``"ionq"`` or ``"v1"`` don't resolve. Only keys
+        whose artifact carries an ``id`` are considered.
         """
 
         def has_id(key: str) -> bool:
@@ -269,9 +271,12 @@ class IonQJob(JobV1):
 
         if has_id(lang):
             return lang
-        return next((k for k in available if lang in k.split(".") and has_id(k)), None)
+        return next(
+            (k for k in available if has_id(k) and k.split(".")[1:2] == [lang]),
+            None,
+        )
 
-    def compiled_circuit(self, lang: str = "native"):
+    def compiled_circuit(self, lang: str = "native") -> dict | list | str:
         """Fetch the server-compiled circuit for this job.
 
         Useful for jobs submitted with ``dry_run=True`` (compilation as a
