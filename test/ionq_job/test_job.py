@@ -1141,8 +1141,7 @@ def _dry_run_job_response(job_id, target="qpu.forte-1"):
         "shots": 1024,
         "metadata": {"qiskit_header": qiskit_header, "shots": "1024"},
         "stats": {"qubits": 2, "circuits": 1},
-        # Compiled circuits are published as artifacts keyed by format under
-        # output.compilation.compiled_circuits; fetched via /artifacts/{id}.
+        # Compiled circuits: artifacts keyed by format, fetched via /artifacts/{id}.
         "output": {
             "compilation": {
                 "opt": 1,
@@ -1390,8 +1389,7 @@ def _qasm3_job_response(job_id, shots_artifact_id):
     }
 
 
-# Per-register shot-wise artifact (ionq.result.shots.json.v2): 3 shots of
-# mid=0/result=00 and 1 shot of mid=1/result=10. output_all is system-appended.
+# v2 shots artifact: 3x mid=0/result=00, 1x mid=1/result=10.
 _QASM3_SHOTS = {
     "shots": [
         {"registers": {"mid": [0], "result": [0, 0], "output_all": [1]}},

@@ -522,8 +522,7 @@ def test_qasm3_payload_shape(qpu_backend):
     assert payload["input"]["qubits"] == 1
     data = payload["input"]["data"]
     assert data.startswith("OPENQASM 3.0;")
-    # Behavior we own: the MCM is present and both registers are declared.
-    # Avoid asserting qiskit's exact assignment spelling (varies by version).
+    # Don't assert qiskit's exact qasm3 spelling; just the structure.
     assert "measure" in data and "mid" in data and "result" in data
     header = decompress_metadata_string(payload["metadata"]["qiskit_header"])
     assert header["creg_sizes"] == [["mid", 1], ["result", 2]]

@@ -308,16 +308,7 @@ class IonQClient:
         artifact_id: str,
         extra_query_params: dict | None = None,
     ) -> dict:
-        """Retrieve a result artifact from ``/jobs/{id}/artifacts/{aid}``.
-
-        Fetches the per-register shots (``ionq.result.shots.json.v2``) for
-        mid-circuit measurement jobs, whose ``results`` block advertises an
-        artifact ``id`` rather than a ``url``.
-
-        Raises:
-            IonQAPIError: When the API returns a non-200 status code.
-            IonQRetriableError: When a retriable error occurs during the request.
-        """
+        """GET a result artifact by id (``/jobs/{id}/artifacts/{aid}``)."""
         req_path = self.make_path("jobs", job_id, "artifacts", artifact_id)
         res = self.get_with_retry(
             req_path, headers=self.api_headers, params=extra_query_params or None

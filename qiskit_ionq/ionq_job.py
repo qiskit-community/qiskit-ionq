@@ -207,8 +207,7 @@ class IonQJob(JobV1):
         self._execution_time = None
         self._dry_run: bool = False
         self._results_urls: dict[str, str | None] = {}
-        # ionq.qasm3.v1 (mid-circuit measurement) jobs return per-register
-        # shots from a separate artifact; set in status() from the job type.
+        # Set in status() for ionq.qasm3.v1 (mid-circuit measurement) jobs.
         self._is_qasm3: bool = False
         self._shots_artifact_id: str | None = None
         self._metadata: dict[str, Any] = {}
@@ -256,13 +255,8 @@ class IonQJob(JobV1):
 
     @staticmethod
     def _resolve_compiled_format(lang: str, available: dict) -> str | None:
-        """Map a ``lang`` hint to an available compiled-circuit format key.
-
-        Accepts an exact format key, or a short representation name matched
-        against the ``ionq.<name>.vN`` format (``"native"`` ->
-        ``"ionq.native.v1"``). Only the representation segment is matched, so
-        generic tokens like ``"ionq"`` or ``"v1"`` don't resolve. Only keys
-        whose artifact carries an ``id`` are considered.
+        """Map ``lang`` (exact key or short name like ``"native"``) to an
+        available format key with an artifact ``id``, else ``None``.
         """
 
         def has_id(key: str) -> bool:
@@ -277,36 +271,13 @@ class IonQJob(JobV1):
         )
 
     def compiled_circuit(self, lang: str = "native") -> dict | list | str:
-        """Fetch the server-compiled circuit for this job.
+        """Fetch the server-compiled circuit, parsed from its published artifact.
 
-        Useful for jobs submitted with ``dry_run=True`` (compilation as a
-        service) but also works for any completed job to inspect what was
-        actually run on hardware after IonQ's compiler resynthesizes the input.
-        The IonQ Cloud publishes each compiled representation as an artifact
-        under ``output.compilation.compiled_circuits``; this resolves the one
-        matching ``lang`` and fetches it from the artifacts endpoint.
-
-        Args:
-            lang (str): Which compiled representation to fetch. Accepts a short
-                name matched against the available format keys (e.g.
-                ``"native"`` -> ``"ionq.native.v1"``, ``"qasm3"`` ->
-                ``"ionq.qasm3.v1"``) or an exact format key. The set of
-                available formats varies by job and compiler.
-
-        Raises:
-            IonQJobStateError: If the job has not reached a final state yet.
-            IonQJobFailureError: If the job failed before compilation completed.
-            IonQJobError: If the job publishes no compiled circuit matching
-                ``lang`` (the message lists the formats it does publish).
-            IonQAPIError: If the artifact fetch is rejected (e.g. per-org
-                entitlement).
-
-        Returns:
-            The compiled circuit parsed from its JSON artifact: a ``dict`` for
-            native/IR JSON formats, a ``str`` for text formats (OpenQASM).
+        ``lang`` is a short name (``"native"``) or exact format key matched
+        against ``output.compilation.compiled_circuits``; raises
+        ``IonQJobError`` if none match. Returns a ``dict`` (native/IR JSON) or
+        ``str`` (OpenQASM).
         """
-        # Make sure we're in a final state and the job-id is known. status()
-        # raises IonQJobFailureError on failure, which is the right behavior.
         self.status()
         if self._status not in jobstatus.JOB_FINAL_STATES:
             raise exceptions.IonQJobStateError(
@@ -526,8 +497,7 @@ class IonQJob(JobV1):
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
 
-            # Mid-circuit measurement jobs come back as ionq.qasm3.v1 and
-            # carry per-register shot-wise results in a dedicated artifact.
+            # qasm3 jobs carry per-register results in a separate artifact.
             self._is_qasm3 = response.get("type") == "ionq.qasm3.v1"
 
             # Dry-run jobs have results=null; non-dry-run may also be null mid-rollout.
@@ -696,11 +666,7 @@ class IonQJob(JobV1):
 
     @staticmethod
     def _find_shots_v2_id(results: dict) -> str | None:
-        """Return the ``ionq.result.shots.json.v2`` artifact id, if advertised.
-
-        The per-register shot-wise format is keyed by an artifact ``id``
-        (fetched via ``/jobs/{id}/artifacts/{aid}``) rather than a ``url``.
-        """
+        """Artifact id of the v2 per-register shots, or ``None``."""
         for value in results.values():
             if isinstance(value, dict) and str(value.get("format", "")).endswith(
                 "shots.json.v2"
@@ -709,11 +675,7 @@ class IonQJob(JobV1):
         return None
 
     def _fetch_qasm3_shots(self, extra_query_params: dict | None = None) -> list:
-        """Fetch the per-register shots array for a qasm3 (MCM) job.
-
-        Raises:
-            IonQJobError: If the job advertised no v2 shots artifact.
-        """
+        """Fetch the per-register shots array for a qasm3 (MCM) job."""
         if not self._shots_artifact_id:
             raise exceptions.IonQJobError(
                 f"Job {self._job_id} reported no per-register shots artifact; "
@@ -728,13 +690,9 @@ class IonQJob(JobV1):
         return payload.get("shots", [])  # artifact is {"shots": [...]}
 
     def _format_result_qasm3(self, shots: list):
-        """Translate per-register shot-wise (qasm3/MCM) results into a Result.
-
-        Each shot is ``{"registers": {name: [bit, ...], ...}}``. The user's
-        declared registers are folded into one integer per shot via the
-        header's ``clbit_labels``, so ``get_counts()``/``get_memory()`` split
-        across registers as usual. The system-appended ``output_all`` register
-        is excluded.
+        """Build a Result from per-register shots, folding the declared
+        registers via the header's ``clbit_labels``. ``output_all``
+        (system-added) is excluded.
         """
         backend = self.backend()
         success = self._status == jobstatus.JobStatus.DONE
@@ -744,8 +702,7 @@ class IonQJob(JobV1):
 
         shots = shots or []
         clbit_labels = header.get("clbit_labels") or []
-        # Zero-padded MSB-left binary (as the v1 path) so Result.get_counts()
-        # splits across registers via the header's creg_sizes.
+        # Zero-padded binary so get_counts() splits by creg_sizes.
         width = header.get("memory_slots") or len(clbit_labels)
 
         counts: dict[str, int] = {}

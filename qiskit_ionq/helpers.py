@@ -159,11 +159,8 @@ def native_2q_gate(value: str | None) -> Literal["ms", "zz"] | None:
 
 
 def circuit_requires_qasm3(input_circuit: QuantumCircuit) -> bool:
-    """Whether a circuit needs the ``ionq.qasm3.v1`` path.
-
-    The flat ``ionq.circuit.v1`` gate list can't express mid-circuit
-    measurement (an op on a qubit after it was measured), mid-circuit
-    ``reset``, or classical control flow; such circuits go out as OpenQASM 3.
+    """True for mid-circuit measurement, reset, or control flow (not
+    expressible as a flat v1 gate list, so submitted as OpenQASM 3).
     """
     control_flow = {"if_else", "while_loop", "for_loop", "switch_case"}
     measured: set[int] = set()
@@ -463,13 +460,11 @@ def decompress_metadata_string(
 
 
 def _qasm3_data(circuit: QuantumCircuit) -> str:
-    """OpenQASM 3 string for ``ionq.qasm3.v1`` submission.
+    """OpenQASM 3 for submission.
 
-    Rejects circuits whose classical-register names ``qiskit.qasm3.dumps``
-    renames to dodge OpenQASM 3 reserved words (``output`` -> ``output_0``):
-    the server keys per-register results by the emitted name while the decoder
-    maps by the circuit's names, so a silent rename would zero out that
-    register. Failing fast beats wrong counts.
+    Rejects cregs that ``dumps`` renames to dodge reserved words
+    (``output`` -> ``output_0``); the rename would misalign per-register
+    results decoded by the original name.
     """
     from qiskit.qasm3 import (  # pylint: disable=import-outside-toplevel
         dumps as _qasm3_dumps,
@@ -480,21 +475,15 @@ def _qasm3_data(circuit: QuantumCircuit) -> str:
     renamed = [creg.name for creg in circuit.cregs if creg.name not in emitted]
     if renamed:
         raise ionq_exceptions.IonQJobError(
-            f"Classical register name(s) {renamed} collide with OpenQASM 3 "
-            "reserved words and are renamed on export, which would corrupt "
-            "per-register results. Rename the register(s) and resubmit."
+            f"Classical register name(s) {renamed} are OpenQASM 3 reserved "
+            "words and get renamed on export; rename them and resubmit."
         )
     return data
 
 
 def _build_settings(passed_args: dict, backend) -> dict[str, Any]:
-    """Assemble the job ``settings`` block (shared by all submission formats).
-
-    Starts from the user's ``job_settings`` so the full v0.4 surface
-    (compilation, include_leakage, verbatim, error_mitigation.*, ...) passes
-    through, then merges the :class:`ErrorMitigation` enum into the
-    ``error_mitigation`` sub-block so e.g. a user-set ``symmetry_verification``
-    survives alongside ``debiasing``.
+    """Build ``settings`` from ``job_settings``, merging the ErrorMitigation
+    enum into ``error_mitigation``.
     """
     settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
     error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
@@ -515,12 +504,7 @@ def _qiskit_to_qasm3_json(  # pylint: disable=too-many-positional-arguments
     extra_query_params: dict,
     extra_metadata: dict,
 ) -> str:
-    """Build the ``ionq.qasm3.v1`` payload for a single circuit.
-
-    Used for mid-circuit measurement / reset / control-flow circuits (see
-    :func:`circuit_requires_qasm3`). ``input`` carries the OpenQASM 3 string
-    and qubit count; results return per declared classical register.
-    """
+    """Build the ``ionq.qasm3.v1`` payload (OpenQASM 3 input) for one circuit."""
     qiskit_header = compress_to_metadata_string(
         {
             "memory_slots": circuit.num_clbits,
@@ -557,7 +541,7 @@ def _qiskit_to_qasm3_json(  # pylint: disable=too-many-positional-arguments
         },
     }
 
-    # simulator noise model (matches the v1 path)
+    # simulator noise model
     if backend_name == "simulator":
         ionq_json["noise"] = {
             "model": passed_args.get("noise_model") or backend.options.noise_model,
@@ -604,8 +588,7 @@ def qiskit_to_ionq(
 
     multi_circuit = isinstance(circuit, (list, tuple))
 
-    # MCM, reset, and control flow can't be expressed in the flat
-    # ionq.circuit.v1 gate list; route them to ionq.qasm3.v1.
+    # Route circuits the v1 gate list can't express (see circuit_requires_qasm3).
     circuits_to_check = circuit if multi_circuit else [circuit]
     if any(circuit_requires_qasm3(c) for c in circuits_to_check):
         if multi_circuit:
