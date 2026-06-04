@@ -725,9 +725,7 @@ class IonQJob(JobV1):
             self._shots_artifact_id,
             extra_query_params=extra_query_params,
         )
-        if isinstance(payload, dict) and "shots" in payload:
-            return payload["shots"]
-        return payload
+        return payload.get("shots", [])  # artifact is {"shots": [...]}
 
     def _format_result_qasm3(self, shots: list):
         """Translate per-register shot-wise (qasm3/MCM) results into a Result.
@@ -742,9 +740,6 @@ class IonQJob(JobV1):
         success = self._status == jobstatus.JobStatus.DONE
         metadata = self._metadata.get("metadata") or {}
         decoded = decompress_metadata_string(metadata.get("qiskit_header"))
-        # Single-circuit, so the header is a lone dict; tolerate a list.
-        if isinstance(decoded, list):
-            decoded = decoded[0] if decoded else {}
         header = decoded if isinstance(decoded, dict) else {}
 
         shots = shots or []

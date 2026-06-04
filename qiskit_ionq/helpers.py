@@ -465,12 +465,11 @@ def decompress_metadata_string(
 def _qasm3_data(circuit: QuantumCircuit) -> str:
     """OpenQASM 3 string for ``ionq.qasm3.v1`` submission.
 
-    Rejects circuits whose classical-register names get renamed on export:
-    ``qiskit.qasm3.dumps`` rewrites names that collide with OpenQASM 3 reserved
-    words (e.g. ``output`` -> ``output_0``). The server keys per-register
-    results by the emitted name while the result decoder maps by the circuit's
-    register names, so a silent rename would zero out that register's outcomes.
-    Failing fast with the offending names is better than wrong counts.
+    Rejects circuits whose classical-register names ``qiskit.qasm3.dumps``
+    renames to dodge OpenQASM 3 reserved words (``output`` -> ``output_0``):
+    the server keys per-register results by the emitted name while the decoder
+    maps by the circuit's names, so a silent rename would zero out that
+    register. Failing fast beats wrong counts.
     """
     from qiskit.qasm3 import (  # pylint: disable=import-outside-toplevel
         dumps as _qasm3_dumps,

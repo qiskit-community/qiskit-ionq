@@ -1251,16 +1251,32 @@ def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
     assert job.compiled_circuit(lang="qasm3") == qasm3
 
 
-def test_compiled_unknown_format(mock_backend, requests_mock):
-    """A lang with no matching artifact raises, listing what is available."""
+def _strip_native_id(response):
+    """Republish the native format without an artifact id (treated unavailable)."""
+    response["output"]["compilation"]["compiled_circuits"] = {
+        "ionq.native.v1": {"format": "ionq.native.v1", "media_type": "application/json"}
+    }
+    return response
+
+
+@pytest.mark.parametrize(
+    "mutate, lang",
+    [
+        (lambda r: r, "mir"),  # lang matches no published format
+        (lambda r: {**r, "output": None}, "native"),  # nothing published (prod)
+        (_strip_native_id, "native"),  # published format lacks an id
+    ],
+)
+def test_compiled_unavailable(mock_backend, requests_mock, mutate, lang):
+    """compiled_circuit() raises IonQJobError when no usable artifact matches."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
-        json=_dry_run_job_response(job_id),
+        json=mutate(_dry_run_job_response(job_id)),
     )
     job = ionq_job.IonQJob(mock_backend, job_id)
     with pytest.raises(exceptions.IonQJobError, match="Available formats"):
-        job.compiled_circuit(lang="mir")
+        job.compiled_circuit(lang=lang)
 
 
 def test_compiled_artifact_error(mock_backend, requests_mock):
@@ -1464,29 +1480,3 @@ def test_qasm3_memory_false(mock_backend, requests_mock):
     assert res.data(0).get("memory") is None
     with pytest.raises(exceptions.IonQBackendError, match="memory=True"):
         job.get_memory()
-
-
-def test_compiled_no_output(mock_backend, requests_mock):
-    """A job with no published compiled_circuits raises a clear IonQJobError."""
-    job_id = "dry_run_id"
-    response = _dry_run_job_response(job_id)
-    response["output"] = None  # prod mid-rollout: endpoint 410'd, artifacts absent
-    requests_mock.get(mock_backend.client.make_path("jobs", job_id), json=response)
-
-    job = ionq_job.IonQJob(mock_backend, job_id)
-    with pytest.raises(exceptions.IonQJobError, match="Available formats: none"):
-        job.compiled_circuit()
-
-
-def test_compiled_format_no_id(mock_backend, requests_mock):
-    """A published format whose artifact lacks an id is treated as unavailable."""
-    job_id = "dry_run_id"
-    response = _dry_run_job_response(job_id)
-    response["output"]["compilation"]["compiled_circuits"] = {
-        "ionq.native.v1": {"format": "ionq.native.v1", "media_type": "application/json"}
-    }
-    requests_mock.get(mock_backend.client.make_path("jobs", job_id), json=response)
-
-    job = ionq_job.IonQJob(mock_backend, job_id)
-    with pytest.raises(exceptions.IonQJobError, match="Available formats"):
-        job.compiled_circuit(lang="native")
