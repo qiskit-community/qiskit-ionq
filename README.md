@@ -35,10 +35,10 @@ provider = IonQProvider("token")
 
 ### Credential Environment Variables
 
-Alternatively, the IonQ Provider can discover your access token from environment variables:
+Alternatively, the IonQ Provider can discover your access token from environment variables. It checks `QISKIT_IONQ_API_TOKEN`, then `IONQ_API_KEY`, then `IONQ_API_TOKEN`:
 
 ```bash
-export IONQ_API_TOKEN="token"
+export IONQ_API_KEY="token"
 ```
 
 Then invoke instantiate the provider without any arguments:
@@ -97,14 +97,13 @@ Set `dry_run=True` on `backend.run(...)` and then read the compiled circuit back
 ```python
 backend = provider.get_backend("ionq_qpu.forte-1")
 
-job = backend.run(qc, dry_run=True)
+job = backend.run(qc, dry_run=True, job_settings={"compilation": {"service_version": "v0.4"}})
 job.wait_for_final_state()
 
 native = job.compiled_circuit(lang="native")   # IonQ-native gate JSON (dict)
-ore    = job.compiled_circuit(lang="ore")      # lower-level ORE JSON (dict)
 ```
 
-The compiled circuit is fetched from the job's published artifacts (`output.compilation.compiled_circuits`); `lang` is matched against the available format keys (e.g. `"native"` → `ionq.native.v1`). The available formats vary by job and compiler — if the requested one isn't published, `IonQJobError` lists what is. Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
+The compiled circuit is fetched from the job's published artifacts (`output.compilation.compiled_circuits`); `lang` is matched against the available format keys (e.g. `"native"` → `ionq.native.v1`). Compiled-circuit artifacts come from the v0.4 compiler stack, which is rolling out as the prod default — until then, pass `service_version="v0.4"` as above, otherwise no compiled circuit is published and `compiled_circuit()` raises listing the available formats (`none`). Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
 
 ### Per-shot memory (`memory`)
 

@@ -216,19 +216,23 @@ class IonQGateError(IonQError, JobError):
 
 
 class IonQMidCircuitMeasurementError(IonQError, JobError):
-    """Errors generated from attempting mid-circuit measurement, which is not supported.
-    Measurement must come after all instructions.
+    """A qubit is used after measurement while building a flat ``ionq.circuit.v1``
+    circuit, which can't represent mid-circuit measurement.
+
+    ``backend.run`` submits such circuits as OpenQASM 3 automatically, so this is
+    only raised when building a v1 circuit directly.
 
     Attributes:
-        qubit_index: The qubit index to be measured mid-circuit
+        qubit_index: The qubit reused after measurement.
     """
 
     def __init__(self, qubit_index: int, gate_name: str):
         self.qubit_index = qubit_index
         self.gate_name = gate_name
         super().__init__(
-            f"Attempting to put '{gate_name}' after a measurement on qubit {qubit_index}. "
-            "Mid-circuit measurement is not supported."
+            f"'{gate_name}' acts on qubit {qubit_index} after it was measured. The "
+            "ionq.circuit.v1 format can't represent mid-circuit measurement; submit "
+            "via backend.run, which uses OpenQASM 3 for such circuits."
         )
 
     def __str__(self):
