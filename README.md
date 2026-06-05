@@ -119,9 +119,11 @@ The ideal simulator does not produce per-shot data; calling `get_memory()` on a 
 
 ### Mid-circuit measurements
 
-The IonQ provider supports circuits with mid-circuit measurements, qubit reuse after measurement, mid-circuit `reset`, and classical control flow. Outcomes are reported per declared classical register, matching Qiskit's usual register-split formatting. Single-circuit submissions only; pass `error_mitigation`/`symmetry_verification`, `include_leakage`, or `verbatim` via `job_settings`.
+The IonQ provider supports mid-circuit measurements, qubit reuse, mid-circuit `reset`, and classical control flow. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; pass `error_mitigation`/`symmetry_verification`, `include_leakage`, or `verbatim` via `job_settings`.
 
-Such circuits are submitted automatically as OpenQASM 3 (`ionq.qasm3.v1`) — no extra flags needed. OpenQASM 3 jobs run on the simulator and mid-circuit-measurement-capable QPUs (Tempo); other targets reject them server-side. Classical-register names that collide with OpenQASM 3 reserved words (e.g. `output`, `input`, `measure`) are rejected at submission — rename them.
+These run automatically as OpenQASM 3 (`ionq.qasm3.v1`) on the simulator and QPUs that support it (Tempo); other targets are rejected server-side. Register names that are OpenQASM 3 reserved words (`output`, `input`, `measure`, …) are rejected at submission.
+
+Per-register results require sampling, so use a QPU or a noisy simulator (`noise_model=...`); the ideal simulator returns only the aggregate distribution and `result()` raises there.
 
 ```python
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -139,9 +141,9 @@ qc.measure(0, result[0])       # qubit reused after measurement
 qc.x(0)
 qc.measure(0, result[1])
 
-job = backend.run(qc, shots=100, memory=True)
+job = backend.run(qc, shots=100, memory=True, noise_model="aria-1")
 result = job.result()
-result.get_counts()        # split across registers, e.g. {'10 0': 50, '10 1': 50}
+result.get_counts()        # split across registers, e.g. {'10 0': 48, '10 1': 52}
 result.get_memory()        # per-shot, e.g. ['10 0', '10 1', ...]
 ```
 
