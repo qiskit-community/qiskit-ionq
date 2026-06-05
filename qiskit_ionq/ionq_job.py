@@ -672,8 +672,10 @@ class IonQJob(JobV1):
         """Fetch the per-register shots array for a qasm3 (MCM) job."""
         if not self._shots_artifact_id:
             raise exceptions.IonQJobError(
-                f"Job {self._job_id} reported no per-register shots artifact; "
-                "cannot build mid-circuit measurement results."
+                f"Job {self._job_id} produced no per-register shot data. "
+                "Mid-circuit measurement results require sampling — run on a "
+                'QPU or pass a noise model (e.g. noise_model="aria-1"); the '
+                "ideal simulator returns only the aggregate distribution."
             )
         assert self._job_id is not None
         payload = self._client.get_artifact(

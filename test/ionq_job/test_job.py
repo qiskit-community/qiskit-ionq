@@ -1454,17 +1454,25 @@ def test_qasm3_result_counts(mock_backend, requests_mock):
     assert res.get_memory() == ["00 0", "00 0", "00 0", "01 1"]
 
 
-def test_qasm3_no_shots_artifact(mock_backend, requests_mock):
-    """A qasm3 job missing its v2 shots artifact raises a clear error."""
-    job_id = "mcm_job_2"
+def test_qasm3_ideal_sim_no_shots(mock_backend, requests_mock):
+    """The ideal simulator publishes only aggregate probabilities (no shots), so
+    result() raises an actionable error pointing to a noise model / QPU."""
+    job_id = "mcm_ideal"
     response = _qasm3_job_response(job_id, "unused")
-    response["results"].pop("ionq.result.shots.json.v2")
+    response["results"] = {
+        "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"},
+        "ionq.result.probabilities.json.v2": {
+            "id": "probs-aid",
+            "format": "ionq.result.probabilities.json.v2",
+            "media_type": "application/json",
+        },
+    }
     client = mock_backend.client
     requests_mock.post(client.make_path("jobs"), json={"id": job_id})
     requests_mock.get(client.make_path("jobs", job_id), json=response)
 
     job = mock_backend.run(_mcm_circuit(), shots=4)
-    with pytest.raises(exceptions.IonQJobError, match="shots artifact"):
+    with pytest.raises(exceptions.IonQJobError, match="noise model"):
         job.result()
 
 
