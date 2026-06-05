@@ -206,7 +206,7 @@ class IonQBackend(Backend):
 
     @property
     def _api_backend_name(self) -> str:
-        """Backend name used by the IonQ API (e.g., `qpu.aria-1`)."""
+        """Backend name used by the IonQ API (e.g., `qpu.forte-1`)."""
         # QPU names are `ionq_qpu.*` locally; API expects `qpu.*`
         return self.name.replace("ionq_qpu", "qpu")
 
@@ -402,7 +402,7 @@ class IonQSimulatorBackend(IonQBackend):
 
 
 class IonQQPUBackend(IonQBackend):
-    """IonQ trapped-ion hardware back-ends (Aria/Alpine: MS; Forte: ZZ)."""
+    """IonQ trapped-ion hardware back-ends (Aria: MS; Forte: ZZ)."""
 
     def __init__(
         self,

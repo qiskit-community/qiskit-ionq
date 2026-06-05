@@ -160,8 +160,10 @@ def native_2q_gate(value: str | None) -> Literal["ms", "zz"] | None:
 
 
 def circuit_requires_qasm3(input_circuit: QuantumCircuit) -> bool:
-    """True for mid-circuit measurement, reset, or control flow (not
-    expressible as a flat v1 gate list, so submitted as OpenQASM 3).
+    """True for circuits the flat v1 gate list can't express -- mid-circuit
+    measurement, reset, or control flow -- which are submitted as OpenQASM 3.
+
+    Control flow is detected and routed, but isn't supported server-side yet.
     """
     measured: set[int] = set()
     for inst in input_circuit.data:
@@ -202,7 +204,9 @@ def qiskit_circ_to_ionq_circ(
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
-        IonQMidCircuitMeasurementError: If a mid-circuit measurement is detected.
+        IonQMidCircuitMeasurementError: If a qubit is used after measurement. The
+          flat v1 format can't express this; ``backend.run`` routes such circuits
+          to OpenQASM 3, so this only fires when this builder is called directly.
         IonQPauliExponentialError: If non-commuting PauliExponentials are found without
           the appropriate flag.
 
@@ -550,8 +554,12 @@ def _qiskit_to_qasm3_json(  # pylint: disable=too-many-positional-arguments
         }
 
     settings = _build_settings(passed_args, backend)
-    if settings:
-        ionq_json["settings"] = settings
+    # OpenQASM 3 jobs need the v0.4 compiler stack to return register-named
+    # results; pin it unless the caller set their own service_version.
+    compilation = dict(settings.get("compilation") or {})
+    compilation.setdefault("service_version", "v0.4")
+    settings["compilation"] = compilation
+    ionq_json["settings"] = settings
 
     if passed_args.get("dry_run"):
         ionq_json["dry_run"] = True
@@ -594,9 +602,8 @@ def qiskit_to_ionq(
     if any(circuit_requires_qasm3(c) for c in circuits_to_check):
         if multi_circuit:
             raise ionq_exceptions.IonQJobError(
-                "Mid-circuit measurement, reset, and classical control flow are "
-                "only supported for single-circuit submissions. Submit such "
-                "circuits in separate jobs."
+                "Mid-circuit measurement and reset are only supported for "
+                "single-circuit submissions. Submit such circuits in separate jobs."
             )
         return _qiskit_to_qasm3_json(
             circuit,
@@ -774,9 +781,9 @@ class SafeEncoder(json.JSONEncoder):
 def resolve_credentials(token: str | None = None, url: str | None = None) -> dict:
     """Resolve credentials for use in IonQ API calls.
 
-    If the provided ``token`` and ``url`` are both ``None``, then these values
-    are loaded from the ``IONQ_API_TOKEN`` and ``IONQ_API_URL``
-    environment variables, respectively.
+    If the provided ``token`` and ``url`` are both ``None``, the token is read
+    from ``IONQ_API_KEY`` (also ``QISKIT_IONQ_API_TOKEN`` or ``IONQ_API_TOKEN``)
+    and the url from ``IONQ_API_URL`` (or ``QISKIT_IONQ_API_URL``).
 
     If no url is discovered, then ``https://api.ionq.co/v0.4`` is used.
 

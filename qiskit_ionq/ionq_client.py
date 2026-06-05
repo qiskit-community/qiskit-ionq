@@ -408,7 +408,7 @@ class Characterization:
 
     @property
     def backend(self) -> str:
-        """Backend name, e.g. `"qpu.aria-1"`."""
+        """Backend name, e.g. `"qpu.forte-1"`."""
         return self._data["backend"]
 
     @property

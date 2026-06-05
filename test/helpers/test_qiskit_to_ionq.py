@@ -555,21 +555,36 @@ def test_qasm3_payload_shape(qpu_backend):
 
 
 def test_qasm3_settings_passthrough(qpu_backend):
-    """job_settings and error_mitigation flow through on the qasm3 path."""
+    """job_settings flow through and the ErrorMitigation enum merges in."""
     args = {
         "shots": 10,
-        "job_settings": {
-            "include_leakage": False,
-            "error_mitigation": {"symmetry_verification": True},
-        },
+        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
         "error_mitigation": ErrorMitigation.NO_DEBIASING,
     }
     payload = json.loads(qiskit_to_ionq(_mcm_circuit(), qpu_backend, passed_args=args))
-    assert payload["settings"]["include_leakage"] is False
     assert payload["settings"]["error_mitigation"] == {
         "symmetry_verification": True,
         "debiasing": False,
     }
+
+
+def test_qasm3_service_version(qpu_backend):
+    """qasm3 jobs pin compilation.service_version v0.4; a caller can override."""
+    default = json.loads(
+        qiskit_to_ionq(_mcm_circuit(), qpu_backend, passed_args={"shots": 10})
+    )
+    assert default["settings"]["compilation"]["service_version"] == "v0.4"
+    override = json.loads(
+        qiskit_to_ionq(
+            _mcm_circuit(),
+            qpu_backend,
+            passed_args={
+                "shots": 10,
+                "job_settings": {"compilation": {"service_version": "v0.5"}},
+            },
+        )
+    )
+    assert override["settings"]["compilation"]["service_version"] == "v0.5"
 
 
 def test_multi_circuit_mcm_raises(qpu_backend):
