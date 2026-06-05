@@ -22,6 +22,37 @@ For example, running a Bell State:
    print(job.get_counts())
 
 
+Per-shot memory
+===============
+
+Pass ``memory=True`` to get per-shot bitstrings back from QPU or noisy-simulator
+jobs (the ideal simulator returns probabilities, not shots)::
+
+   job = simulator_backend.run(qc, shots=1000, memory=True)
+   print(job.get_memory())
+
+
+Mid-circuit measurements
+========================
+
+Circuits that measure a qubit and then reuse it, or use a mid-circuit ``reset``,
+are submitted automatically as OpenQASM 3, with results reported per declared
+classical register. Per-register results require sampling, so use a QPU or a noisy
+simulator (``noise_model="aria-1"``); the ideal simulator returns only the
+aggregate distribution.
+
+
+Compilation as a service
+========================
+
+Submit with ``dry_run=True`` to compile a circuit without running it, then read the
+compiled output back::
+
+   job = qpu_backend.run(qc, dry_run=True, job_settings={"compilation": {"service_version": "v0.4"}})
+   job.wait_for_final_state()
+   print(job.compiled_circuit(lang="native"))
+
+
 Basis gates and transpilation
 =============================
 

@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Exceptions" href="exceptions.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>Helpers - Qiskit IonQ Provider 1.1.0</title>
+        <title>Helpers - Qiskit IonQ Provider 1.1.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.1.0</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.1.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.1.0</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.1.1</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -238,8 +238,9 @@ to IonQ REST API compatible values.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.circuit_requires_qasm3">
 <span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">circuit_requires_qasm3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#circuit_requires_qasm3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.circuit_requires_qasm3" title="Link to this definition">¶</a></dt>
-<dd><p>True for mid-circuit measurement, reset, or control flow (not
-expressible as a flat v1 gate list, so submitted as OpenQASM 3).</p>
+<dd><p>True for circuits the flat v1 gate list can’t express – mid-circuit
+measurement, reset, or control flow – which are submitted as OpenQASM 3.</p>
+<p>Control flow is detected and routed, but isn’t supported server-side yet.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -328,7 +329,9 @@ trotterization.</p></li>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
 <li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQGateError" title="qiskit_ionq.exceptions.IonQGateError"><strong>IonQGateError</strong></a> – If an unsupported instruction is supplied.</p></li>
-<li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError" title="qiskit_ionq.exceptions.IonQMidCircuitMeasurementError"><strong>IonQMidCircuitMeasurementError</strong></a> – If a mid-circuit measurement is detected.</p></li>
+<li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQMidCircuitMeasurementError" title="qiskit_ionq.exceptions.IonQMidCircuitMeasurementError"><strong>IonQMidCircuitMeasurementError</strong></a> – If a qubit is used after measurement. The
+    flat v1 format can’t express this; <code class="docutils literal notranslate"><span class="pre">backend.run</span></code> routes such circuits
+    to OpenQASM 3, so this only fires when this builder is called directly.</p></li>
 <li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQPauliExponentialError" title="qiskit_ionq.exceptions.IonQPauliExponentialError"><strong>IonQPauliExponentialError</strong></a> – If non-commuting PauliExponentials are found without
     the appropriate flag.</p></li>
 </ul>
@@ -371,9 +374,9 @@ dict: The measurement map from qubit number to classical bit number.</p>
 <dt class="sig sig-object py" id="qiskit_ionq.helpers.resolve_credentials">
 <span class="sig-prename descclassname"><span class="pre">qiskit_ionq.helpers.</span></span><span class="sig-name descname"><span class="pre">resolve_credentials</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/helpers.html#resolve_credentials"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.helpers.resolve_credentials" title="Link to this definition">¶</a></dt>
 <dd><p>Resolve credentials for use in IonQ API calls.</p>
-<p>If the provided <code class="docutils literal notranslate"><span class="pre">token</span></code> and <code class="docutils literal notranslate"><span class="pre">url</span></code> are both <code class="docutils literal notranslate"><span class="pre">None</span></code>, then these values
-are loaded from the <code class="docutils literal notranslate"><span class="pre">IONQ_API_TOKEN</span></code> and <code class="docutils literal notranslate"><span class="pre">IONQ_API_URL</span></code>
-environment variables, respectively.</p>
+<p>If the provided <code class="docutils literal notranslate"><span class="pre">token</span></code> and <code class="docutils literal notranslate"><span class="pre">url</span></code> are both <code class="docutils literal notranslate"><span class="pre">None</span></code>, the token is read
+from <code class="docutils literal notranslate"><span class="pre">IONQ_API_KEY</span></code> (also <code class="docutils literal notranslate"><span class="pre">QISKIT_IONQ_API_TOKEN</span></code> or <code class="docutils literal notranslate"><span class="pre">IONQ_API_TOKEN</span></code>)
+and the url from <code class="docutils literal notranslate"><span class="pre">IONQ_API_URL</span></code> (or <code class="docutils literal notranslate"><span class="pre">QISKIT_IONQ_API_URL</span></code>).</p>
 <p>If no url is discovered, then <code class="docutils literal notranslate"><span class="pre">https://api.ionq.co/v0.4</span></code> is used.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -481,7 +484,7 @@ environment variables, respectively.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=fc837d61"></script>
+    <script src="../_static/documentation_options.js?v=58fbf978"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

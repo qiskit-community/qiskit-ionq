@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Qiskit IonQ Provider API Reference" href="../apidocs/index.html" /><link rel="prev" title="IonQ API Access" href="access.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>Submitting circuits to IonQ backends - Qiskit IonQ Provider 1.1.0</title>
+        <title>Submitting circuits to IonQ backends - Qiskit IonQ Provider 1.1.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.1.0</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.1.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.1.0</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.1.1</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -250,6 +250,33 @@ For example, running a Bell State:</p>
 <span class="nb">print</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">get_counts</span><span class="p">())</span>
 </pre></div>
 </div>
+<section id="per-shot-memory">
+<h2>Per-shot memory<a class="headerlink" href="#per-shot-memory" title="Link to this heading">¶</a></h2>
+<p>Pass <code class="docutils literal notranslate"><span class="pre">memory=True</span></code> to get per-shot bitstrings back from QPU or noisy-simulator
+jobs (the ideal simulator returns probabilities, not shots):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">job</span> <span class="o">=</span> <span class="n">simulator_backend</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">qc</span><span class="p">,</span> <span class="n">shots</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">memory</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">get_memory</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="mid-circuit-measurements">
+<h2>Mid-circuit measurements<a class="headerlink" href="#mid-circuit-measurements" title="Link to this heading">¶</a></h2>
+<p>Circuits that measure a qubit and then reuse it, or use a mid-circuit <code class="docutils literal notranslate"><span class="pre">reset</span></code>,
+are submitted automatically as OpenQASM 3, with results reported per declared
+classical register. Per-register results require sampling, so use a QPU or a noisy
+simulator (<code class="docutils literal notranslate"><span class="pre">noise_model=&quot;aria-1&quot;</span></code>); the ideal simulator returns only the
+aggregate distribution.</p>
+</section>
+<section id="compilation-as-a-service">
+<h2>Compilation as a service<a class="headerlink" href="#compilation-as-a-service" title="Link to this heading">¶</a></h2>
+<p>Submit with <code class="docutils literal notranslate"><span class="pre">dry_run=True</span></code> to compile a circuit without running it, then read the
+compiled output back:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">job</span> <span class="o">=</span> <span class="n">qpu_backend</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">qc</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">job_settings</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;compilation&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;service_version&quot;</span><span class="p">:</span> <span class="s2">&quot;v0.4&quot;</span><span class="p">}})</span>
+<span class="n">job</span><span class="o">.</span><span class="n">wait_for_final_state</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">compiled_circuit</span><span class="p">(</span><span class="n">lang</span><span class="o">=</span><span class="s2">&quot;native&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
 <section id="basis-gates-and-transpilation">
 <h2>Basis gates and transpilation<a class="headerlink" href="#basis-gates-and-transpilation" title="Link to this heading">¶</a></h2>
 <p>The IonQ provider provides access to the full IonQ Cloud backend, which includes
@@ -328,6 +355,9 @@ further information.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Submitting circuits to IonQ backends</a><ul>
+<li><a class="reference internal" href="#per-shot-memory">Per-shot memory</a></li>
+<li><a class="reference internal" href="#mid-circuit-measurements">Mid-circuit measurements</a></li>
+<li><a class="reference internal" href="#compilation-as-a-service">Compilation as a service</a></li>
 <li><a class="reference internal" href="#basis-gates-and-transpilation">Basis gates and transpilation</a></li>
 </ul>
 </li>
@@ -342,7 +372,7 @@ further information.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=fc837d61"></script>
+    <script src="../_static/documentation_options.js?v=58fbf978"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
