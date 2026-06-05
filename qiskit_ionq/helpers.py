@@ -550,8 +550,12 @@ def _qiskit_to_qasm3_json(  # pylint: disable=too-many-positional-arguments
         }
 
     settings = _build_settings(passed_args, backend)
-    if settings:
-        ionq_json["settings"] = settings
+    # OpenQASM 3 jobs need the v0.4 compiler stack to return register-named
+    # results; pin it unless the caller set their own service_version.
+    compilation = dict(settings.get("compilation") or {})
+    compilation.setdefault("service_version", "v0.4")
+    settings["compilation"] = compilation
+    ionq_json["settings"] = settings
 
     if passed_args.get("dry_run"):
         ionq_json["dry_run"] = True
@@ -594,9 +598,8 @@ def qiskit_to_ionq(
     if any(circuit_requires_qasm3(c) for c in circuits_to_check):
         if multi_circuit:
             raise ionq_exceptions.IonQJobError(
-                "Mid-circuit measurement, reset, and classical control flow are "
-                "only supported for single-circuit submissions. Submit such "
-                "circuits in separate jobs."
+                "Mid-circuit measurement and reset are only supported for "
+                "single-circuit submissions. Submit such circuits in separate jobs."
             )
         return _qiskit_to_qasm3_json(
             circuit,
