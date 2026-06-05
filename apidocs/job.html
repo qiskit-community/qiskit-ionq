@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="IonQ Provider" href="provider.html" /><link rel="prev" title="Qiskit IonQ Provider API Reference" href="index.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>IonQ Job - Qiskit IonQ Provider 1.0.3</title>
+        <title>IonQ Job - Qiskit IonQ Provider 1.1.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.0.3</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.1.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.3</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.1.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -302,34 +302,13 @@ the job.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_job.IonQJob.compiled_circuit">
-<span class="sig-name descname"><span class="pre">compiled_circuit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lang</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'native'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_job.html#IonQJob.compiled_circuit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_job.IonQJob.compiled_circuit" title="Link to this definition">¶</a></dt>
-<dd><p>Fetch the server-compiled circuit for this job.</p>
-<p>Useful for jobs submitted with <code class="docutils literal notranslate"><span class="pre">dry_run=True</span></code> (compilation as a
-service) but also works for any completed job to inspect what was
-actually run on hardware after IonQ’s compiler resynthesizes the input.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>lang</strong> (<em>str</em>) – Output language. <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code> (default) returns the
-IonQ-native gate JSON; <code class="docutils literal notranslate"><span class="pre">&quot;qasm3&quot;</span></code> returns OpenQASM 3 source.
-Other values may be accepted depending on organization
-entitlement; the API rejects unsupported or non-entitled
-values with a <code class="docutils literal notranslate"><span class="pre">4xx</span></code> response surfaced here as
-<a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQAPIError" title="qiskit_ionq.exceptions.IonQAPIError"><code class="xref py py-class docutils literal notranslate"><span class="pre">IonQAPIError</span></code></a>.</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>IonQJobStateError</strong> – If the job has not reached a final state yet.</p></li>
-<li><p><strong>IonQJobFailureError</strong> – If the job failed before compilation completed.</p></li>
-<li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQAPIError" title="qiskit_ionq.exceptions.IonQAPIError"><strong>IonQAPIError</strong></a> – If the API rejects the <code class="docutils literal notranslate"><span class="pre">lang</span></code> value.</p></li>
-</ul>
-</dd>
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The compiled circuit as a string (IonQ-native JSON or OpenQASM 3).</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str</p>
-</dd>
-</dl>
+<span class="sig-name descname"><span class="pre">compiled_circuit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lang</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'native'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_job.html#IonQJob.compiled_circuit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_job.IonQJob.compiled_circuit" title="Link to this definition">¶</a></dt>
+<dd><p>Fetch the server-compiled circuit, parsed from its published artifact.</p>
+<p><code class="docutils literal notranslate"><span class="pre">lang</span></code> is a short name – <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;ore&quot;</span></code> (QIS jobs),
+<code class="docutils literal notranslate"><span class="pre">&quot;mir&quot;</span></code> (OpenQASM 3 jobs) – or an exact format key, matched against
+<code class="docutils literal notranslate"><span class="pre">output.compilation.compiled_circuits</span></code>; raises <code class="docutils literal notranslate"><span class="pre">IonQJobError</span></code> if
+none match. Returns a <code class="docutils literal notranslate"><span class="pre">dict</span></code>/<code class="docutils literal notranslate"><span class="pre">list</span></code> for JSON formats or <code class="docutils literal notranslate"><span class="pre">bytes</span></code>
+for binary ones (<code class="docutils literal notranslate"><span class="pre">ionq.mir.v1</span></code>).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -617,7 +596,7 @@ the callback function.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=baaebd52"></script>
+    <script src="../_static/documentation_options.js?v=fc837d61"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

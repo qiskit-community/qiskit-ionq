@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="IonQ Result" href="result.html" /><link rel="prev" title="IonQ Backends" href="backends.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>API Client - Qiskit IonQ Provider 1.0.3</title>
+        <title>API Client - Qiskit IonQ Provider 1.1.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.0.3</div></a>
+      <a href="../index.html"><div class="brand">Qiskit IonQ Provider 1.1.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.3</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.1.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -415,6 +415,15 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.get_artifact">
+<span class="sig-name descname"><span class="pre">get_artifact</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifact_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_query_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.get_artifact"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.get_artifact" title="Link to this definition">¶</a></dt>
+<dd><p>GET a result artifact by id (<code class="docutils literal notranslate"><span class="pre">/jobs/{id}/artifacts/{aid}</span></code>).</p>
+<p>JSON artifacts decode to order-preserving objects; binary ones (the
+<code class="docutils literal notranslate"><span class="pre">ionq.mir.v1</span></code> compiled circuit, <code class="docutils literal notranslate"><span class="pre">application/octet-stream</span></code>) return
+as raw <code class="docutils literal notranslate"><span class="pre">bytes</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.get_calibration_data">
 <span class="sig-name descname"><span class="pre">get_calibration_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#qiskit_ionq.ionq_client.Characterization" title="qiskit_ionq.ionq_client.Characterization"><span class="pre">Characterization</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.get_calibration_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.get_calibration_data" title="Link to this definition">¶</a></dt>
 <dd><p>Retrieve calibration data for a specified backend.</p>
@@ -437,45 +446,6 @@ accepts 1–10, default 10).</p></li>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>A list of <code class="docutils literal notranslate"><span class="pre">Characterization</span></code> instances, empty if the backend
 has no characterization data (e.g. simulator, <code class="docutils literal notranslate"><span class="pre">qpu.qpu</span></code>).</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_ionq.ionq_client.IonQClient.get_compiled_circuit">
-<span class="sig-name descname"><span class="pre">get_compiled_circuit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lang</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'native'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/qiskit_ionq/ionq_client.html#IonQClient.get_compiled_circuit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_ionq.ionq_client.IonQClient.get_compiled_circuit" title="Link to this definition">¶</a></dt>
-<dd><p>Retrieve the server-compiled circuit for a job.</p>
-<p>Hits <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/v0.4/jobs/{UUID}/circuits/{lang}</span></code>, which is populated by the
-IonQ Cloud compiler-as-a-service for jobs submitted with <code class="docutils literal notranslate"><span class="pre">dry_run=True</span></code>
-(and, for fully-executed jobs, the post-compilation circuit actually run
-on hardware).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>job_id</strong> (<em>str</em>) – The ID of the job whose compiled circuit to fetch.</p></li>
-<li><p><strong>lang</strong> (<em>str</em>) – Output language. <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code> (default) returns the
-IonQ-native gate JSON; <code class="docutils literal notranslate"><span class="pre">&quot;qasm3&quot;</span></code> returns OpenQASM 3 source.
-Other values may be accepted depending on organization
-entitlement; consult the IonQ API reference for the current
-set. Unsupported or non-entitled values are rejected by the
-API with a <code class="docutils literal notranslate"><span class="pre">4xx</span></code> response.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><a class="reference internal" href="exceptions.html#qiskit_ionq.exceptions.IonQAPIError" title="qiskit_ionq.exceptions.IonQAPIError"><strong>IonQAPIError</strong></a> – When the API returns a non-2xx status code (this
-    covers both unsupported <code class="docutils literal notranslate"><span class="pre">lang</span></code> values and per-organization
-    entitlement rejections).</p></li>
-<li><p><strong>IonQRetriableError</strong> – When a retriable error occurs during the request.</p></li>
-</ul>
-</dd>
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The compiled circuit as a string. For <code class="docutils literal notranslate"><span class="pre">lang=&quot;qasm3&quot;</span></code> this is
-an OpenQASM 3 program; for <code class="docutils literal notranslate"><span class="pre">lang=&quot;native&quot;</span></code> this is the IonQ JSON
-circuit representation in native gates.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -750,8 +720,8 @@ circuit representation in native gates.</p>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.cancel_jobs"><code class="docutils literal notranslate"><span class="pre">IonQClient.cancel_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.delete_job"><code class="docutils literal notranslate"><span class="pre">IonQClient.delete_job()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.estimate_job"><code class="docutils literal notranslate"><span class="pre">IonQClient.estimate_job()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.get_artifact"><code class="docutils literal notranslate"><span class="pre">IonQClient.get_artifact()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.get_calibration_data"><code class="docutils literal notranslate"><span class="pre">IonQClient.get_calibration_data()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.get_compiled_circuit"><code class="docutils literal notranslate"><span class="pre">IonQClient.get_compiled_circuit()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.get_latest_calibration"><code class="docutils literal notranslate"><span class="pre">IonQClient.get_latest_calibration()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.get_results"><code class="docutils literal notranslate"><span class="pre">IonQClient.get_results()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_ionq.ionq_client.IonQClient.get_with_retry"><code class="docutils literal notranslate"><span class="pre">IonQClient.get_with_retry()</span></code></a></li>
@@ -780,7 +750,7 @@ circuit representation in native gates.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../_static/documentation_options.js?v=baaebd52"></script>
+    <script src="../_static/documentation_options.js?v=fc837d61"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

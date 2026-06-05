@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.helpers - Qiskit IonQ Provider 1.0.3</title>
+        <title>qiskit_ionq.helpers - Qiskit IonQ Provider 1.1.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.0.3</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.1.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.3</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.1.0</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -265,6 +265,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">gzip</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
@@ -282,6 +283,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.user_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_config</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.circuit</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">controlledgate</span> <span class="k">as</span> <span class="n">q_cgates</span><span class="p">,</span>
+    <span class="n">ControlFlowOp</span><span class="p">,</span>
     <span class="n">QuantumCircuit</span><span class="p">,</span>
     <span class="n">QuantumRegister</span><span class="p">,</span>
     <span class="n">ClassicalRegister</span><span class="p">,</span>
@@ -388,6 +390,32 @@
         <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="n">fam</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">fam</span><span class="si">}</span><span class="s2">-&quot;</span> <span class="ow">in</span> <span class="n">value</span> <span class="ow">or</span> <span class="n">value</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">fam</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="n">fam</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)):</span>
             <span class="k">return</span> <span class="n">gate</span>
     <span class="k">return</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="circuit_requires_qasm3">
+<a class="viewcode-back" href="../../apidocs/helpers.html#qiskit_ionq.helpers.circuit_requires_qasm3">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">circuit_requires_qasm3</span><span class="p">(</span><span class="n">input_circuit</span><span class="p">:</span> <span class="n">QuantumCircuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;True for mid-circuit measurement, reset, or control flow (not</span>
+<span class="sd">    expressible as a flat v1 gate list, so submitted as OpenQASM 3).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">measured</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">input_circuit</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+        <span class="n">operation</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">operation</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">operation</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;barrier&quot;</span><span class="p">,</span> <span class="s2">&quot;delay&quot;</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">operation</span><span class="p">,</span> <span class="n">ControlFlowOp</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;reset&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">qubit_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">input_circuit</span><span class="o">.</span><span class="n">qubits</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">inst</span><span class="o">.</span><span class="n">qubits</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;measure&quot;</span><span class="p">:</span>
+            <span class="n">measured</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">qubit_indices</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">measured</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">qubit_indices</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
 
 
 <div class="viewcode-block" id="qiskit_circ_to_ionq_circ">
@@ -677,6 +705,108 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_qasm3_data</span><span class="p">(</span><span class="n">circuit</span><span class="p">:</span> <span class="n">QuantumCircuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;OpenQASM 3 for submission.</span>
+
+<span class="sd">    Rejects cregs that ``dumps`` renames to dodge reserved words</span>
+<span class="sd">    (``output`` -&gt; ``output_0``); the rename would misalign per-register</span>
+<span class="sd">    results decoded by the original name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.qasm3</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+        <span class="n">dumps</span> <span class="k">as</span> <span class="n">_qasm3_dumps</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">_qasm3_dumps</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+    <span class="n">emitted</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\bbit(?:\[\d+\])?\s+(\w+)\s*;&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+    <span class="n">renamed</span> <span class="o">=</span> <span class="p">[</span><span class="n">creg</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">creg</span> <span class="ow">in</span> <span class="n">circuit</span><span class="o">.</span><span class="n">cregs</span> <span class="k">if</span> <span class="n">creg</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">emitted</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">renamed</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ionq_exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Classical register name(s) </span><span class="si">{</span><span class="n">renamed</span><span class="si">}</span><span class="s2"> are OpenQASM 3 reserved &quot;</span>
+            <span class="s2">&quot;words; rename them and resubmit.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_settings</span><span class="p">(</span><span class="n">passed_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">backend</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build ``settings`` from ``job_settings``, merging the ErrorMitigation</span>
+<span class="sd">    enum into ``error_mitigation``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">settings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;job_settings&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span>
+    <span class="n">error_mitigation</span> <span class="o">=</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;error_mitigation&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">backend</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="s2">&quot;error_mitigation&quot;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error_mitigation</span><span class="p">,</span> <span class="n">ErrorMitigation</span><span class="p">):</span>
+        <span class="n">em_block</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;error_mitigation&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="n">em_block</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">error_mitigation</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">settings</span><span class="p">[</span><span class="s2">&quot;error_mitigation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">em_block</span>
+    <span class="k">return</span> <span class="n">settings</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_qiskit_to_qasm3_json</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-positional-arguments</span>
+    <span class="n">circuit</span><span class="p">:</span> <span class="n">QuantumCircuit</span><span class="p">,</span>
+    <span class="n">backend</span><span class="p">,</span>
+    <span class="n">backend_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">passed_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">extra_query_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">extra_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the ``ionq.qasm3.v1`` payload (OpenQASM 3 input) for one circuit.&quot;&quot;&quot;</span>
+    <span class="n">qiskit_header</span> <span class="o">=</span> <span class="n">compress_to_metadata_string</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;memory_slots&quot;</span><span class="p">:</span> <span class="n">circuit</span><span class="o">.</span><span class="n">num_clbits</span><span class="p">,</span>
+            <span class="s2">&quot;global_phase&quot;</span><span class="p">:</span> <span class="n">circuit</span><span class="o">.</span><span class="n">global_phase</span><span class="p">,</span>
+            <span class="s2">&quot;n_qubits&quot;</span><span class="p">:</span> <span class="n">circuit</span><span class="o">.</span><span class="n">num_qubits</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">circuit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;creg_sizes&quot;</span><span class="p">:</span> <span class="n">get_register_sizes_and_labels</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">cregs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s2">&quot;clbit_labels&quot;</span><span class="p">:</span> <span class="n">get_register_sizes_and_labels</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">cregs</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="s2">&quot;qreg_sizes&quot;</span><span class="p">:</span> <span class="n">get_register_sizes_and_labels</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">qregs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s2">&quot;qubit_labels&quot;</span><span class="p">:</span> <span class="n">get_register_sizes_and_labels</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">qregs</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="o">**</span><span class="p">({</span><span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="n">circuit</span><span class="o">.</span><span class="n">metadata</span><span class="p">}</span> <span class="k">if</span> <span class="n">circuit</span><span class="o">.</span><span class="n">metadata</span> <span class="k">else</span> <span class="p">{}),</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">ionq_json</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;ionq.qasm3.v1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;backend&quot;</span><span class="p">:</span> <span class="n">backend_name</span><span class="p">,</span>
+        <span class="s2">&quot;shots&quot;</span><span class="p">:</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shots&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">circuit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;qubits&quot;</span><span class="p">:</span> <span class="n">circuit</span><span class="o">.</span><span class="n">num_qubits</span><span class="p">,</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">_qasm3_data</span><span class="p">(</span><span class="n">circuit</span><span class="p">),</span>
+        <span class="p">},</span>
+        <span class="o">**</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">&quot;session_id&quot;</span><span class="p">:</span> <span class="n">passed_args</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">]}</span>
+            <span class="k">if</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;session_id&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="p">{}</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;shots&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shots&quot;</span><span class="p">)),</span>
+            <span class="s2">&quot;sampler_seed&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sampler_seed&quot;</span><span class="p">)),</span>
+            <span class="s2">&quot;qiskit_header&quot;</span><span class="p">:</span> <span class="n">qiskit_header</span><span class="p">,</span>
+            <span class="s2">&quot;user_agent&quot;</span><span class="p">:</span> <span class="n">get_user_agent</span><span class="p">(),</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+    <span class="c1"># simulator noise model</span>
+    <span class="k">if</span> <span class="n">backend_name</span> <span class="o">==</span> <span class="s2">&quot;simulator&quot;</span><span class="p">:</span>
+        <span class="n">ionq_json</span><span class="p">[</span><span class="s2">&quot;noise&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;noise_model&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">backend</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span>
+            <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="n">backend</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">sampler_seed</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">_build_settings</span><span class="p">(</span><span class="n">passed_args</span><span class="p">,</span> <span class="n">backend</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">settings</span><span class="p">:</span>
+        <span class="n">ionq_json</span><span class="p">[</span><span class="s2">&quot;settings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span>
+
+    <span class="k">if</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dry_run&quot;</span><span class="p">):</span>
+        <span class="n">ionq_json</span><span class="p">[</span><span class="s2">&quot;dry_run&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">ionq_json</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra_query_params</span><span class="p">)</span>
+    <span class="n">ionq_json</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra_metadata</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">ionq_json</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">SafeEncoder</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="qiskit_to_ionq">
 <a class="viewcode-back" href="../../apidocs/helpers.html#qiskit_ionq.helpers.qiskit_to_ionq">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">qiskit_to_ionq</span><span class="p">(</span>
@@ -702,10 +832,31 @@
     <span class="n">extra_query_params</span> <span class="o">=</span> <span class="n">extra_query_params</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">extra_metadata</span> <span class="o">=</span> <span class="n">extra_metadata</span> <span class="ow">or</span> <span class="p">{}</span>
 
+    <span class="n">backend_name</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span> <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ionq&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="n">multi_circuit</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+
+    <span class="c1"># Route circuits the v1 gate list can&#39;t express (see circuit_requires_qasm3).</span>
+    <span class="n">circuits_to_check</span> <span class="o">=</span> <span class="n">circuit</span> <span class="k">if</span> <span class="n">multi_circuit</span> <span class="k">else</span> <span class="p">[</span><span class="n">circuit</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">circuit_requires_qasm3</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">circuits_to_check</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">multi_circuit</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ionq_exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
+                <span class="s2">&quot;Mid-circuit measurement, reset, and classical control flow are &quot;</span>
+                <span class="s2">&quot;only supported for single-circuit submissions. Submit such &quot;</span>
+                <span class="s2">&quot;circuits in separate jobs.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">_qiskit_to_qasm3_json</span><span class="p">(</span>
+            <span class="n">circuit</span><span class="p">,</span>
+            <span class="n">backend</span><span class="p">,</span>
+            <span class="n">backend_name</span><span class="p">,</span>
+            <span class="n">passed_args</span><span class="p">,</span>
+            <span class="n">extra_query_params</span><span class="p">,</span>
+            <span class="n">extra_metadata</span><span class="p">,</span>
+        <span class="p">)</span>
+
     <span class="c1"># build the (multi-)circuit block</span>
     <span class="n">ionq_circs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">Any</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">meas_map</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">multi_circuit</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="n">multi_circuit</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">circ</span> <span class="ow">in</span> <span class="n">circuit</span><span class="p">:</span>
@@ -780,7 +931,6 @@
         <span class="n">input_block</span><span class="p">[</span><span class="s2">&quot;circuit&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ionq_circs</span>
 
     <span class="c1"># top-level fields</span>
-    <span class="n">backend_name</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span> <span class="k">if</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ionq&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span>
     <span class="n">ionq_json</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;ionq.multi-circuit.v1&quot;</span> <span class="k">if</span> <span class="n">multi_circuit</span> <span class="k">else</span> <span class="s2">&quot;ionq.circuit.v1&quot;</span><span class="p">,</span>
         <span class="s2">&quot;backend&quot;</span><span class="p">:</span> <span class="n">backend_name</span><span class="p">,</span>
@@ -809,14 +959,7 @@
         <span class="p">}</span>
 
     <span class="c1"># settings / error mitigation</span>
-    <span class="n">settings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;job_settings&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span>
-    <span class="n">error_mitigation</span> <span class="o">=</span> <span class="n">passed_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;error_mitigation&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">backend</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-        <span class="s2">&quot;error_mitigation&quot;</span>
-    <span class="p">)</span>
-
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error_mitigation</span><span class="p">,</span> <span class="n">ErrorMitigation</span><span class="p">):</span>
-        <span class="n">settings</span><span class="p">[</span><span class="s2">&quot;error_mitigation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">error_mitigation</span><span class="o">.</span><span class="n">value</span>
-
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">_build_settings</span><span class="p">(</span><span class="n">passed_args</span><span class="p">,</span> <span class="n">backend</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">settings</span><span class="p">:</span>
         <span class="n">ionq_json</span><span class="p">[</span><span class="s2">&quot;settings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span>
 
@@ -1025,6 +1168,7 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;qiskit_to_ionq&quot;</span><span class="p">,</span>
     <span class="s2">&quot;qiskit_circ_to_ionq_circ&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;circuit_requires_qasm3&quot;</span><span class="p">,</span>
     <span class="s2">&quot;compress_to_metadata_string&quot;</span><span class="p">,</span>
     <span class="s2">&quot;decompress_metadata_string&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_user_agent&quot;</span><span class="p">,</span>
@@ -1065,7 +1209,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=baaebd52"></script>
+    <script src="../../_static/documentation_options.js?v=fc837d61"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>

@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 1.0.3</title>
+        <title>qiskit_ionq.ionq_job - Qiskit IonQ Provider 1.1.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.0.3</div></a>
+      <a href="../../index.html"><div class="brand">Qiskit IonQ Provider 1.1.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.0.3</span>
+  <span class="sidebar-brand-text">Qiskit IonQ Provider 1.1.0</span>
 </div><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -442,6 +442,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_execution_time</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dry_run</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_results_urls</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Set in status() for ionq.qasm3.v1 (mid-circuit measurement) jobs.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_qasm3</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shots_artifact_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="n">passed_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -485,33 +488,34 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dry_run</span>
 
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_compiled_format</span><span class="p">(</span><span class="n">lang</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">available</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Map ``lang`` (exact key or short name like ``&quot;native&quot;``) to an</span>
+<span class="sd">        available format key with an artifact ``id``, else ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">has_id</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">available</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">has_id</span><span class="p">(</span><span class="n">lang</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">lang</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">available</span> <span class="k">if</span> <span class="n">has_id</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="ow">and</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="n">lang</span><span class="p">]),</span>
+            <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+
 <div class="viewcode-block" id="IonQJob.compiled_circuit">
 <a class="viewcode-back" href="../../apidocs/job.html#qiskit_ionq.ionq_job.IonQJob.compiled_circuit">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">compiled_circuit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;native&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch the server-compiled circuit for this job.</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compiled_circuit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;native&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch the server-compiled circuit, parsed from its published artifact.</span>
 
-<span class="sd">        Useful for jobs submitted with ``dry_run=True`` (compilation as a</span>
-<span class="sd">        service) but also works for any completed job to inspect what was</span>
-<span class="sd">        actually run on hardware after IonQ&#39;s compiler resynthesizes the input.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            lang (str): Output language. ``&quot;native&quot;`` (default) returns the</span>
-<span class="sd">                IonQ-native gate JSON; ``&quot;qasm3&quot;`` returns OpenQASM 3 source.</span>
-<span class="sd">                Other values may be accepted depending on organization</span>
-<span class="sd">                entitlement; the API rejects unsupported or non-entitled</span>
-<span class="sd">                values with a ``4xx`` response surfaced here as</span>
-<span class="sd">                :class:`~qiskit_ionq.exceptions.IonQAPIError`.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            IonQJobStateError: If the job has not reached a final state yet.</span>
-<span class="sd">            IonQJobFailureError: If the job failed before compilation completed.</span>
-<span class="sd">            IonQAPIError: If the API rejects the ``lang`` value.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            str: The compiled circuit as a string (IonQ-native JSON or OpenQASM 3).</span>
+<span class="sd">        ``lang`` is a short name -- ``&quot;native&quot;`` or ``&quot;ore&quot;`` (QIS jobs),</span>
+<span class="sd">        ``&quot;mir&quot;`` (OpenQASM 3 jobs) -- or an exact format key, matched against</span>
+<span class="sd">        ``output.compilation.compiled_circuits``; raises ``IonQJobError`` if</span>
+<span class="sd">        none match. Returns a ``dict``/``list`` for JSON formats or ``bytes``</span>
+<span class="sd">        for binary ones (``ionq.mir.v1``).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Make sure we&#39;re in a final state and the job-id is known. status()</span>
-        <span class="c1"># raises IonQJobFailureError on failure, which is the right behavior.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JOB_FINAL_STATES</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobStateError</span><span class="p">(</span>
@@ -519,7 +523,17 @@
                 <span class="s2">&quot;Call wait_for_final_state() first.&quot;</span>
             <span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">get_compiled_circuit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="p">,</span> <span class="n">lang</span><span class="o">=</span><span class="n">lang</span><span class="p">)</span></div>
+        <span class="n">circuits</span> <span class="o">=</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;compilation&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;compiled_circuits&quot;</span>
+        <span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_compiled_format</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">circuits</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fmt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">available</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">circuits</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span>
+            <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No compiled circuit matching </span><span class="si">{</span><span class="n">lang</span><span class="si">!r}</span><span class="s2"> for job </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Available formats: </span><span class="si">{</span><span class="n">available</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">get_artifact</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="p">,</span> <span class="n">circuits</span><span class="p">[</span><span class="n">fmt</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="IonQJob.cancel">
@@ -663,15 +677,20 @@
                 <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Job </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="si">}</span><span class="s2"> was submitted with dry_run=True; &quot;</span>
                     <span class="s2">&quot;no measurement results are produced. Use &quot;</span>
-                    <span class="s2">&quot;job.compiled_circuit(lang=&#39;native&#39; or &#39;qasm3&#39;) to &quot;</span>
+                    <span class="s2">&quot;job.compiled_circuit(...) to &quot;</span>
                     <span class="s2">&quot;retrieve the compiled circuit instead.&quot;</span>
                 <span class="p">)</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">get_results</span><span class="p">(</span>
-                <span class="n">results_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_results_urls</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;probabilities&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
-                <span class="n">sharpen</span><span class="o">=</span><span class="n">sharpen</span><span class="p">,</span>
-                <span class="n">extra_query_params</span><span class="o">=</span><span class="n">extra_query_params</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_result</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_qasm3</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_result_qasm3</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_fetch_qasm3_shots</span><span class="p">(</span><span class="n">extra_query_params</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">get_results</span><span class="p">(</span>
+                    <span class="n">results_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_results_urls</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;probabilities&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+                    <span class="n">sharpen</span><span class="o">=</span><span class="n">sharpen</span><span class="p">,</span>
+                    <span class="n">extra_query_params</span><span class="o">=</span><span class="n">extra_query_params</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_result</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_result</span></div>
 
@@ -737,6 +756,9 @@
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_num_qubits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_of</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span> <span class="s2">&quot;qubits&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
+            <span class="c1"># qasm3 jobs carry per-register results in a separate artifact.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_qasm3</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;ionq.qasm3.v1&quot;</span>
+
             <span class="c1"># Dry-run jobs have results=null; non-dry-run may also be null mid-rollout.</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dry_run</span><span class="p">:</span>
                 <span class="n">results</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;results&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
@@ -745,6 +767,11 @@
                     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;url&quot;</span><span class="p">),</span> <span class="nb">str</span><span class="p">)</span>
                 <span class="p">}</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_qasm3</span><span class="p">:</span>
+                    <span class="n">shots</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">constants</span><span class="o">.</span><span class="n">ResultFormat</span><span class="o">.</span><span class="n">SHOTS_V2</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_shots_artifact_id</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">shots</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shots</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+                    <span class="p">)</span>
 
             <span class="c1"># Classical-bit maps per circuit</span>
             <span class="k">def</span><span class="w"> </span><span class="nf">_meas_map_from_header</span><span class="p">(</span><span class="n">header_dict</span><span class="p">,</span> <span class="n">fallback_nq</span><span class="p">):</span>
@@ -899,6 +926,82 @@
             <span class="n">url</span> <span class="o">=</span> <span class="n">shots</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;url&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shots</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="n">per_circuit</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fetch_raw_shots</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;child </span><span class="si">{</span><span class="n">child_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">per_circuit</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fetch_qasm3_shots</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extra_query_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch the per-register shots array for a qasm3 (MCM) job.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shots_artifact_id</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">IonQJobError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Job </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="si">}</span><span class="s2"> produced no per-register shot data. &quot;</span>
+                <span class="s2">&quot;Mid-circuit measurement results require sampling — run on a &quot;</span>
+                <span class="s1">&#39;QPU or pass a noise model (e.g. noise_model=&quot;aria-1&quot;); the &#39;</span>
+                <span class="s2">&quot;ideal simulator returns only the aggregate distribution.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">get_artifact</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_shots_artifact_id</span><span class="p">,</span>
+            <span class="n">extra_query_params</span><span class="o">=</span><span class="n">extra_query_params</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shots&quot;</span><span class="p">,</span> <span class="p">[])</span>  <span class="c1"># artifact is {&quot;shots&quot;: [...]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_format_result_qasm3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shots</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build a Result from per-register shots, folding the declared</span>
+<span class="sd">        registers via the header&#39;s ``clbit_labels``. ``output_all``</span>
+<span class="sd">        (system-added) is excluded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">backend</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="p">()</span>
+        <span class="n">success</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_status</span> <span class="o">==</span> <span class="n">jobstatus</span><span class="o">.</span><span class="n">JobStatus</span><span class="o">.</span><span class="n">DONE</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;metadata&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">decoded</span> <span class="o">=</span> <span class="n">decompress_metadata_string</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qiskit_header&quot;</span><span class="p">))</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">decoded</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decoded</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+
+        <span class="n">shots</span> <span class="o">=</span> <span class="n">shots</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">clbit_labels</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;clbit_labels&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="c1"># Zero-padded binary so get_counts() splits by creg_sizes.</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;memory_slots&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">clbit_labels</span><span class="p">)</span>
+
+        <span class="n">counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">memory</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">shot</span> <span class="ow">in</span> <span class="n">shots</span><span class="p">:</span>
+            <span class="n">registers</span> <span class="o">=</span> <span class="n">shot</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;registers&quot;</span><span class="p">,</span> <span class="p">{})</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">clbit_labels</span><span class="p">):</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">bit</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">bits</span> <span class="o">=</span> <span class="n">registers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">bits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">bit</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">bits</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">bits</span><span class="p">[</span><span class="n">bit</span><span class="p">]):</span>
+                    <span class="n">value</span> <span class="o">|=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">index</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="nb">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;0</span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">b&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">width</span> <span class="k">else</span> <span class="s2">&quot;0&quot;</span>
+            <span class="n">memory</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">counts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shots</span><span class="p">)</span>
+        <span class="n">probabilities</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="o">/</span> <span class="n">total</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span> <span class="k">if</span> <span class="n">total</span> <span class="k">else</span> <span class="p">{}</span>
+
+        <span class="n">job_result</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="n">counts</span><span class="p">,</span>
+                    <span class="s2">&quot;memory&quot;</span><span class="p">:</span> <span class="n">memory</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">&quot;probabilities&quot;</span><span class="p">:</span> <span class="n">probabilities</span><span class="p">,</span>
+                    <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="n">header</span><span class="p">,</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;shots&quot;</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
+                <span class="s2">&quot;header&quot;</span><span class="p">:</span> <span class="n">header</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="n">success</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">Result</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;results&quot;</span><span class="p">:</span> <span class="n">job_result</span><span class="p">,</span>
+                <span class="s2">&quot;job_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">(),</span>
+                <span class="s2">&quot;backend_name&quot;</span><span class="p">:</span> <span class="n">backend</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;backend_version&quot;</span><span class="p">:</span> <span class="n">backend</span><span class="o">.</span><span class="n">backend_version</span><span class="p">,</span>
+                <span class="s2">&quot;qobj_id&quot;</span><span class="p">:</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;qobj_id&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="n">success</span><span class="p">,</span>
+                <span class="s2">&quot;time_taken&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execution_time</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_format_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Translate IonQ result format into a Qiskit `Result` instance.</span>
@@ -1075,7 +1178,7 @@
   </div>
 </div><script src="../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script src="../../_static/documentation_options.js?v=baaebd52"></script>
+    <script src="../../_static/documentation_options.js?v=fc837d61"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/thebelab-helper.js"></script>
