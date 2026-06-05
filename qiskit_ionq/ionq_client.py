@@ -256,45 +256,6 @@ class IonQClient:
         return chars[0] if chars else None
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
-    def get_compiled_circuit(self, job_id: str, lang: str = "native") -> str:
-        """Retrieve the server-compiled circuit for a job.
-
-        Hits ``GET /v0.4/jobs/{UUID}/circuits/{lang}``, which is populated by the
-        IonQ Cloud compiler-as-a-service for jobs submitted with ``dry_run=True``
-        (and, for fully-executed jobs, the post-compilation circuit actually run
-        on hardware).
-
-        Args:
-            job_id (str): The ID of the job whose compiled circuit to fetch.
-            lang (str): Output language. ``"native"`` (default) returns the
-                IonQ-native gate JSON; ``"qasm3"`` returns OpenQASM 3 source.
-                Other values may be accepted depending on organization
-                entitlement; consult the IonQ API reference for the current
-                set. Unsupported or non-entitled values are rejected by the
-                API with a ``4xx`` response.
-
-        Raises:
-            IonQAPIError: When the API returns a non-2xx status code (this
-                covers both unsupported ``lang`` values and per-organization
-                entitlement rejections).
-            IonQRetriableError: When a retriable error occurs during the request.
-
-        Returns:
-            str: The compiled circuit as a string. For ``lang="qasm3"`` this is
-            an OpenQASM 3 program; for ``lang="native"`` this is the IonQ JSON
-            circuit representation in native gates.
-        """
-        req_path = self.make_path("jobs", job_id, "circuits", lang)
-        res = self.get_with_retry(req_path, headers=self.api_headers)
-        exceptions.IonQAPIError.raise_for_status(res)
-        # The API returns a JSON-encoded string body; .json() unwraps the outer
-        # quotes and returns a plain Python str.
-        try:
-            return res.json()
-        except ValueError:
-            return res.text
-
-    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_results(
         self,
         results_url: str,
@@ -338,6 +299,28 @@ class IonQClient:
         res = self.get_with_retry(req_path, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
+        return json.loads(res.text, object_pairs_hook=OrderedDict)
+
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
+    def get_artifact(
+        self,
+        job_id: str,
+        artifact_id: str,
+        extra_query_params: dict | None = None,
+    ) -> dict | list | str | bytes:
+        """GET a result artifact by id (``/jobs/{id}/artifacts/{aid}``).
+
+        JSON artifacts decode to order-preserving objects; binary ones (the
+        ``ionq.mir.v1`` compiled circuit, ``application/octet-stream``) return
+        as raw ``bytes``.
+        """
+        req_path = self.make_path("jobs", job_id, "artifacts", artifact_id)
+        res = self.get_with_retry(
+            req_path, headers=self.api_headers, params=extra_query_params or None
+        )
+        exceptions.IonQAPIError.raise_for_status(res)
+        if "octet-stream" in res.headers.get("Content-Type", "").lower():
+            return res.content
         return json.loads(res.text, object_pairs_hook=OrderedDict)
 
     def estimate_job(

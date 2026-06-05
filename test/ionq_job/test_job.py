@@ -30,7 +30,7 @@ from unittest import mock
 import warnings
 
 import pytest
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
 from qiskit.result import MeasLevel
@@ -1141,6 +1141,27 @@ def _dry_run_job_response(job_id, target="qpu.forte-1"):
         "shots": 1024,
         "metadata": {"qiskit_header": qiskit_header, "shots": "1024"},
         "stats": {"qubits": 2, "circuits": 1},
+        # Compiled circuits: artifacts keyed by format, fetched via /artifacts/{id}.
+        "output": {
+            "compilation": {
+                "opt": 1,
+                "precision": "1E-3",
+                "gate_basis": "ZZ",
+                "service_version": "v0.4",
+                "compiled_circuits": {
+                    "ionq.native.v1": {
+                        "id": "native-aid",
+                        "format": "ionq.native.v1",
+                        "media_type": "application/json",
+                    },
+                    "ionq.ore.v1": {
+                        "id": "ore-aid",
+                        "format": "ionq.ore.v1",
+                        "media_type": "application/json",
+                    },
+                },
+            }
+        },
         # Per v0.4 spec, dry-run jobs have results=null.
         "results": None,
     }
@@ -1191,86 +1212,122 @@ def test_dry_run_result_raises(mock_backend, requests_mock):
 
 
 def test_dry_run_compiled_native(mock_backend, requests_mock):
-    """compiled_circuit(lang='native') hits /jobs/<id>/circuits/native and
-    returns the JSON-decoded body as a string."""
+    """compiled_circuit('native') resolves ionq.native.v1 and fetches the artifact."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
         json=_dry_run_job_response(job_id),
     )
 
-    native_body = (
-        '{"gateset":"native","circuit":[{"gate":"gpi2","target":0,"phase":0.0}]}'
-    )
+    native = {"gateset": "native", "circuit": [{"gate": "gpi2", "target": 0}]}
     requests_mock.get(
-        mock_backend.client.make_path("jobs", job_id, "circuits", "native"),
-        json=native_body,
+        mock_backend.client.make_path("jobs", job_id, "artifacts", "native-aid"),
+        json=native,
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.compiled_circuit() == native_body
-    assert job.compiled_circuit(lang="native") == native_body
+    assert job.compiled_circuit() == native
+    assert job.compiled_circuit(lang="native") == native
+    # An exact format key resolves too.
+    assert job.compiled_circuit(lang="ionq.native.v1") == native
 
 
-def test_dry_run_compiled_qasm3(mock_backend, requests_mock):
-    """compiled_circuit(lang='qasm3') returns the OpenQASM 3 string."""
+def test_dry_run_compiled_ore(mock_backend, requests_mock):
+    """compiled_circuit('ore') resolves ionq.ore.v1 and fetches the artifact."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
         json=_dry_run_job_response(job_id),
     )
 
-    qasm3 = "OPENQASM 3.0;\ngate gpi2(p) q { } // ...\n"
+    ore = {"format": "ore", "circuit": [{"op": "rz", "target": 0, "angle": 0.5}]}
     requests_mock.get(
-        mock_backend.client.make_path("jobs", job_id, "circuits", "qasm3"),
-        json=qasm3,
+        mock_backend.client.make_path("jobs", job_id, "artifacts", "ore-aid"),
+        json=ore,
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.compiled_circuit(lang="qasm3") == qasm3
+    assert job.compiled_circuit(lang="ore") == ore
+    assert job.compiled_circuit(lang="ionq.ore.v1") == ore
 
 
-def test_compiled_lang_passthrough(mock_backend, requests_mock):
-    """Any string is forwarded to the API as-is.
+def test_compiled_mir_bytes(mock_backend, requests_mock):
+    """A qasm3 job's ionq.mir.v1 (octet-stream) returns raw bytes, not JSON."""
+    job_id = "mcm_mir"
+    response = _qasm3_job_response(job_id, "unused")
+    response["output"] = {
+        "compilation": {
+            "compiled_circuits": {
+                "ionq.mir.v1": {
+                    "id": "mir-aid",
+                    "format": "ionq.mir.v1",
+                    "media_type": "application/octet-stream",
+                }
+            }
+        }
+    }
+    client = mock_backend.client
+    requests_mock.get(client.make_path("jobs", job_id), json=response)
+    blob = b"\x00\x01MIR\xff"
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", "mir-aid"),
+        content=blob,
+        headers={"Content-Type": "application/octet-stream"},
+    )
 
-    The server is the source of truth for which lang values are accepted
-    and which are gated behind per-organization entitlement; the SDK does
-    not duplicate that policy. This test mocks the request URL with a
-    non-default lang and confirms it is reached.
-    """
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.compiled_circuit(lang="mir") == blob
+    with pytest.raises(exceptions.IonQJobError, match="Available formats"):
+        job.compiled_circuit()
+
+
+def _strip_native_id(response):
+    """Republish the native format without an artifact id (treated unavailable)."""
+    response["output"]["compilation"]["compiled_circuits"] = {
+        "ionq.native.v1": {"format": "ionq.native.v1", "media_type": "application/json"}
+    }
+    return response
+
+
+@pytest.mark.parametrize(
+    "mutate, lang",
+    [
+        (lambda r: r, "mir"),  # lang matches no published format
+        (lambda r: {**r, "output": None}, "native"),  # nothing published (prod)
+        (_strip_native_id, "native"),  # published format lacks an id
+    ],
+)
+def test_compiled_unavailable(mock_backend, requests_mock, mutate, lang):
+    """compiled_circuit() raises IonQJobError when no usable artifact matches."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
-        json=_dry_run_job_response(job_id),
-    )
-    requests_mock.get(
-        mock_backend.client.make_path("jobs", job_id, "circuits", "future-lang"),
-        json="some-payload",
+        json=mutate(_dry_run_job_response(job_id)),
     )
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.compiled_circuit(lang="future-lang") == "some-payload"
+    with pytest.raises(exceptions.IonQJobError, match="Available formats"):
+        job.compiled_circuit(lang=lang)
 
 
-def test_compiled_lang_api_error(mock_backend, requests_mock):
-    """Server-side rejection of an unsupported / non-entitled lang surfaces
-    as IonQAPIError, matching every other non-2xx API response."""
+def test_compiled_artifact_error(mock_backend, requests_mock):
+    """A non-2xx on the artifact fetch (e.g. entitlement) surfaces as IonQAPIError."""
     job_id = "dry_run_id"
     requests_mock.get(
         mock_backend.client.make_path("jobs", job_id),
         json=_dry_run_job_response(job_id),
     )
     requests_mock.get(
-        mock_backend.client.make_path("jobs", job_id, "circuits", "nope"),
+        mock_backend.client.make_path("jobs", job_id, "artifacts", "native-aid"),
         status_code=403,
         json={
             "statusCode": 403,
             "error": "Forbidden",
-            "message": "Organization does not have access to this compiled language",
+            "message": "Organization does not have access to this artifact",
         },
     )
     job = ionq_job.IonQJob(mock_backend, job_id)
     with pytest.raises(exceptions.IonQAPIError):
-        job.compiled_circuit(lang="nope")
+        job.compiled_circuit(lang="native")
 
 
 def test_dry_run_property_false(mock_backend, requests_mock):
@@ -1312,3 +1369,143 @@ def test_multi_null_meta_result(mock_backend, requests_mock):
     assert result.get_counts(0) == {"00": 512, "11": 512}
     # X: max key 1 -> 1 qubit inferred -> 1-char bitstrings.
     assert result.get_counts(1) == {"1": 1024}
+
+
+def _mcm_circuit():
+    """1-qubit mid-circuit-measurement circuit (the API schema example)."""
+    qr = QuantumRegister(1, "q")
+    mid = ClassicalRegister(1, "mid")
+    result = ClassicalRegister(2, "result")
+    qc = QuantumCircuit(qr, mid, result, name="mcm")
+    qc.h(0)
+    qc.measure(0, mid[0])
+    qc.x(0)
+    qc.measure(0, result[0])
+    qc.x(0)
+    qc.measure(0, result[1])
+    return qc
+
+
+def _qasm3_job_response(job_id, shots_artifact_id):
+    """Completed ionq.qasm3.v1 response: v1 result URLs + a v2 shots artifact id."""
+    header = compress_to_metadata_string(
+        {
+            "memory_slots": 3,
+            "creg_sizes": [["mid", 1], ["result", 2]],
+            "clbit_labels": [["mid", 0], ["result", 0], ["result", 1]],
+            "qreg_sizes": [["q", 1]],
+            "qubit_labels": [["q", 0]],
+            "n_qubits": 1,
+            "name": "mcm",
+            "global_phase": 0,
+        }
+    )
+    return {
+        "id": job_id,
+        "type": "ionq.qasm3.v1",
+        "status": "completed",
+        "stats": {"qubits": 1, "circuits": 1},
+        "metadata": {"qiskit_header": header, "shots": "4"},
+        "results": {
+            "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"},
+            "histogram": {"url": f"/v0.4/jobs/{job_id}/results/histogram"},
+            "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"},
+            "ionq.result.shots.json.v2": {
+                "id": shots_artifact_id,
+                "format": "ionq.result.shots.json.v2",
+                "media_type": "application/json",
+            },
+        },
+        "execution_duration_ms": 0,
+    }
+
+
+# v2 shots artifact: 3x mid=0/result=00, 1x mid=1/result=10.
+_QASM3_SHOTS = {
+    "shots": [
+        {"registers": {"mid": [0], "result": [0, 0], "output_all": [1]}},
+        {"registers": {"mid": [0], "result": [0, 0], "output_all": [0]}},
+        {"registers": {"mid": [0], "result": [0, 0], "output_all": [1]}},
+        {"registers": {"mid": [1], "result": [1, 0], "output_all": [0]}},
+    ]
+}
+
+
+def test_qasm3_result_counts(mock_backend, requests_mock):
+    """MCM jobs fold per-register shots into register-split counts + memory."""
+    job_id = "mcm_job"
+    artifact_id = "shots-v2-uuid"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_qasm3_job_response(job_id, artifact_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json=_QASM3_SHOTS,
+    )
+
+    job = mock_backend.run(_mcm_circuit(), shots=4, memory=True)
+    res = job.result()
+
+    # Qiskit splits as "result mid": mid=1,result=10 -> "01 1".
+    assert res.get_counts() == {"00 0": 3, "01 1": 1}
+    assert res.get_memory() == ["00 0", "00 0", "00 0", "01 1"]
+
+
+def test_qasm3_no_shots_artifact(mock_backend, requests_mock):
+    """A qasm3 job missing its v2 shots artifact raises a clear error."""
+    job_id = "mcm_job_2"
+    response = _qasm3_job_response(job_id, "unused")
+    response["results"].pop("ionq.result.shots.json.v2")
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(client.make_path("jobs", job_id), json=response)
+
+    job = mock_backend.run(_mcm_circuit(), shots=4)
+    with pytest.raises(exceptions.IonQJobError, match="shots artifact"):
+        job.result()
+
+
+def test_qasm3_high_bit(mock_backend, requests_mock):
+    """A set high-order register bit (result[1]) folds to the MSB position."""
+    job_id = "mcm_hi"
+    artifact_id = "shots-hi"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_qasm3_job_response(job_id, artifact_id),
+    )
+    # result[1] is clbit index 2 -> MSB of the 3-bit word; expect "10 0".
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json={"shots": [{"registers": {"mid": [0], "result": [0, 1]}}]},
+    )
+
+    job = mock_backend.run(_mcm_circuit(), shots=1)
+    assert job.result().get_counts() == {"10 0": 1}
+
+
+def test_qasm3_memory_false(mock_backend, requests_mock):
+    """Without memory=True, MCM counts still decode but get_memory() raises."""
+    job_id = "mcm_nomem"
+    artifact_id = "shots-nomem"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_qasm3_job_response(job_id, artifact_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json=_QASM3_SHOTS,
+    )
+
+    job = mock_backend.run(_mcm_circuit(), shots=4)  # memory defaults to False
+    res = job.result()
+    assert res.get_counts() == {"00 0": 3, "01 1": 1}
+    assert res.data(0).get("memory") is None
+    with pytest.raises(exceptions.IonQBackendError, match="memory=True"):
+        job.get_memory()

@@ -207,6 +207,9 @@ class IonQJob(JobV1):
         self._execution_time = None
         self._dry_run: bool = False
         self._results_urls: dict[str, str | None] = {}
+        # Set in status() for ionq.qasm3.v1 (mid-circuit measurement) jobs.
+        self._is_qasm3: bool = False
+        self._shots_artifact_id: str | None = None
         self._metadata: dict[str, Any] = {}
 
         if passed_args is not None:
@@ -250,31 +253,32 @@ class IonQJob(JobV1):
         """
         return self._dry_run
 
-    def compiled_circuit(self, lang: str = "native") -> str:
-        """Fetch the server-compiled circuit for this job.
-
-        Useful for jobs submitted with ``dry_run=True`` (compilation as a
-        service) but also works for any completed job to inspect what was
-        actually run on hardware after IonQ's compiler resynthesizes the input.
-
-        Args:
-            lang (str): Output language. ``"native"`` (default) returns the
-                IonQ-native gate JSON; ``"qasm3"`` returns OpenQASM 3 source.
-                Other values may be accepted depending on organization
-                entitlement; the API rejects unsupported or non-entitled
-                values with a ``4xx`` response surfaced here as
-                :class:`~qiskit_ionq.exceptions.IonQAPIError`.
-
-        Raises:
-            IonQJobStateError: If the job has not reached a final state yet.
-            IonQJobFailureError: If the job failed before compilation completed.
-            IonQAPIError: If the API rejects the ``lang`` value.
-
-        Returns:
-            str: The compiled circuit as a string (IonQ-native JSON or OpenQASM 3).
+    @staticmethod
+    def _resolve_compiled_format(lang: str, available: dict) -> str | None:
+        """Map ``lang`` (exact key or short name like ``"native"``) to an
+        available format key with an artifact ``id``, else ``None``.
         """
-        # Make sure we're in a final state and the job-id is known. status()
-        # raises IonQJobFailureError on failure, which is the right behavior.
+
+        def has_id(key: str) -> bool:
+            entry = available.get(key)
+            return isinstance(entry, dict) and bool(entry.get("id"))
+
+        if has_id(lang):
+            return lang
+        return next(
+            (k for k in available if has_id(k) and k.split(".")[1:2] == [lang]),
+            None,
+        )
+
+    def compiled_circuit(self, lang: str = "native") -> dict | list | str | bytes:
+        """Fetch the server-compiled circuit, parsed from its published artifact.
+
+        ``lang`` is a short name -- ``"native"`` or ``"ore"`` (QIS jobs),
+        ``"mir"`` (OpenQASM 3 jobs) -- or an exact format key, matched against
+        ``output.compilation.compiled_circuits``; raises ``IonQJobError`` if
+        none match. Returns a ``dict``/``list`` for JSON formats or ``bytes``
+        for binary ones (``ionq.mir.v1``).
+        """
         self.status()
         if self._status not in jobstatus.JOB_FINAL_STATES:
             raise exceptions.IonQJobStateError(
@@ -282,7 +286,17 @@ class IonQJob(JobV1):
                 "Call wait_for_final_state() first."
             )
         assert self._job_id is not None
-        return self._client.get_compiled_circuit(self._job_id, lang=lang)
+        circuits = ((self._metadata.get("output") or {}).get("compilation") or {}).get(
+            "compiled_circuits"
+        ) or {}
+        fmt = self._resolve_compiled_format(lang, circuits)
+        if fmt is None:
+            available = ", ".join(sorted(circuits)) or "none"
+            raise exceptions.IonQJobError(
+                f"No compiled circuit matching {lang!r} for job {self._job_id}. "
+                f"Available formats: {available}."
+            )
+        return self._client.get_artifact(self._job_id, circuits[fmt]["id"])
 
     def cancel(self) -> None:
         """Cancel this job."""
@@ -408,15 +422,20 @@ class IonQJob(JobV1):
                 raise exceptions.IonQJobError(
                     f"Job {self._job_id} was submitted with dry_run=True; "
                     "no measurement results are produced. Use "
-                    "job.compiled_circuit(lang='native' or 'qasm3') to "
+                    "job.compiled_circuit(...) to "
                     "retrieve the compiled circuit instead."
                 )
-            response = self._client.get_results(
-                results_url=self._results_urls.get("probabilities", ""),
-                sharpen=sharpen,
-                extra_query_params=extra_query_params,
-            )
-            self._result = self._format_result(response)
+            if self._is_qasm3:
+                self._result = self._format_result_qasm3(
+                    self._fetch_qasm3_shots(extra_query_params)
+                )
+            else:
+                response = self._client.get_results(
+                    results_url=self._results_urls.get("probabilities", ""),
+                    sharpen=sharpen,
+                    extra_query_params=extra_query_params,
+                )
+                self._result = self._format_result(response)
 
         return self._result
 
@@ -479,6 +498,9 @@ class IonQJob(JobV1):
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
 
+            # qasm3 jobs carry per-register results in a separate artifact.
+            self._is_qasm3 = response.get("type") == "ionq.qasm3.v1"
+
             # Dry-run jobs have results=null; non-dry-run may also be null mid-rollout.
             if not self._dry_run:
                 results = response.get("results") or {}
@@ -487,6 +509,11 @@ class IonQJob(JobV1):
                     for k, v in results.items()
                     if isinstance(v, dict) and isinstance(v.get("url"), str)
                 }
+                if self._is_qasm3:
+                    shots = results.get(constants.ResultFormat.SHOTS_V2)
+                    self._shots_artifact_id = (
+                        shots.get("id") if isinstance(shots, dict) else None
+                    )
 
             # Classical-bit maps per circuit
             def _meas_map_from_header(header_dict, fallback_nq):
@@ -640,6 +667,80 @@ class IonQJob(JobV1):
             url = shots.get("url") if isinstance(shots, dict) else None
             per_circuit.append(self._fetch_raw_shots(url, ctx=f"child {child_id}"))
         return per_circuit
+
+    def _fetch_qasm3_shots(self, extra_query_params: dict | None = None) -> list:
+        """Fetch the per-register shots array for a qasm3 (MCM) job."""
+        if not self._shots_artifact_id:
+            raise exceptions.IonQJobError(
+                f"Job {self._job_id} reported no per-register shots artifact; "
+                "cannot build mid-circuit measurement results."
+            )
+        assert self._job_id is not None
+        payload = self._client.get_artifact(
+            self._job_id,
+            self._shots_artifact_id,
+            extra_query_params=extra_query_params,
+        )
+        return payload.get("shots", [])  # artifact is {"shots": [...]}
+
+    def _format_result_qasm3(self, shots: list):
+        """Build a Result from per-register shots, folding the declared
+        registers via the header's ``clbit_labels``. ``output_all``
+        (system-added) is excluded.
+        """
+        backend = self.backend()
+        success = self._status == jobstatus.JobStatus.DONE
+        metadata = self._metadata.get("metadata") or {}
+        decoded = decompress_metadata_string(metadata.get("qiskit_header"))
+        header = decoded if isinstance(decoded, dict) else {}
+
+        shots = shots or []
+        clbit_labels = header.get("clbit_labels") or []
+        # Zero-padded binary so get_counts() splits by creg_sizes.
+        width = header.get("memory_slots") or len(clbit_labels)
+
+        counts: dict[str, int] = {}
+        memory: list[str] = []
+        for shot in shots:
+            registers = shot.get("registers", {}) if isinstance(shot, dict) else {}
+            value = 0
+            for index, label in enumerate(clbit_labels):
+                name, bit = label[0], label[1]
+                bits = registers.get(name)
+                if bits is not None and bit < len(bits) and int(bits[bit]):
+                    value |= 1 << index
+            key = format(value, f"0{width}b") if width else "0"
+            memory.append(key)
+            counts[key] = counts.get(key, 0) + 1
+
+        total = len(shots)
+        probabilities = {k: v / total for k, v in counts.items()} if total else {}
+
+        job_result = [
+            {
+                "data": {
+                    "counts": counts,
+                    "memory": memory if self.memory else None,
+                    "probabilities": probabilities,
+                    "metadata": header,
+                },
+                "shots": total,
+                "header": header,
+                "success": success,
+            }
+        ]
+
+        return Result.from_dict(
+            {
+                "results": job_result,
+                "job_id": self.job_id(),
+                "backend_name": backend.name,
+                "backend_version": backend.backend_version,
+                "qobj_id": metadata.get("qobj_id"),
+                "success": success,
+                "time_taken": self._execution_time,
+            }
+        )
 
     def _format_result(self, data):
         """Translate IonQ result format into a Qiskit `Result` instance.
