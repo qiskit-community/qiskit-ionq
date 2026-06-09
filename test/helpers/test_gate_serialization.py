@@ -39,6 +39,9 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp, SparseObservable
 
 from qiskit_ionq import exceptions
+from qiskit_ionq._qiskit_compat import (
+    SUPPORTS_SPARSE_OBSERVABLE_PAULI_EVOLUTION,
+)
 from qiskit_ionq.helpers import qiskit_circ_to_ionq_circ
 
 compiler_directives = ["barrier"]
@@ -243,6 +246,10 @@ def test_pauliexp_circuit():
     assert built == expected
 
 
+@pytest.mark.skipif(
+    not SUPPORTS_SPARSE_OBSERVABLE_PAULI_EVOLUTION,
+    reason="Qiskit v1 PauliEvolutionGate does not accept SparseObservable",
+)
 def test_pauliexp_circuit_sparse_observable():
     """Test structure of circuits with a Pauli evolution gate built from SparseObservable."""
     # build the evolution gate directly from SparseObservable
@@ -264,6 +271,10 @@ def test_pauliexp_circuit_sparse_observable():
     assert built == expected
 
 
+@pytest.mark.skipif(
+    not SUPPORTS_SPARSE_OBSERVABLE_PAULI_EVOLUTION,
+    reason="Qiskit v1 PauliEvolutionGate does not accept SparseObservable",
+)
 def test_pauliexp_sparse_observable_expand():
     """Projector terms in a SparseObservable expand; coeff/term lengths must stay aligned."""
     operator = SparseObservable.from_list([("+I", 0.7), ("XX", 0.5)])

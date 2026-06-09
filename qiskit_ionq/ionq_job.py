@@ -47,6 +47,7 @@ from qiskit.providers.exceptions import JobTimeoutError
 from .ionq_result import IonQResult as Result
 from .helpers import decompress_metadata_string, normalize
 from .exceptions import IonQBackendError
+from ._qiskit_compat import normalize_result_headers
 
 from . import constants, exceptions
 
@@ -732,16 +733,18 @@ class IonQJob(JobV1):
             }
         ]
 
-        return Result.from_dict(
-            {
-                "results": job_result,
-                "job_id": self.job_id(),
-                "backend_name": backend.name,
-                "backend_version": backend.backend_version,
-                "qobj_id": metadata.get("qobj_id"),
-                "success": success,
-                "time_taken": self._execution_time,
-            }
+        return normalize_result_headers(
+            Result.from_dict(
+                {
+                    "results": job_result,
+                    "job_id": self.job_id(),
+                    "backend_name": backend.name,
+                    "backend_version": backend.backend_version,
+                    "qobj_id": metadata.get("qobj_id"),
+                    "success": success,
+                    "time_taken": self._execution_time,
+                }
+            )
         )
 
     def _format_result(self, data):
@@ -863,16 +866,18 @@ class IonQJob(JobV1):
                 }
 
         # Final Qiskit Result object
-        return Result.from_dict(
-            {
-                "results": job_result,
-                "job_id": self.job_id(),
-                "backend_name": backend_name,
-                "backend_version": backend_version,
-                "qobj_id": metadata.get("qobj_id"),
-                "success": success,
-                "time_taken": self._execution_time,
-            }
+        return normalize_result_headers(
+            Result.from_dict(
+                {
+                    "results": job_result,
+                    "job_id": self.job_id(),
+                    "backend_name": backend_name,
+                    "backend_version": backend_version,
+                    "qobj_id": metadata.get("qobj_id"),
+                    "success": success,
+                    "time_taken": self._execution_time,
+                }
+            )
         )
 
     def _save_metadata(self, response):

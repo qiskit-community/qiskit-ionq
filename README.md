@@ -187,6 +187,12 @@ Alternatively, you may use the setuptools integration by running tests through `
 python setup.py test --addopts="[pytest-args]"
 ```
 
+To run the Qiskit compatibility matrix locally, use tox factors:
+
+```bash
+tox -e py313-qiskit1,py313-qiskit2
+```
+
 ### Fixtures
 
 Global pytest fixtures for the test suite can be found in the top-level [test/conftest.py](./test/conftest.py) file.

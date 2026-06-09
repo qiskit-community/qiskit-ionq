@@ -325,7 +325,12 @@ def qiskit_circ_to_ionq_circ(
         if instruction_name == "pauliexp":
             operator = instruction.operator
             if not hasattr(operator, "to_list"):
-                operator = SparsePauliOp.from_sparse_observable(operator)
+                from_sparse_observable = getattr(
+                    SparsePauliOp, "from_sparse_observable", None
+                )
+                if from_sparse_observable is None:
+                    raise ionq_exceptions.IonQGateError(instruction_name, gateset)
+                operator = from_sparse_observable(operator)
             imag_coeff = any(coeff.imag for coeff in operator.coeffs)
             assert not imag_coeff, (
                 "PauliEvolution gate must have real coefficients, "

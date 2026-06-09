@@ -33,9 +33,9 @@ import pytest
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
-from qiskit.result import MeasLevel
 
 from qiskit_ionq import exceptions, ionq_job
+from qiskit_ionq._qiskit_compat import MEAS_LEVEL_CLASSIFIED
 from qiskit_ionq.helpers import compress_to_metadata_string
 
 
@@ -456,7 +456,7 @@ expected_result = {
                 "qreg_sizes": [["q", 2]],
                 "qubit_labels": [["q", 0], ["q", 1]],
             },
-            "meas_level": MeasLevel.CLASSIFIED,
+            "meas_level": MEAS_LEVEL_CLASSIFIED,
             "shots": 1234,
             "success": True,
         }

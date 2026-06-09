@@ -1,4 +1,4 @@
-qiskit>=2.0.0
+qiskit>=1.0.0,<3.0.0
 decorator>=5.1.0
 requests>=2.24.0
 importlib-metadata>=4.11.4
