@@ -69,7 +69,10 @@ def normalize_result_headers(result: Any) -> Any:
         header = getattr(experiment, "header", None)
         if header is None or isinstance(header, dict):
             continue
-        experiment.header = ResultHeader(header_to_dict(header))
+        header_dict = header_to_dict(header)
+        if header_dict is None:
+            continue
+        experiment.header = ResultHeader(header_dict)
     return result
 
 
