@@ -33,10 +33,11 @@ import pytest
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
-from qiskit.result import MeasLevel
 
 from qiskit_ionq import exceptions, ionq_job
+from qiskit_ionq._qiskit_compat import MEAS_LEVEL_CLASSIFIED
 from qiskit_ionq.helpers import compress_to_metadata_string
+from qiskit_ionq.ionq_result import IonQResult
 
 
 from .. import conftest
@@ -456,7 +457,7 @@ expected_result = {
                 "qreg_sizes": [["q", 2]],
                 "qubit_labels": [["q", 0], ["q", 1]],
             },
-            "meas_level": MeasLevel.CLASSIFIED,
+            "meas_level": MEAS_LEVEL_CLASSIFIED,
             "shots": 1234,
             "success": True,
         }
@@ -470,6 +471,14 @@ expected_result = {
 
 
 # Validate the result
+def test_result_from_dict_headers():
+    """IonQResult.from_dict normalizes headers for Qiskit v1 and v2."""
+    result = IonQResult.from_dict(expected_result)
+
+    assert result.results[0].header["memory_slots"] == 2
+    assert result.to_dict() == expected_result
+
+
 def test_result(mock_backend, requests_mock):
     """Test basic "happy path" for result fetching.
 

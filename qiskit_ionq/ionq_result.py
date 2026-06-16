@@ -32,6 +32,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.result import Result
 from qiskit.result.counts import Counts
 from . import exceptions
+from ._qiskit_compat import header_to_dict, normalize_result_headers
 
 
 class IonQResult(Result):
@@ -41,6 +42,11 @@ class IonQResult(Result):
     The primary reason this class extends the base Qiskit result object is to
     provide an API for retrieving result probabilities directly.
     """
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a result and normalize version-specific header objects."""
+        return normalize_result_headers(super().from_dict(data))
 
     def get_probabilities(self, experiment=None):
         """
@@ -68,8 +74,8 @@ class IonQResult(Result):
         for key in exp_keys:
             exp = self._get_experiment(key)
             try:
-                header = exp.header.to_dict()
-            except (AttributeError, QiskitError):  # header is not available
+                header = header_to_dict(exp.header)
+            except (AttributeError, TypeError, ValueError, QiskitError):
                 header = None
 
             if "probabilities" in self.data(key).keys():
