@@ -200,11 +200,17 @@ class IonQGateError(IonQError, JobError):
         gate_name: The name of the gate which caused this error.
     """
 
-    def __init__(self, gate_name: str, gateset: Literal["qis", "native"]):
+    def __init__(
+        self,
+        gate_name: str,
+        gateset: Literal["qis", "native"],
+        message: str | None = None,
+    ):
         self.gate_name = gate_name
         self.gateset = gateset
         super().__init__(
-            (
+            message
+            or (
                 f"gate '{gate_name}' is not supported on the '{gateset}' IonQ backends. "
                 "Please use the qiskit.transpile method, manually rewrite to remove the gate, "
                 "or change the gateset selection as appropriate."

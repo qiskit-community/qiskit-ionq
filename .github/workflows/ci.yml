@@ -59,7 +59,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: install-requirements
         run: |
-          python -m pip install --upgrade pip tox tox-gh-actions
+          python -m pip install --upgrade pip tox
       - name: run-tests
         run: tox -e ${{ matrix.tox-env }}
   lint:
@@ -75,7 +75,7 @@ jobs:
           python-version: 3.12
       - name: install-requirements
         run: |
-          python -m pip install --upgrade pip tox tox-gh-actions
+          python -m pip install --upgrade pip tox
       - name: lint
         run: tox -e lint
   docs:
@@ -91,7 +91,7 @@ jobs:
           python-version: 3.13
       - name: install-requirements
         run: |
-          python -m pip install --upgrade pip tox tox-gh-actions
+          python -m pip install --upgrade pip tox
       - name: docs
         run: tox -e docs
       - uses: actions/upload-artifact@v4

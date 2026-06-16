@@ -55,12 +55,12 @@ from qiskit.circuit import (
     QuantumRegister,
     ClassicalRegister,
 )
-from qiskit.quantum_info import SparsePauliOp
 
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
 from qiskit_ionq.constants import ErrorMitigation
 from . import exceptions as ionq_exceptions
+from ._qiskit_compat import SPARSE_PAULI_FROM_SPARSE_OBSERVABLE
 
 # the qiskit gates that the IonQ backend can serialize to our IR
 # not the actual hardware basis gates for the system — we do our own transpilation pass.
@@ -324,13 +324,19 @@ def qiskit_circ_to_ionq_circ(
 
         if instruction_name == "pauliexp":
             operator = instruction.operator
-            if not hasattr(operator, "to_list"):
-                from_sparse_observable = getattr(
-                    SparsePauliOp, "from_sparse_observable", None
-                )
-                if from_sparse_observable is None:
-                    raise ionq_exceptions.IonQGateError(instruction_name, gateset)
-                operator = from_sparse_observable(operator)
+            try:
+                operator.to_list
+            except AttributeError as ex:
+                if SPARSE_PAULI_FROM_SPARSE_OBSERVABLE is None:
+                    raise ionq_exceptions.IonQGateError(
+                        instruction_name,
+                        gateset,
+                        (
+                            "SparseObservable PauliEvolutionGate requires Qiskit v2. "
+                            "For Qiskit v1, build the PauliEvolutionGate with SparsePauliOp."
+                        ),
+                    ) from ex
+                operator = SPARSE_PAULI_FROM_SPARSE_OBSERVABLE(operator)
             imag_coeff = any(coeff.imag for coeff in operator.coeffs)
             assert not imag_coeff, (
                 "PauliEvolution gate must have real coefficients, "

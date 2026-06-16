@@ -28,7 +28,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from qiskit.quantum_info import SparsePauliOp
 
@@ -39,8 +39,13 @@ except ImportError:
 else:
     MEAS_LEVEL_CLASSIFIED = MeasLevel.CLASSIFIED
 
-SUPPORTS_SPARSE_OBSERVABLE_PAULI_EVOLUTION = hasattr(
-    SparsePauliOp, "from_sparse_observable"
+try:
+    SPARSE_PAULI_FROM_SPARSE_OBSERVABLE = SparsePauliOp.from_sparse_observable
+except AttributeError:
+    SPARSE_PAULI_FROM_SPARSE_OBSERVABLE = None
+
+SUPPORTS_SPARSE_OBSERVABLE_PAULI_EVOLUTION = (
+    SPARSE_PAULI_FROM_SPARSE_OBSERVABLE is not None
 )
 
 
@@ -58,20 +63,19 @@ def header_to_dict(header: Any) -> dict | None:
         return None
     if isinstance(header, dict):
         return header
-    if hasattr(header, "to_dict"):
+    try:
         return header.to_dict()
-    return dict(header)
+    except AttributeError:
+        return dict(header)
 
 
 def normalize_result_headers(result: Any) -> Any:
     """Normalize Qiskit Result experiment headers to dicts in v1 and v2."""
-    for experiment in getattr(result, "results", []):
-        header = getattr(experiment, "header", None)
+    for experiment in result.results:
+        header = experiment.header
         if header is None or isinstance(header, dict):
             continue
-        header_dict = header_to_dict(header)
-        if header_dict is None:
-            continue
+        header_dict = cast(dict, header_to_dict(header))
         experiment.header = ResultHeader(header_dict)
     return result
 
@@ -79,6 +83,7 @@ def normalize_result_headers(result: Any) -> Any:
 __all__ = [
     "MEAS_LEVEL_CLASSIFIED",
     "ResultHeader",
+    "SPARSE_PAULI_FROM_SPARSE_OBSERVABLE",
     "SUPPORTS_SPARSE_OBSERVABLE_PAULI_EVOLUTION",
     "header_to_dict",
     "normalize_result_headers",

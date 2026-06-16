@@ -39,6 +39,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp, SparseObservable
 
 from qiskit_ionq import exceptions
+from qiskit_ionq import helpers as ionq_helpers
 from qiskit_ionq._qiskit_compat import (
     SUPPORTS_SPARSE_OBSERVABLE_PAULI_EVOLUTION,
 )
@@ -244,6 +245,18 @@ def test_pauliexp_circuit():
     ]
     built, _, _ = qiskit_circ_to_ionq_circ(circuit)
     assert built == expected
+
+
+def test_pauliexp_sparse_observable_unsupported_message(monkeypatch):
+    """SparseObservable on Qiskit v1 gives a targeted compatibility error."""
+    evo = PauliEvolutionGate(SparsePauliOp(["XX"], coeffs=[0.1]), time=0.4)
+    evo.operator = SparseObservable.from_list([("XX", 0.1)])
+    circuit = QuantumCircuit(2)
+    circuit.append(evo, [0, 1])
+    monkeypatch.setattr(ionq_helpers, "SPARSE_PAULI_FROM_SPARSE_OBSERVABLE", None)
+
+    with pytest.raises(exceptions.IonQGateError, match="SparseObservable.*Qiskit v2"):
+        qiskit_circ_to_ionq_circ(circuit)
 
 
 @pytest.mark.skipif(
