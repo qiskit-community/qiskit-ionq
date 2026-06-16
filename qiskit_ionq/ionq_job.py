@@ -354,6 +354,28 @@ class IonQJob(JobV1):
             "Re-run with memory=True to enable per-shot output."
         )
 
+    def get_leakage(self, circuit=None):
+        """Return per-shot leakage data, one MSB-left bitstring per leaked shot
+        (``None`` for clean shots), one list per experiment.
+
+        Leakage flags shots in which a qubit left the computational subspace
+        (IonQ state-selective-leakage detection, reported on mid-circuit
+        measurement jobs). Because it is per-shot data, this - like
+        :meth:`get_memory` - requires the job to have been submitted with
+        ``memory=True`` and raises :class:`IonQBackendError` otherwise.
+        Returns ``None`` for experiments with no detected leakage.
+
+        ``circuit`` follows the same semantics as :meth:`get_counts`.
+        """
+        if self.memory:
+            return self.result().get_leakage(circuit)
+
+        label = "" if circuit is None else getattr(circuit, "name", circuit)
+        raise IonQBackendError(
+            f'No leakage data for experiment "{label}". '
+            "Re-run with memory=True to enable per-shot output."
+        )
+
     def get_probabilities(self, circuit=None):  # pylint: disable=unused-argument
         """Return the probabilities (for simulators).
 
@@ -703,6 +725,15 @@ class IonQJob(JobV1):
 
         counts: dict[str, int] = {}
         memory: list[str] = []
+        # Per-shot leakage (IonQ state-selective-leakage detection): the v2
+        # shots artifact carries an optional ``leakage_bits`` array per shot - a
+        # dense 0/1 mask over the qubits, present only on shots where a qubit
+        # left the computational subspace. Surface it MSB-left (qubit 0
+        # rightmost, matching Qiskit's little-endian convention) parallel to
+        # memory, with ``None`` for clean shots so the list aligns 1:1 with the
+        # shots.
+        leakage: list[str | None] = []
+        has_leakage = False
         for shot in shots:
             registers = shot.get("registers", {}) if isinstance(shot, dict) else {}
             value = 0
@@ -715,17 +746,30 @@ class IonQJob(JobV1):
             memory.append(key)
             counts[key] = counts.get(key, 0) + 1
 
+            leakage_bits = shot.get("leakage_bits") if isinstance(shot, dict) else None
+            if leakage_bits is None:
+                leakage.append(None)
+            else:
+                has_leakage = True
+                leakage.append("".join(str(int(b)) for b in reversed(leakage_bits)))
+
         total = len(shots)
         probabilities = {k: v / total for k, v in counts.items()} if total else {}
 
+        data = {
+            "counts": counts,
+            "memory": memory if self.memory else None,
+            "probabilities": probabilities,
+            "metadata": header,
+        }
+        # Leakage is per-shot data, so gate it behind memory=True like memory;
+        # only attach it when the backend actually reported leakage.
+        if self.memory and has_leakage:
+            data["leakage"] = leakage
+
         job_result = [
             {
-                "data": {
-                    "counts": counts,
-                    "memory": memory if self.memory else None,
-                    "probabilities": probabilities,
-                    "metadata": header,
-                },
+                "data": data,
                 "shots": total,
                 "header": header,
                 "success": success,

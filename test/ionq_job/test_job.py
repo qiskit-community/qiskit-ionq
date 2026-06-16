@@ -1517,3 +1517,176 @@ def test_qasm3_memory_false(mock_backend, requests_mock):
     assert res.data(0).get("memory") is None
     with pytest.raises(exceptions.IonQBackendError, match="memory=True"):
         job.get_memory()
+
+
+# ---------------------------------------------------------------------------
+# Leakage (IonQ state-selective-leakage detection on MCM jobs)
+# ---------------------------------------------------------------------------
+
+
+def _leak_circuit():
+    """2-qubit mid-circuit-measurement circuit for the leakage tests."""
+    qr = QuantumRegister(2, "q")
+    mid = ClassicalRegister(1, "mid")
+    out = ClassicalRegister(2, "out")
+    qc = QuantumCircuit(qr, mid, out, name="leak")
+    qc.h(0)
+    qc.measure(0, mid[0])
+    qc.cx(0, 1)
+    qc.measure(0, out[0])
+    qc.measure(1, out[1])
+    return qc
+
+
+def _leakage_job_response(job_id, shots_artifact_id):
+    """Completed ionq.qasm3.v1 response for the 2-qubit leakage circuit."""
+    header = compress_to_metadata_string(
+        {
+            "memory_slots": 3,
+            "creg_sizes": [["mid", 1], ["out", 2]],
+            "clbit_labels": [["mid", 0], ["out", 0], ["out", 1]],
+            "qreg_sizes": [["q", 2]],
+            "qubit_labels": [["q", 0], ["q", 1]],
+            "n_qubits": 2,
+            "name": "leak",
+            "global_phase": 0,
+        }
+    )
+    return {
+        "id": job_id,
+        "type": "ionq.qasm3.v1",
+        "status": "completed",
+        "stats": {"qubits": 2, "circuits": 1},
+        "metadata": {"qiskit_header": header, "shots": "3"},
+        "results": {
+            "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"},
+            "ionq.result.shots.json.v2": {
+                "id": shots_artifact_id,
+                "format": "ionq.result.shots.json.v2",
+                "media_type": "application/json",
+            },
+        },
+        "execution_duration_ms": 0,
+    }
+
+
+# Sparse leakage_bits: only leaked shots carry the field. It is a per-qubit
+# 0/1 mask (output_all order), surfaced MSB-left (qubit 0 rightmost), so
+# [0, 1] -> "10" (qubit 1 leaked) and [1, 0] -> "01" (qubit 0 leaked).
+_LEAK_SHOTS = {
+    "shots": [
+        {"registers": {"mid": [1], "out": [1, 1]}, "leakage_bits": [0, 1]},
+        {"registers": {"mid": [0], "out": [0, 0]}},
+        {"registers": {"mid": [1], "out": [1, 0]}, "leakage_bits": [1, 0]},
+    ]
+}
+
+
+def test_leakage_bits(mock_backend, requests_mock):
+    """Per-shot leakage_bits surface as MSB-left bitstrings (None for clean
+    shots), parallel to memory, without perturbing counts."""
+    job_id = "leak_job"
+    artifact_id = "shots-leak-uuid"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_leakage_job_response(job_id, artifact_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json=_LEAK_SHOTS,
+    )
+
+    job = mock_backend.run(_leak_circuit(), shots=3, memory=True)
+    res = job.result()
+
+    # Counts/memory are unaffected by the extra leakage field.
+    assert res.get_counts() == {"11 1": 1, "00 0": 1, "01 1": 1}
+    assert res.get_memory() == ["11 1", "00 0", "01 1"]
+
+    # Leakage aligns 1:1 with the shots; clean shot is None.
+    assert job.get_leakage() == ["10", None, "01"]
+    # IonQResult exposes the same data directly.
+    assert res.get_leakage() == ["10", None, "01"]
+    assert res.data(0)["leakage"] == ["10", None, "01"]
+
+
+def test_leakage_requires_memory(mock_backend, requests_mock):
+    """Leakage is per-shot data: without memory=True it is not attached and
+    job.get_leakage() raises, mirroring get_memory()."""
+    job_id = "leak_nomem"
+    artifact_id = "shots-leak-nomem"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_leakage_job_response(job_id, artifact_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json=_LEAK_SHOTS,
+    )
+
+    job = mock_backend.run(_leak_circuit(), shots=3)  # memory defaults to False
+    res = job.result()
+
+    assert res.get_counts() == {"11 1": 1, "00 0": 1, "01 1": 1}
+    assert "leakage" not in res.data(0)
+    assert res.get_leakage() is None
+    with pytest.raises(exceptions.IonQBackendError, match="memory=True"):
+        job.get_leakage()
+
+
+def test_no_leakage_returns_none(mock_backend, requests_mock):
+    """When no shot reports leakage, the field is omitted and get_leakage()
+    returns None even with memory=True (sparse-by-omission)."""
+    job_id = "leak_clean"
+    artifact_id = "shots-clean"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_leakage_job_response(job_id, artifact_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json={"shots": [{"registers": {"mid": [0], "out": [0, 0]}}]},
+    )
+
+    job = mock_backend.run(_leak_circuit(), shots=1, memory=True)
+    res = job.result()
+
+    assert "leakage" not in res.data(0)
+    assert job.get_leakage() is None
+    assert res.get_leakage() is None
+
+
+def test_standard_job_no_leakage(mock_backend, requests_mock):
+    """A standard (non-qasm3) job carries no leakage; get_leakage() returns
+    None rather than raising, even with memory=True."""
+    job_id = "leak_standard"
+    client = mock_backend.client
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=conftest.dummy_job_response(job_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        json={"0": 0.5, "2": 0.5},
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "shots"),
+        json=[0, 2],
+    )
+
+    job = ionq_job.IonQJob(
+        mock_backend,
+        job_id,
+        passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
+    )
+    res = job.result()
+
+    assert res.get_memory() is not None  # standard memory path still works
+    assert res.get_leakage() is None
+    assert job.get_leakage() is None

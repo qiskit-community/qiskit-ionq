@@ -92,3 +92,38 @@ class IonQResult(Result):
         if len(dict_list) == 1:
             return dict_list[0]
         return dict_list
+
+    def get_leakage(self, experiment=None):
+        """Get per-shot leakage data for the experiment(s).
+
+        Leakage marks shots in which one or more qubits left the computational
+        subspace - IonQ's state-selective-leakage (SSL) detection, reported on
+        mid-circuit-measurement jobs run with ``memory=True``. Unlike
+        :meth:`get_probabilities`, leakage is optional and usually absent, so a
+        missing entry returns ``None`` rather than raising.
+
+        If ``experiment`` is None, ``self.results`` will be used in its place.
+
+        Args:
+            experiment (Union[int, QuantumCircuit, Schedule, dict], optional): If provided, this
+                argument is used to get an experiment using Result's ``_get_experiment`` method.
+
+        Returns:
+            Union[list, None]: One entry per experiment (or a single entry when
+                the result list is size one). Each entry is a list with one
+                item per shot - an MSB-left bitstring over the qubits (qubit 0
+                rightmost, matching Qiskit's little-endian convention) for
+                shots with detected leakage, ``None`` for clean shots - or
+                ``None`` if the experiment carries no leakage data.
+        """
+        if experiment is None:
+            exp_keys = range(len(self.results))
+        else:
+            exp_keys = [experiment]
+
+        leakage_list = [self.data(key).get("leakage") for key in exp_keys]
+
+        # Return first item of leakage_list if size is 1
+        if len(leakage_list) == 1:
+            return leakage_list[0]
+        return leakage_list
