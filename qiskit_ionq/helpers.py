@@ -145,6 +145,7 @@ GATESET_MAP = {
 NATIVE_2Q_BY_FAMILY: dict[str, Literal["ms", "zz"]] = {
     "aria": "ms",
     "forte": "zz",
+    "tempo": "zz",
 }
 
 

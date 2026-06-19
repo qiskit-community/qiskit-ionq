@@ -402,7 +402,7 @@ class IonQSimulatorBackend(IonQBackend):
 
 
 class IonQQPUBackend(IonQBackend):
-    """IonQ trapped-ion hardware back-ends (Aria: MS; Forte: ZZ)."""
+    """IonQ trapped-ion hardware back-ends (Aria: MS; Forte/Tempo: ZZ)."""
 
     def __init__(
         self,

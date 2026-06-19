@@ -445,7 +445,7 @@ def test_dry_run_via_extra_params(mock_backend, requests_mock):
 
 
 def test_native_sim_target_noise(provider):
-    """Test that simulator native target uses ZZ gate for Forte noise models.
+    """Test that simulator native target uses ZZ gate for Forte/Tempo noise models.
 
     Args:
         provider (IonQProvider): A test IonQProvider.
@@ -465,6 +465,11 @@ def test_native_sim_target_noise(provider):
     target_ops = [op.name for op in sim_backend.target.operations]
     assert "ms" in target_ops
     assert "zz" not in target_ops
+
+    sim_backend.set_options(noise_model="tempo-1")
+    target_ops = [op.name for op in sim_backend.target.operations]
+    assert "zz" in target_ops
+    assert "ms" not in target_ops
 
 
 def test_forte_rzz_transpiles_to_zz(provider):
