@@ -35,6 +35,41 @@ from requests_mock import Mocker, adapter as rm_adapter
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
 from qiskit_ionq.helpers import compress_to_metadata_string
 
+# Offline stand-in for ``helpers.get_backend_config``. Native gatesets mirror
+# the real API per family (Aria=MS, Forte/Tempo=ZZ); qubit counts are kept
+# small so backend-transpiled statevector tests stay tractable (matching the
+# old offline fallback). Realistic-count passthrough is covered separately by
+# ``test_backend_capabilities_from_api``.
+_SAFE_QUBITS = 4
+_FAMILY_2Q = {"aria": "ms", "forte": "zz", "tempo": "zz"}
+
+
+def fake_backend_config(name, token=None, url=None):  # pylint: disable=unused-argument
+    """Canned GET /backends/{id} payload, network-free."""
+    api_name = name.removeprefix("ionq_").removeprefix("qpu.")
+    two_q = next((g for fam, g in _FAMILY_2Q.items() if api_name.startswith(fam)), "zz")
+    config = {
+        "qubits": _SAFE_QUBITS,
+        "supported_gates": ["x", "y", "z", "h", "rx", "ry", "rz", "cnot", "swap"],
+        "supported_native_gates": ["gpi", "gpi2", two_q],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
+    }
+    if api_name == "simulator":
+        config["noise_models"] = ["aria-1", "forte-1", "forte-enterprise-1", "ideal"]
+    return config
+
+
+@pytest.fixture(autouse=True)
+def _offline_backend_data(monkeypatch):
+    """Keep the suite network-free: serve canned backend config and report no
+    characterization connectivity (all-to-all) by default. Tests exercising a
+    restricted topology patch ``_fetch_connectivity`` on the instance.
+    """
+    monkeypatch.setattr(ionq_backend, "get_backend_config", fake_backend_config)
+    monkeypatch.setattr(
+        ionq_backend.IonQBackend, "_fetch_connectivity", lambda self: None
+    )
+
 
 def _def_results_template(job_id):
     """A template for the results field in a job response."""

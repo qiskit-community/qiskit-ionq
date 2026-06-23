@@ -71,7 +71,7 @@ from qiskit.transpiler import Target, CouplingMap
 
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
-from .helpers import GATESET_MAP, get_n_qubits, native_2q_gate, warn_bad_transpile_level
+from .helpers import GATESET_MAP, get_backend_config, warn_bad_transpile_level
 from .ionq_client import Characterization
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -90,8 +90,8 @@ class IonQBackend(Backend):
         name: str,
         description: str,
         gateset: Literal["qis", "native"],
-        num_qubits: int,
         simulator: bool,
+        num_qubits: int | None = None,
         backend_version: str = "0.0.1",
         max_shots: int | None = None,
         max_experiments: int | None = None,
@@ -111,13 +111,32 @@ class IonQBackend(Backend):
         # Immutable facts
         self._gateset: Literal["qis", "native"] = gateset
         self._basis_gates: Sequence[str] = tuple(GATESET_MAP[gateset])
-        self._num_qubits: int = num_qubits
         self._simulator: bool = simulator
         self._max_experiments: int | None = max_experiments
         self._max_shots: int | None = max_shots
 
-        # Target (basis & connectivity)
-        self._target = self._make_target()
+        # Static backend configuration (qubits, supported/native gates, error
+        # mitigations) from a single GET /backends/{id} via the provider's
+        # credentials. ``{}`` when offline -> callers fall back to defaults.
+        # Skipped when ``num_qubits`` is given explicitly (e.g. test mocks) so
+        # construction stays network-free.
+        if num_qubits is None:
+            creds = self._provider.credentials
+            self._config = get_backend_config(
+                name, creds.get("token"), creds.get("url")
+            )
+            num_qubits = int(self._config.get("qubits", 4))
+        else:
+            self._config = {}
+        self._num_qubits: int = num_qubits
+
+        # Target & coupling map are resolved lazily (on first ``.target`` /
+        # ``.coupling_map`` access) so backend construction stays network-free.
+        # QPU connectivity is then read from the latest characterization and
+        # cached; simulators and any fetch failure fall back to all-to-all.
+        self._target: Target | None = None
+        self._coupling_map: CouplingMap | None = None
+        self._restricted_coupling: bool = False
         # Track noise_model for native simulator target caching
         self._cached_noise_model: str | None = None
 
@@ -145,11 +164,15 @@ class IonQBackend(Backend):
 
     @property
     def target(self) -> Target | None:
+        # The native simulator target depends on the selected noise model (it
+        # picks the matching 2q gate), so rebuild it when that changes.
         if self._simulator and self._gateset == "native":
             current_noise_model = getattr(self.options, "noise_model", "ideal")
-            if self._cached_noise_model != current_noise_model:
+            if self._target is None or self._cached_noise_model != current_noise_model:
                 self._target = self._make_target()
                 self._cached_noise_model = current_noise_model
+        elif self._target is None:
+            self._target = self._make_target()
         return self._target
 
     @property
@@ -162,9 +185,31 @@ class IonQBackend(Backend):
         return self._basis_gates
 
     @property
+    def supported_gates(self) -> list[str]:
+        """QIS gate names the backend accepts (API ``supported_gates``)."""
+        return list(self._config.get("supported_gates") or [])
+
+    @property
+    def supported_native_gates(self) -> list[str]:
+        """Native gate names the backend accepts (API ``supported_native_gates``)."""
+        return list(self._config.get("supported_native_gates") or [])
+
+    @property
+    def supported_error_mitigations(self) -> list[str]:
+        """Error-mitigation methods the backend supports (API field)."""
+        return list(self._config.get("supported_error_mitigations") or [])
+
+    @property
     def coupling_map(self) -> CouplingMap:
-        """IonQ hardware is fully connected."""
-        return CouplingMap.from_full(self._num_qubits)
+        """Physical qubit connectivity.
+
+        Built from the latest characterization's ``connectivity`` (the set of
+        valid two-qubit pairs) for QPUs that report a restricted topology --
+        e.g. Tempo's multi-parcel layout. Falls back to all-to-all for
+        simulators, the generic ``ionq_qpu`` meta-backend, and IonQ's current
+        fully-connected trapped-ion systems (Aria, Forte).
+        """
+        return self._resolve_coupling_map()
 
     @property
     def max_circuits(self) -> int | None:
@@ -283,9 +328,92 @@ class IonQBackend(Backend):
     def __hash__(self):
         return hash((self.name, self._gateset))
 
+    def _fetch_connectivity(self) -> list[tuple[int, int]] | None:
+        """Valid two-qubit pairs from the latest characterization.
+
+        Returns ``None`` for simulators, when the backend reports no
+        connectivity, or when the lookup fails for any reason (offline,
+        missing credentials, unknown system) -- callers then default to
+        all-to-all.
+        """
+        if self._simulator:
+            return None
+        try:
+            cal = self.calibration()
+        except Exception as exc:  # pylint: disable=broad-except
+            warnings.warn(
+                f"Could not fetch connectivity for {self.name}: {exc}. "
+                "Falling back to all-to-all coupling.",
+                stacklevel=2,
+            )
+            return None
+        if cal is not None and cal.connectivity:
+            return cal.connectivity
+        return None
+
+    def _resolve_coupling_map(self) -> CouplingMap:
+        """Coupling map for this backend, cached after first resolution.
+
+        Restricted topologies come from the characterization's ``connectivity``
+        (a list of undirected ``[i, j]`` pairs). IonQ two-qubit gates are
+        symmetric, so each pair is added in both directions; pairs outside
+        ``num_qubits`` are ignored defensively. A *complete* graph (which IonQ's
+        all-to-all systems report in full) and anything missing resolve to an
+        all-to-all map left implicit in the Target -- cheaper to build and
+        identical for routing. Only a genuine subset marks the Target
+        restricted (e.g. Tempo's multi-parcel layout).
+        """
+        if self._coupling_map is not None:
+            return self._coupling_map
+
+        n = self._num_qubits
+        pairs = self._fetch_connectivity()
+        if pairs:
+            edges: set[tuple[int, int]] = set()
+            for left, right in pairs:
+                left, right = int(left), int(right)
+                for src, dst in ((left, right), (right, left)):
+                    if src != dst and 0 <= src < n and 0 <= dst < n:
+                        edges.add((src, dst))
+            # n*(n-1) directed edges == complete graph -> treat as all-to-all.
+            if edges and len(edges) < n * (n - 1):
+                cmap = CouplingMap()
+                for qubit in range(n):
+                    cmap.add_physical_qubit(qubit)
+                for src, dst in sorted(edges):
+                    cmap.add_edge(src, dst)
+                self._coupling_map = cmap
+                self._restricted_coupling = True
+                return self._coupling_map
+
+        self._coupling_map = CouplingMap.from_full(n)
+        self._restricted_coupling = False
+        return self._coupling_map
+
     def _make_target(self) -> Target:
-        """Build a Target exposing either QIS or IonQ-native gates."""
+        """Build a Target exposing either QIS or IonQ-native gates.
+
+        Two-qubit gates are constrained to the backend's coupling map when the
+        characterization reports a restricted topology; otherwise they are
+        added as globally available (all-to-all), matching IonQ's fully
+        connected trapped-ion systems.
+        """
         tgt = Target(num_qubits=self._num_qubits)
+
+        # Resolve connectivity first so 2q gates can be scoped to valid pairs.
+        self._resolve_coupling_map()
+        two_q_props = (
+            {edge: None for edge in self._coupling_map.get_edges()}
+            if self._restricted_coupling and self._coupling_map is not None
+            else None
+        )
+
+        def add(instruction) -> None:
+            """Add a gate, scoping 2q gates to the coupling map when restricted."""
+            if two_q_props is not None and getattr(instruction, "num_qubits", 0) == 2:
+                tgt.add_instruction(instruction, dict(two_q_props))
+            else:
+                tgt.add_instruction(instruction)
 
         if self._gateset == "qis":
             theta = Parameter("θ")
@@ -323,7 +451,7 @@ class IonQBackend(Backend):
                 RYYGate(theta),
                 RZZGate(theta),
             ):
-                tgt.add_instruction(gate)
+                add(gate)
 
             tgt.add_instruction(MCXGate, name="mcx")
             tgt.add_instruction(MCPhaseGate, name="mcphase")
@@ -333,26 +461,41 @@ class IonQBackend(Backend):
             # 1q native
             phi = Parameter("φ")
             for gate in (GPIGate(phi), GPI2Gate(phi)):
-                tgt.add_instruction(gate)
+                add(gate)
 
-            # 2q native: per family (see helpers.NATIVE_2Q_BY_FAMILY).
-            gate = (
-                native_2q_gate(self.name)
-                or native_2q_gate(getattr(self.options, "noise_model", None))
-                or "ms"
-            )
-            if gate == "zz":
+            # 2q native: ms (Aria) or zz (Forte/Tempo), from the API's
+            # supported_native_gates -- see _two_q_native_gate().
+            if self._two_q_native_gate() == "zz":
                 theta = Parameter("θ")
-                tgt.add_instruction(ZZGate(theta))
+                add(ZZGate(theta))
             else:
                 phi0, phi1, theta = Parameter("φ0"), Parameter("φ1"), Parameter("θ")
-                tgt.add_instruction(MSGate(phi0, phi1, theta))
+                add(MSGate(phi0, phi1, theta))
 
         # Always allow measure/reset
         for cls in (Measure, Reset):
             tgt.add_instruction(cls())
 
         return tgt
+
+    def _two_q_native_gate(self) -> Literal["ms", "zz"]:
+        """The device's native two-qubit gate, from ``supported_native_gates``.
+
+        QPUs use their own config. The simulator follows its active
+        ``noise_model`` (which names the emulated device); with no/``ideal``
+        noise model it has no real device, so it defaults to ``"ms"`` -- also
+        the fallback whenever the API is unreachable.
+        """
+        config = self._config
+        if self._simulator:
+            noise_model = getattr(self.options, "noise_model", None)
+            if not noise_model or noise_model == "ideal":
+                return "ms"
+            creds = self._provider.credentials
+            config = get_backend_config(
+                noise_model, creds.get("token"), creds.get("url")
+            )
+        return "zz" if "zz" in (config.get("supported_native_gates") or []) else "ms"
 
     @staticmethod
     def _has_measurements(circ: QuantumCircuit) -> bool:
@@ -389,7 +532,6 @@ class IonQSimulatorBackend(IonQBackend):
             name=backend_name,
             description="IonQ cloud simulator",
             gateset=gateset,
-            num_qubits=get_n_qubits(name),
             simulator=True,
             max_shots=1,
             max_experiments=None,
@@ -416,7 +558,6 @@ class IonQQPUBackend(IonQBackend):
             name=name,
             description="IonQ trapped-ion QPU",
             gateset=gateset,
-            num_qubits=get_n_qubits(name),
             simulator=False,
             max_shots=10_000,
             max_experiments=None,

@@ -140,25 +140,6 @@ GATESET_MAP = {
     "native": ionq_native_basis_gates,
 }
 
-# Native 2-qubit entangling gate by IonQ device family. Add a row when a
-# new family ships; consulted by IonQBackend._make_target().
-NATIVE_2Q_BY_FAMILY: dict[str, Literal["ms", "zz"]] = {
-    "aria": "ms",
-    "forte": "zz",
-    "tempo": "zz",
-}
-
-
-def native_2q_gate(value: str | None) -> Literal["ms", "zz"] | None:
-    """Pick "ms"/"zz" implied by a backend name or noise_model, else None."""
-    if not isinstance(value, str):
-        return None
-    value = value.lower()
-    for fam, gate in NATIVE_2Q_BY_FAMILY.items():
-        if value == fam or f"{fam}-" in value or value.endswith((f".{fam}", f"_{fam}")):
-            return gate
-    return None
-
 
 def circuit_requires_qasm3(input_circuit: QuantumCircuit) -> bool:
     """True for circuits the flat v1 gate list can't express -- mid-circuit
@@ -816,27 +797,43 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     }
 
 
-def get_n_qubits(backend, fallback=4):
-    """Get the number of qubits for a given backend."""
-    backend = backend.removeprefix("ionq_")
-    backend = (
-        backend
-        if backend == "simulator" or backend.startswith("qpu.")
-        else f"qpu.{backend}"
-    )
+def _api_backend_id(name: str) -> str:
+    """Map a local backend name to its API id.
+
+    ``ionq_qpu.forte-1`` -> ``qpu.forte-1``, ``ionq_simulator`` -> ``simulator``,
+    ``forte-1`` -> ``qpu.forte-1`` (also accepts noise-model names).
+    """
+    name = name.removeprefix("ionq_")
+    if name == "simulator" or name.startswith("qpu."):
+        return name
+    return f"qpu.{name}"
+
+
+def get_backend_config(
+    name: str, token: str | None = None, url: str | None = None
+) -> dict:
+    """Fetch a backend's static configuration from ``GET /backends/{id}``.
+
+    Returns the raw payload -- ``qubits``, ``supported_gates``,
+    ``supported_native_gates``, ``supported_error_mitigations`` and more -- so
+    callers can derive qubit count, native gateset, and capabilities from a
+    single request instead of hardcoding them per device. Returns an empty
+    dict (with a warning) when the endpoint is unreachable, letting callers
+    fall back to sensible defaults.
+    """
+    creds = resolve_credentials(token, url)
+    headers = {"Authorization": f"apiKey {creds['token']}"} if creds["token"] else None
     try:
-        return (
-            requests.get(
-                f"{resolve_credentials()['url']}/backends/{backend}", timeout=5
-            )
-            .json()
-            .get("qubits", fallback)
+        resp = requests.get(
+            f"{creds['url']}/backends/{_api_backend_id(name)}",
+            headers=headers,
+            timeout=5,
         )
+        resp.raise_for_status()
+        return resp.json()
     except Exception as exception:  # pylint: disable=broad-except
-        warnings.warn(
-            f"Failed to get qubits for {backend}: {exception}. Using {fallback}"
-        )
-        return fallback
+        warnings.warn(f"Failed to fetch config for {name}: {exception}.")
+        return {}
 
 
 def retry(
@@ -921,6 +918,6 @@ __all__ = [
     "decompress_metadata_string",
     "get_user_agent",
     "resolve_credentials",
-    "get_n_qubits",
+    "get_backend_config",
     "retry",
 ]

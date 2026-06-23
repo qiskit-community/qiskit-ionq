@@ -32,11 +32,15 @@ from collections import Counter
 
 import pytest
 from qiskit import QuantumCircuit, transpile
+from qiskit.transpiler import CouplingMap
 
-from qiskit_ionq import exceptions, ionq_client, ionq_job
+from qiskit_ionq import exceptions, ionq_backend, ionq_client, ionq_job
 from qiskit_ionq.helpers import get_user_agent
 
 from .. import conftest
+
+# Real _fetch_connectivity captured before the autouse fixture stubs it.
+_REAL_FETCH_CONNECTIVITY = ionq_backend.IonQBackend._fetch_connectivity
 
 
 def test_simulator_status_is_true(mock_backend):
@@ -445,13 +449,14 @@ def test_dry_run_via_extra_params(mock_backend, requests_mock):
 
 
 def test_native_sim_target_noise(provider):
-    """Test that simulator native target uses ZZ gate for Forte/Tempo noise models.
+    """Simulator native target picks its 2q gate from the noise model's config.
 
     Args:
         provider (IonQProvider): A test IonQProvider.
     """
     sim_backend = provider.get_backend("ionq_simulator", gateset="native")
 
+    # Default (ideal) has no real device -> historical ms default.
     target_ops = [op.name for op in sim_backend.target.operations]
     assert "ms" in target_ops
     assert "zz" not in target_ops
@@ -491,3 +496,101 @@ def test_forte_rzz_transpiles_to_zz(provider):
 
     assert "zz" in ops
     assert "ms" not in ops
+
+
+@pytest.mark.parametrize(
+    "name, two_q",
+    [("ionq_qpu.forte-1", "zz"), ("ionq_qpu.aria-1", "ms")],
+)
+def test_capabilities_from_api(provider, monkeypatch, name, two_q):
+    """Qubit count, native gateset, and capability lists come from the API config."""
+    config = {
+        "qubits": 36,
+        "supported_gates": ["x", "cnot"],
+        "supported_native_gates": ["gpi", "gpi2", two_q],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
+    }
+    monkeypatch.setattr(ionq_backend, "get_backend_config", lambda *a, **k: config)
+
+    backend = provider.get_backend(name, gateset="native")
+    assert backend.num_qubits == 36
+    assert backend.supported_native_gates == ["gpi", "gpi2", two_q]
+    assert backend.supported_gates == ["x", "cnot"]
+    assert backend.supported_error_mitigations == ["Debias", "Sharpen"]
+    # native 2q gate is selected from supported_native_gates
+    assert two_q in [op.name for op in backend.target.operations]
+
+
+def test_tempo_qpu_target_zz(provider):
+    """A native-gateset Tempo QPU backend exposes ZZ (not MS).
+
+    Complements ``test_native_sim_target_noise`` (simulator noise-model path)
+    by exercising the QPU path, where the 2q gate is inferred from the backend
+    name rather than ``options.noise_model``.
+    """
+    tempo = provider.get_backend("ionq_qpu.tempo-1", gateset="native")
+    target_ops = [op.name for op in tempo.target.operations]
+    assert "zz" in target_ops
+    assert "ms" not in target_ops
+    assert {"gpi", "gpi2"}.issubset(target_ops)
+
+
+def test_tempo_rzz_transpiles_to_zz(provider):
+    """rzz transpiles to zz (not ms) with a Tempo noise model."""
+    native_simulator = provider.get_backend("ionq_simulator", gateset="native")
+    native_simulator.set_options(noise_model="tempo-1")
+
+    qc = QuantumCircuit(2)
+    qc.rzz(1, 0, 1)
+
+    transpiled_qc = transpile(qc, backend=native_simulator, optimization_level=3)
+    ops = transpiled_qc.count_ops()
+
+    assert "zz" in ops
+    assert "ms" not in ops
+
+
+def test_coupling_map_restricted(provider):
+    """A genuine connectivity subset becomes a restricted, symmetric Target."""
+    tempo = provider.get_backend("ionq_qpu.tempo-1", gateset="native")
+    tempo._num_qubits = 5
+    chain = [(0, 1), (1, 2), (2, 3), (3, 4)]
+    expected = {(a, b) for x, y in chain for a, b in ((x, y), (y, x))}
+    with mock.patch.object(tempo, "_fetch_connectivity", return_value=chain):
+        assert set(tempo.coupling_map.get_edges()) == expected
+        assert tempo._restricted_coupling is True
+        # the 2q gate is scoped to exactly those pairs in the Target
+        assert set(tempo.target["zz"].keys()) == expected
+
+
+def test_coupling_map_complete(provider):
+    """A complete pair list (what Aria/Forte report) stays implicit all-to-all."""
+    forte = provider.get_backend("ionq_qpu.forte-1", gateset="native")
+    forte._num_qubits = 4
+    complete = [(i, j) for i in range(4) for j in range(i + 1, 4)]
+    with mock.patch.object(forte, "_fetch_connectivity", return_value=complete):
+        assert set(forte.coupling_map.get_edges()) == set(
+            CouplingMap.from_full(4).get_edges()
+        )
+        assert forte._restricted_coupling is False
+        # global 2q gate -> Target reports all-to-all
+        assert forte.target.build_coupling_map() is None
+
+
+def test_coupling_map_fallback(provider):
+    """No characterization connectivity (default) -> all-to-all, unrestricted."""
+    qpu = provider.get_backend("ionq_qpu.forte-1", gateset="native")
+    qpu._num_qubits = 3
+    # autouse fixture already stubs _fetch_connectivity -> None
+    assert set(qpu.coupling_map.get_edges()) == set(
+        CouplingMap.from_full(3).get_edges()
+    )
+    assert qpu._restricted_coupling is False
+
+
+def test_sim_skips_connectivity(provider):
+    """Simulators short-circuit connectivity (no network) and stay all-to-all."""
+    sim = provider.get_backend("ionq_simulator")
+    # Exercise the real method: it returns None for simulators before any call.
+    assert _REAL_FETCH_CONNECTIVITY(sim) is None
+    assert sim._restricted_coupling is False

@@ -28,8 +28,9 @@
 
 import re
 from unittest.mock import patch, MagicMock
+import pytest
 from qiskit_ionq.ionq_client import IonQClient
-from qiskit_ionq.helpers import get_n_qubits, retry
+from qiskit_ionq.helpers import get_backend_config, retry
 
 
 def test_user_agent_header():
@@ -51,54 +52,45 @@ def test_user_agent_header():
     assert all_user_agent_keywords_avail and has_all_version_strings
 
 
-def test_get_n_qubits_success():
-    """Test get_n_qubits returns correct number of qubits and checks correct URL."""
+def test_backend_config_success():
+    """get_backend_config returns the backend payload and hits the right URL."""
     with patch("requests.get") as mock_get:
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
+        payload = {
             "backend": "qpu.aria-1",
             "status": "unavailable",
-            "degraded": False,
             "qubits": 25,
-            "average_queue_time": 375478,
-            "last_updated": "2025-07-08T17:17:28Z",
-            "characterization_id": "b9b31a31-8d11-47c1-9156-87bd87954f7f",
+            "supported_gates": ["x", "cnot"],
+            "supported_native_gates": ["gpi", "gpi2", "ms"],
+            "supported_error_mitigations": ["Debias", "Sharpen"],
         }
+        mock_response = MagicMock()
+        mock_response.json.return_value = payload
+        mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
-        backend = "ionq_qpu.aria-1"
-        result = get_n_qubits(backend)
+        result = get_backend_config("ionq_qpu.aria-1")
 
         expected_url = "https://api.ionq.co/v0.4/backends/qpu.aria-1"
-
-        # Check the arguments of the last call to `requests.get`
         mock_get.assert_called()
         args, kwargs = mock_get.call_args
         actual_url = kwargs.get("url", args[0] if args else None)
-        assert (
-            actual_url == expected_url
-        ), f"Expected URL {expected_url}, but got {actual_url}"
-
-        assert result == 25, f"Expected 25 qubits, but got {result}"
+        assert actual_url == expected_url
+        assert result == payload
+        assert result["qubits"] == 25
 
 
-def test_get_n_qubits_fallback():
-    """Test get_n_qubits returns fallback number of qubits and checks correct URL on failure."""
+def test_backend_config_fallback():
+    """get_backend_config returns {} (with a warning) when the request fails."""
     with patch("requests.get", side_effect=Exception("Network error")) as mock_get:
-        backend = "aria-1"
-        result = get_n_qubits(backend)
+        with pytest.warns(UserWarning, match="Failed to fetch config"):
+            result = get_backend_config("aria-1")
 
         expected_url = "https://api.ionq.co/v0.4/backends/qpu.aria-1"
-
-        # Check the arguments of the last call to `requests.get`
         mock_get.assert_called()
         args, kwargs = mock_get.call_args
         actual_url = kwargs.get("url", args[0] if args else None)
-        assert (
-            actual_url == expected_url
-        ), f"Expected URL {expected_url}, but got {actual_url}"
-
-        assert result == 4, f"Expected fallback of 4 qubits, but got {result}"
+        assert actual_url == expected_url
+        assert result == {}
 
 
 def test_retry():
