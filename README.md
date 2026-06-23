@@ -145,6 +145,67 @@ result.get_counts()        # split across registers, e.g. {'01 0': 96, '10 1': 1
 result.get_memory()        # per-shot, e.g. ['01 0', '10 1', ...]
 ```
 
+### Error mitigation (proposed API)
+
+Error mitigation techniques are controlled via **flat kwargs on `backend.run()`**,
+the same pattern as `noise_model`, `memory`, and `dry_run`. Each kwarg accepts
+`bool` for simple on/off, or a typed options object for fine-grained control.
+
+```python
+from qiskit_ionq import IonQProvider
+from qiskit_ionq.error_mitigation import Debiasing, Twirling
+
+backend = IonQProvider().get_backend("ionq_qpu.aria-1")
+
+# Defaults: debiasing on, symmetry verification on
+job = backend.run(qc)
+
+# Turn off debiasing
+job = backend.run(qc, debiasing=False)
+
+# Turn off symmetry verification
+job = backend.run(qc, symmetry_verification=False)
+
+# Both off
+job = backend.run(qc, debiasing=False, symmetry_verification=False)
+
+# Custom debiasing: 32 variants
+job = backend.run(qc, debiasing=Debiasing(num_variants=32))
+
+# Custom twirling (strings or enums accepted)
+job = backend.run(qc, debiasing=Debiasing(
+    num_variants=32,
+    twirling=Twirling(pattern="extended"),
+))
+```
+
+Result aggregation for debiased jobs uses the `aggregation` kwarg on `result()`:
+
+```python
+# Default (average across variants)
+counts = job.result().get_counts()
+
+# Voting aggregation (replaces sharpen=True)
+counts = job.result(aggregation="voting").get_counts()
+
+# DNL aggregation (requires debiasing)
+counts = job.result(aggregation="dnl").get_counts()
+
+# Legacy sharpen=True still works with a DeprecationWarning
+counts = job.result(sharpen=True).get_counts()
+```
+
+An optional `ErrorMitigation` wrapper bundles all EM config into a single object,
+useful for setting backend-level defaults:
+
+```python
+from qiskit_ionq.error_mitigation import ErrorMitigation
+
+backend.options.update_options(
+    error_mitigation=ErrorMitigation(debiasing=False, symmetry_verification=False)
+)
+```
+
 ### Basis gates and transpilation
 
 The IonQ provider provides access to the full IonQ Cloud backend, which includes its own transpilation and compilation pipeline. As such, IonQ provider backends have a broad set of "basis gates" that they will accept — effectively anything the IonQ API will accept. The current supported gates can be found [on our docs site](https://docs.ionq.com/#tag/quantum_programs).
