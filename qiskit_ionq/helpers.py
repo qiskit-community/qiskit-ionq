@@ -798,11 +798,8 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
 
 
 def _api_backend_id(name: str) -> str:
-    """Map a local backend name to its API id.
-
-    ``ionq_qpu.forte-1`` -> ``qpu.forte-1``, ``ionq_simulator`` -> ``simulator``,
-    ``forte-1`` -> ``qpu.forte-1`` (also accepts noise-model names).
-    """
+    """Local name -> API id (``ionq_qpu.forte-1``/``forte-1`` -> ``qpu.forte-1``,
+    ``ionq_simulator`` -> ``simulator``)."""
     name = name.removeprefix("ionq_")
     if name == "simulator" or name.startswith("qpu."):
         return name
@@ -812,14 +809,9 @@ def _api_backend_id(name: str) -> str:
 def get_backend_config(
     name: str, token: str | None = None, url: str | None = None
 ) -> dict:
-    """Fetch a backend's static configuration from ``GET /backends/{id}``.
-
-    Returns the raw payload -- ``qubits``, ``supported_gates``,
-    ``supported_native_gates``, ``supported_error_mitigations`` and more -- so
-    callers can derive qubit count, native gateset, and capabilities from a
-    single request instead of hardcoding them per device. Returns an empty
-    dict (with a warning) when the endpoint is unreachable, letting callers
-    fall back to sensible defaults.
+    """Fetch a backend's static config (qubits, supported/native gates, error
+    mitigations) from ``GET /backends/{id}``; ``{}`` (with a warning) if
+    unreachable so callers can fall back to defaults.
     """
     creds = resolve_credentials(token, url)
     headers = {"Authorization": f"apiKey {creds['token']}"} if creds["token"] else None
