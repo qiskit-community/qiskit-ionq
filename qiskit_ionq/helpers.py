@@ -457,6 +457,12 @@ def _qasm3_data(circuit: QuantumCircuit) -> str:
         dumps as _qasm3_dumps,
     )
 
+    # Drop the layout so dumps emits a virtual register (qubit[n] q;), which
+    # the API requires, not physical qubits ($0).
+    if getattr(circuit, "layout", None) is not None:
+        circuit = circuit.copy()
+        circuit._layout = None  # pylint: disable=protected-access
+
     data = _qasm3_dumps(circuit)
     emitted = set(re.findall(r"\bbit(?:\[\d+\])?\s+(\w+)\s*;", data))
     renamed = [creg.name for creg in circuit.cregs if creg.name not in emitted]
