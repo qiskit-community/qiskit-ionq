@@ -135,6 +135,8 @@ class IonQBackend(Backend):
             shots=1024,
             job_settings=None,
             error_mitigation=None,
+            debiasing=None,
+            symmetry_verification=None,
             extra_query_params={},
             extra_metadata={},
             sampler_seed=None,  # simulator-only (harmless on QPU)

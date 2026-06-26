@@ -60,6 +60,7 @@ from qiskit.quantum_info import SparsePauliOp
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
 from qiskit_ionq.constants import ErrorMitigation
+from qiskit_ionq.error_mitigation import Debiasing, ErrorMitigationConfig
 from . import exceptions as ionq_exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
@@ -486,17 +487,54 @@ def _qasm3_data(circuit: QuantumCircuit) -> str:
     return data
 
 
-def _build_settings(passed_args: dict, backend) -> dict[str, Any]:
-    """Build ``settings`` from ``job_settings``, merging the ErrorMitigation
-    enum into ``error_mitigation``.
+def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
+    """Resolve error mitigation config from passed_args and backend defaults.
+
+    Flat kwargs (``debiasing``, ``symmetry_verification``) take precedence over
+    the ``error_mitigation`` bundle. The legacy ``ErrorMitigation`` enum is
+    still accepted with a deprecation warning.
+
+    Returns a dict ready to merge into ``settings["error_mitigation"]``.
     """
-    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
-    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
+    # Start from the bundle (passed kwarg > backend default)
+    bundle = passed_args.get("error_mitigation") or backend.options.get(
         "error_mitigation"
     )
-    if isinstance(error_mitigation, ErrorMitigation):
+
+    if isinstance(bundle, ErrorMitigation):
+        warnings.warn(
+            f"Passing ErrorMitigation.{bundle.name} is deprecated. "
+            "Use the debiasing= and symmetry_verification= kwargs on backend.run() instead.",
+            DeprecationWarning,
+        )
+        em = dict(bundle.value)
+    elif isinstance(bundle, ErrorMitigationConfig):
+        em = bundle.to_dict()
+    else:
+        em = {}
+
+    # Flat kwargs override the bundle (None means "not set", so skip)
+    debiasing = passed_args.get("debiasing")
+    if debiasing is not None:
+        if isinstance(debiasing, Debiasing):
+            em.update(debiasing.to_dict())
+        else:
+            em["debiasing"] = debiasing
+
+    sv = passed_args.get("symmetry_verification")
+    if sv is not None:
+        em["symmetry_verification"] = sv
+
+    return em
+
+
+def _build_settings(passed_args: dict, backend) -> dict[str, Any]:
+    """Build ``settings`` from ``job_settings`` and error mitigation config."""
+    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
+    em = _resolve_em_config(passed_args, backend)
+    if em:
         em_block = dict(settings.get("error_mitigation") or {})
-        em_block.update(error_mitigation.value)
+        em_block.update(em)
         settings["error_mitigation"] = em_block
     return settings
 

@@ -259,7 +259,7 @@ class IonQClient:
     def get_results(
         self,
         results_url: str,
-        sharpen: bool | None = None,
+        aggregation: str | None = None,
         extra_query_params: dict | None = None,
     ) -> dict:
         """Retrieve job results from the IonQ API.
@@ -268,8 +268,8 @@ class IonQClient:
 
         Args:
             results_url (str): The URL of the job results to retrieve.
-            sharpen (bool): Supported if the job is debiased,
-            allows you to filter out physical qubit bias from the results.
+            aggregation (str | None): Aggregation method for debiased jobs.
+                One of ``"average"`` (default), ``"voting"``, or ``"dnl"``.
             extra_query_params (dict): Specify any parameters to include in the request
 
         Raises:
@@ -282,8 +282,8 @@ class IonQClient:
 
         params = {}
 
-        if sharpen is not None:
-            params["sharpen"] = sharpen
+        if aggregation is not None:
+            params["aggregation"] = aggregation
 
         if extra_query_params is not None:
             warn(

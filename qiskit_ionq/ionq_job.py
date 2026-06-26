@@ -49,6 +49,7 @@ from .helpers import decompress_metadata_string, normalize
 from .exceptions import IonQBackendError
 
 from . import constants, exceptions
+from .error_mitigation import AggregationMethod
 
 if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_backend
@@ -371,6 +372,7 @@ class IonQJob(JobV1):
     def result(
         self,
         sharpen: bool | None = None,
+        aggregation: str | AggregationMethod | None = None,
         timeout: float | None = None,
         wait: float = 5,
         callback: Callable | None = None,
@@ -398,9 +400,21 @@ class IonQJob(JobV1):
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
         """
-        # Validate args
+        # Resolve aggregation method, with sharpen as a deprecated alias.
         if sharpen is not None and not isinstance(sharpen, bool):
             warnings.warn("Invalid sharpen type")
+            sharpen = None
+
+        if sharpen is True:
+            warnings.warn(
+                "sharpen=True is deprecated. Use aggregation='voting' instead.",
+                DeprecationWarning,
+            )
+            if aggregation is None:
+                aggregation = AggregationMethod.VOTING
+
+        if isinstance(aggregation, AggregationMethod):
+            aggregation = aggregation.value
 
         # Wait for the job to complete.
         try:
@@ -432,7 +446,7 @@ class IonQJob(JobV1):
             else:
                 response = self._client.get_results(
                     results_url=self._results_urls.get("probabilities", ""),
-                    sharpen=sharpen,
+                    aggregation=aggregation,
                     extra_query_params=extra_query_params,
                 )
                 self._result = self._format_result(response)
