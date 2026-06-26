@@ -507,34 +507,34 @@ def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
             "Use the debiasing= and symmetry_verification= kwargs on backend.run() instead.",
             DeprecationWarning,
         )
-        em = dict(bundle.value)
+        em_cfg = dict(bundle.value)
     elif isinstance(bundle, ErrorMitigationConfig):
-        em = bundle.to_dict()
+        em_cfg = bundle.to_dict()
     else:
-        em = {}
+        em_cfg = {}
 
     # Flat kwargs override the bundle (None means "not set", so skip)
     debiasing = passed_args.get("debiasing")
     if debiasing is not None:
         if isinstance(debiasing, Debiasing):
-            em.update(debiasing.to_dict())
+            em_cfg.update(debiasing.to_dict())
         else:
-            em["debiasing"] = debiasing
+            em_cfg["debiasing"] = debiasing
 
-    sv = passed_args.get("symmetry_verification")
-    if sv is not None:
-        em["symmetry_verification"] = sv
+    sym_ver = passed_args.get("symmetry_verification")
+    if sym_ver is not None:
+        em_cfg["symmetry_verification"] = sym_ver
 
-    return em
+    return em_cfg
 
 
 def _build_settings(passed_args: dict, backend) -> dict[str, Any]:
     """Build ``settings`` from ``job_settings`` and error mitigation config."""
     settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
-    em = _resolve_em_config(passed_args, backend)
-    if em:
+    em_cfg = _resolve_em_config(passed_args, backend)
+    if em_cfg:
         em_block = dict(settings.get("error_mitigation") or {})
-        em_block.update(em)
+        em_block.update(em_cfg)
         settings["error_mitigation"] = em_block
     return settings
 

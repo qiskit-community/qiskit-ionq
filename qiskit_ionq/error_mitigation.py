@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import enum
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 class PhiChiPattern(enum.Enum):
@@ -54,27 +54,35 @@ class Twirling:
     one_qubit: str | OneQubitTwirling = OneQubitTwirling.NONE
 
     def to_dict(self) -> dict:
-        d = {}
+        """Serialize to API wire format."""
+        result = {}
         if self.pattern is not None:
-            p = self.pattern
-            d["pattern"] = p.value if isinstance(p, PhiChiPattern) else p
-        oq = self.one_qubit
-        d["one_qubit_twirling"] = oq.value if isinstance(oq, OneQubitTwirling) else oq
-        return d
+            result["pattern"] = (
+                self.pattern.value if isinstance(self.pattern, PhiChiPattern) else self.pattern
+            )
+        result["one_qubit_twirling"] = (
+            self.one_qubit.value
+            if isinstance(self.one_qubit, OneQubitTwirling)
+            else self.one_qubit
+        )
+        return result
 
 
 @dataclass
 class Debiasing:
+    """Fine-grained debiasing options."""
+
     num_variants: int | None = None
     twirling: Twirling | None = None
 
     def to_dict(self) -> dict:
-        d = {"debiasing": True}
+        """Serialize to API wire format."""
+        result = {"debiasing": True}
         if self.num_variants is not None:
-            d["num_variants"] = self.num_variants
+            result["num_variants"] = self.num_variants
         if self.twirling is not None:
-            d["phi_chi_twirling"] = self.twirling.to_dict()
-        return d
+            result["phi_chi_twirling"] = self.twirling.to_dict()
+        return result
 
 
 @dataclass
@@ -88,13 +96,14 @@ class ErrorMitigationConfig:
     symmetry_verification: bool = True
 
     def to_dict(self) -> dict:
-        d = {}
+        """Serialize to API wire format."""
+        result = {}
         if isinstance(self.debiasing, Debiasing):
-            d.update(self.debiasing.to_dict())
+            result.update(self.debiasing.to_dict())
         else:
-            d["debiasing"] = bool(self.debiasing)
-        d["symmetry_verification"] = self.symmetry_verification
-        return d
+            result["debiasing"] = bool(self.debiasing)
+        result["symmetry_verification"] = self.symmetry_verification
+        return result
 
 
 __all__ = [
