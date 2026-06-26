@@ -30,7 +30,7 @@ import re
 from unittest.mock import patch, MagicMock
 import pytest
 from qiskit_ionq.ionq_client import IonQClient
-from qiskit_ionq.helpers import get_backend_config, retry
+from qiskit_ionq.helpers import api_backend_id, get_backend_config, retry
 
 
 def test_user_agent_header():
@@ -50,6 +50,22 @@ def test_user_agent_header():
     # Checks whether there is at-least 3 version strings from qiskit-ionq, qiskit, python.
     has_all_version_strings = len(re.findall(r"\s*([\d.]+)", generated_user_agent)) >= 3
     assert all_user_agent_keywords_avail and has_all_version_strings
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        ("ionq_qpu.forte-1", "qpu.forte-1"),
+        ("forte-1", "qpu.forte-1"),
+        ("qpu.aria-1", "qpu.aria-1"),
+        ("ionq_simulator", "simulator"),
+        ("simulator", "simulator"),
+        ("ionq_qpu", "qpu"),
+    ],
+)
+def test_api_backend_id(name, expected):
+    """api_backend_id normalizes local backend names to their API id."""
+    assert api_backend_id(name) == expected
 
 
 def test_backend_config_success():

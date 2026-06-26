@@ -803,11 +803,14 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     }
 
 
-def _api_backend_id(name: str) -> str:
-    """Local name -> API id (``ionq_qpu.forte-1``/``forte-1`` -> ``qpu.forte-1``,
-    ``ionq_simulator`` -> ``simulator``)."""
+def api_backend_id(name: str) -> str:
+    """Map a local backend name to its API id.
+
+    ``ionq_qpu.forte-1``/``forte-1`` -> ``qpu.forte-1``,
+    ``ionq_simulator`` -> ``simulator``, ``ionq_qpu`` -> ``qpu``.
+    """
     name = name.removeprefix("ionq_")
-    if name == "simulator" or name.startswith("qpu."):
+    if name in ("simulator", "qpu") or name.startswith("qpu."):
         return name
     return f"qpu.{name}"
 
@@ -815,15 +818,20 @@ def _api_backend_id(name: str) -> str:
 def get_backend_config(
     name: str, token: str | None = None, url: str | None = None
 ) -> dict:
-    """Fetch a backend's static config (qubits, supported/native gates, error
-    mitigations) from ``GET /backends/{id}``; ``{}`` (with a warning) if
-    unreachable so callers can fall back to defaults.
+    """Fetch a backend's static config from ``GET /backends/{id}``.
+
+    Includes qubit count, supported/native gates, and supported error-mitigation
+    techniques, so callers derive them from one request rather than hardcoding
+    per device.
+
+    Returns ``{}`` (and warns) when the endpoint is unreachable, so callers can
+    fall back to defaults.
     """
     creds = resolve_credentials(token, url)
     headers = {"Authorization": f"apiKey {creds['token']}"} if creds["token"] else None
     try:
         resp = requests.get(
-            f"{creds['url']}/backends/{_api_backend_id(name)}",
+            f"{creds['url']}/backends/{api_backend_id(name)}",
             headers=headers,
             timeout=5,
         )
