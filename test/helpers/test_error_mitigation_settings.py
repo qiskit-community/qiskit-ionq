@@ -239,32 +239,6 @@ def test_bundle_with_debiasing_object(simulator_backend):
     }
 
 
-def test_flat_kwarg_overrides_bundle(simulator_backend):
-    """Flat debiasing= kwarg takes precedence over ErrorMitigationConfig bundle."""
-    args = {
-        "shots": 10,
-        "error_mitigation": ErrorMitigationConfig(debiasing=True),
-        "debiasing": False,
-    }
-    em_block = _em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block["debiasing"] is False
-
-
-def test_flat_sv_overrides_bundle(simulator_backend):
-    """Flat symmetry_verification= kwarg takes precedence over bundle."""
-    args = {
-        "shots": 10,
-        "error_mitigation": ErrorMitigationConfig(symmetry_verification=True),
-        "symmetry_verification": False,
-    }
-    em_block = _em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block["symmetry_verification"] is False
-
-
 # ---------------------------------------------------------------------------
 # job_settings escape hatch
 # ---------------------------------------------------------------------------
@@ -434,3 +408,18 @@ def test_run_with_full_error_mitigation_config(mock_backend, requests_mock):
         "num_variants": 32,
         "symmetry_verification": False,
     }
+
+
+def test_run_mixing_bundle_and_flat_kwarg_raises(mock_backend, requests_mock):
+    """backend.run() raises ValueError when error_mitigation= and a flat kwarg are both set."""
+    _mock_submit(mock_backend, requests_mock)
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    with pytest.raises(ValueError, match="error_mitigation="):
+        mock_backend.run(
+            qc,
+            shots=10,
+            error_mitigation=ErrorMitigationConfig(),
+            debiasing=False,
+        )

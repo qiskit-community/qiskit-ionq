@@ -501,6 +501,19 @@ def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
         "error_mitigation"
     )
 
+    if isinstance(bundle, ErrorMitigationConfig):
+        flat_kwargs = [
+            k
+            for k in ("debiasing", "symmetry_verification")
+            if passed_args.get(k) is not None
+        ]
+        if flat_kwargs:
+            raise ValueError(
+                f"Received both error_mitigation= and flat kwarg(s) {flat_kwargs}. "
+                "Use one or the other: pass an ErrorMitigationConfig to error_mitigation=, "
+                "or use the debiasing= and symmetry_verification= kwargs directly."
+            )
+
     if isinstance(bundle, ErrorMitigation):
         warnings.warn(
             f"Passing ErrorMitigation.{bundle.name} is deprecated. "
