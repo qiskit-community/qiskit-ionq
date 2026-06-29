@@ -35,7 +35,7 @@ from requests_mock import Mocker, adapter as rm_adapter
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
 from qiskit_ionq.helpers import compress_to_metadata_string
 
-# Offline stand-in for ``helpers.get_backend_config``. Native gatesets match
+# Offline stand-in for one backend's catalog entry. Native gatesets match
 # the real API per family; qubit counts stay small so backend-transpiled
 # statevector tests stay tractable (realistic counts: test_capabilities_from_api).
 _SAFE_QUBITS = 4
@@ -59,9 +59,15 @@ def fake_backend_config(name, token=None, url=None):  # pylint: disable=unused-a
 
 @pytest.fixture(autouse=True)
 def _offline_backend_data(monkeypatch):
-    """Network-free default: canned config and no connectivity (all-to-all).
-    Restricted-topology tests patch ``_fetch_connectivity`` per instance."""
-    monkeypatch.setattr(ionq_backend, "get_backend_config", fake_backend_config)
+    """Network-free default: empty catalog fetch, canned per-backend config, and
+    no connectivity (all-to-all). Restricted-topology tests patch
+    ``_fetch_connectivity`` per instance."""
+    monkeypatch.setattr(ionq_provider, "get_backends", lambda *a, **k: {})
+    monkeypatch.setattr(
+        ionq_provider.IonQProvider,
+        "backend_config",
+        lambda self, name: fake_backend_config(name),
+    )
     monkeypatch.setattr(
         ionq_backend.IonQBackend, "_fetch_connectivity", lambda self: None
     )

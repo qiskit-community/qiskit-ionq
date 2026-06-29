@@ -71,12 +71,7 @@ from qiskit.transpiler import Target, CouplingMap
 
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
-from .helpers import (
-    GATESET_MAP,
-    api_backend_id,
-    get_backend_config,
-    warn_bad_transpile_level,
-)
+from .helpers import GATESET_MAP, api_backend_id, warn_bad_transpile_level
 from .ionq_client import Characterization
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -124,14 +119,13 @@ class IonQBackend(Backend):
         self._max_experiments: int | None = max_experiments
         self._max_shots: int | None = max_shots
 
-        # Resolve static config (qubits, gates, capabilities) from one
-        # GET /backends/{id}. An explicit num_qubits (e.g. MockBackend in
-        # tests) bypasses the network; otherwise an unreachable API yields {}
-        # and we fall back to a small default qubit count.
+        # Static config (qubits, gates, capabilities) comes from the provider's
+        # cached /backends catalog. An explicit num_qubits (e.g. MockBackend in
+        # tests) bypasses it; otherwise a missing entry yields {} and we fall
+        # back to a small default qubit count.
         self._config: dict = {}
         if num_qubits is None:
-            creds = self._provider.credentials
-            self._config = get_backend_config(name, creds["token"], creds["url"])
+            self._config = self._provider.backend_config(name)
             num_qubits = int(self._config.get("qubits", _DEFAULT_NUM_QUBITS))
         self._num_qubits: int = num_qubits
 
@@ -474,10 +468,7 @@ class IonQBackend(Backend):
             noise_model = getattr(self.options, "noise_model", None)
             if not noise_model or noise_model == "ideal":
                 return "ms"
-            creds = self._provider.credentials
-            config = get_backend_config(
-                noise_model, creds.get("token"), creds.get("url")
-            )
+            config = self._provider.backend_config(noise_model)
         return "zz" if "zz" in (config.get("supported_native_gates") or []) else "ms"
 
     @staticmethod

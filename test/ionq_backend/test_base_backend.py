@@ -510,7 +510,7 @@ def test_capabilities_from_api(provider, monkeypatch, name, two_q):
         "supported_native_gates": ["gpi", "gpi2", two_q],
         "supported_error_mitigations": ["Debias", "Sharpen"],
     }
-    monkeypatch.setattr(ionq_backend, "get_backend_config", lambda *a, **k: config)
+    monkeypatch.setattr(provider, "backend_config", lambda _name: config)
 
     backend = provider.get_backend(name, gateset="native")
     assert backend.num_qubits == 36

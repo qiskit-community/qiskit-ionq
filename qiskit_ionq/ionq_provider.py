@@ -29,12 +29,13 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 from typing import Callable, Literal
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
-from .helpers import resolve_credentials
+from .helpers import api_backend_id, get_backends, resolve_credentials
 
 from . import ionq_backend
 
@@ -62,12 +63,28 @@ class IonQProvider:
         super().__init__()
         self.custom_headers = custom_headers
         self.credentials = resolve_credentials(token, url)
+        # One GET /backends call serves every backend's static config.
+        self._catalog = get_backends(self.credentials["token"], self.credentials["url"])
         self.backends = BackendService(
             [
                 ionq_backend.IonQSimulatorBackend(self),
                 ionq_backend.IonQQPUBackend(self),
             ]
         )
+
+    def backend_config(self, name: str) -> dict:
+        """Static config for ``name`` from the cached ``/backends`` catalog.
+
+        Returns ``{}`` for the generic ``ionq_qpu`` template (no real device)
+        and warns for an unknown backend when the catalog is populated.
+        """
+        api_id = api_backend_id(name)
+        config = self._catalog.get(api_id)
+        if config is None and self._catalog and api_id != "qpu":
+            warnings.warn(
+                f"Backend {api_id!r} not in the IonQ catalog; using defaults."
+            )
+        return config or {}
 
     def get_backend(
         self,
