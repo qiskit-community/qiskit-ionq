@@ -362,3 +362,75 @@ def test_sharpen_false_no_warning(mock_backend, requests_mock):
         warnings.simplefilter("error", DeprecationWarning)
         result = job.result(sharpen=False)
     assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# Integration: passing EM objects directly into backend.run()
+# ---------------------------------------------------------------------------
+
+
+def _mock_submit(backend, requests_mock):
+    """Register a POST /jobs mock and return the path so callers can inspect requests."""
+    path = backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+    return path
+
+
+def _posted_em_settings(requests_mock):
+    """Return the error_mitigation block from the most-recently POSTed job payload."""
+    body = json.loads(requests_mock.last_request.body)
+    return body.get("settings", {}).get("error_mitigation", {})
+
+
+def test_run_with_debiasing_true(mock_backend, requests_mock):
+    """backend.run(circuit, debiasing=True) sends {"debiasing": true} in settings."""
+    _mock_submit(mock_backend, requests_mock)
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    mock_backend.run(qc, shots=10, debiasing=True)
+    assert _posted_em_settings(requests_mock) == {"debiasing": True}
+
+
+def test_run_with_debiasing_config_object(mock_backend, requests_mock):
+    """backend.run(circuit, debiasing=DebiasingConfig(...)) serializes the full config."""
+    _mock_submit(mock_backend, requests_mock)
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    mock_backend.run(
+        qc,
+        shots=10,
+        debiasing=DebiasingConfig(
+            num_variants=16,
+            twirling=TwirlingConfig(pattern=PhiChiPattern.STANDARD),
+        ),
+    )
+    assert _posted_em_settings(requests_mock) == {
+        "debiasing": True,
+        "num_variants": 16,
+        "phi_chi_twirling": {"pattern": "standard", "one_qubit_twirling": "none"},
+    }
+
+
+def test_run_with_full_error_mitigation_config(mock_backend, requests_mock):
+    """backend.run with an ErrorMitigationConfig wrapping a DebiasingConfig object."""
+    _mock_submit(mock_backend, requests_mock)
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    mock_backend.run(
+        qc,
+        shots=10,
+        error_mitigation=ErrorMitigationConfig(
+            debiasing=DebiasingConfig(num_variants=32),
+            symmetry_verification=False,
+        ),
+    )
+    assert _posted_em_settings(requests_mock) == {
+        "debiasing": True,
+        "num_variants": 32,
+        "symmetry_verification": False,
+    }
