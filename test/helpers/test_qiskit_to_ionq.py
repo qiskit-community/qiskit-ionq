@@ -644,6 +644,7 @@ def test_v1_settings_merge(simulator_backend):
 # Backward compatibility: legacy ErrorMitigation enum emits DeprecationWarning
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     "error_mitigation,expected",
     [
@@ -651,7 +652,9 @@ def test_v1_settings_merge(simulator_backend):
         (ErrorMitigation.DEBIASING, {"debiasing": True}),
     ],
 )
-def test_legacy_error_mitigation_enum_warns(simulator_backend, error_mitigation, expected):
+def test_legacy_error_mitigation_enum_warns(
+    simulator_backend, error_mitigation, expected
+):
     """Legacy ErrorMitigation enum still serializes correctly but emits a DeprecationWarning."""
     qc = QuantumCircuit(1, 1)
     args = {"shots": 10, "error_mitigation": error_mitigation}

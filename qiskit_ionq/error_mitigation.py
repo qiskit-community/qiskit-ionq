@@ -59,8 +59,8 @@ class AggregationMethod(enum.Enum):
 
 
 @dataclass
-class Twirling:
-    """Two-qubit gate twirling options for debiasing."""
+class TwirlingConfig:
+    """Twirling options for debiasing."""
 
     pattern: str | PhiChiPattern | None = None
     one_qubit: str | OneQubitTwirling = OneQubitTwirling.NONE
@@ -70,7 +70,9 @@ class Twirling:
         result = {}
         if self.pattern is not None:
             result["pattern"] = (
-                self.pattern.value if isinstance(self.pattern, PhiChiPattern) else self.pattern
+                self.pattern.value
+                if isinstance(self.pattern, PhiChiPattern)
+                else self.pattern
             )
         result["one_qubit_twirling"] = (
             self.one_qubit.value
@@ -81,15 +83,15 @@ class Twirling:
 
 
 @dataclass
-class Debiasing:
+class DebiasingConfig:
     """Fine-grained debiasing options."""
 
     num_variants: int | None = None
-    twirling: Twirling | None = None
+    twirling: TwirlingConfig | None = None
 
     def to_dict(self) -> dict:
         """Serialize to API wire format."""
-        result = {"debiasing": True}
+        result: dict = {"debiasing": True}
         if self.num_variants is not None:
             result["num_variants"] = self.num_variants
         if self.twirling is not None:
@@ -99,30 +101,28 @@ class Debiasing:
 
 @dataclass
 class ErrorMitigationConfig:
-    """Bundle of all error mitigation options, for use with
-    ``backend.options.update_options()`` or as the ``error_mitigation`` kwarg
-    on ``backend.run()``.
-    """
+    """Bundle of all error mitigation configuration."""
 
-    debiasing: bool | Debiasing = True
+    debiasing: bool | DebiasingConfig = True
     symmetry_verification: bool = True
 
     def to_dict(self) -> dict:
         """Serialize to API wire format."""
-        result = {}
-        if isinstance(self.debiasing, Debiasing):
-            result.update(self.debiasing.to_dict())
+        result = {"symmetry_verification": self.symmetry_verification}
+
+        if isinstance(self.debiasing, bool):
+            result["debiasing"] = self.debiasing
         else:
-            result["debiasing"] = bool(self.debiasing)
-        result["symmetry_verification"] = self.symmetry_verification
+            result.update(self.debiasing.to_dict())
+
         return result
 
 
 __all__ = [
     "AggregationMethod",
-    "Debiasing",
+    "DebiasingConfig",
     "ErrorMitigationConfig",
     "OneQubitTwirling",
     "PhiChiPattern",
-    "Twirling",
+    "TwirlingConfig",
 ]

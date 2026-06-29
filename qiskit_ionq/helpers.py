@@ -60,7 +60,7 @@ from qiskit.quantum_info import SparsePauliOp
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
 from qiskit_ionq.constants import ErrorMitigation
-from qiskit_ionq.error_mitigation import Debiasing, ErrorMitigationConfig
+from qiskit_ionq.error_mitigation import DebiasingConfig, ErrorMitigationConfig
 from . import exceptions as ionq_exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
@@ -516,7 +516,7 @@ def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
     # Flat kwargs override the bundle (None means "not set", so skip)
     debiasing = passed_args.get("debiasing")
     if debiasing is not None:
-        if isinstance(debiasing, Debiasing):
+        if isinstance(debiasing, DebiasingConfig):
             em_cfg.update(debiasing.to_dict())
         else:
             em_cfg["debiasing"] = debiasing
