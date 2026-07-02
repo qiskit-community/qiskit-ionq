@@ -60,7 +60,6 @@ from qiskit.quantum_info import SparsePauliOp
 # Use this to get version instead of __version__ to avoid circular dependency.
 from importlib_metadata import version
 from qiskit_ionq.constants import ErrorMitigation
-from qiskit_ionq.error_mitigation import DebiasingConfig, ErrorMitigationConfig
 from . import exceptions as ionq_exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
@@ -490,49 +489,29 @@ def _qasm3_data(circuit: QuantumCircuit) -> str:
 def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
     """Resolve error mitigation config from passed_args and backend defaults.
 
-    Flat kwargs (``debiasing``, ``symmetry_verification``) take precedence over
-    the ``error_mitigation`` bundle. The legacy ``ErrorMitigation`` enum is
-    still accepted with a deprecation warning.
+    Flat kwargs (``debiasing``, ``symmetry_verification``) are the primary way to
+    configure error mitigation. The legacy ``ErrorMitigation`` enum is still
+    accepted via ``error_mitigation=`` with a deprecation warning.
 
     Returns a dict ready to merge into ``settings["error_mitigation"]``.
     """
-    # Start from the bundle (passed kwarg > backend default)
-    bundle = passed_args.get("error_mitigation") or backend.options.get(
+    legacy_enum = passed_args.get("error_mitigation") or backend.options.get(
         "error_mitigation"
     )
 
-    if isinstance(bundle, ErrorMitigationConfig):
-        flat_kwargs = [
-            k
-            for k in ("debiasing", "symmetry_verification")
-            if passed_args.get(k) is not None
-        ]
-        if flat_kwargs:
-            raise ValueError(
-                f"Received both error_mitigation= and flat kwarg(s) {flat_kwargs}. "
-                "Use one or the other: pass an ErrorMitigationConfig to error_mitigation=, "
-                "or use the debiasing= and symmetry_verification= kwargs directly."
-            )
-
-    if isinstance(bundle, ErrorMitigation):
+    em_cfg: dict[str, Any] = {}
+    if isinstance(legacy_enum, ErrorMitigation):
         warnings.warn(
-            f"Passing ErrorMitigation.{bundle.name} is deprecated. "
+            f"Passing ErrorMitigation.{legacy_enum.name} is deprecated. "
             "Use the debiasing= and symmetry_verification= kwargs on backend.run() instead.",
             DeprecationWarning,
         )
-        em_cfg = dict(bundle.value)
-    elif isinstance(bundle, ErrorMitigationConfig):
-        em_cfg = bundle.to_dict()
-    else:
-        em_cfg = {}
+        em_cfg = dict(legacy_enum.value)
 
-    # Flat kwargs override the bundle (None means "not set", so skip)
+    # Flat kwargs override the legacy enum (None means "not set", so skip)
     debiasing = passed_args.get("debiasing")
     if debiasing is not None:
-        if isinstance(debiasing, DebiasingConfig):
-            em_cfg.update(debiasing.to_dict())
-        else:
-            em_cfg["debiasing"] = debiasing
+        em_cfg["debiasing"] = debiasing
 
     sym_ver = passed_args.get("symmetry_verification")
     if sym_ver is not None:

@@ -34,13 +34,7 @@ import pytest
 from qiskit import QuantumCircuit
 
 from qiskit_ionq.helpers import qiskit_to_ionq
-from qiskit_ionq.error_mitigation import (
-    AggregationMethod,
-    DebiasingConfig,
-    ErrorMitigationConfig,
-    PhiChiPattern,
-    TwirlingConfig,
-)
+from qiskit_ionq.constants import AggregationMethod
 from qiskit_ionq import ionq_job
 from .. import conftest
 
@@ -95,46 +89,6 @@ def test_debiasing_false(simulator_backend):
     assert em_block == {"debiasing": False}
 
 
-def test_debiasing_object_num_variants(simulator_backend):
-    """Debiasing(num_variants=N) includes num_variants in the EM block."""
-    args = {"shots": 10, "debiasing": DebiasingConfig(num_variants=32)}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"debiasing": True, "num_variants": 32}
-
-
-def test_debiasing_object_with_twirling(simulator_backend):
-    """Debiasing with Twirling serializes the phi_chi_twirling sub-block."""
-    args = {
-        "shots": 10,
-        "debiasing": DebiasingConfig(
-            num_variants=16,
-            twirling=TwirlingConfig(pattern=PhiChiPattern.EXTENDED),
-        ),
-    }
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {
-        "debiasing": True,
-        "num_variants": 16,
-        "phi_chi_twirling": {"pattern": "extended", "one_qubit_twirling": "none"},
-    }
-
-
-def test_debiasing_string_pattern(simulator_backend):
-    """Twirling pattern can be passed as a plain string."""
-    args = {
-        "shots": 10,
-        "debiasing": DebiasingConfig(twirling=TwirlingConfig(pattern="chi_only")),
-    }
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block["phi_chi_twirling"]["pattern"] == "chi_only"
-
-
 def test_debiasing_none_produces_no_em_block(simulator_backend):
     """debiasing=None produces no error_mitigation block."""
     args = {"shots": 10, "debiasing": None}
@@ -186,60 +140,6 @@ def test_both_flat_kwargs(simulator_backend):
 
 
 # ---------------------------------------------------------------------------
-# ErrorMitigationConfig bundle
-# ---------------------------------------------------------------------------
-
-
-def test_bundle_defaults(simulator_backend):
-    """ErrorMitigationConfig() enables both debiasing and symmetry verification."""
-    args = {"shots": 10, "error_mitigation": ErrorMitigationConfig()}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"debiasing": True, "symmetry_verification": True}
-
-
-def test_bundle_debiasing_false(simulator_backend):
-    """ErrorMitigationConfig(debiasing=False) disables debiasing."""
-    args = {"shots": 10, "error_mitigation": ErrorMitigationConfig(debiasing=False)}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"debiasing": False, "symmetry_verification": True}
-
-
-def test_bundle_sv_false(simulator_backend):
-    """ErrorMitigationConfig(symmetry_verification=False) disables SV."""
-    args = {
-        "shots": 10,
-        "error_mitigation": ErrorMitigationConfig(symmetry_verification=False),
-    }
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"debiasing": True, "symmetry_verification": False}
-
-
-def test_bundle_with_debiasing_object(simulator_backend):
-    """ErrorMitigationConfig with a Debiasing object flattens correctly."""
-    args = {
-        "shots": 10,
-        "error_mitigation": ErrorMitigationConfig(
-            debiasing=DebiasingConfig(num_variants=24),
-            symmetry_verification=False,
-        ),
-    }
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {
-        "debiasing": True,
-        "num_variants": 24,
-        "symmetry_verification": False,
-    }
-
-
-# ---------------------------------------------------------------------------
 # job_settings escape hatch
 # ---------------------------------------------------------------------------
 
@@ -255,21 +155,6 @@ def test_flat_kwarg_merges_with_job_settings(simulator_backend):
         qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
     )
     assert em_block == {"symmetry_verification": True, "debiasing": False}
-
-
-def test_bundle_merges_with_job_settings(simulator_backend):
-    """Bundle merges with an existing job_settings EM block."""
-    args = {
-        "shots": 10,
-        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
-        "error_mitigation": ErrorMitigationConfig(
-            debiasing=False, symmetry_verification=False
-        ),
-    }
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"symmetry_verification": False, "debiasing": False}
 
 
 # ---------------------------------------------------------------------------
@@ -339,7 +224,7 @@ def test_sharpen_false_no_warning(mock_backend, requests_mock):
 
 
 # ---------------------------------------------------------------------------
-# Integration: passing EM objects directly into backend.run()
+# Integration: passing EM kwargs directly into backend.run()
 # ---------------------------------------------------------------------------
 
 
@@ -366,60 +251,3 @@ def test_run_with_debiasing_true(mock_backend, requests_mock):
     qc.measure(0, 0)
     mock_backend.run(qc, shots=10, debiasing=True)
     assert _posted_em_settings(requests_mock) == {"debiasing": True}
-
-
-def test_run_with_debiasing_config_object(mock_backend, requests_mock):
-    """backend.run(circuit, debiasing=DebiasingConfig(...)) serializes the full config."""
-    _mock_submit(mock_backend, requests_mock)
-    qc = QuantumCircuit(1, 1)
-    qc.h(0)
-    qc.measure(0, 0)
-    mock_backend.run(
-        qc,
-        shots=10,
-        debiasing=DebiasingConfig(
-            num_variants=16,
-            twirling=TwirlingConfig(pattern=PhiChiPattern.STANDARD),
-        ),
-    )
-    assert _posted_em_settings(requests_mock) == {
-        "debiasing": True,
-        "num_variants": 16,
-        "phi_chi_twirling": {"pattern": "standard", "one_qubit_twirling": "none"},
-    }
-
-
-def test_run_with_full_error_mitigation_config(mock_backend, requests_mock):
-    """backend.run with an ErrorMitigationConfig wrapping a DebiasingConfig object."""
-    _mock_submit(mock_backend, requests_mock)
-    qc = QuantumCircuit(1, 1)
-    qc.h(0)
-    qc.measure(0, 0)
-    mock_backend.run(
-        qc,
-        shots=10,
-        error_mitigation=ErrorMitigationConfig(
-            debiasing=DebiasingConfig(num_variants=32),
-            symmetry_verification=False,
-        ),
-    )
-    assert _posted_em_settings(requests_mock) == {
-        "debiasing": True,
-        "num_variants": 32,
-        "symmetry_verification": False,
-    }
-
-
-def test_run_mixing_bundle_and_flat_kwarg_raises(mock_backend, requests_mock):
-    """backend.run() raises ValueError when error_mitigation= and a flat kwarg are both set."""
-    _mock_submit(mock_backend, requests_mock)
-    qc = QuantumCircuit(1, 1)
-    qc.h(0)
-    qc.measure(0, 0)
-    with pytest.raises(ValueError, match="error_mitigation="):
-        mock_backend.run(
-            qc,
-            shots=10,
-            error_mitigation=ErrorMitigationConfig(),
-            debiasing=False,
-        )

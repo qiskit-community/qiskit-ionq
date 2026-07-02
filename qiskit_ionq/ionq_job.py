@@ -49,7 +49,6 @@ from .helpers import decompress_metadata_string, normalize
 from .exceptions import IonQBackendError
 
 from . import constants, exceptions
-from .error_mitigation import AggregationMethod
 
 if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_backend
@@ -372,7 +371,7 @@ class IonQJob(JobV1):
     def result(
         self,
         sharpen: bool | None = None,
-        aggregation: str | AggregationMethod | None = None,
+        aggregation: str | constants.AggregationMethod | None = None,
         timeout: float | None = None,
         wait: float = 5,
         callback: Callable | None = None,
@@ -411,9 +410,9 @@ class IonQJob(JobV1):
                 DeprecationWarning,
             )
             if aggregation is None:
-                aggregation = AggregationMethod.VOTING
+                aggregation = constants.AggregationMethod.VOTING
 
-        if isinstance(aggregation, AggregationMethod):
+        if isinstance(aggregation, constants.AggregationMethod):
             aggregation = aggregation.value
 
         # Wait for the job to complete.

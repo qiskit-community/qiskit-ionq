@@ -71,6 +71,14 @@ class ErrorMitigation(enum.Enum):
     NO_DEBIASING = {"debiasing": False}
 
 
+class AggregationMethod(enum.Enum):
+    """Aggregation method for results from a debiased job."""
+
+    AVERAGE = "average"
+    VOTING = "voting"
+    DNL = "dnl"
+
+
 class ResultFormat(str, enum.Enum):
     """Format keys for the id-addressed v2 result artifacts in a job's
     ``results`` map (fetched via ``GET /jobs/{id}/artifacts/{id}``).
@@ -85,4 +93,10 @@ class ResultFormat(str, enum.Enum):
     PROBABILITIES_V2 = "ionq.result.probabilities.json.v2"
 
 
-__all__ = ["APIJobStatus", "JobStatusMap", "ErrorMitigation", "ResultFormat"]
+__all__ = [
+    "APIJobStatus",
+    "JobStatusMap",
+    "ErrorMitigation",
+    "AggregationMethod",
+    "ResultFormat",
+]
