@@ -219,7 +219,19 @@ class IonQBackend(Backend):
 
         Args:
             run_input: A single or list of Qiskit QuantumCircuit object(s).
-            **options: Additional options for the job.
+            **options: Additional options for the job, overriding the backend
+                defaults (see :meth:`_default_options`). Notable options:
+
+                - ``shots`` (int): Number of shots (default 1024).
+                - ``debiasing`` (bool): Enable debiasing error mitigation, which
+                  runs the circuit as multiple symmetrized variants to suppress
+                  systematic hardware biases. Requires at least 500 shots. When
+                  unset, the IonQ platform default for the target applies.
+                - ``symmetry_verification`` (bool): Enable symmetry verification,
+                  discarding measurement outcomes that violate the circuit's
+                  symmetries. When unset, the platform default applies.
+                - ``job_settings`` (dict): Raw ``settings`` payload passed through
+                  to the API for options without a dedicated kwarg.
 
         Returns:
             IonQJob: A reference to the job that was submitted.

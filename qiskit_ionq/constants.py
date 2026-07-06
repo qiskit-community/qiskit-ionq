@@ -72,7 +72,16 @@ class ErrorMitigation(enum.Enum):
 
 
 class AggregationMethod(enum.Enum):
-    """Aggregation method for results from a debiased job."""
+    """How the per-variant results of a debiased job are combined into one
+    distribution.
+
+    - ``AVERAGE`` (default): mean of the variant histograms.
+    - ``VOTING``: plurality voting across variants; sharpens the distribution
+      toward the most frequent outcomes.
+    - ``DNL``: debiasing with non-linear filtering — a power-law filter that
+      suppresses outcomes observed in only a few variants
+      (see `arXiv:2506.05757 <https://arxiv.org/abs/2506.05757>`__).
+    """
 
     AVERAGE = "average"
     VOTING = "voting"

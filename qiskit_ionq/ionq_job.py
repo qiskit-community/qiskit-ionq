@@ -387,6 +387,23 @@ class IonQJob(JobV1):
         :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
         method to poll for a completed job.
 
+        Args:
+            sharpen: Deprecated alias for ``aggregation="voting"``. Use
+                ``aggregation`` instead.
+            aggregation: How the per-variant results of a debiased job are
+                combined. One of ``"average"`` (default), ``"voting"``, or
+                ``"dnl"``, or an :class:`AggregationMethod
+                <qiskit_ionq.constants.AggregationMethod>` member. Has no
+                effect on jobs that ran without debiasing.
+            timeout: Seconds to wait for the job to reach a final state;
+                ``None`` waits indefinitely.
+            wait: Seconds between status polls.
+            callback: Callback invoked on each status poll; see
+                :meth:`wait_for_final_state
+                <qiskit.providers.BaseJob.wait_for_final_state>`.
+            extra_query_params: Extra query parameters forwarded on the
+                results request.
+
         Raises:
             IonQJobTimeoutError: If after the default wait period in
                 :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
