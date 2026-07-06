@@ -35,18 +35,9 @@ from requests_mock import Mocker, adapter as rm_adapter
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
 from qiskit_ionq.helpers import compress_to_metadata_string
 
-
-def _def_results_template(job_id):
-    """A template for the results field in a job response."""
-    return {
-        "histogram": {
-            # v0.4 returns a relative path - the client prefixes it with the base URL
-            # https://docs.ionq.com/api-reference/v0.4/jobs/get-job
-            "url": f"/v0.4/jobs/{job_id}/results/histogram"
-        },
-        "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"},
-        "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"},
-    }
+# Re-exported so existing `conftest.dummy_job_response(...)` call sites keep
+# working; new tests should import from `test.utils` directly.
+from .utils import _def_results_template, dummy_job_response  # noqa: F401  pylint: disable=unused-import
 
 
 class MockBackend(ionq_backend.IonQBackend):
@@ -65,62 +56,6 @@ class MockBackend(ionq_backend.IonQBackend):
             simulator=True,
             max_shots=10_000,
         )
-
-
-def dummy_job_response(
-    job_id, target="mock_backend", status="completed", job_settings=None, children=None
-):
-    """A dummy response payload for `job_id`.
-
-    Args:
-        job_id (str): An arbitrary job id.
-        target (str): Backend target string.
-        status (str): A provided status string.
-        job_settings (dict): Settings provided to the API.
-        children (list): A list of child job IDs.
-
-    Returns:
-        dict: A json response dict.
-    """
-    qiskit_header = compress_to_metadata_string(
-        {
-            "qubit_labels": [["q", 0], ["q", 1]],
-            "n_qubits": 2,
-            "qreg_sizes": [["q", 2]],
-            "clbit_labels": [["c", 0], ["c", 1]],
-            "memory_slots": 2,
-            "creg_sizes": [["c", 2]],
-            "name": job_id,
-            "global_phase": 0,
-        }
-    )
-    response = {
-        "status": status,
-        "predicted_execution_time": 4,
-        "metadata": {
-            "qobj_id": "test_qobj_id",
-            "shots": "1234",
-            "sampler_seed": "42",
-            "output_length": "2",
-            "qiskit_header": qiskit_header,
-        },
-        "execution_time": 8,
-        "qubits": 2,
-        "type": "circuit",
-        "request": 1600000000,
-        "start": 1600000001,
-        "response": 1600000002,
-        "backend": target,
-        "results": _def_results_template(job_id),
-        "id": job_id,
-        "settings": (job_settings or {}),
-        "name": "test_name",
-    }
-
-    if children is not None:
-        response["children"] = children
-
-    return response
 
 
 def dummy_mapped_job_response(

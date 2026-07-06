@@ -36,7 +36,7 @@ from qiskit import QuantumCircuit
 from qiskit_ionq.helpers import qiskit_to_ionq
 from qiskit_ionq.constants import AggregationMethod
 from qiskit_ionq import ionq_job
-from .. import conftest
+from ..utils import dummy_job_response
 
 
 def _simple_circuit():
@@ -57,7 +57,7 @@ def _setup_job(mock_backend, requests_mock, results_path_suffix=""):
     client = mock_backend.client
     path = client.make_path("jobs", job_id)
     results_base = client.make_path("jobs", job_id, "results", "probabilities")
-    requests_mock.get(path, status_code=200, json=conftest.dummy_job_response(job_id))
+    requests_mock.get(path, status_code=200, json=dummy_job_response(job_id))
     requests_mock.get(
         results_base + results_path_suffix,
         status_code=200,
@@ -223,6 +223,24 @@ def test_sharpen_false_no_warning(mock_backend, requests_mock):
     assert result is not None
 
 
+def test_client_get_results_sharpen_positional_back_compat(mock_backend, requests_mock):
+    """IonQClient.get_results still accepts sharpen positionally, mapping True
+    to aggregation='voting' with a DeprecationWarning."""
+    client = mock_backend.client
+    job_id = "test_id"
+    # Relative URL as returned by the v0.4 API in a job's results block.
+    results_url = f"/v0.4/jobs/{job_id}/results/probabilities"
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities")
+        + "?aggregation=voting",
+        status_code=200,
+        json={"0": 0.5, "1": 0.5},
+    )
+    with pytest.warns(DeprecationWarning, match="aggregation='voting'"):
+        result = client.get_results(results_url, True)
+    assert result == {"0": 0.5, "1": 0.5}
+
+
 # ---------------------------------------------------------------------------
 # Integration: passing EM kwargs directly into backend.run()
 # ---------------------------------------------------------------------------
@@ -231,9 +249,7 @@ def test_sharpen_false_no_warning(mock_backend, requests_mock):
 def _mock_submit(backend, requests_mock):
     """Register a POST /jobs mock and return the path so callers can inspect requests."""
     path = backend.client.make_path("jobs")
-    requests_mock.post(
-        path, json=conftest.dummy_job_response("fake_job"), status_code=200
-    )
+    requests_mock.post(path, json=dummy_job_response("fake_job"), status_code=200)
     return path
 
 
