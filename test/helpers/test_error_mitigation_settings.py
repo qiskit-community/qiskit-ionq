@@ -27,7 +27,6 @@
 """Tests for error mitigation settings serialization and result aggregation."""
 
 import json
-import warnings
 
 import pytest
 
@@ -180,6 +179,7 @@ def test_default_no_aggregation_param(mock_backend, requests_mock):
     """result() with no aggregation kwarg sends no aggregation query param."""
     job = _setup_job(mock_backend, requests_mock)
     assert job.result() is not None
+    assert "aggregation" not in requests_mock.last_request.qs
 
 
 def test_aggregation_voting_string(mock_backend, requests_mock):
@@ -209,18 +209,18 @@ def test_aggregation_dnl_enum(mock_backend, requests_mock):
 def test_sharpen_true_deprecated_maps_to_voting(mock_backend, requests_mock):
     """sharpen=True emits DeprecationWarning and maps to aggregation='voting'."""
     job = _setup_job(mock_backend, requests_mock, "?aggregation=voting")
-    with pytest.warns(DeprecationWarning, match="aggregation='voting'"):
+    with pytest.warns(DeprecationWarning, match="sharpen is deprecated"):
         result = job.result(sharpen=True)
     assert result is not None
 
 
-def test_sharpen_false_no_warning(mock_backend, requests_mock):
-    """sharpen=False does not emit a DeprecationWarning."""
+def test_sharpen_false_deprecated_no_aggregation(mock_backend, requests_mock):
+    """sharpen=False also emits DeprecationWarning but sends no aggregation param."""
     job = _setup_job(mock_backend, requests_mock)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
+    with pytest.warns(DeprecationWarning, match="sharpen is deprecated"):
         result = job.result(sharpen=False)
     assert result is not None
+    assert "aggregation" not in requests_mock.last_request.qs
 
 
 def test_client_get_results_sharpen_positional_back_compat(mock_backend, requests_mock):
@@ -236,7 +236,7 @@ def test_client_get_results_sharpen_positional_back_compat(mock_backend, request
         status_code=200,
         json={"0": 0.5, "1": 0.5},
     )
-    with pytest.warns(DeprecationWarning, match="aggregation='voting'"):
+    with pytest.warns(DeprecationWarning, match="sharpen is deprecated"):
         result = client.get_results(results_url, True)
     assert result == {"0": 0.5, "1": 0.5}
 

@@ -269,8 +269,8 @@ class IonQClient:
 
         Args:
             results_url (str): The URL of the job results to retrieve.
-            sharpen (bool | None): Deprecated alias for ``aggregation="voting"``.
-                Use ``aggregation`` instead.
+            sharpen (bool | None): Deprecated; use ``aggregation`` instead.
+                ``sharpen=True`` maps to ``aggregation="voting"``.
             extra_query_params (dict): Specify any parameters to include in the request
             aggregation (str | None): Aggregation method for debiased jobs.
                 One of ``"average"`` (default), ``"voting"``, or ``"dnl"``.
@@ -284,7 +284,7 @@ class IonQClient:
         """
         if sharpen is not None:
             warn(
-                "The sharpen parameter is deprecated. Use aggregation='voting' instead.",
+                "The sharpen parameter is deprecated; use aggregation=... instead.",
                 DeprecationWarning,
             )
             if sharpen is True and aggregation is None:

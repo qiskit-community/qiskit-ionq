@@ -517,7 +517,9 @@ def test_result__with_sharpen(mock_backend, requests_mock):
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
 
-    assert job.result(sharpen=False).to_dict() == expected_result
+    with pytest.warns(DeprecationWarning, match="sharpen is deprecated"):
+        result = job.result(sharpen=False)
+    assert result.to_dict() == expected_result
 
 
 def test_result__with_extra_payload(mock_backend, requests_mock):

@@ -388,8 +388,8 @@ class IonQJob(JobV1):
         method to poll for a completed job.
 
         Args:
-            sharpen: Deprecated alias for ``aggregation="voting"``. Use
-                ``aggregation`` instead.
+            sharpen: Deprecated; use ``aggregation`` instead. ``sharpen=True``
+                maps to ``aggregation="voting"``.
             aggregation: How the per-variant results of a debiased job are
                 combined. One of ``"average"`` (default), ``"voting"``, or
                 ``"dnl"``, or an :class:`AggregationMethod
@@ -421,12 +421,12 @@ class IonQJob(JobV1):
             warnings.warn("Invalid sharpen type")
             sharpen = None
 
-        if sharpen is True:
+        if sharpen is not None:
             warnings.warn(
-                "sharpen=True is deprecated. Use aggregation='voting' instead.",
+                "sharpen is deprecated; use aggregation= instead.",
                 DeprecationWarning,
             )
-            if aggregation is None:
+            if sharpen is True and aggregation is None:
                 aggregation = constants.AggregationMethod.VOTING
 
         if isinstance(aggregation, constants.AggregationMethod):
