@@ -48,7 +48,7 @@ from qiskit_ionq.constants import ErrorMitigation
 
 def test_output_map__with_multiple_measurements_to_different_clbits(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """
     Test output mapping handles multiple measurements from the same qubit to
     different clbits correctly
@@ -71,7 +71,7 @@ def test_output_map__with_multiple_measurements_to_different_clbits(
 
 def test_output_map__with_multiple_measurements_to_same_clbit(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """Test output mapping handles multiple measurements to same clbit correctly
 
     Args:
@@ -92,7 +92,7 @@ def test_output_map__with_multiple_measurements_to_same_clbit(
 
 def test_output_map__with_multiple_registers(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """Test output map with multiple registers
 
     Args:
@@ -118,7 +118,7 @@ def test_output_map__with_multiple_registers(
 
 def test_metadata_header__with_multiple_registers(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """Test correct metadata headers when we have multiple qregs and cregs"""
     qr0 = QuantumRegister(2, "qr0")
     qr1 = QuantumRegister(2, "qr1")
@@ -660,8 +660,8 @@ def test_legacy_error_mitigation_enum_warns(
     args = {"shots": 10, "error_mitigation": error_mitigation}
     with pytest.warns(DeprecationWarning, match="ErrorMitigation"):
         ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
-    em = json.loads(ionq_json)["settings"].get("error_mitigation", {})
-    assert em == expected
+    em_block = json.loads(ionq_json)["settings"].get("error_mitigation", {})
+    assert em_block == expected
 
 
 def test_legacy_enum_merges_with_job_settings_and_warns(simulator_backend):
