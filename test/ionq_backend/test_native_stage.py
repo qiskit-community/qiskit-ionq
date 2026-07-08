@@ -49,7 +49,11 @@ def test_parameterized_transpile(provider):
     qc.cx(0, 1)
     qc.rz(theta, 1)
     transpiled = transpile(
-        qc, backend=backend, optimization_level=1, seed_transpiler=0, initial_layout=[0, 1]
+        qc,
+        backend=backend,
+        optimization_level=1,
+        seed_transpiler=0,
+        initial_layout=[0, 1],
     )
     assert set(transpiled.count_ops()) <= {"gpi", "gpi2", "zz"}
     dag = circuit_to_dag(transpiled)  # drop idle padding qubits
@@ -89,4 +93,6 @@ def test_equivalence_rules_exact():
         ]
         assert entries, f"IonQ equivalence for {gate.name} not registered"
         for circ in entries:
-            np.testing.assert_allclose(Operator(circ).data, Operator(gate).data, atol=1e-9)
+            np.testing.assert_allclose(
+                Operator(circ).data, Operator(gate).data, atol=1e-9
+            )

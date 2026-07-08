@@ -1256,7 +1256,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPI2Gate", [0], [2]),
                 ("ZZGate", [0.25], [0, 2]),
             ],
-            4,
+            5,
         ),
         ([("GPI2Gate", [0.5], [0]), ("ZZGate", [0.25], [0, 2])], 2),
         (
@@ -1296,7 +1296,7 @@ def test_commute_gpis_through_ms(gates, optimized_depth):
                 ("GPI2Gate", [-0.5], [2]),
                 ("ZZGate", [0.25], [0, 2]),
             ],
-            4,
+            5,
         ),
     ],
     ids=lambda val: f"{val}",

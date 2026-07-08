@@ -128,12 +128,16 @@ class ConvertToNativeGates(TransformationPass):
             if op.name == "rzz":
                 dag.substitute_node(node, ZZGate(op.params[0] / _TWO_PI), inplace=True)
             elif op.name == "rxx":
-                dag.substitute_node(node, MSGate(0.0, 0.0, op.params[0] / _TWO_PI), inplace=True)
+                dag.substitute_node(
+                    node, MSGate(0.0, 0.0, op.params[0] / _TWO_PI), inplace=True
+                )
             elif op.name in ("r", "rz") and op.is_parameterized():
                 # Symbolic: r(t,p) == U(t, p-pi/2, pi/2-p); rz(l) == e^{-il/2} U(0,0,l)
                 if op.name == "r":
                     gates, phase = _u_to_native(
-                        op.params[0], op.params[1] - math.pi / 2, math.pi / 2 - op.params[1]
+                        op.params[0],
+                        op.params[1] - math.pi / 2,
+                        math.pi / 2 - op.params[1],
                     )
                 else:
                     gates, phase = _u_to_native(0, 0, op.params[0])
@@ -162,5 +166,7 @@ class ConvertToNativeGates(TransformationPass):
 class IonQNativeOutputPlugin(PassManagerStagePlugin):
     """``scheduling``-stage plugin (name ``ionq_native``) producing native output."""
 
-    def pass_manager(self, pass_manager_config=None, optimization_level=None) -> PassManager:
+    def pass_manager(
+        self, pass_manager_config=None, optimization_level=None
+    ) -> PassManager:
         return PassManager([ConvertToNativeGates()])
