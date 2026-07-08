@@ -505,6 +505,7 @@ def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
             f"Passing ErrorMitigation.{legacy_enum.name} is deprecated. "
             "Use the debiasing= and symmetry_verification= kwargs on backend.run() instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         em_cfg = dict(legacy_enum.value)
 
