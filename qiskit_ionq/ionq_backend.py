@@ -182,20 +182,33 @@ class IonQBackend(Backend):
         """Return the basis gates for this backend."""
         return self._basis_gates
 
+    def _config_list(self, key: str) -> list[str]:
+        """Read a list-valued key from the API config, warning when the config
+        is unavailable so an empty result is distinguishable from "none"."""
+        if not self._config:
+            warnings.warn(
+                f"No API config available for backend {self.name!r}; "
+                f"{key} is unknown (returning an empty list)."
+            )
+        return list(self._config.get(key) or [])
+
     @property
     def supported_gates(self) -> list[str]:
-        """QIS gate names the API accepts; empty if the config was unavailable."""
-        return list(self._config.get("supported_gates") or [])
+        """QIS gate names the API accepts; empty (with a warning) if the config
+        was unavailable."""
+        return self._config_list("supported_gates")
 
     @property
     def supported_native_gates(self) -> list[str]:
-        """Native gate names the API accepts; empty if the config was unavailable."""
-        return list(self._config.get("supported_native_gates") or [])
+        """Native gate names the API accepts; empty (with a warning) if the config
+        was unavailable."""
+        return self._config_list("supported_native_gates")
 
     @property
     def supported_error_mitigations(self) -> list[str]:
-        """Supported error-mitigation techniques; empty if the config was unavailable."""
-        return list(self._config.get("supported_error_mitigations") or [])
+        """Supported error-mitigation techniques; empty (with a warning) if the
+        config was unavailable."""
+        return self._config_list("supported_error_mitigations")
 
     @property
     def coupling_map(self) -> CouplingMap:

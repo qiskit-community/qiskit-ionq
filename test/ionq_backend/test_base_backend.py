@@ -27,6 +27,7 @@
 """Tests for the IonQ's Backend base/super-class."""
 # pylint: disable=redefined-outer-name
 
+import warnings
 from unittest import mock
 from collections import Counter
 
@@ -519,6 +520,26 @@ def test_capabilities_from_api(provider, monkeypatch, name, two_q):
     assert backend.supported_error_mitigations == ["Debias", "Sharpen"]
     # native 2q gate is selected from supported_native_gates
     assert two_q in [op.name for op in backend.target.operations]
+
+    # a populated config resolves capabilities silently
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert backend.supported_gates == ["x", "cnot"]
+
+
+def test_capabilities_warn_offline(provider, monkeypatch):
+    """An unavailable API config warns on capability access instead of
+    silently returning an empty list."""
+    monkeypatch.setattr(provider, "backend_config", lambda _name: {})
+    backend = provider.get_backend("ionq_qpu.tempo-1")
+
+    for prop in (
+        "supported_gates",
+        "supported_native_gates",
+        "supported_error_mitigations",
+    ):
+        with pytest.warns(UserWarning, match=f"{prop} is unknown"):
+            assert getattr(backend, prop) == []
 
 
 def test_tempo_qpu_target_zz(provider):
