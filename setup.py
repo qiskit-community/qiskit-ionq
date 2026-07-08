@@ -83,6 +83,11 @@ setup(
     setup_requires=[],
     install_requires=REQUIREMENTS,
     extras_require={"test": TEST_REQUIREMENTS},
+    entry_points={
+        "qiskit.transpiler.scheduling": [
+            "ionq_native = qiskit_ionq.ionq_native_stage:IonQNativeOutputPlugin",
+        ],
+    },
     zip_safe=False,
     include_package_data=True,
     package_data={"qiskit_ionq": ["py.typed"]},

@@ -49,6 +49,7 @@ from qiskit.circuit.library import (
     MCPhaseGate,
     MCXGate,
     PhaseGate,
+    RGate,
     RXGate,
     RXXGate,
     RYGate,
@@ -69,7 +70,6 @@ from qiskit.circuit.library import (
 from qiskit.providers import BackendV2 as Backend, Options
 from qiskit.transpiler import Target, CouplingMap
 
-from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
 from .helpers import GATESET_MAP, get_n_qubits, native_2q_gate, warn_bad_transpile_level
 from .ionq_client import Characterization
@@ -330,10 +330,14 @@ class IonQBackend(Backend):
             tgt.add_instruction(PauliEvolutionGate, name="PauliEvolution")
 
         else:
-            # 1q native
-            phi = Parameter("φ")
-            for gate in (GPIGate(phi), GPI2Gate(phi)):
-                tgt.add_instruction(gate)
+            # Standard-gate proxies for the native gates (ms(0,0,θ) == rxx(2πθ),
+            # zz(θ) == rzz(2πθ)): Python-defined gates in the target deadlock
+            # Qiskit >= 2.5.0's multithreaded passes on the GIL and are opaque
+            # to the optimizer.  The ionq_native scheduling stage (see
+            # get_scheduling_stage_plugin) converts back to native gates.
+            theta, phi, lam = Parameter("θ"), Parameter("φ"), Parameter("λ")
+            tgt.add_instruction(RGate(theta, phi))
+            tgt.add_instruction(RZGate(lam))
 
             # 2q native: per family (see helpers.NATIVE_2Q_BY_FAMILY).
             gate = (
@@ -341,18 +345,22 @@ class IonQBackend(Backend):
                 or native_2q_gate(getattr(self.options, "noise_model", None))
                 or "ms"
             )
+            angle = Parameter("θ2")
             if gate == "zz":
-                theta = Parameter("θ")
-                tgt.add_instruction(ZZGate(theta))
+                tgt.add_instruction(RZZGate(angle))
             else:
-                phi0, phi1, theta = Parameter("φ0"), Parameter("φ1"), Parameter("θ")
-                tgt.add_instruction(MSGate(phi0, phi1, theta))
+                tgt.add_instruction(RXXGate(angle))
 
         # Always allow measure/reset
         for cls in (Measure, Reset):
             tgt.add_instruction(cls())
 
         return tgt
+
+    def get_scheduling_stage_plugin(self) -> str | None:
+        """Transpile hook: convert native-gateset output back to IonQ native
+        gates as the final stage (see :mod:`qiskit_ionq.ionq_native_stage`)."""
+        return "ionq_native" if self._gateset == "native" else None
 
     @staticmethod
     def _has_measurements(circ: QuantumCircuit) -> bool:

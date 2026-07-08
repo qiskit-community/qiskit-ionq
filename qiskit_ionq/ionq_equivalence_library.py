@@ -34,6 +34,7 @@ from qiskit.circuit.library import (
     XGate,
     CXGate,
     RXGate,
+    RXXGate,
     RZGate,
     RZZGate,
     UGate,
@@ -45,13 +46,15 @@ from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 
 
 def u_gate_equivalence() -> None:
-    """U(θ,φ,λ) -> GPI2(1/2 - λ/2π) * GPI(θ/4π + φ/4π - λ/4π) * GPI2(1/2 + φ/2π)."""
+    """U(θ,φ,λ) -> GPI2(1/2 - λ/2π) * GPI(θ/4π + φ/4π - λ/4π) * GPI2(1/2 + φ/2π),
+    up to the global phase (φ+λ)/2 - π/2 recorded on the circuit (equivalence
+    rules must be exact, global phase included)."""
     q = QuantumRegister(1, "q")
     theta = Parameter("theta_param")
     phi = Parameter("phi_param")
     lam = Parameter("lambda_param")
 
-    circ = QuantumCircuit(q)
+    circ = QuantumCircuit(q, global_phase=(phi + lam) / 2 - np.pi / 2)
     circ.append(GPI2Gate(0.5 - lam / (2 * np.pi)), [0])
     circ.append(
         GPIGate(theta / (4 * np.pi) + phi / (4 * np.pi) - lam / (4 * np.pi)), [0]
@@ -82,6 +85,21 @@ def gpi2_gate_equivalence() -> None:
 
 
 # 2q native gates -> standard rotations (helps simulation & pattern matching)
+
+
+def ms_gate_equivalence() -> None:
+    """MS(φ0,φ1,θ) -> (RZ(-2πφ0) x RZ(-2πφ1)) * RXX(2πθ) * (RZ(2πφ0) x RZ(2πφ1))."""
+    q = QuantumRegister(2, "q")
+    phi0 = Parameter("phi0_param")
+    phi1 = Parameter("phi1_param")
+    theta = Parameter("theta_param")
+    circ = QuantumCircuit(q)
+    circ.append(RZGate(-2 * np.pi * phi0), [0])
+    circ.append(RZGate(-2 * np.pi * phi1), [1])
+    circ.append(RXXGate(2 * np.pi * theta), [0, 1])
+    circ.append(RZGate(2 * np.pi * phi0), [0])
+    circ.append(RZGate(2 * np.pi * phi1), [1])
+    SessionEquivalenceLibrary.add_equivalence(MSGate(phi0, phi1, theta), circ)
 
 
 def zz_gate_equivalence() -> None:
@@ -127,6 +145,7 @@ def add_equivalences() -> None:
     gpi_gate_equivalence()
     gpi2_gate_equivalence()
     # 2q
+    ms_gate_equivalence()
     zz_gate_equivalence()
     # CX (both backends)
     cx_gate_equivalence_via_ms()

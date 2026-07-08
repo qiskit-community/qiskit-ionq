@@ -150,17 +150,8 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
         pass_manager_config: PassManagerConfig = None,
         optimization_level: int = 0,
     ) -> PassManager:  # pylint: disable=unused-argument
-        # 1) Build Qiskit’s preset pipeline for the requested level.
-        preset_pm = generate_preset_pass_manager(
-            optimization_level=optimization_level,
-            backend=getattr(pass_manager_config, "backend", None),
-            target=getattr(pass_manager_config, "target", None),
-            routing_method="none",
-            seed_transpiler=getattr(pass_manager_config, "seed_transpiler", None),
-        )
-
-        # 2) Build IonQ-native polishing passes.
-        ionq_native_pm = PassManager()
+        # 1) Build IonQ-native polishing passes.
+        ionq_native_pm = CustomPassManager()
         if optimization_level >= 1:
             # Note that the TransformationPasses will be applied
             # in the order they have been added to the pass manager
@@ -172,6 +163,23 @@ class TrappedIonOptimizerPlugin(PassManagerStagePlugin):
             ionq_native_pm.append(CompactMoreThanThreeSingleQubitGates())
             ionq_native_pm.append(FuseConsecutiveZZ())
             ionq_native_pm.append(FuseConsecutiveMS())
+
+        backend = getattr(pass_manager_config, "backend", None)
+        target = getattr(pass_manager_config, "target", None)
+        if backend is None and target is None:
+            # Without a target, Qiskit's preset stages would operate blind on
+            # the Python-defined native gates - a GIL deadlock in Qiskit >=
+            # 2.5.0's multithreaded passes.  Run the IonQ rewrite rules alone.
+            return ionq_native_pm
+
+        # 2) Build Qiskit's preset pipeline for the requested level.
+        preset_pm = generate_preset_pass_manager(
+            optimization_level=optimization_level,
+            backend=backend,
+            target=target,
+            routing_method="none",
+            seed_transpiler=getattr(pass_manager_config, "seed_transpiler", None),
+        )
 
         # 3) Chain them correctly: preset first, then IonQ-native.
         combined_pm = PassManager()
