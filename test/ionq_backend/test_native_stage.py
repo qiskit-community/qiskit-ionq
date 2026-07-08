@@ -36,7 +36,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator, random_unitary
 
 from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate
-from qiskit_ionq.ionq_native_stage import _native_1q_sequence
+from qiskit_ionq.ionq_native_stage import _flush_1q, _settle_1q
 
 
 def test_parameterized_transpile(provider):
@@ -64,18 +64,21 @@ def test_parameterized_transpile(provider):
         assert Operator(bound).equiv(Operator(qc.assign_parameters({theta: value})))
 
 
-def test_native_1q_sequence():
-    """Numeric 1q synthesis is exact (global phase included) and <= 3 gates."""
+def test_native_1q_synthesis():
+    """Numeric 1q synthesis is exact, global phase and Rz frame included."""
     samples = [np.eye(2, dtype=complex), np.diag([np.exp(0.7j), np.exp(-0.1j)])]
     samples += [np.asarray(GPIGate(0.3)), np.asarray(GPI2Gate(-0.2))]
     samples += [random_unitary(2, seed=seed).data for seed in range(25)]
     for matrix in samples:
-        gates, phase = _native_1q_sequence(matrix)
-        assert len(gates) <= 3
-        composed = np.eye(2, dtype=complex)
-        for gate in gates:
-            composed = np.asarray(gate.to_matrix()) @ composed
-        np.testing.assert_allclose(np.exp(1j * phase) * composed, matrix, atol=1e-9)
+        for synth, max_gates in ((_settle_1q, 3), (_flush_1q, 2)):
+            gates, *rest = synth(matrix)
+            assert len(gates) <= max_gates
+            frame, phase = (0.0, rest[0]) if synth is _settle_1q else rest
+            composed = np.eye(2, dtype=complex)
+            for gate in gates:
+                composed = np.asarray(gate.to_matrix()) @ composed
+            composed = np.diag([np.exp(-0.5j * frame), np.exp(0.5j * frame)]) @ composed
+            np.testing.assert_allclose(np.exp(1j * phase) * composed, matrix, atol=1e-9)
 
 
 def test_equivalence_rules_exact():
