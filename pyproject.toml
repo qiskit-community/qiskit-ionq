@@ -57,6 +57,7 @@ docs = [
 ]
 dev = [
     "pre-commit",
+    "ruff",
     { include-group = "test" },
     { include-group = "docs" },
 ]
