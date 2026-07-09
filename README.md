@@ -194,19 +194,13 @@ If you have an enhancement request or bug report, we encourage you to open an is
 
 This package uses the [pytest](https://docs.pytest.org/en/stable/) test runner, and other packages
 for mocking interfactions, reporting coverage, etc.
-These can be installed with `pip install -r requirements-test.txt`.
-
-To use pytest directly, just run:
+These are installed automatically into a project-local virtual environment by [uv](https://docs.astral.sh/uv/):
 
 ```bash
-pytest [pytest-args]
+uv run pytest [pytest-args]
 ```
 
-Alternatively, you may use the setuptools integration by running tests through `setup.py`, e.g.:
-
-```bash
-python setup.py test --addopts="[pytest-args]"
-```
+See the [contribution guidelines](CONTRIBUTING.md) for more details on setting up a development environment.
 
 ### Fixtures
 
@@ -225,8 +219,7 @@ If you receive the error `SSLError(SSLCertVerificationError)` or otherwise are u
 To build the API reference and quickstart docs, run:
 
 ```bash
-pip install -r requirements-docs.txt
-make html
+uv run make html
 open build/html/index.html
 ```
 

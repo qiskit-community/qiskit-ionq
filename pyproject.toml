@@ -1,6 +1,159 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
-[tool.isort]
-sections = ['FUTURE', 'STDLIB', 'THIRDPARTY', 'FIRSTPARTY', 'LOCALFOLDER']
+[project]
+name = "qiskit-ionq"
+dynamic = ["version"]
+description = "Qiskit provider for IonQ backends"
+readme = "README.md"
+authors = [{ name = "IonQ", email = "info@ionq.com" }]
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
+keywords = ["qiskit", "sdk", "quantum"]
+requires-python = ">=3.10"
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "qiskit>=2.0.0,<2.5.0",
+    "decorator>=5.1.0",
+    "requests>=2.24.0",
+    "python-dotenv>=1.0.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/qiskit-community/qiskit-ionq"
+"Bug Tracker" = "https://github.com/qiskit-community/qiskit-ionq/issues"
+"Source Code" = "https://github.com/qiskit-community/qiskit-ionq"
+
+[dependency-groups]
+test = [
+    "qiskit[qasm3-import]>=2.0.0,<2.5.0",
+    "pytest",
+    "requests-mock>=1.8.0",
+    "pytest-cov>=2.10.1",
+    "pylint",
+]
+docs = [
+    "Sphinx>=4.5.0",
+    "sphinx-tabs>=1.1.11",
+    "sphinx-autodoc-typehints",
+    "jupyter-sphinx",
+    "qiskit-sphinx-theme~=1.16.0",
+    "sphinx-panels",
+    "ipykernel",
+]
+dev = [
+    "pre-commit",
+    "ruff",
+    { include-group = "test" },
+    { include-group = "docs" },
+]
+
+[tool.uv]
+# qiskit 2.5.0 deadlocks when transpiling to the IonQ native target at
+# optimization_level=3 (e.g. test_forte_rzz_transpiles_to_zz); keep the
+# locked dev/CI environment on 2.4.x until that is fixed upstream.
+constraint-dependencies = ["qiskit<2.5"]
+
+[tool.setuptools.packages.find]
+exclude = ["test*"]
+
+[tool.setuptools.package-data]
+qiskit_ionq = ["py.typed"]
+
+[tool.setuptools_scm]
+version_file = "qiskit_ionq/_version.py"
+
+[tool.ruff]
+extend-exclude = ["docs/conf.py", "tools/verify_headers.py"]
+
+[tool.pylint.main]
+ignore = ["_version.py"]
+load-plugins = [
+    "pylint.extensions.docparams", # enable checking of docstring args
+    "pylint.extensions.docstyle",  # basic docstring style checks
+]
+extension-pkg-allow-list = ["numpy"]
+
+[tool.pylint."messages control"]
+disable = [
+    "fixme",                  # disabled as TODOs would show up as warnings
+    "protected-access",       # disabled as we don't follow the public vs private
+    "duplicate-code",         # disabled as it is too verbose
+    "redundant-returns-doc",  # for @abstractmethod, it cannot interpret "pass"
+    "too-many-lines",
+    "too-many-branches",
+    "too-many-locals",
+    "too-many-nested-blocks",
+    "too-many-statements",
+    "too-many-instance-attributes",
+    "too-many-arguments",
+    "too-many-public-methods",
+    "too-few-public-methods",
+    "too-many-ancestors",
+    "unnecessary-pass",       # allow for methods with just "pass", for clarity
+    "no-else-return",         # relax "elif" after a clause with a return
+    "missing-yield-doc",      # in coroutines, these checks can yield false
+    "missing-yield-type-doc", # positives (pun intended)
+    "import-outside-toplevel",
+    "docstring-first-line-empty",
+    "consider-using-with",
+]
+
+[tool.pylint.basic]
+good-names = [
+    "i", "j", "k", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_",
+    "logger", "q", "r", "qr", "cr", "qc", "pi", "op", "b", "ar", "br",
+]
+module-rgx = "(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$"
+const-rgx = "(([A-Z_][A-Z0-9_]*)|(__.*__))$"
+class-rgx = "[A-Z_][a-zA-Z0-9]+$"
+function-rgx = "[a-z_][a-z0-9_]{2,50}$"
+method-rgx = "(([a-z_][a-z0-9_]{2,49})|(assert[A-Z][a-zA-Z0-9]{2,43}))$"
+attr-rgx = "[a-z_][a-z0-9_]{2,30}$"
+argument-rgx = "[a-z_][a-z0-9_]{2,30}$"
+variable-rgx = "[a-z_][a-z0-9_]{2,30}$"
+class-attribute-rgx = "([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__))$"
+inlinevar-rgx = "[A-Za-z_][A-Za-z0-9_]*$"
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.typecheck]
+ignored-modules = ["matplotlib.cm"]
+ignored-classes = ["optparse.Values", "thread._local", "_thread._local", "QuantumCircuit"]
+generated-members = ["requests.codes.ok"]
+
+[tool.pylint.variables]
+dummy-variables-rgx = "(_+[a-zA-Z0-9]*?$)|dummy"
+
+[tool.pylint.exceptions]
+overgeneral-exceptions = ["builtins.Exception"]
+
+[tool.pytest.ini_options]
+addopts = "-vv --cov=qiskit_ionq --cov-report=term-missing --cov-branch"
+testpaths = ["test"]
+filterwarnings = [
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+    "ignore:Failed to get qubits .* Using 4:UserWarning:qiskit_ionq\\.helpers",
+    "ignore:Retrying .* more time\\(s\\) after .*:UserWarning:qiskit_ionq\\.helpers",
+    "ignore:TimedOut:UserWarning:qiskit_ionq\\.ionq_job",
+    "ignore:The parameter\\(s\\).*not checked by default.*submitted in the request\\.:UserWarning:qiskit_ionq\\.ionq_client",
+    "ignore:Unable to retrieve result for job .* cancelled:UserWarning:qiskit_ionq\\.ionq_job",
+    "ignore:All qubits are idle, removing all but the first\\.:UserWarning:test\\.transpile_ionq_gates\\.test_transpile_ionq_gates",
+    "ignore:Transpiler default optimization_level=2\\. IonQ \\(QIS\\) recommends 0-1.*:Warning:qiskit_ionq\\.ionq_backend",
+]

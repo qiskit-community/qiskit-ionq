@@ -1,4 +1,0 @@
-qiskit[qasm3-import]>=2.0.0,<2.5.0
-pytest
-requests-mock>=1.8.0
-pytest-cov>=2.10.1

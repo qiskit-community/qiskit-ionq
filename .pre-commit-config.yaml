@@ -12,7 +12,6 @@ repos:
     rev: "v0.8.2"
     hooks:
       - id: ruff
-        exclude: docs/conf.py|tools/verify_headers.py
         args: ["--fix"]
       - id: ruff-format
   - repo: https://github.com/woodruffw/zizmor-pre-commit

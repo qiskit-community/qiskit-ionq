@@ -14,18 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # setuptools-scm derives the package version from git tags
+          fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v5
-        name: install-python
+      - name: setup-uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: 3.13
-      - name: install-deps
-        run: |
-          pip install -U setuptools wheel build
+          python-version: "3.13"
       - name: build
-        shell: bash
-        run: |
-          python -m build
+        run: uv build
       - uses: actions/upload-artifact@v4
         with:
           path: ./dist/qiskit*
