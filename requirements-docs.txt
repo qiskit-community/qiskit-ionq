@@ -1,8 +1,0 @@
-qiskit>=2.0.0,<2.5.0
-Sphinx>=4.5.0
-sphinx-tabs>=1.1.11
-sphinx-autodoc-typehints
-jupyter-sphinx
-qiskit-sphinx-theme~=1.16.0
-sphinx-panels
-ipykernel

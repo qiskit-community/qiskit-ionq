@@ -1,6 +1,86 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
-[tool.isort]
-sections = ['FUTURE', 'STDLIB', 'THIRDPARTY', 'FIRSTPARTY', 'LOCALFOLDER']
+[project]
+name = "qiskit-ionq"
+dynamic = ["version"]
+description = "Qiskit provider for IonQ backends"
+readme = "README.md"
+authors = [{ name = "IonQ", email = "info@ionq.com" }]
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
+keywords = ["qiskit", "sdk", "quantum"]
+requires-python = ">=3.10"
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "qiskit>=2.0.0,<2.5.0",
+    "decorator>=5.1.0",
+    "requests>=2.24.0",
+    "python-dotenv>=1.0.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/qiskit-community/qiskit-ionq"
+"Bug Tracker" = "https://github.com/qiskit-community/qiskit-ionq/issues"
+"Source Code" = "https://github.com/qiskit-community/qiskit-ionq"
+
+[dependency-groups]
+test = [
+    "qiskit[qasm3-import]>=2.0.0,<2.5.0",
+    "pytest",
+    "requests-mock>=1.8.0",
+    "pytest-cov>=2.10.1",
+    "pylint",
+]
+docs = [
+    "Sphinx>=4.5.0",
+    "sphinx-tabs>=1.1.11",
+    "sphinx-autodoc-typehints",
+    "jupyter-sphinx",
+    "qiskit-sphinx-theme~=1.16.0",
+    "sphinx-panels",
+    "ipykernel",
+]
+dev = [
+    "pre-commit",
+    { include-group = "test" },
+    { include-group = "docs" },
+]
+
+[tool.setuptools.packages.find]
+exclude = ["test*"]
+
+[tool.setuptools.package-data]
+qiskit_ionq = ["py.typed"]
+
+[tool.setuptools_scm]
+version_file = "qiskit_ionq/_version.py"
+
+[tool.pytest.ini_options]
+addopts = "-vv --cov=qiskit_ionq --cov-report=term-missing --cov-branch"
+testpaths = ["test"]
+filterwarnings = [
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+    "ignore:Failed to get qubits .* Using 4:UserWarning:qiskit_ionq\\.helpers",
+    "ignore:Retrying .* more time\\(s\\) after .*:UserWarning:qiskit_ionq\\.helpers",
+    "ignore:TimedOut:UserWarning:qiskit_ionq\\.ionq_job",
+    "ignore:The parameter\\(s\\).*not checked by default.*submitted in the request\\.:UserWarning:qiskit_ionq\\.ionq_client",
+    "ignore:Unable to retrieve result for job .* cancelled:UserWarning:qiskit_ionq\\.ionq_job",
+    "ignore:All qubits are idle, removing all but the first\\.:UserWarning:test\\.transpile_ionq_gates\\.test_transpile_ionq_gates",
+    "ignore:Transpiler default optimization_level=2\\. IonQ \\(QIS\\) recommends 0-1.*:Warning:qiskit_ionq\\.ionq_backend",
+]
