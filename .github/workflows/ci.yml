@@ -41,7 +41,9 @@ jobs:
         run: uv sync --locked --no-default-groups --group test
       - name: lint
         run: |
-          uv run --no-sync pylint -rn qiskit_ionq test
+          uv run --no-sync pylint -rn qiskit_ionq
+          # Tests lint with the same config, minus the 50-char cap on function names:
+          uv run --no-sync pylint -rn --function-rgx='[a-z_][a-z0-9_]+$' test
           uv run --no-sync python tools/verify_headers.py qiskit_ionq test
   docs:
     name: docs

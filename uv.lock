@@ -1697,7 +1697,7 @@ test = [
 requires-dist = [
     { name = "decorator", specifier = ">=5.1.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "qiskit", specifier = ">=2.0.0" },
+    { name = "qiskit", specifier = ">=2.0.0,<2.5.0" },
     { name = "requests", specifier = ">=2.24.0" },
 ]
 
@@ -1709,7 +1709,7 @@ dev = [
     { name = "pylint" },
     { name = "pytest" },
     { name = "pytest-cov", specifier = ">=2.10.1" },
-    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.0.0" },
+    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.0.0,<2.5.0" },
     { name = "qiskit-sphinx-theme", specifier = "~=1.16.0" },
     { name = "requests-mock", specifier = ">=1.8.0" },
     { name = "ruff" },
@@ -1731,7 +1731,7 @@ test = [
     { name = "pylint" },
     { name = "pytest" },
     { name = "pytest-cov", specifier = ">=2.10.1" },
-    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.0.0" },
+    { name = "qiskit", extras = ["qasm3-import"], specifier = ">=2.0.0,<2.5.0" },
     { name = "requests-mock", specifier = ">=1.8.0" },
 ]
 
