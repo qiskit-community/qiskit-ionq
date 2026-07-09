@@ -423,7 +423,7 @@ class IonQJob(JobV1):
 
         if sharpen is not None:
             warnings.warn(
-                "sharpen is deprecated; use aggregation= instead.",
+                "The sharpen parameter is deprecated; use aggregation=... instead.",
                 DeprecationWarning,
             )
             if sharpen is True and aggregation is None:
