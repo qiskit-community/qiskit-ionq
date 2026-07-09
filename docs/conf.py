@@ -42,7 +42,7 @@
 
 """Sphinx doc build configuration."""
 
-from importlib.metadata import version
+import importlib.metadata
 
 import qiskit_sphinx_theme
 
@@ -51,7 +51,7 @@ import qiskit_sphinx_theme
 project = "Qiskit IonQ Provider"  # pylint: disable=invalid-name
 copyright = "2020, IonQ, Inc."  # pylint: disable=invalid-name,redefined-builtin
 author = "IonQ, Inc."  # pylint: disable=invalid-name
-release = version("qiskit-ionq")  # pylint: disable=invalid-name
+release = importlib.metadata.version("qiskit-ionq")  # pylint: disable=invalid-name
 
 
 # -- General configuration ---------------------------------------------------
