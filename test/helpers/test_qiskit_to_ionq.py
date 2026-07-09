@@ -32,7 +32,6 @@ import pytest
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.compiler import transpile
 from qiskit.result import marginal_counts
-from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit_ionq.exceptions import IonQGateError, IonQJobError
 from qiskit_ionq.helpers import (
@@ -312,7 +311,8 @@ def test_native_circuit_incorrect(simulator_backend):
 
 
 def test_native_circuit_transpile(simulator_backend):
-    """Test a full native circuit on a QIS backend via transpilation
+    """A full native circuit transpiles onto a QIS backend: all four native
+    gates have registered standard-gate equivalences.
 
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
@@ -323,9 +323,8 @@ def test_native_circuit_transpile(simulator_backend):
     circ.append(MSGate(0.2, 0.3, 0.25), [1, 2])
     circ.append(ZZGate(0.4), [0, 2])
 
-    with pytest.raises(TranspilerError) as exc_info:
-        transpile(circ, backend=simulator_backend)
-    assert "Unable to translate" in exc_info.value.message
+    transpiled = transpile(circ, backend=simulator_backend, optimization_level=1)
+    assert not set(transpiled.count_ops()) & {"gpi", "gpi2", "ms", "zz"}
 
 
 def test_full_native_circuit(simulator_backend):
