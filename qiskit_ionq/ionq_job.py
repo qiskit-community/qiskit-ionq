@@ -371,6 +371,7 @@ class IonQJob(JobV1):
     def result(
         self,
         sharpen: bool | None = None,
+        aggregation: str | constants.AggregationMethod | None = None,
         timeout: float | None = None,
         wait: float = 5,
         callback: Callable | None = None,
@@ -386,6 +387,23 @@ class IonQJob(JobV1):
         :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
         method to poll for a completed job.
 
+        Args:
+            sharpen: Deprecated; use ``aggregation`` instead. ``sharpen=True``
+                maps to ``aggregation="voting"``.
+            aggregation: How the per-variant results of a debiased job are
+                combined. One of ``"average"`` (default), ``"voting"``, or
+                ``"dnl"``, or an :class:`AggregationMethod
+                <qiskit_ionq.constants.AggregationMethod>` member. Has no
+                effect on jobs that ran without debiasing.
+            timeout: Seconds to wait for the job to reach a final state;
+                ``None`` waits indefinitely.
+            wait: Seconds between status polls.
+            callback: Callback invoked on each status poll; see
+                :meth:`wait_for_final_state
+                <qiskit.providers.BaseJob.wait_for_final_state>`.
+            extra_query_params: Extra query parameters forwarded on the
+                results request.
+
         Raises:
             IonQJobTimeoutError: If after the default wait period in
                 :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
@@ -398,9 +416,21 @@ class IonQJob(JobV1):
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
         """
-        # Validate args
+        # Resolve aggregation method, with sharpen as a deprecated alias.
         if sharpen is not None and not isinstance(sharpen, bool):
             warnings.warn("Invalid sharpen type")
+            sharpen = None
+
+        if sharpen is not None:
+            warnings.warn(
+                "The sharpen parameter is deprecated; use aggregation=... instead.",
+                DeprecationWarning,
+            )
+            if sharpen is True and aggregation is None:
+                aggregation = constants.AggregationMethod.VOTING
+
+        if isinstance(aggregation, constants.AggregationMethod):
+            aggregation = aggregation.value
 
         # Wait for the job to complete.
         try:
@@ -432,7 +462,7 @@ class IonQJob(JobV1):
             else:
                 response = self._client.get_results(
                     results_url=self._results_urls.get("probabilities", ""),
-                    sharpen=sharpen,
+                    aggregation=aggregation,
                     extra_query_params=extra_query_params,
                 )
                 self._result = self._format_result(response)

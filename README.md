@@ -44,7 +44,7 @@ export IONQ_API_KEY="token"
 Then invoke instantiate the provider without any arguments:
 
 ```python
-from qiskit_ionq import IonQProvider, ErrorMitigation
+from qiskit_ionq import IonQProvider
 
 provider = IonQProvider()
 ```
@@ -73,19 +73,40 @@ qc.h(0)
 qc.cx(0, 1)
 qc.measure([0, 1], [0, 1])
 
-# Run the circuit on IonQ's platform with error mitigation:
-job = simulator_backend.run(qc, error_mitigation=ErrorMitigation.DEBIASING)
+# Run the circuit on IonQ's platform with debiasing:
+job = simulator_backend.run(qc, shots=1000, debiasing=True)
 
 # Print the results.
 print(job.result().get_counts())
 
-# Get results with a different aggregation method when debiasing
-# is applied as an error mitigation strategy
-print(job.result(sharpen=True).get_counts())
-
 # The simulator specifically provides the ideal probabilities and creates
 # counts by sampling from these probabilities. The raw probabilities are also accessible:
 print(job.result().get_probabilities())
+```
+
+### Error mitigation
+
+Error mitigation is configured with two keyword arguments on `backend.run(...)`:
+
+- `debiasing` (bool): run the circuit as multiple symmetrized variants to
+  suppress systematic hardware biases. Requires at least 500 shots.
+- `symmetry_verification` (bool): discard measurement outcomes that violate
+  the circuit's symmetries.
+
+Leaving a kwarg unset defers to the IonQ platform default for the target backend.
+
+```python
+job = backend.run(qc, shots=1000, debiasing=True, symmetry_verification=True)
+```
+
+When debiasing is applied, the per-variant results can be combined with different aggregation methods at retrieval time via `job.result(aggregation=...)`:
+
+1. `average` (default),
+2. `voting` (plurality voting, sharpens the distribution; replaces the deprecated `sharpen=True`), or
+3. `dnl` (debiasing with non-linear filtering, see [arXiv:2506.05757](https://arxiv.org/abs/2506.05757)):
+
+```python
+print(job.result(aggregation="voting").get_counts())
 ```
 
 ### Compilation as a service (`dry_run`)
@@ -118,7 +139,7 @@ The ideal simulator does not produce per-shot data; calling `get_memory()` on a 
 
 ### Mid-circuit measurements
 
-The IonQ provider supports mid-circuit measurements, qubit reuse, and mid-circuit `reset`. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; pass `error_mitigation`/`symmetry_verification` via `job_settings`.
+The IonQ provider supports mid-circuit measurements, qubit reuse, and mid-circuit `reset`. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; the `debiasing`/`symmetry_verification` kwargs work here as well.
 
 These run automatically as OpenQASM 3 (`ionq.qasm3.v1`); no extra flags needed. Today they execute on the simulator (mid-circuit-measurement QPU support is rolling out); other targets are rejected server-side. Register names that are OpenQASM 3 reserved words (`output`, `input`, `measure`, …) are rejected at submission.
 
