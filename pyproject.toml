@@ -62,6 +62,12 @@ dev = [
     { include-group = "docs" },
 ]
 
+[tool.uv]
+# qiskit 2.5.0 deadlocks when transpiling to the IonQ native target at
+# optimization_level=3 (e.g. test_forte_rzz_transpiles_to_zz); keep the
+# locked dev/CI environment on 2.4.x until that is fixed upstream.
+constraint-dependencies = ["qiskit<2.5"]
+
 [tool.setuptools.packages.find]
 exclude = ["test*"]
 
