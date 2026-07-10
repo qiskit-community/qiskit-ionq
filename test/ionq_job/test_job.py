@@ -511,15 +511,15 @@ def test_result__with_sharpen(mock_backend, requests_mock):
     path = client.make_path("jobs", job_id)
     requests_mock.get(path, status_code=200, json=job_result)
 
-    results_path = (
-        client.make_path("jobs", job_id, "results", "probabilities") + "?sharpen=false"
-    )
+    results_path = client.make_path("jobs", job_id, "results", "probabilities")
     requests_mock.get(results_path, status_code=200, json={"0": 0.5, "2": 0.499999})
 
     # Create a job ref (this will call .status() to fetch our mock above)
     job = ionq_job.IonQJob(mock_backend, job_id)
 
-    assert job.result(sharpen=False).to_dict() == expected_result
+    with pytest.warns(DeprecationWarning, match="sharpen parameter is deprecated"):
+        result = job.result(sharpen=False)
+    assert result.to_dict() == expected_result
 
 
 def test_result__with_extra_payload(mock_backend, requests_mock):
@@ -734,7 +734,7 @@ def test_status__no_job_id(mock_backend):
     assert actual_status is job._status is jobstatus.JobStatus.INITIALIZING
 
 
-def test_status__already_final_state(mock_backend, requests_mock):  # pylint: disable=invalid-name
+def test_status__already_final_state(mock_backend, requests_mock):
     """Test status() returns early when the job is already completed.
 
     Args:

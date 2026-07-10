@@ -176,7 +176,7 @@ def test_unsupported_instructions(instruction_name):
 )
 def test_individual_instruction_serialization(
     gate_name, gate_args, expected_serialization
-):  # pylint: disable=invalid-name
+):
     """Test that individual gates are correctly serialized
 
     Args:
@@ -212,7 +212,6 @@ def test_simple_circuit():
     assert built == expected
 
 
-# pylint: disable=invalid-name
 def test_circuit_with_entangling_ops():
     """Test structure of circuits with entangling ops."""
     qc = QuantumCircuit(2, 2)

@@ -48,7 +48,7 @@ from qiskit_ionq.constants import ErrorMitigation
 
 def test_output_map__with_multiple_measurements_to_different_clbits(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """
     Test output mapping handles multiple measurements from the same qubit to
     different clbits correctly
@@ -71,7 +71,7 @@ def test_output_map__with_multiple_measurements_to_different_clbits(
 
 def test_output_map__with_multiple_measurements_to_same_clbit(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """Test output mapping handles multiple measurements to same clbit correctly
 
     Args:
@@ -92,7 +92,7 @@ def test_output_map__with_multiple_measurements_to_same_clbit(
 
 def test_output_map__with_multiple_registers(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """Test output map with multiple registers
 
     Args:
@@ -118,7 +118,7 @@ def test_output_map__with_multiple_registers(
 
 def test_metadata_header__with_multiple_registers(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """Test correct metadata headers when we have multiple qregs and cregs"""
     qr0 = QuantumRegister(2, "qr0")
     qr1 = QuantumRegister(2, "qr1")
@@ -397,23 +397,17 @@ def test_full_native_circuit(simulator_backend):
 
 
 @pytest.mark.parametrize(
-    "error_mitigation,expected",
+    "debiasing,expected",
     [
-        (ErrorMitigation.NO_DEBIASING, {"debiasing": False}),
-        (ErrorMitigation.DEBIASING, {"debiasing": True}),
+        (False, {"debiasing": False}),
+        (True, {"debiasing": True}),
     ],
 )
-def test__error_mitigation_settings(simulator_backend, error_mitigation, expected):
-    """Test error_mitigation settings get serialized accordingly
-
-    Args:
-        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
-        error_mitigation (ErrorMitigation): error mitigation setting
-        expected (dict): expected serialization
-    """
+def test__error_mitigation_settings(simulator_backend, debiasing, expected):
+    """Test debiasing kwarg gets serialized accordingly."""
     qc = QuantumCircuit(1, 1)
 
-    args = {"shots": 123, "sampler_seed": 42, "error_mitigation": error_mitigation}
+    args = {"shots": 123, "sampler_seed": 42, "debiasing": debiasing}
     ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
     actual = json.loads(ionq_json)
     debiased = actual["settings"].get("error_mitigation", {})
@@ -566,11 +560,11 @@ def test_qasm3_strips_layout(qpu_backend):
 
 
 def test_qasm3_settings_passthrough(qpu_backend):
-    """job_settings flow through and the ErrorMitigation enum merges in."""
+    """job_settings flow through and flat EM kwargs merge in."""
     args = {
         "shots": 10,
         "job_settings": {"error_mitigation": {"symmetry_verification": True}},
-        "error_mitigation": ErrorMitigation.NO_DEBIASING,
+        "debiasing": False,
     }
     payload = json.loads(qiskit_to_ionq(_mcm_circuit(), qpu_backend, passed_args=args))
     assert payload["settings"]["error_mitigation"] == {
@@ -641,16 +635,58 @@ def test_qasm3_reserved_creg(qpu_backend):
 
 
 def test_v1_settings_merge(simulator_backend):
-    """v1 path merges the ErrorMitigation enum into job_settings.error_mitigation."""
+    """v1 path merges flat EM kwargs into job_settings.error_mitigation."""
     args = {
         "shots": 10,
         "job_settings": {"error_mitigation": {"symmetry_verification": True}},
-        "error_mitigation": ErrorMitigation.NO_DEBIASING,
+        "debiasing": False,
     }
     qc = QuantumCircuit(1, 1)
     qc.h(0)
     qc.measure(0, 0)
     payload = json.loads(qiskit_to_ionq(qc, simulator_backend, passed_args=args))
+    assert payload["settings"]["error_mitigation"] == {
+        "symmetry_verification": True,
+        "debiasing": False,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Backward compatibility: legacy ErrorMitigation enum emits DeprecationWarning
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "error_mitigation,expected",
+    [
+        (ErrorMitigation.NO_DEBIASING, {"debiasing": False}),
+        (ErrorMitigation.DEBIASING, {"debiasing": True}),
+    ],
+)
+def test_legacy_error_mitigation_enum_warns(
+    simulator_backend, error_mitigation, expected
+):
+    """Legacy ErrorMitigation enum still serializes correctly but emits a DeprecationWarning."""
+    qc = QuantumCircuit(1, 1)
+    args = {"shots": 10, "error_mitigation": error_mitigation}
+    with pytest.warns(DeprecationWarning, match="ErrorMitigation"):
+        ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
+    em_block = json.loads(ionq_json)["settings"].get("error_mitigation", {})
+    assert em_block == expected
+
+
+def test_legacy_enum_merges_with_job_settings_and_warns(simulator_backend):
+    """Legacy enum still merges into job_settings.error_mitigation while warning."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    args = {
+        "shots": 10,
+        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
+        "error_mitigation": ErrorMitigation.NO_DEBIASING,
+    }
+    with pytest.warns(DeprecationWarning, match="ErrorMitigation"):
+        payload = json.loads(qiskit_to_ionq(qc, simulator_backend, passed_args=args))
     assert payload["settings"]["error_mitigation"] == {
         "symmetry_verification": True,
         "debiasing": False,

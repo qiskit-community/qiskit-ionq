@@ -36,7 +36,7 @@ from .ionq_optimizer_plugin import (
 )
 from .version import __version__
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
-from .constants import ErrorMitigation
+from .constants import AggregationMethod, ErrorMitigation
 from .ionq_equivalence_library import add_equivalences
 
 __all__ = [
@@ -51,6 +51,7 @@ __all__ = [
     "GPI2Gate",
     "MSGate",
     "ZZGate",
+    "AggregationMethod",
     "ErrorMitigation",
     "add_equivalences",
 ]

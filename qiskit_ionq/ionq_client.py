@@ -261,6 +261,7 @@ class IonQClient:
         results_url: str,
         sharpen: bool | None = None,
         extra_query_params: dict | None = None,
+        aggregation: str | None = None,
     ) -> dict:
         """Retrieve job results from the IonQ API.
 
@@ -268,9 +269,11 @@ class IonQClient:
 
         Args:
             results_url (str): The URL of the job results to retrieve.
-            sharpen (bool): Supported if the job is debiased,
-            allows you to filter out physical qubit bias from the results.
+            sharpen (bool | None): Deprecated; use ``aggregation`` instead.
+                ``sharpen=True`` maps to ``aggregation="voting"``.
             extra_query_params (dict): Specify any parameters to include in the request
+            aggregation (str | None): Aggregation method for debiased jobs.
+                One of ``"average"`` (default), ``"voting"``, or ``"dnl"``.
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
@@ -279,11 +282,18 @@ class IonQClient:
         Returns:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
+        if sharpen is not None:
+            warn(
+                "The sharpen parameter is deprecated; use aggregation=... instead.",
+                DeprecationWarning,
+            )
+            if sharpen is True and aggregation is None:
+                aggregation = "voting"
 
         params = {}
 
-        if sharpen is not None:
-            params["sharpen"] = sharpen
+        if aggregation is not None:
+            params["aggregation"] = aggregation
 
         if extra_query_params is not None:
             warn(

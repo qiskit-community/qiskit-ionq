@@ -474,17 +474,48 @@ def _qasm3_data(circuit: QuantumCircuit) -> str:
     return data
 
 
-def _build_settings(passed_args: dict, backend) -> dict[str, Any]:
-    """Build ``settings`` from ``job_settings``, merging the ErrorMitigation
-    enum into ``error_mitigation``.
+def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
+    """Resolve error mitigation config from passed_args and backend defaults.
+
+    Flat kwargs (``debiasing``, ``symmetry_verification``) are the primary way to
+    configure error mitigation. The legacy ``ErrorMitigation`` enum is still
+    accepted via ``error_mitigation=`` with a deprecation warning.
+
+    Returns a dict ready to merge into ``settings["error_mitigation"]``.
     """
-    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
-    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
+    legacy_enum = passed_args.get("error_mitigation") or backend.options.get(
         "error_mitigation"
     )
-    if isinstance(error_mitigation, ErrorMitigation):
+
+    em_cfg: dict[str, Any] = {}
+    if isinstance(legacy_enum, ErrorMitigation):
+        warnings.warn(
+            f"Passing ErrorMitigation.{legacy_enum.name} is deprecated. "
+            "Use the debiasing= and symmetry_verification= kwargs on backend.run() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        em_cfg = dict(legacy_enum.value)
+
+    # Flat kwargs override the legacy enum (None means "not set", so skip)
+    debiasing = passed_args.get("debiasing")
+    if debiasing is not None:
+        em_cfg["debiasing"] = debiasing
+
+    sym_ver = passed_args.get("symmetry_verification")
+    if sym_ver is not None:
+        em_cfg["symmetry_verification"] = sym_ver
+
+    return em_cfg
+
+
+def _build_settings(passed_args: dict, backend) -> dict[str, Any]:
+    """Build ``settings`` from ``job_settings`` and error mitigation config."""
+    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
+    em_cfg = _resolve_em_config(passed_args, backend)
+    if em_cfg:
         em_block = dict(settings.get("error_mitigation") or {})
-        em_block.update(error_mitigation.value)
+        em_block.update(em_cfg)
         settings["error_mitigation"] = em_block
     return settings
 
