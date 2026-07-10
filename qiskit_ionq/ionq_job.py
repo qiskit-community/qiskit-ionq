@@ -701,6 +701,20 @@ class IonQJob(JobV1):
         # Zero-padded binary so get_counts() splits by creg_sizes.
         width = header.get("memory_slots") or len(clbit_labels)
 
+        # Registers absent from the artifact fold as all-zeros; warn so a
+        # server-side omission (e.g. compiler-elided measurements) is not
+        # mistaken for a genuine all-zero outcome.
+        declared = {label[0] for label in clbit_labels}
+        first = shots[0] if shots and isinstance(shots[0], dict) else {}
+        missing = declared - set(first.get("registers") or {})
+        if shots and missing:
+            warnings.warn(
+                f"Register(s) {sorted(missing)} declared by the circuit are "
+                "missing from the job's shots artifact; their bits will read "
+                "as 0 in counts/memory.",
+                UserWarning,
+            )
+
         counts: dict[str, int] = {}
         memory: list[str] = []
         for shot in shots:
