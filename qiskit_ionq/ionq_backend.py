@@ -77,8 +77,9 @@ from .ionq_client import Characterization
 if TYPE_CHECKING:  # pragma: no cover
     from .ionq_provider import IonQProvider
 
-# Fallback qubit count when GET /backends/{id} is unreachable (offline), so a
-# Target can still be built; real counts come from the API.
+# Fallback qubit count when the /backends catalog has no config for a backend
+# (offline, unknown id), so a Target can still be built; real counts come from
+# the API.
 _DEFAULT_NUM_QUBITS = 4
 
 

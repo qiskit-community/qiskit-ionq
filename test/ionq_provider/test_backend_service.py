@@ -25,7 +25,19 @@
 # limitations under the License.
 """Test basic provider API methods."""
 
+import warnings
+
+import pytest
+
 from qiskit_ionq import IonQProvider
+
+# Real backend_config captured before the autouse fixture stubs it.
+_REAL_BACKEND_CONFIG = IonQProvider.backend_config
+
+_CATALOG = {
+    "qpu.aria-1": {"qubits": 25, "supported_native_gates": ["gpi", "gpi2", "ms"]},
+    "simulator": {"qubits": 29},
+}
 
 
 def test_provider_autocomplete():
@@ -60,3 +72,38 @@ def test_backend_eq():
     assert sub1 != sub2
     assert also_sub1 != sub2
     assert sub1 != simulator
+
+
+def test_backend_config_lookup():
+    """backend_config resolves local names against the cached catalog, silently."""
+    pro = IonQProvider("123456")
+    pro._catalog = _CATALOG
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert _REAL_BACKEND_CONFIG(pro, "ionq_qpu.aria-1") == _CATALOG["qpu.aria-1"]
+        assert _REAL_BACKEND_CONFIG(pro, "ionq_simulator") == _CATALOG["simulator"]
+
+
+def test_backend_config_unknown_warns():
+    """An id missing from a populated catalog warns and returns {}."""
+    pro = IonQProvider("123456")
+    pro._catalog = _CATALOG
+    with pytest.warns(UserWarning, match="not in the IonQ catalog"):
+        assert _REAL_BACKEND_CONFIG(pro, "ionq_qpu.nope-1") == {}
+
+
+@pytest.mark.parametrize(
+    "name, catalog",
+    [
+        ("ionq_qpu", _CATALOG),  # generic template: no real device behind it
+        ("ionq_qpu.aria-1", {}),  # offline: the failed fetch already warned
+    ],
+)
+def test_backend_config_silent_defaults(name, catalog):
+    """The generic qpu template and an empty (offline) catalog resolve to {}
+    without re-warning."""
+    pro = IonQProvider("123456")
+    pro._catalog = catalog
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert _REAL_BACKEND_CONFIG(pro, name) == {}
