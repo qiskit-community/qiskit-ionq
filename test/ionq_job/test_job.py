@@ -1496,6 +1496,64 @@ def test_qasm3_high_bit(mock_backend, requests_mock):
     assert job.result().get_counts() == {"10 0": 1}
 
 
+def test_qasm3_missing_reg_warns(mock_backend, requests_mock):
+    """A declared register absent from the shots artifact warns instead of
+    silently reading as all zeros (e.g. compiler-elided measurements)."""
+    job_id = "mcm_missing"
+    artifact_id = "shots-missing"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_qasm3_job_response(job_id, artifact_id),
+    )
+    # "mid" is declared in clbit_labels but absent from the artifact.
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json={"shots": [{"registers": {"result": [1, 0], "output_all": [1]}}]},
+    )
+
+    job = mock_backend.run(_mcm_circuit(), shots=1)
+    with pytest.warns(UserWarning, match="missing from the job's shots"):
+        res = job.result()
+    assert res.get_counts() == {"01 0": 1}
+
+
+def test_qasm3_leaked_shots_excluded(mock_backend, requests_mock):
+    """Shots tagged with nonzero ``leakage_bits`` are invalid readouts and are
+    excluded from counts/memory, matching the platform's histogram and
+    probabilities aggregation (e.g. the staging stub's forced ~5% surplus)."""
+    job_id = "mcm_leak"
+    artifact_id = "shots-leak"
+    client = mock_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=_qasm3_job_response(job_id, artifact_id),
+    )
+    # An all-zero mask is "not leaked" and must still count; a set bit drops
+    # the whole shot.
+    zero_mask = {
+        "registers": {"mid": [0], "result": [0, 0], "output_all": [1]},
+        "leakage_bits": [0],
+    }
+    leaked = {
+        "registers": {"mid": [1], "result": [1, 1], "output_all": [1]},
+        "leakage_bits": [1],
+    }
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json={"shots": _QASM3_SHOTS["shots"] + [zero_mask, leaked]},
+    )
+
+    job = mock_backend.run(_mcm_circuit(), shots=5, memory=True)
+    res = job.result()
+
+    # The leaked shot ("11 1") disappears; totals match the clean shot count.
+    assert res.get_counts() == {"00 0": 4, "01 1": 1}
+    assert len(res.get_memory()) == 5
+
+
 def test_qasm3_memory_false(mock_backend, requests_mock):
     """Without memory=True, MCM counts still decode but get_memory() raises."""
     job_id = "mcm_nomem"

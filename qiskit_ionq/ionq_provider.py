@@ -29,12 +29,13 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 from typing import Callable, Literal
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
-from .helpers import resolve_credentials
+from .helpers import api_backend_id, get_backends, resolve_credentials
 
 from . import ionq_backend
 
@@ -62,12 +63,40 @@ class IonQProvider:
         super().__init__()
         self.custom_headers = custom_headers
         self.credentials = resolve_credentials(token, url)
+        # /backends catalog, fetched lazily by get_backend_config.
+        self._catalog: dict[str, dict] | None = None
         self.backends = BackendService(
             [
                 ionq_backend.IonQSimulatorBackend(self),
                 ionq_backend.IonQQPUBackend(self),
             ]
         )
+
+    def get_backend_config(self, name: str) -> dict:
+        """Static config for ``name`` from the ``GET /backends`` catalog.
+
+        The catalog is fetched on first call and cached; a failed fetch warns
+        and caches ``{}`` so offline use still works. Returns ``{}`` for the
+        generic ``ionq_qpu`` template and warns for an unknown backend when
+        the catalog is populated.
+        """
+        if self._catalog is None:
+            try:
+                self._catalog = get_backends(
+                    self.credentials["token"], self.credentials["url"]
+                )
+            except Exception as exception:  # pylint: disable=broad-except
+                warnings.warn(f"Failed to fetch backends catalog: {exception}.")
+                self._catalog = {}
+        api_id = api_backend_id(name)
+        config = self._catalog.get(api_id)
+        if config is None and self._catalog and api_id != "qpu":
+            warnings.warn(
+                f"Backend {api_id!r} not in the IonQ catalog; it will be "
+                "built with a fallback qubit count, and its supported gates "
+                "and error mitigation options will be reported as unknown."
+            )
+        return config or {}
 
     def get_backend(
         self,
@@ -93,6 +122,8 @@ class IonQProvider:
         if not backends:
             raise QiskitBackendNotFoundError("No backend matches criteria.")
 
+        # Fetch (or reuse) the catalog now so an unknown name warns here.
+        self.get_backend_config(name)
         return backends[0].with_name(name, gateset=gateset)
 
 

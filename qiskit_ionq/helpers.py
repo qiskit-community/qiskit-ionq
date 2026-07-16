@@ -140,24 +140,6 @@ GATESET_MAP = {
     "native": ionq_native_basis_gates,
 }
 
-# Native 2-qubit entangling gate by IonQ device family. Add a row when a
-# new family ships; consulted by IonQBackend._make_target().
-NATIVE_2Q_BY_FAMILY: dict[str, Literal["ms", "zz"]] = {
-    "aria": "ms",
-    "forte": "zz",
-}
-
-
-def native_2q_gate(value: str | None) -> Literal["ms", "zz"] | None:
-    """Pick "ms"/"zz" implied by a backend name or noise_model, else None."""
-    if not isinstance(value, str):
-        return None
-    value = value.lower()
-    for fam, gate in NATIVE_2Q_BY_FAMILY.items():
-        if value == fam or f"{fam}-" in value or value.endswith((f".{fam}", f"_{fam}")):
-            return gate
-    return None
-
 
 def circuit_requires_qasm3(input_circuit: QuantumCircuit) -> bool:
     """True for circuits the flat v1 gate list can't express -- mid-circuit
@@ -327,10 +309,9 @@ def qiskit_circ_to_ionq_circ(
             if not hasattr(operator, "to_list"):
                 operator = SparsePauliOp.from_sparse_observable(operator)
             imag_coeff = any(coeff.imag for coeff in operator.coeffs)
-            assert not imag_coeff, (
-                "PauliEvolution gate must have real coefficients, "
-                f"but got {imag_coeff}"
-            )
+            assert (
+                not imag_coeff
+            ), f"PauliEvolution gate must have real coefficients, but got {imag_coeff}"
             terms = [term[0] for term in operator.to_list()]
             if not ionq_compiler_synthesis and not paulis_commute(terms):
                 raise ionq_exceptions.IonQPauliExponentialError(
@@ -474,6 +455,13 @@ def _qasm3_data(circuit: QuantumCircuit) -> str:
     from qiskit.qasm3 import (  # pylint: disable=import-outside-toplevel
         dumps as _qasm3_dumps,
     )
+
+    # Drop the layout so dumps emits a virtual register (qubit[n] q;) instead
+    # of OpenQASM 3 physical-qubit references ($0, $1, ...), which the API
+    # rejects.
+    if getattr(circuit, "layout", None) is not None:
+        circuit = circuit.copy()
+        circuit._layout = None  # pylint: disable=protected-access
 
     data = _qasm3_dumps(circuit)
     emitted = set(re.findall(r"\bbit(?:\[\d+\])?\s+(\w+)\s*;", data))
@@ -846,27 +834,34 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     }
 
 
-def get_n_qubits(backend, fallback=4):
-    """Get the number of qubits for a given backend."""
-    backend = backend.removeprefix("ionq_")
-    backend = (
-        backend
-        if backend == "simulator" or backend.startswith("qpu.")
-        else f"qpu.{backend}"
-    )
-    try:
-        return (
-            requests.get(
-                f"{resolve_credentials()['url']}/backends/{backend}", timeout=5
-            )
-            .json()
-            .get("qubits", fallback)
-        )
-    except Exception as exception:  # pylint: disable=broad-except
-        warnings.warn(
-            f"Failed to get qubits for {backend}: {exception}. Using {fallback}"
-        )
-        return fallback
+def api_backend_id(name: str) -> str:
+    """Map a local backend name to its API id -- the identifier the IonQ REST
+    API uses for a backend (the ``backend`` field in ``GET /backends``).
+
+    ``ionq_qpu.forte-1``/``forte-1`` -> ``qpu.forte-1``,
+    ``ionq_simulator`` -> ``simulator``, ``ionq_qpu`` -> ``qpu``.
+    """
+    name = name.removeprefix("ionq_")
+    if name in ("simulator", "qpu") or name.startswith("qpu."):
+        return name
+    return f"qpu.{name}"
+
+
+def get_backends(token: str | None = None, url: str | None = None) -> dict[str, dict]:
+    """Fetch the ``GET /backends`` catalog, keyed by API id.
+
+    One request returns every backend's static config (qubit count,
+    supported/native gates, supported error-mitigation techniques), so the
+    provider can resolve them all locally instead of querying per device.
+    Failures raise; graceful fallbacks are the caller's responsibility.
+    """
+    creds = resolve_credentials(token, url)
+    headers = {"Authorization": f"apiKey {creds['token']}"} if creds["token"] else None
+    resp = requests.get(f"{creds['url']}/backends", headers=headers, timeout=5)
+    resp.raise_for_status()
+    payload = resp.json()
+    backends = payload if isinstance(payload, list) else (payload.get("backends") or [])
+    return {b["backend"]: b for b in backends if isinstance(b, dict) and "backend" in b}
 
 
 def retry(
@@ -951,6 +946,7 @@ __all__ = [
     "decompress_metadata_string",
     "get_user_agent",
     "resolve_credentials",
-    "get_n_qubits",
+    "api_backend_id",
+    "get_backends",
     "retry",
 ]

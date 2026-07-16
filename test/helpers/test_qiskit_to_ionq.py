@@ -548,6 +548,17 @@ def test_qasm3_payload_shape(qpu_backend):
     assert header["memory_slots"] == 3
 
 
+def test_qasm3_strips_layout(qpu_backend):
+    """Transpiled circuits emit a virtual qubit register, not physical $0."""
+    isa = transpile(_mcm_circuit(), backend=qpu_backend, optimization_level=1)
+    assert isa.layout is not None  # transpile attached a layout
+    payload = json.loads(qiskit_to_ionq(isa, qpu_backend, passed_args={"shots": 10}))
+    data = payload["input"]["data"]
+    assert payload["type"] == "ionq.qasm3.v1"
+    assert "$" not in data  # no physical qubits
+    assert "qubit[" in data  # virtual register declared
+
+
 def test_qasm3_settings_passthrough(qpu_backend):
     """job_settings flow through and flat EM kwargs merge in."""
     args = {

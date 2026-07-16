@@ -320,18 +320,27 @@ class IonQClient:
     ) -> dict | list | str | bytes:
         """GET a result artifact by id (``/jobs/{id}/artifacts/{aid}``).
 
-        JSON artifacts decode to order-preserving objects; binary ones (the
-        ``ionq.mir.v1`` compiled circuit, ``application/octet-stream``) return
-        as raw ``bytes``.
+        Decodes by content type: JSON (``ionq.native.v1``, ``ionq.ore.v*``,
+        result artifacts) to order-preserving objects, text (``ionq.qasm3.v1``
+        compiled circuit, ``text/plain``) to ``str``, and binary
+        (``ionq.mir.v1``, ``application/octet-stream``) to raw ``bytes``.
         """
         req_path = self.make_path("jobs", job_id, "artifacts", artifact_id)
         res = self.get_with_retry(
             req_path, headers=self.api_headers, params=extra_query_params or None
         )
         exceptions.IonQAPIError.raise_for_status(res)
-        if "octet-stream" in res.headers.get("Content-Type", "").lower():
+        content_type = res.headers.get("Content-Type", "").lower()
+        if "octet-stream" in content_type:
             return res.content
-        return json.loads(res.text, object_pairs_hook=OrderedDict)
+        if content_type.startswith("text/"):
+            return res.text
+        try:
+            return json.loads(res.text, object_pairs_hook=OrderedDict)
+        except ValueError:
+            # Content type was missing or unrecognized and the body isn't
+            # JSON; return the raw text rather than raising.
+            return res.text
 
     def estimate_job(
         self,
