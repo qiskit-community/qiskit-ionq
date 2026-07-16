@@ -338,6 +338,8 @@ class IonQClient:
         try:
             return json.loads(res.text, object_pairs_hook=OrderedDict)
         except ValueError:
+            # Content type was missing or unrecognized and the body isn't
+            # JSON; return the raw text rather than raising.
             return res.text
 
     def estimate_job(

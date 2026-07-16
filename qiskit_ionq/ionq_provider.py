@@ -94,7 +94,7 @@ class IonQProvider:
             warnings.warn(
                 f"Backend {api_id!r} not in the IonQ catalog; it will be "
                 "built with a fallback qubit count, and its supported gates "
-                "and error mitigations will be reported as unknown."
+                "and error mitigation options will be reported as unknown."
             )
         return config or {}
 

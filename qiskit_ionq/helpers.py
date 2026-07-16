@@ -309,10 +309,9 @@ def qiskit_circ_to_ionq_circ(
             if not hasattr(operator, "to_list"):
                 operator = SparsePauliOp.from_sparse_observable(operator)
             imag_coeff = any(coeff.imag for coeff in operator.coeffs)
-            assert not imag_coeff, (
-                "PauliEvolution gate must have real coefficients, "
-                f"but got {imag_coeff}"
-            )
+            assert (
+                not imag_coeff
+            ), f"PauliEvolution gate must have real coefficients, but got {imag_coeff}"
             terms = [term[0] for term in operator.to_list()]
             if not ionq_compiler_synthesis and not paulis_commute(terms):
                 raise ionq_exceptions.IonQPauliExponentialError(
@@ -860,9 +859,9 @@ def get_backends(token: str | None = None, url: str | None = None) -> dict[str, 
     headers = {"Authorization": f"apiKey {creds['token']}"} if creds["token"] else None
     resp = requests.get(f"{creds['url']}/backends", headers=headers, timeout=5)
     resp.raise_for_status()
-    data = resp.json()
-    items = data if isinstance(data, list) else (data.get("backends") or [])
-    return {b["backend"]: b for b in items if isinstance(b, dict) and "backend" in b}
+    payload = resp.json()
+    backends = payload if isinstance(payload, list) else (payload.get("backends") or [])
+    return {b["backend"]: b for b in backends if isinstance(b, dict) and "backend" in b}
 
 
 def retry(
