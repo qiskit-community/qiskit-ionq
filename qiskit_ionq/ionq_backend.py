@@ -120,15 +120,10 @@ class IonQBackend(Backend):
         self._max_experiments: int | None = max_experiments
         self._max_shots: int | None = max_shots
 
-        # Static config (qubits, gates, capabilities) comes from the provider's
-        # cached /backends catalog. An explicit num_qubits pins the caller's
-        # own config and bypasses the catalog; otherwise a missing entry
-        # yields {} and we fall back to a small default qubit count.
-        self._config: dict = {}
-        if num_qubits is None:
-            self._config = self._provider.backend_config(name)
-            num_qubits = int(self._config.get("qubits", _DEFAULT_NUM_QUBITS))
-        self._num_qubits: int = num_qubits
+        # Catalog config resolves lazily via _get_config; an explicit
+        # num_qubits pins the caller's own config and skips the catalog.
+        self._config: dict | None = {} if num_qubits is not None else None
+        self._num_qubits: int | None = num_qubits
 
         # Target and coupling map are resolved lazily on first access, keeping
         # construction network-free.
@@ -178,6 +173,10 @@ class IonQBackend(Backend):
 
     @property
     def num_qubits(self) -> int:
+        if self._num_qubits is None:
+            self._num_qubits = int(
+                self._get_config().get("qubits", _DEFAULT_NUM_QUBITS)
+            )
         return self._num_qubits
 
     @property
@@ -185,15 +184,23 @@ class IonQBackend(Backend):
         """Return the basis gates for this backend."""
         return self._basis_gates
 
+    def _get_config(self) -> dict:
+        """Catalog entry for this backend, resolved once via the provider;
+        ``{}`` when unavailable."""
+        if self._config is None:
+            self._config = self._provider.get_backend_config(self.name)
+        return self._config
+
     def _config_list(self, key: str) -> list[str]:
         """Read a list-valued key from the API config, warning when the config
         is unavailable so an empty result is distinguishable from "none"."""
-        if not self._config:
+        config = self._get_config()
+        if not config:
             warnings.warn(
                 f"No API config available for backend {self.name!r}; "
                 f"{key} is unknown (returning an empty list)."
             )
-        return list(self._config.get(key) or [])
+        return list(config.get(key) or [])
 
     @property
     def supported_gates(self) -> list[str]:
@@ -380,7 +387,7 @@ class IonQBackend(Backend):
         if self._coupling_map is not None:
             return self._coupling_map
 
-        n = self._num_qubits
+        n = self.num_qubits
         pairs = self._fetch_connectivity()
         if pairs:
             # Collect into a set (symmetrize + dedupe + bounds-check) so we can
@@ -410,7 +417,7 @@ class IonQBackend(Backend):
     def _make_target(self) -> Target:
         """Build a Target of QIS or native gates, scoping 2q gates to the coupling
         map on restricted topologies (else use all-to-all connectivity)."""
-        tgt = Target(num_qubits=self._num_qubits)
+        tgt = Target(num_qubits=self.num_qubits)
 
         self._get_coupling_map()
         two_q_props = (
@@ -491,12 +498,13 @@ class IonQBackend(Backend):
     def _two_q_native_gate(self) -> Literal["ms", "zz"]:
         """Native 2q gate from ``supported_native_gates`` (the simulator follows
         its noise model); defaults to ``"ms"`` for ideal-sim and offline."""
-        config = self._config
         if self._simulator:
             noise_model = getattr(self.options, "noise_model", None)
             if not noise_model or noise_model == "ideal":
                 return "ms"
-            config = self._provider.backend_config(noise_model)
+            config = self._provider.get_backend_config(noise_model)
+        else:
+            config = self._get_config()
         return "zz" if "zz" in (config.get("supported_native_gates") or []) else "ms"
 
     @staticmethod

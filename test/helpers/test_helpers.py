@@ -100,11 +100,11 @@ def test_get_backends_success():
         assert result["qpu.tempo-1"]["qubits"] == 100
 
 
-def test_get_backends_fallback():
-    """get_backends returns {} (with a warning) when the request fails."""
-    with patch("requests.get", side_effect=Exception("Network error")):
-        with pytest.warns(UserWarning, match="Failed to fetch backends catalog"):
-            assert get_backends() == {}
+def test_get_backends_raises():
+    """get_backends propagates request failures."""
+    with patch("requests.get", side_effect=RuntimeError("Network error")):
+        with pytest.raises(RuntimeError, match="Network error"):
+            get_backends()
 
 
 def test_retry():

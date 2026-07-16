@@ -511,7 +511,7 @@ def test_capabilities_from_api(provider, monkeypatch, name, two_q):
         "supported_native_gates": ["gpi", "gpi2", two_q],
         "supported_error_mitigations": ["Debias", "Sharpen"],
     }
-    monkeypatch.setattr(provider, "backend_config", lambda _name: config)
+    monkeypatch.setattr(provider, "get_backend_config", lambda _name: config)
 
     backend = provider.get_backend(name, gateset="native")
     assert backend.num_qubits == 36
@@ -530,7 +530,7 @@ def test_capabilities_from_api(provider, monkeypatch, name, two_q):
 def test_capabilities_warn_offline(provider, monkeypatch):
     """An unavailable API config warns on capability access instead of
     silently returning an empty list."""
-    monkeypatch.setattr(provider, "backend_config", lambda _name: {})
+    monkeypatch.setattr(provider, "get_backend_config", lambda _name: {})
     backend = provider.get_backend("ionq_qpu.tempo-1")
 
     for prop in (

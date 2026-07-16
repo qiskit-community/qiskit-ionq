@@ -69,7 +69,7 @@ def _offline_backend_data(monkeypatch):
     monkeypatch.setattr(ionq_provider, "get_backends", lambda *a, **k: {})
     monkeypatch.setattr(
         ionq_provider.IonQProvider,
-        "backend_config",
+        "get_backend_config",
         lambda self, name: fake_backend_config(name),
     )
     monkeypatch.setattr(

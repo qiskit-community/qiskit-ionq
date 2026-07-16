@@ -854,21 +854,15 @@ def get_backends(token: str | None = None, url: str | None = None) -> dict[str, 
     One request returns every backend's static config (qubit count,
     supported/native gates, supported error-mitigation techniques), so the
     provider can resolve them all locally instead of querying per device.
-    Returns ``{}`` (and warns) when the endpoint is unreachable.
+    Failures raise; graceful fallbacks are the caller's responsibility.
     """
     creds = resolve_credentials(token, url)
     headers = {"Authorization": f"apiKey {creds['token']}"} if creds["token"] else None
-    try:
-        resp = requests.get(f"{creds['url']}/backends", headers=headers, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-        items = data if isinstance(data, list) else (data.get("backends") or [])
-        return {
-            b["backend"]: b for b in items if isinstance(b, dict) and "backend" in b
-        }
-    except Exception as exception:  # pylint: disable=broad-except
-        warnings.warn(f"Failed to fetch backends catalog: {exception}.")
-        return {}
+    resp = requests.get(f"{creds['url']}/backends", headers=headers, timeout=5)
+    resp.raise_for_status()
+    data = resp.json()
+    items = data if isinstance(data, list) else (data.get("backends") or [])
+    return {b["backend"]: b for b in items if isinstance(b, dict) and "backend" in b}
 
 
 def retry(
