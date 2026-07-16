@@ -457,8 +457,9 @@ def _qasm3_data(circuit: QuantumCircuit) -> str:
         dumps as _qasm3_dumps,
     )
 
-    # Drop the layout so dumps emits a virtual register (qubit[n] q;), which
-    # the API requires, not physical qubits ($0).
+    # Drop the layout so dumps emits a virtual register (qubit[n] q;) instead
+    # of OpenQASM 3 physical-qubit references ($0, $1, ...), which the API
+    # rejects.
     if getattr(circuit, "layout", None) is not None:
         circuit = circuit.copy()
         circuit._layout = None  # pylint: disable=protected-access
@@ -835,7 +836,8 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
 
 
 def api_backend_id(name: str) -> str:
-    """Map a local backend name to its API id.
+    """Map a local backend name to its API id -- the identifier the IonQ REST
+    API uses for a backend (the ``backend`` field in ``GET /backends``).
 
     ``ionq_qpu.forte-1``/``forte-1`` -> ``qpu.forte-1``,
     ``ionq_simulator`` -> ``simulator``, ``ionq_qpu`` -> ``qpu``.

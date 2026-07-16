@@ -121,9 +121,9 @@ class IonQBackend(Backend):
         self._max_shots: int | None = max_shots
 
         # Static config (qubits, gates, capabilities) comes from the provider's
-        # cached /backends catalog. An explicit num_qubits (e.g. MockBackend in
-        # tests) bypasses it; otherwise a missing entry yields {} and we fall
-        # back to a small default qubit count.
+        # cached /backends catalog. An explicit num_qubits pins the caller's
+        # own config and bypasses the catalog; otherwise a missing entry
+        # yields {} and we fall back to a small default qubit count.
         self._config: dict = {}
         if num_qubits is None:
             self._config = self._provider.backend_config(name)
@@ -165,7 +165,7 @@ class IonQBackend(Backend):
 
     @property
     def target(self) -> Target | None:
-        # A native-gateset simulator's Target depends on the active noise model
+        # A native-gateset simulator's target depends on the active noise model
         # (it selects the 2q gate), so rebuild it when that changes.
         native_sim = self._simulator and self._gateset == "native"
         current_noise_model = getattr(self.options, "noise_model", "ideal")
