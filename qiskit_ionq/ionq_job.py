@@ -589,8 +589,8 @@ class IonQJob(JobV1):
             failure = response.get("failure") or {}
             raise exceptions.IonQJobFailureError(
                 f"Unable to retrieve result for job {self._job_id}. "
-                f'Failure from IonQ API "{failure.get("code","")}: '
-                f'{failure.get("error","")}"'
+                f'Failure from IonQ API "{failure.get("code", "")}: '
+                f'{failure.get("error", "")}"'
             )
 
         if self._status == jobstatus.JobStatus.CANCELLED:
@@ -718,7 +718,8 @@ class IonQJob(JobV1):
     def _format_result_qasm3(self, shots: list):
         """Build a Result from per-register shots, folding the declared
         registers via the header's ``clbit_labels``. ``output_all``
-        (system-added) is excluded.
+        (system-added) is excluded, as are shots tagged with nonzero
+        ``leakage_bits``.
         """
         backend = self.backend()
         success = self._status == jobstatus.JobStatus.DONE
@@ -727,6 +728,14 @@ class IonQJob(JobV1):
         header = decoded if isinstance(decoded, dict) else {}
 
         shots = shots or []
+        # Shots with any leakage bit set are invalid readouts; the platform
+        # excludes them from histogram/probabilities/legacy shots, so exclude
+        # them here too or counts would sum past the requested shot count.
+        shots = [
+            shot
+            for shot in shots
+            if not (isinstance(shot, dict) and any(shot.get("leakage_bits") or []))
+        ]
         clbit_labels = header.get("clbit_labels") or []
         # Zero-padded binary so get_counts() splits by creg_sizes.
         width = header.get("memory_slots") or len(clbit_labels)
