@@ -98,47 +98,6 @@ def test_debiasing_none_produces_no_em_block(simulator_backend):
 
 
 # ---------------------------------------------------------------------------
-# Flat kwargs: symmetry_verification=
-# ---------------------------------------------------------------------------
-
-
-def test_sv_true(simulator_backend):
-    """symmetry_verification=True serializes correctly."""
-    args = {"shots": 10, "symmetry_verification": True}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"symmetry_verification": True}
-
-
-def test_sv_false(simulator_backend):
-    """symmetry_verification=False serializes correctly."""
-    args = {"shots": 10, "symmetry_verification": False}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"symmetry_verification": False}
-
-
-def test_sv_none_produces_no_em_block(simulator_backend):
-    """symmetry_verification=None produces no error_mitigation block."""
-    args = {"shots": 10, "symmetry_verification": None}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {}
-
-
-def test_both_flat_kwargs(simulator_backend):
-    """Both flat kwargs serialize together."""
-    args = {"shots": 10, "debiasing": False, "symmetry_verification": False}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"debiasing": False, "symmetry_verification": False}
-
-
-# ---------------------------------------------------------------------------
 # job_settings escape hatch
 # ---------------------------------------------------------------------------
 
@@ -147,13 +106,13 @@ def test_flat_kwarg_merges_with_job_settings(simulator_backend):
     """Flat kwarg merges with an existing job_settings EM block."""
     args = {
         "shots": 10,
-        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
+        "job_settings": {"error_mitigation": {"_test_passthrough": True}},
         "debiasing": False,
     }
     em_block = _extract_em_settings(
         qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
     )
-    assert em_block == {"symmetry_verification": True, "debiasing": False}
+    assert em_block == {"_test_passthrough": True, "debiasing": False}
 
 
 # ---------------------------------------------------------------------------

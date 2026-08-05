@@ -494,6 +494,61 @@ def test_result(mock_backend, requests_mock):
     assert job.result().to_dict() == expected_result
 
 
+def test_reachable_states_and_result_postselection(mock_backend, requests_mock):
+    """Inline reachability metadata can filter results."""
+    job_id = "reachable_states_job"
+    client = mock_backend.client
+    job_response = conftest.dummy_job_response(job_id)
+    job_response.setdefault("output", {}).setdefault("compilation", {})[
+        "reachable_states"
+    ] = ["00", "10"]
+    requests_mock.get(client.make_path("jobs", job_id), json=job_response)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        json={"0": 0.25, "1": 0.25, "2": 0.25, "3": 0.25},
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+
+    assert job.reachable_states == {"00", "10"}
+    result = job.result(postselect_on=job.reachable_states)
+
+    assert result.get_counts() == {"00": 308, "10": 308}
+    assert result.get_probabilities() == {"00": 0.25, "10": 0.25}
+    assert sum(result.get_probabilities().values()) == pytest.approx(0.5)
+    assert requests_mock.call_count == 2
+
+
+def test_reachable_states_unavailable(mock_backend, requests_mock):
+    """Unsupported reachability analysis is represented as None."""
+    job_id = "no_reachable_states"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=conftest.dummy_job_response(job_id),
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.reachable_states is None
+
+
+def test_result_postselection_validates_width(mock_backend, requests_mock):
+    """A selector must describe full-width computational-basis states."""
+    job_id = "bad_postselection"
+    client = mock_backend.client
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        json=conftest.dummy_job_response(job_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        json={"0": 1.0},
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(exceptions.IonQJobError, match="2-bit binary strings"):
+        job.result(postselect_on={"0"})
+
+
 def test_result__with_sharpen(mock_backend, requests_mock):
     """Test basic "happy path" for result fetching.
 
@@ -1451,6 +1506,27 @@ def test_qasm3_result_counts(mock_backend, requests_mock):
     # Qiskit splits as "result mid": mid=1,result=10 -> "01 1".
     assert res.get_counts() == {"00 0": 3, "01 1": 1}
     assert res.get_memory() == ["00 0", "00 0", "00 0", "01 1"]
+
+
+def test_qasm3_reachable_states_postselect_shots(mock_backend, requests_mock):
+    """QASM 3 postselection filters counts and memory using output_all."""
+    job_id = "mcm_postselected"
+    shots_artifact_id = "shots-postselected"
+    client = mock_backend.client
+    response = _qasm3_job_response(job_id, shots_artifact_id)
+    response["output"] = {"compilation": {"reachable_states": ["0"]}}
+    requests_mock.post(client.make_path("jobs"), json={"id": job_id})
+    requests_mock.get(client.make_path("jobs", job_id), json=response)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", shots_artifact_id),
+        json=_QASM3_SHOTS,
+    )
+    job = mock_backend.run(_mcm_circuit(), shots=4, memory=True)
+    result = job.result(postselect_on=job.reachable_states)
+
+    assert result.get_counts() == {"00 0": 1, "01 1": 1}
+    assert result.get_memory() == ["00 0", "01 1"]
+    assert result.results[0].shots == 2
 
 
 def test_qasm3_ideal_sim_no_shots(mock_backend, requests_mock):

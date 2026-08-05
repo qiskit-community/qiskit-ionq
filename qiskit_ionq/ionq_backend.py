@@ -29,7 +29,8 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Literal, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Literal
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import (
@@ -152,7 +153,6 @@ class IonQBackend(Backend):
             job_settings=None,
             error_mitigation=None,
             debiasing=None,
-            symmetry_verification=None,
             extra_query_params={},
             extra_metadata={},
             sampler_seed=None,  # simulator-only (harmless on QPU)
@@ -286,9 +286,6 @@ class IonQBackend(Backend):
                   runs the circuit as multiple symmetrized variants to suppress
                   systematic hardware biases. Requires at least 500 shots. When
                   unset, the IonQ platform default for the target applies.
-                - ``symmetry_verification`` (bool): Enable symmetry verification,
-                  discarding measurement outcomes that violate the circuit's
-                  symmetries. When unset, the platform default applies.
                 - ``job_settings`` (dict): Raw ``settings`` payload passed through
                   to the API for options without a dedicated kwarg.
 

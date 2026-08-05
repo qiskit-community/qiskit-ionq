@@ -38,7 +38,8 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable, Collection, Sequence
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from qiskit import QuantumCircuit
@@ -52,6 +53,71 @@ from .ionq_result import IonQResult as Result
 
 if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_backend, ionq_client
+
+
+_REACHABLE_STATES_UNSET = object()
+
+
+def _postselection_selectors(
+    postselect_on: Collection[str] | Sequence[Collection[str] | None] | None,
+    num_circuits: int,
+) -> list[set[str] | None]:
+    """Normalize one selector or one selector per circuit."""
+    if postselect_on is None:
+        return [None] * num_circuits
+    if isinstance(postselect_on, (str, bytes)):
+        raise exceptions.IonQJobError(
+            "postselect_on must be a collection of bitstrings, not one bitstring"
+        )
+
+    values = list(postselect_on)
+    if all(isinstance(state, str) for state in values):
+        states = {state for state in values if isinstance(state, str)}
+        return [states] * num_circuits
+
+    if len(values) != num_circuits:
+        raise exceptions.IonQJobError(
+            "postselect_on must contain one reachable-state collection per circuit"
+        )
+
+    selectors: list[set[str] | None] = []
+    for value in values:
+        if value is None:
+            selectors.append(None)
+        elif isinstance(value, (str, bytes)):
+            raise exceptions.IonQJobError(
+                "Each postselection selector must be a collection of bitstrings"
+            )
+        else:
+            states = set(value)
+            if not all(isinstance(state, str) for state in states):
+                raise exceptions.IonQJobError(
+                    "Postselection states must be computational-basis bitstrings"
+                )
+            selectors.append({state for state in states if isinstance(state, str)})
+    return selectors
+
+
+def _validate_postselection_states(states: set[str], num_qubits: int) -> None:
+    invalid = [
+        state
+        for state in states
+        if len(state) != num_qubits or not state or set(state) - {"0", "1"}
+    ]
+    if invalid:
+        raise exceptions.IonQJobError(
+            f"Postselection states must be {num_qubits}-bit binary strings; "
+            f"invalid values: {invalid[:3]}"
+        )
+
+
+def _postselect_distribution(data: dict, states: set[str], num_qubits: int) -> dict:
+    """Filter a decimal-keyed IonQ distribution using Qiskit-order bitstrings."""
+    _validate_postselection_states(states, num_qubits)
+    allowed = {int(state, 2) for state in states}
+    return {
+        key: probability for key, probability in data.items() if int(key) in allowed
+    }
 
 
 def map_output(data, clbits, num_qubits):
@@ -82,8 +148,13 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     shots: int,
     use_sampler: bool = False,
     sampler_seed: int | None = None,
+    preserve_probability_mass: bool = False,
 ) -> tuple[dict[str, int], dict[str, float]]:
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
+
+    ``preserve_probability_mass`` adds an unreported rejection outcome while
+    sampling ideal-simulator probabilities, so postselected counts retain the
+    accepted fraction instead of being implicitly renormalized.
 
     .. NOTE:: For simulator jobs, this method builds counts using a randomly
         generated sampling of the probabilities returned from the API. Because
@@ -123,9 +194,11 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     if use_sampler:
         rand = np.random.RandomState(sampler_seed)
         outcomes, weights = zip(*output_probs.items())
+        if preserve_probability_mass:
+            weights += (max(0.0, 1.0 - sum(weights)),)
         sample_counts = np.bincount(
-            rand.choice(len(outcomes), shots, p=normalize(weights)),
-            minlength=len(outcomes),
+            rand.choice(len(weights), shots, p=normalize(weights)),
+            minlength=len(weights),
         )
         sampled = dict(zip(outcomes, sample_counts))
 
@@ -210,6 +283,8 @@ class IonQJob(JobV1):
         self._is_qasm3: bool = False
         self._shots_artifact_id: str | None = None
         self._metadata: dict[str, Any] = {}
+        self._children: list[str] | None = None
+        self._reachable_states_cache: object = _REACHABLE_STATES_UNSET
 
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
@@ -297,6 +372,48 @@ class IonQJob(JobV1):
             )
         return self._client.get_artifact(self._job_id, circuits[fmt]["id"])
 
+    def _load_reachable_states(self) -> set[str] | None:
+        """Read this job's inline reachability metadata, if available."""
+        states = ((self._metadata.get("output") or {}).get("compilation") or {}).get(
+            "reachable_states"
+        )
+        if states is None:
+            return None
+        if not isinstance(states, list) or not all(
+            isinstance(state, str) for state in states
+        ):
+            raise exceptions.IonQJobError(
+                f"Reachable states for job {self._job_id} have an invalid payload"
+            )
+        return set(states)
+
+    @property
+    def reachable_states(self) -> set[str] | list[set[str] | None] | None:
+        """Reachable computational-basis states for this job.
+
+        The private analysis runs during server-side compilation. Accessing
+        this property waits for the job to finish if necessary, reads the
+        stored compilation metadata, and returns Qiskit-order (most-significant
+        bit left) bitstrings. A multi-circuit job returns one entry per circuit.
+        ``None`` means the compiler could not conservatively determine a set.
+        """
+        if self._reachable_states_cache is not _REACHABLE_STATES_UNSET:
+            return self._reachable_states_cache  # type: ignore[return-value]
+
+        self.wait_for_final_state()
+        if self._status is not jobstatus.JobStatus.DONE:
+            return None
+
+        if self._children:
+            value: set[str] | list[set[str] | None] | None = [
+                IonQJob(self.backend(), child_id, self._client)._load_reachable_states()
+                for child_id in self._children
+            ]
+        else:
+            value = self._load_reachable_states()
+        self._reachable_states_cache = value
+        return value
+
     def cancel(self) -> None:
         """Cancel this job."""
         assert self._job_id is not None, "Cannot cancel a job without a job_id."
@@ -375,6 +492,7 @@ class IonQJob(JobV1):
         wait: float = 5,
         callback: Callable | None = None,
         extra_query_params: dict | None = None,
+        postselect_on: Collection[str] | Sequence[Collection[str] | None] | None = None,
     ):  # pylint: disable=too-many-positional-arguments
         """Retrieve job result data, blocking until the job is complete.
 
@@ -402,6 +520,11 @@ class IonQJob(JobV1):
                 <qiskit.providers.BaseJob.wait_for_final_state>`.
             extra_query_params: Extra query parameters forwarded on the
                 results request.
+            postselect_on: Reachable computational-basis states to retain,
+                expressed as Qiskit-order bitstrings. For multi-circuit jobs,
+                pass either one selector for every circuit or one selector per
+                circuit. Aggregate probabilities and derived counts are not
+                renormalized; OpenQASM 3 shot results are filtered shot-wise.
 
         Raises:
             IonQJobTimeoutError: If after the default wait period in
@@ -454,9 +577,11 @@ class IonQJob(JobV1):
                     "job.compiled_circuit(...) to "
                     "retrieve the compiled circuit instead."
                 )
+            selectors = _postselection_selectors(postselect_on, self._num_circuits)
             if self._is_qasm3:
                 self._result = self._format_result_qasm3(
-                    self._fetch_qasm3_shots(extra_query_params)
+                    self._fetch_qasm3_shots(extra_query_params),
+                    postselect_on=selectors[0],
                 )
             else:
                 response = self._client.get_results(
@@ -464,7 +589,7 @@ class IonQJob(JobV1):
                     aggregation=aggregation,
                     extra_query_params=extra_query_params,
                 )
-                self._result = self._format_result(response)
+                self._result = self._format_result(response, postselect_on=selectors)
 
         return self._result
 
@@ -714,7 +839,7 @@ class IonQJob(JobV1):
         )
         return payload.get("shots", [])  # artifact is {"shots": [...]}
 
-    def _format_result_qasm3(self, shots: list):
+    def _format_result_qasm3(self, shots: list, postselect_on: set[str] | None = None):
         """Build a Result from per-register shots, folding the declared
         registers via the header's ``clbit_labels``. ``output_all``
         (system-added) is excluded, as are shots tagged with nonzero
@@ -735,6 +860,17 @@ class IonQJob(JobV1):
             for shot in shots
             if not (isinstance(shot, dict) and any(shot.get("leakage_bits") or []))
         ]
+        if postselect_on is not None:
+            num_qubits = header.get("n_qubits", self._num_qubits)
+            _validate_postselection_states(postselect_on, num_qubits)
+            shots = [
+                shot
+                for shot in shots
+                if isinstance(shot, dict)
+                and (bits := (shot.get("registers") or {}).get("output_all"))
+                is not None
+                and "".join(str(int(bit)) for bit in reversed(bits)) in postselect_on
+            ]
         clbit_labels = header.get("clbit_labels") or []
         # Zero-padded binary so get_counts() splits by creg_sizes.
         width = header.get("memory_slots") or len(clbit_labels)
@@ -796,7 +932,7 @@ class IonQJob(JobV1):
             }
         )
 
-    def _format_result(self, data):
+    def _format_result(self, data, postselect_on: list[set[str] | None] | None = None):
         """Translate IonQ result format into a Qiskit `Result` instance.
 
         Args:
@@ -858,6 +994,8 @@ class IonQJob(JobV1):
         else:
             raise exceptions.IonQJobError("Unexpected result payload type")
 
+        selectors = postselect_on or [None] * self._num_circuits
+
         # pad headers if API dropped them
         while len(qiskit_header) < self._num_circuits:
             qiskit_header.append({})
@@ -891,14 +1029,25 @@ class IonQJob(JobV1):
                     clbits = list(range(inferred_nq))
                 n_qubits = header.get("n_qubits", len(clbits) or self._num_qubits)
 
-                counts, probabilities = _build_counts(
-                    data[i],
-                    n_qubits,
-                    clbits,
-                    shots,
-                    use_sampler=is_ideal_sim,
-                    sampler_seed=sampler_seed,
+                selector = selectors[i] if i < len(selectors) else None
+                selected_data = (
+                    _postselect_distribution(data[i], selector, n_qubits)
+                    if selector is not None
+                    else data[i]
                 )
+
+                if selected_data:
+                    counts, probabilities = _build_counts(
+                        selected_data,
+                        n_qubits,
+                        clbits,
+                        shots,
+                        use_sampler=is_ideal_sim,
+                        sampler_seed=sampler_seed,
+                        preserve_probability_mass=selector is not None,
+                    )
+                else:
+                    counts, probabilities = {}, {}
                 raw_shots = (
                     raw_shots_per_circuit[i] if i < len(raw_shots_per_circuit) else None
                 )
