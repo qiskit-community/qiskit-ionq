@@ -86,28 +86,65 @@ print(job.result().get_probabilities())
 
 ### Error mitigation
 
-Error mitigation is configured with two keyword arguments on `backend.run(...)`:
+#### Debiasing and aggregation
 
-- `debiasing` (bool): run the circuit as multiple symmetrized variants to
-  suppress systematic hardware biases. Requires at least 500 shots.
-- `symmetry_verification` (bool): discard measurement outcomes that violate
-  the circuit's symmetries.
+Debiasing is a compiler-level error-mitigation technique.
+It creates physically different but logically equivalent variants of a circuit and divides the requested shots among them.
+The variants have the same ideal output but different error profiles, allowing systematic hardware biases to be suppressed when their results are combined.
 
-Leaving a kwarg unset defers to the IonQ platform default for the target backend.
-
-```python
-job = backend.run(qc, shots=1000, debiasing=True, symmetry_verification=True)
-```
-
-When debiasing is applied, the per-variant results can be combined with different aggregation methods at retrieval time via `job.result(aggregation=...)`:
-
-1. `average` (default),
-2. `voting` (plurality voting, sharpens the distribution; replaces the deprecated `sharpen=True`), or
-3. `dnl` (debiasing with non-linear filtering, see [arXiv:2506.05757](https://arxiv.org/abs/2506.05757)):
+Enable debiasing when submitting the job. It requires at least 500 shots:
 
 ```python
-print(job.result(aggregation="voting").get_counts())
+job = backend.run(qc, shots=1000, debiasing=True)
 ```
+
+Leaving `debiasing` unset defers to the IonQ platform default for the target; passing `False` explicitly disables it.
+When a job is debiased, there are multiple options for how to combine variant results.
+This is achieved by `job.result(aggregation=...)` where the options are:
+
+1. `average` (default) takes the component-wise mean of the variant
+   distributions. It preserves arbitrary distribution shapes and is the safest choice for broad or uneven output distributions.
+2. `voting` performs plurality voting across variants, also called sharpening.
+   It emphasizes outcomes that appear consistently across variants and is best suited to distributions with one or a few roughly equal peaks.
+   It can distort broad or uneven distributions.
+3. `dnl` applies debiasing with non-linear filtering, suppressing outcomes that are not observed consistently across variants.
+   See [arXiv:2506.05757](https://arxiv.org/abs/2506.05757) for details.
+
+For example:
+
+```python
+result = job.result(aggregation="voting")
+print(result.get_counts())
+```
+
+The `aggregation` argument has no effect on a job that ran without debiasing.
+
+#### Symmetry verification
+
+Symmetry verification is a post-processing technique that uses circuit symmetries (such as conserved particle number, Hamming weight, or parity) to discard outcomes that violate those conserved quantities.
+During server-side compilation, IonQ analyzes the circuit to find a conservative set of reachable computational-basis states using a primitive simulation method.
+That set is available through `job.reachable_states` and can be passed to `result()` to discard outcomes outside it:
+
+```python
+job = backend.run(qc, shots=1000)
+result = job.result(postselect_on=job.reachable_states)
+```
+
+For a multi-circuit job, `job.reachable_states` contains one set of bitstrings per circuit.
+If a circuit cannot be analyzed, its entry is `None` and its result is left unchanged.
+**Post-selection does not renormalize aggregate probabilities**.
+
+Because symmetry verification is applied after aggregation, it can be combined with debiasing and any aggregation method:
+
+```python
+job = backend.run(qc, shots=1000, debiasing=True)
+result = job.result(
+    aggregation="dnl",
+    postselect_on=job.reachable_states,
+)
+```
+
+The `postselect_on` kwarg can be used with custom post-selection as well by passing any collection of bitstrings.
 
 ### Compilation as a service (`dry_run`)
 
@@ -139,7 +176,7 @@ The ideal simulator does not produce per-shot data; calling `get_memory()` on a 
 
 ### Mid-circuit measurements
 
-The IonQ provider supports mid-circuit measurements, qubit reuse, and mid-circuit `reset`. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; the `debiasing`/`symmetry_verification` kwargs work here as well.
+The IonQ provider supports mid-circuit measurements, qubit reuse, and mid-circuit `reset`. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; the `debiasing` kwarg works here as well.
 
 These run automatically as OpenQASM 3 (`ionq.qasm3.v1`); no extra flags needed. Today they execute on the simulator (mid-circuit-measurement QPU support is rolling out); other targets are rejected server-side. Register names that are OpenQASM 3 reserved words (`output`, `input`, `measure`, …) are rejected at submission.
 
