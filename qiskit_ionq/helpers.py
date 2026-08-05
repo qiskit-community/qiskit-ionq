@@ -31,35 +31,39 @@ to IonQ REST API compatible values.
 
 from __future__ import annotations
 
-import json
-import re
-import gzip
 import base64
-import platform
-import warnings
-import os
-from typing import Literal, Any
 import functools
-import time
+import gzip
+import json
+import os
+import platform
 import random
+import re
+import time
+import warnings
+from typing import Any, Literal
+
+import numpy as np
 import requests
 from dotenv import dotenv_values
 
-import numpy as np
+# Use this to get version instead of __version__ to avoid circular dependency.
+from importlib_metadata import version
 from qiskit import __version__ as qiskit_version
-from qiskit.user_config import get_config
 from qiskit.circuit import (
-    controlledgate as q_cgates,
+    ClassicalRegister,
     ControlFlowOp,
     QuantumCircuit,
     QuantumRegister,
-    ClassicalRegister,
+)
+from qiskit.circuit import (
+    controlledgate as q_cgates,
 )
 from qiskit.quantum_info import SparsePauliOp
+from qiskit.user_config import get_config
 
-# Use this to get version instead of __version__ to avoid circular dependency.
-from importlib_metadata import version
 from qiskit_ionq.constants import ErrorMitigation
+
 from . import exceptions as ionq_exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR

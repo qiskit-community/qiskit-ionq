@@ -39,20 +39,19 @@ from __future__ import annotations
 
 import warnings
 from typing import TYPE_CHECKING, Any, Callable
-import numpy as np
 
+import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
-from .ionq_result import IonQResult as Result
-from .helpers import decompress_metadata_string, normalize
-from .exceptions import IonQBackendError
 
 from . import constants, exceptions
+from .exceptions import IonQBackendError
+from .helpers import decompress_metadata_string, normalize
+from .ionq_result import IonQResult as Result
 
 if TYPE_CHECKING:  # pragma: no cover
-    from . import ionq_backend
-    from . import ionq_client
+    from . import ionq_backend, ionq_client
 
 
 def map_output(data, clbits, num_qubits):

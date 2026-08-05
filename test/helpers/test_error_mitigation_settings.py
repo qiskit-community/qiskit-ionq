@@ -29,12 +29,12 @@
 import json
 
 import pytest
-
 from qiskit import QuantumCircuit
 
-from qiskit_ionq.helpers import qiskit_to_ionq
-from qiskit_ionq.constants import AggregationMethod
 from qiskit_ionq import ionq_job
+from qiskit_ionq.constants import AggregationMethod
+from qiskit_ionq.helpers import qiskit_to_ionq
+
 from ..utils import dummy_job_response
 
 

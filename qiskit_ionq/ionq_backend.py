@@ -27,15 +27,13 @@
 """IonQ provider backends."""
 
 from __future__ import annotations
-from typing import Literal, Sequence, TYPE_CHECKING
-import warnings
 
-from qiskit.circuit import QuantumCircuit, Parameter
+import warnings
+from typing import TYPE_CHECKING, Literal, Sequence
+
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import (
-    Measure,
-    Reset,
     CHGate,
-    XGate,
     CPhaseGate,
     CRXGate,
     CRYGate,
@@ -48,29 +46,34 @@ from qiskit.circuit.library import (
     IGate,
     MCPhaseGate,
     MCXGate,
+    Measure,
+    PauliEvolutionGate,
     PhaseGate,
+    Reset,
     RXGate,
     RXXGate,
     RYGate,
     RYYGate,
     RZGate,
     RZZGate,
-    SGate,
     SdgGate,
+    SGate,
     SwapGate,
-    SXGate,
     SXdgGate,
-    TGate,
+    SXGate,
     TdgGate,
+    TGate,
+    XGate,
     YGate,
     ZGate,
-    PauliEvolutionGate,
 )
-from qiskit.providers import BackendV2 as Backend, Options
-from qiskit.transpiler import Target, CouplingMap
+from qiskit.providers import BackendV2 as Backend
+from qiskit.providers import Options
+from qiskit.transpiler import CouplingMap, Target
 
-from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
-from . import ionq_equivalence_library, ionq_job, ionq_client, exceptions
+from qiskit_ionq.ionq_gates import GPI2Gate, GPIGate, MSGate, ZZGate
+
+from . import exceptions, ionq_client, ionq_equivalence_library, ionq_job
 from .helpers import GATESET_MAP, api_backend_id, warn_bad_transpile_level
 from .ionq_client import Characterization
 

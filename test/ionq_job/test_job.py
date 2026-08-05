@@ -26,18 +26,17 @@
 
 """Test basic behavior of :class:`IonQJob`."""
 
-from unittest import mock
 import warnings
+from unittest import mock
 
 import pytest
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
 from qiskit.result import MeasLevel
 
 from qiskit_ionq import exceptions, ionq_job
 from qiskit_ionq.helpers import compress_to_metadata_string
-
 
 from .. import conftest
 

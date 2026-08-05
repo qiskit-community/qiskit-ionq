@@ -27,23 +27,23 @@
 """Test the qiskit_to_ionq function."""
 
 import json
-import pytest
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+import pytest
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.result import marginal_counts
 from qiskit.transpiler.exceptions import TranspilerError
 
+from qiskit_ionq.constants import ErrorMitigation
 from qiskit_ionq.exceptions import IonQGateError, IonQJobError
 from qiskit_ionq.helpers import (
-    qiskit_to_ionq,
     circuit_requires_qasm3,
-    decompress_metadata_string,
     compress_to_metadata_string,
+    decompress_metadata_string,
     get_user_agent,
+    qiskit_to_ionq,
 )
-from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
-from qiskit_ionq.constants import ErrorMitigation
+from qiskit_ionq.ionq_gates import GPI2Gate, GPIGate, MSGate, ZZGate
 
 
 def test_output_map__with_multiple_measurements_to_different_clbits(
