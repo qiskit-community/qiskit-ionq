@@ -825,14 +825,13 @@ class IonQJob(JobV1):
         backend = self.backend()
         backend_name = backend.name
         backend_version = backend.backend_version
-        # Resolve the noise model the job actually ran with, not just the
-        # backend's current options: a per-run kwarg (backend.run(...,
-        # noise_model="aria-1")) lives in passed_args and never mutates
-        # backend.options, and a retrieved job carries it only in the API
-        # response echoed into self._metadata.
+        # Resolve the noise model the job actually ran as either of:
+        # - Backend.run's current option (kwarg passed to backend.run);
+        # - Retrieved job: carries it only in the API response (e.g., backend.retrieve_job(job_id));
+        # - Backend option.
         noise_model = (
-            (self._metadata.get("noise") or {}).get("model")
-            or self._passed_args.get("noise_model")
+            self._passed_args.get("noise_model")
+            or (self._metadata.get("noise") or {}).get("model")
             or getattr(backend.options, "noise_model", None)
         )
         is_ideal_sim = backend_name == "ionq_simulator" and noise_model == "ideal"

@@ -967,11 +967,11 @@ def test_per_run_noise_model_fetches_shots(simulator_backend, requests_mock):
     assert job.get_memory() == ["00", "11", "00", "11"]
 
 
-def test_echoed_noise_model_fetches_shots(simulator_backend, requests_mock):
-    """The noise model echoed on the job response wins over backend options,
+def test_noise_model_in_job_metada_fetches_shots(simulator_backend, requests_mock):
+    """The noise model in job metadata wins over backend options (no noise model),
     covering jobs whose passed_args don't carry it.
     """
-    job_id = "echoed_noise"
+    job_id = "noise_model_in_job_metadata"
     client = simulator_backend.client
 
     response = conftest.dummy_job_response(job_id)
@@ -994,6 +994,7 @@ def test_echoed_noise_model_fetches_shots(simulator_backend, requests_mock):
     )
     result = job.result()
     assert result.data(0).get("memory") == ["11", "00"]
+    assert job.get_memory() == ["11", "00"]
 
 
 def test_no_shots_url_returns_none(mock_backend, requests_mock):
