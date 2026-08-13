@@ -128,14 +128,19 @@ The compiled circuit is fetched from the job's published artifacts (`output.comp
 
 ### Per-shot memory (`memory`)
 
-QPU and noisy-simulator jobs can return per-shot measurement outcomes. Pass `memory=True` on `backend.run(...)` to opt in (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention), then call `job.get_memory()` to retrieve the per-shot bitstrings:
+QPU and noisy-simulator jobs can return per-shot measurement outcomes. Pass `memory=True` on `backend.run(...)` to opt in (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention), then call `job.get_memory()` to retrieve the per-shot bitstrings.
+
+Per-shot data requires sampling, so on the simulator set a noise model first (the ideal simulator returns only an aggregate distribution; QPU backends need no extra setup):
 
 ```python
+backend = provider.get_backend("ionq_simulator")
+backend.set_options(noise_model="forte-1")
+
 job = backend.run(qc, shots=1000, memory=True)
 memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 ```
 
-The ideal simulator does not produce per-shot data; calling `get_memory()` on a job submitted without `memory=True` raises `IonQBackendError`.
+Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
 
 ### Mid-circuit measurements
 
