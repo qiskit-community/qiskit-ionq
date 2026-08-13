@@ -927,6 +927,75 @@ def test_ideal_sim_skips_shots(simulator_backend, requests_mock):
     assert result.get_counts()
 
 
+def test_per_run_noise_model_fetches_shots(simulator_backend, requests_mock):
+    """A noise_model passed to run() (not set on the backend) still counts as
+    a noisy simulation, so memory=True fetches per-shot data. Regression test:
+    is_ideal_sim used to consult only backend.options, which a per-run kwarg
+    never mutates, silently yielding memory=None.
+    """
+    job_id = "per_run_noise"
+    client = simulator_backend.client
+
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        status_code=200,
+        json=conftest.dummy_job_response(job_id),
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        status_code=200,
+        json={"0": 0.5, "3": 0.5},
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "shots"),
+        json=[0, 3, 0, 3],
+    )
+
+    assert simulator_backend.options.noise_model == "ideal"
+    job = ionq_job.IonQJob(
+        simulator_backend,
+        job_id,
+        passed_args={
+            "memory": True,
+            "noise_model": "aria-1",
+            "shots": 1024,
+            "sampler_seed": None,
+        },
+    )
+    result = job.result()
+    assert result.data(0).get("memory") == ["00", "11", "00", "11"]
+    assert job.get_memory() == ["00", "11", "00", "11"]
+
+
+def test_echoed_noise_model_fetches_shots(simulator_backend, requests_mock):
+    """The noise model echoed on the job response wins over backend options,
+    covering jobs whose passed_args don't carry it.
+    """
+    job_id = "echoed_noise"
+    client = simulator_backend.client
+
+    response = conftest.dummy_job_response(job_id)
+    response["noise"] = {"model": "aria-1"}
+    requests_mock.get(client.make_path("jobs", job_id), status_code=200, json=response)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        status_code=200,
+        json={"0": 0.5, "3": 0.5},
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "shots"),
+        json=[3, 0],
+    )
+
+    job = ionq_job.IonQJob(
+        simulator_backend,
+        job_id,
+        passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
+    )
+    result = job.result()
+    assert result.data(0).get("memory") == ["11", "00"]
+
+
 def test_no_shots_url_returns_none(mock_backend, requests_mock):
     """memory=True + no shots URL in the response -> memory=None, no fetch."""
     job_id = "no_shots_url"
