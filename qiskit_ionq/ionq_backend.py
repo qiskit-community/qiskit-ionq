@@ -188,13 +188,13 @@ class IonQBackend(Backend):
         """Backend qubit capacity for pre-submission validation.
 
         Only the API catalog counts as the source of truth (queried via the
-        provider directly, since a pinned ``num_qubits`` makes ``_get_config``
-        skip the catalog); a user-supplied pin is deliberately ignored — it
-        says nothing about what the real system supports. Returns ``None``
-        when the catalog has no entry (e.g. offline or private systems), so
-        callers skip width validation and leave the decision to the server.
+        provider directly; a user-supplied pin is ignored (doesn't describe
+        system support).
+
+        Returns ``None`` when the catalog has no entry.
         """
-        qubits = self._provider.get_backend_config(self.name).get("qubits")
+        config = self._config if self._config else self._provider.get_backend_config(self.name)
+        qubits = config.get("qubits")
         return int(qubits) if qubits is not None else None
 
     def _get_config(self) -> dict:
