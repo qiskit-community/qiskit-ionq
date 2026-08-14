@@ -260,7 +260,10 @@ class MockBackendWithQubitCapacity(ionq_backend.IonQBackend):
             max_shots=10_000,
         )
 
-def test_run_catalog_capacity_overrides_backend_qubits(provider, requests_mock, monkeypatch):
+
+def test_run_catalog_capacity_overrides_backend_qubits(
+    provider, requests_mock, monkeypatch
+):
     """Test that the API catalog's backend qubit capacity is the source of
     truth: it takes precedence over a larger, explicit backend qubit number."""
     qc = QuantumCircuit(5, name="too_wide")
@@ -290,7 +293,9 @@ def test_run_catalog_capacity_overrides_backend_qubits(provider, requests_mock, 
     assert len(requests_mock.request_history) == 0
 
 
-def test_user_num_qubits_not_backend_qubit_capacity(provider, requests_mock, monkeypatch):
+def test_user_num_qubits_not_backend_qubit_capacity(
+    provider, requests_mock, monkeypatch
+):
     """Test that a user-defined ``num_qubits`` is never treated as the backend
     qubit capacity: without a catalog entry, even a circuit wider than the
     backend qubit count is submitted and the decision is left to the server
@@ -329,7 +334,9 @@ def test_run_rejects_too_many_qubits_in_list(provider, requests_mock, monkeypatc
     too_wide = QuantumCircuit(num_qubits_too_wide, name="too_wide")
     too_wide.measure_all()
 
-    mock_backend = MockBackendWithQubitCapacity(provider, num_qubits=server_qubits_into_catalog)
+    mock_backend = MockBackendWithQubitCapacity(
+        provider, num_qubits=server_qubits_into_catalog
+    )
     config = {
         "qubits": server_qubits_into_catalog,
         "supported_gates": ["x", "y", "z", "h", "rx", "ry", "rz", "cnot", "swap"],
