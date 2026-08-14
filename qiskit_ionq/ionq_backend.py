@@ -124,9 +124,6 @@ class IonQBackend(Backend):
         # num_qubits pins the caller's own config and skips the catalog.
         self._config: dict | None = {} if num_qubits is not None else None
         self._num_qubits: int | None = num_qubits
-        # Kept separate from _num_qubits, which may later cache the offline
-        # fallback value and must not be mistaken for a trusted limit.
-        self._pinned_num_qubits: int | None = num_qubits
 
         # Target and coupling map are resolved lazily on first access, keeping
         # construction network-free.
@@ -190,17 +187,15 @@ class IonQBackend(Backend):
     def _qubit_limit(self) -> int | None:
         """Backend qubit capacity for pre-submission validation.
 
-        The API catalog is the source of truth and takes precedence over an
-        explicitly pinned ``num_qubits`` (queried via the provider directly,
-        since a pin makes ``_get_config`` skip the catalog); the pin serves
-        as fallback when the catalog is unavailable. Returns ``None`` when
-        neither is available (e.g. offline, unpinned), so callers can skip
-        width validation rather than enforce the arbitrary fallback value.
+        Only the API catalog counts as the source of truth (queried via the
+        provider directly, since a pinned ``num_qubits`` makes ``_get_config``
+        skip the catalog); a user-supplied pin is deliberately ignored — it
+        says nothing about what the real system supports. Returns ``None``
+        when the catalog has no entry (e.g. offline or private systems), so
+        callers skip width validation and leave the decision to the server.
         """
         qubits = self._provider.get_backend_config(self.name).get("qubits")
-        if qubits is not None:
-            return int(qubits)
-        return self._pinned_num_qubits
+        return int(qubits) if qubits is not None else None
 
     def _get_config(self) -> dict:
         """Catalog entry for this backend, resolved once via the provider;

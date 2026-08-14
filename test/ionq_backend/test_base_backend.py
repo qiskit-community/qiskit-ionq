@@ -265,14 +265,14 @@ def test_run_catalog_limit_overrides_pinned(mock_backend, requests_mock):
     assert len(requests_mock.request_history) == 0
 
 
-def test_run_pinned_limit_when_catalog_unavailable(
-    mock_backend, requests_mock, monkeypatch
-):
-    """Test that the pinned qubit count is enforced as a fallback when the
-    catalog has no entry for the backend.
+def test_run_pinned_limit_not_enforced(mock_backend, requests_mock, monkeypatch):
+    """Test that a user-pinned ``num_qubits`` is never enforced client-side:
+    without a catalog entry, even a circuit wider than the pin is submitted
+    and the decision is left to the server (which may well support it).
 
     Args:
-        mock_backend (MockBackend): A fake/mock IonQBackend (11 qubits).
+        mock_backend (MockBackend): A fake/mock IonQBackend pinned to 11
+            qubits.
         requests_mock (:class:`request_mock.Mocker`): A requests mocker.
         monkeypatch (pytest.MonkeyPatch): Patcher for the catalog lookup.
     """
@@ -282,16 +282,16 @@ def test_run_pinned_limit_when_catalog_unavailable(
         lambda self, name: {},
     )
 
-    qc = QuantumCircuit(12, name="too_wide")
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(12)
     qc.measure_all()
+    job = mock_backend.run(qc)
 
-    with pytest.raises(
-        exceptions.IonQBackendError,
-        match=r"'too_wide' uses 12 qubits.*supports at most 11 qubits",
-    ):
-        mock_backend.run(qc)
-
-    assert len(requests_mock.request_history) == 0
+    assert job.job_id() == "fake_job"
 
 
 def test_run_rejects_too_many_qubits_in_list(mock_backend, requests_mock):
