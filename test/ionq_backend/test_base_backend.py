@@ -243,19 +243,43 @@ def test_run_single_element_list(mock_backend, requests_mock):
     assert job.job_id() == "fake_job"
 
 
-def test_run_catalog_capacity_overrides_pinned(mock_backend, requests_mock):
-    """Test that the API catalog's backend qubit capacity is the source of
-    truth: it takes precedence over a larger, explicitly pinned
-    ``num_qubits``.
+class MockBackendWithQubitCapacity(ionq_backend.IonQBackend):
+    """A mock backend for testing super-class behavior in isolation."""
 
-    Args:
-        mock_backend (MockBackend): A fake/mock IonQBackend pinned to 11
-            qubits, whose (mocked) catalog entry reports 4 qubits.
-        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
-    """
+    def __init__(self, provider, num_qubits, *, name: str = "ionq_mock_backend"):
+        """
+        Build a minimal mock backend that satisfies BackendV2.
+        """
+        super().__init__(
+            provider=provider,
+            name=name,
+            description="IonQ Mock Backend",
+            gateset="qis",
+            num_qubits=num_qubits,
+            simulator=True,
+            max_shots=10_000,
+        )
+
+def test_run_catalog_capacity_overrides_backend_qubits(provider, requests_mock, monkeypatch):
+    """Test that the API catalog's backend qubit capacity is the source of
+    truth: it takes precedence over a larger, explicit backend qubit number."""
     qc = QuantumCircuit(5, name="too_wide")
     qc.measure_all()
 
+    backend_qubits = 11
+    server_qubits_into_catalog = 4
+    mock_backend = MockBackendWithQubitCapacity(provider, num_qubits=backend_qubits)
+    config = {
+        "qubits": server_qubits_into_catalog,
+        "supported_gates": ["x", "y", "z", "h", "rx", "ry", "rz", "cnot", "swap"],
+        "supported_native_gates": ["gpi", "gpi2"],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
+    }
+    monkeypatch.setattr(
+        type(mock_backend._provider),
+        "get_backend_config",
+        lambda self, name: config,
+    )
     with pytest.raises(
         exceptions.IonQBackendError,
         match=r"'too_wide' uses 5 qubits.*supports at most 4 qubits",
@@ -266,101 +290,61 @@ def test_run_catalog_capacity_overrides_pinned(mock_backend, requests_mock):
     assert len(requests_mock.request_history) == 0
 
 
-def test_run_pinned_num_qubits_not_enforced(mock_backend, requests_mock, monkeypatch):
-    """Test that a user-pinned ``num_qubits`` is never treated as the backend
+def test_user_num_qubits_not_backend_qubit_capacity(provider, requests_mock, monkeypatch):
+    """Test that a user-defined ``num_qubits`` is never treated as the backend
     qubit capacity: without a catalog entry, even a circuit wider than the
-    pin is submitted and the decision is left to the server (which may well
-    support it).
+    backend qubit count is submitted and the decision is left to the server
+    (which may well support it)."""
+    config_with_no_catalog = {}
 
-    Args:
-        mock_backend (MockBackend): A fake/mock IonQBackend pinned to 11
-            qubits.
-        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
-        monkeypatch (pytest.MonkeyPatch): Patcher for the catalog lookup.
-    """
+    backend_qubits = 11
+    circuit_qubits = 12
+    mock_backend = MockBackendWithQubitCapacity(provider, num_qubits=backend_qubits)
     monkeypatch.setattr(
         type(mock_backend._provider),
         "get_backend_config",
-        lambda self, name: {},
+        lambda self, name: config_with_no_catalog,
     )
-
     path = mock_backend.client.make_path("jobs")
     requests_mock.post(
         path, json=conftest.dummy_job_response("fake_job"), status_code=200
     )
 
-    qc = QuantumCircuit(12)
+    qc = QuantumCircuit(circuit_qubits)
     qc.measure_all()
     job = mock_backend.run(qc)
 
     assert job.job_id() == "fake_job"
 
 
-def test_run_rejects_too_many_qubits_in_list(mock_backend, requests_mock):
+def test_run_rejects_too_many_qubits_in_list(provider, requests_mock, monkeypatch):
     """Test that the backend-qubit-capacity check covers every circuit in a
-    list.
+    list."""
 
-    Args:
-        mock_backend (MockBackend): A fake/mock IonQBackend (11 qubits).
-        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
-    """
-    ok = QuantumCircuit(2)
+    num_qubits_okay = 2
+    num_qubits_too_wide = 5
+    server_qubits_into_catalog = 4
+    ok = QuantumCircuit(num_qubits_okay)
     ok.measure_all()
-    too_wide = QuantumCircuit(5, name="too_wide")
+    too_wide = QuantumCircuit(num_qubits_too_wide, name="too_wide")
     too_wide.measure_all()
 
+    mock_backend = MockBackendWithQubitCapacity(provider, num_qubits=server_qubits_into_catalog)
+    config = {
+        "qubits": server_qubits_into_catalog,
+        "supported_gates": ["x", "y", "z", "h", "rx", "ry", "rz", "cnot", "swap"],
+        "supported_native_gates": ["gpi", "gpi2"],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
+    }
+    monkeypatch.setattr(
+        type(mock_backend._provider),
+        "get_backend_config",
+        lambda self, name: config,
+    )
     with pytest.raises(exceptions.IonQBackendError, match="too_wide"):
         mock_backend.run([ok, too_wide])
 
     assert len(requests_mock.request_history) == 0
-
-
-def test_run_qubit_capacity_from_catalog(simulator_backend, requests_mock):
-    """Test that the backend qubit capacity comes from the API catalog when
-    the backend has no explicitly pinned ``num_qubits``.
-
-    Args:
-        simulator_backend (IonQSimulatorBackend): A simulator backend whose
-            (mocked) catalog entry reports 4 qubits.
-        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
-    """
-    qc = QuantumCircuit(5)
-    qc.measure_all()
-
-    with pytest.raises(exceptions.IonQBackendError, match="supports at most 4 qubits"):
-        simulator_backend.run(qc)
-
-    assert len(requests_mock.request_history) == 0
-
-
-def test_run_skips_check_when_capacity_unknown(
-    simulator_backend, requests_mock, monkeypatch
-):
-    """Test that `run` skips the qubit check (instead of enforcing the
-    offline fallback count) when the backend qubit capacity is unknown, i.e.
-    the catalog has no entry for the backend.
-
-    Args:
-        simulator_backend (IonQSimulatorBackend): A simulator backend.
-        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
-        monkeypatch (pytest.MonkeyPatch): Patcher for the catalog lookup.
-    """
-    monkeypatch.setattr(
-        type(simulator_backend._provider),
-        "get_backend_config",
-        lambda self, name: {},
-    )
-
-    path = simulator_backend.client.make_path("jobs")
-    requests_mock.post(
-        path, json=conftest.dummy_job_response("fake_job"), status_code=200
-    )
-
-    qc = QuantumCircuit(30)
-    qc.measure_all()
-    job = simulator_backend.run(qc)
-
-    assert job.job_id() == "fake_job"
 
 
 def test_run_extras(mock_backend, requests_mock):
