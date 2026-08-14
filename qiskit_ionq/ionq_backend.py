@@ -124,6 +124,9 @@ class IonQBackend(Backend):
         # num_qubits pins the caller's own config and skips the catalog.
         self._config: dict | None = {} if num_qubits is not None else None
         self._num_qubits: int | None = num_qubits
+        # Kept separate from _num_qubits, which may later cache the offline
+        # fallback value and must not be mistaken for a trusted limit.
+        self._pinned_num_qubits: int | None = num_qubits
 
         # Target and coupling map are resolved lazily on first access, keeping
         # construction network-free.
@@ -183,6 +186,17 @@ class IonQBackend(Backend):
     def basis_gates(self) -> Sequence[str]:
         """Return the basis gates for this backend."""
         return self._basis_gates
+
+    def _qubit_limit(self) -> int | None:
+        """Backend qubit capacity from a trusted source: an explicit
+        ``num_qubits`` pin or the API catalog entry. Returns ``None`` when
+        neither is available (e.g. offline), so callers can skip width
+        validation rather than enforce the arbitrary fallback value.
+        """
+        if self._pinned_num_qubits is not None:
+            return self._pinned_num_qubits
+        qubits = self._get_config().get("qubits")
+        return int(qubits) if qubits is not None else None
 
     def _get_config(self) -> dict:
         """Catalog entry for this backend, resolved once via the provider;
@@ -291,8 +305,22 @@ class IonQBackend(Backend):
 
         Returns:
             IonQJob: A reference to the job that was submitted.
+
+        Raises:
+            IonQBackendError: If a circuit uses more qubits than this
+                backend supports.
         """
         circuits = run_input if isinstance(run_input, (list, tuple)) else [run_input]
+
+        qubit_limit = self._qubit_limit()
+        if qubit_limit is not None:
+            for circuit in circuits:
+                if circuit.num_qubits > qubit_limit:
+                    raise exceptions.IonQBackendError(
+                        f"Circuit {circuit.name!r} uses {circuit.num_qubits} "
+                        f"qubits, but backend {self.name!r} supports at most "
+                        f"{qubit_limit} qubits."
+                    )
 
         if not all(self._has_measurements(c) for c in circuits):
             warnings.warn(
