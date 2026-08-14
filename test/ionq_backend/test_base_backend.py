@@ -243,9 +243,10 @@ def test_run_single_element_list(mock_backend, requests_mock):
     assert job.job_id() == "fake_job"
 
 
-def test_run_catalog_limit_overrides_pinned(mock_backend, requests_mock):
-    """Test that the API catalog's qubit count is the source of truth: it
-    takes precedence over a larger, explicitly pinned ``num_qubits``.
+def test_run_catalog_capacity_overrides_pinned(mock_backend, requests_mock):
+    """Test that the API catalog's backend qubit capacity is the source of
+    truth: it takes precedence over a larger, explicitly pinned
+    ``num_qubits``.
 
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend pinned to 11
@@ -265,10 +266,11 @@ def test_run_catalog_limit_overrides_pinned(mock_backend, requests_mock):
     assert len(requests_mock.request_history) == 0
 
 
-def test_run_pinned_limit_not_enforced(mock_backend, requests_mock, monkeypatch):
-    """Test that a user-pinned ``num_qubits`` is never enforced client-side:
-    without a catalog entry, even a circuit wider than the pin is submitted
-    and the decision is left to the server (which may well support it).
+def test_run_pinned_num_qubits_not_enforced(mock_backend, requests_mock, monkeypatch):
+    """Test that a user-pinned ``num_qubits`` is never treated as the backend
+    qubit capacity: without a catalog entry, even a circuit wider than the
+    pin is submitted and the decision is left to the server (which may well
+    support it).
 
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend pinned to 11
@@ -295,7 +297,8 @@ def test_run_pinned_limit_not_enforced(mock_backend, requests_mock, monkeypatch)
 
 
 def test_run_rejects_too_many_qubits_in_list(mock_backend, requests_mock):
-    """Test that the qubit-count check covers every circuit in a list.
+    """Test that the backend-qubit-capacity check covers every circuit in a
+    list.
 
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend (11 qubits).
@@ -312,9 +315,9 @@ def test_run_rejects_too_many_qubits_in_list(mock_backend, requests_mock):
     assert len(requests_mock.request_history) == 0
 
 
-def test_run_qubit_limit_from_catalog(simulator_backend, requests_mock):
-    """Test that the qubit-count check uses the API catalog's qubit count
-    when the backend has no explicitly pinned count.
+def test_run_qubit_capacity_from_catalog(simulator_backend, requests_mock):
+    """Test that the backend qubit capacity comes from the API catalog when
+    the backend has no explicitly pinned ``num_qubits``.
 
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend whose
@@ -330,12 +333,12 @@ def test_run_qubit_limit_from_catalog(simulator_backend, requests_mock):
     assert len(requests_mock.request_history) == 0
 
 
-def test_run_skips_qubit_check_without_limit(
+def test_run_skips_check_when_capacity_unknown(
     simulator_backend, requests_mock, monkeypatch
 ):
-    """Test that `run` skips the qubit-count check (instead of enforcing the
-    offline fallback count) when neither a pinned count nor a catalog entry
-    is available.
+    """Test that `run` skips the qubit check (instead of enforcing the
+    offline fallback count) when the backend qubit capacity is unknown, i.e.
+    the catalog has no entry for the backend.
 
     Args:
         simulator_backend (IonQSimulatorBackend): A simulator backend.
