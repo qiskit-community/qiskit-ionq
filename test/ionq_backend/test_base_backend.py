@@ -329,8 +329,8 @@ def test_run_rejects_too_many_qubits_in_list(provider, requests_mock, monkeypatc
     num_qubits_okay = 2
     num_qubits_too_wide = 5
     server_qubits_into_catalog = 4
-    ok = QuantumCircuit(num_qubits_okay)
-    ok.measure_all()
+    good_circuit = QuantumCircuit(num_qubits_okay)
+    good_circuit.measure_all()
     too_wide = QuantumCircuit(num_qubits_too_wide, name="too_wide")
     too_wide.measure_all()
 
@@ -349,7 +349,7 @@ def test_run_rejects_too_many_qubits_in_list(provider, requests_mock, monkeypatc
         lambda self, name: config,
     )
     with pytest.raises(exceptions.IonQBackendError, match="too_wide"):
-        mock_backend.run([ok, too_wide])
+        mock_backend.run([good_circuit, too_wide])
 
     assert len(requests_mock.request_history) == 0
 
