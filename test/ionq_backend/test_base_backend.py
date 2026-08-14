@@ -243,14 +243,45 @@ def test_run_single_element_list(mock_backend, requests_mock):
     assert job.job_id() == "fake_job"
 
 
-def test_run_rejects_too_many_qubits(mock_backend, requests_mock):
-    """Test that `run` raises a descriptive error before submitting when a
-    circuit is wider than the backend's pinned qubit count.
+def test_run_catalog_limit_overrides_pinned(mock_backend, requests_mock):
+    """Test that the API catalog's qubit count is the source of truth: it
+    takes precedence over a larger, explicitly pinned ``num_qubits``.
+
+    Args:
+        mock_backend (MockBackend): A fake/mock IonQBackend pinned to 11
+            qubits, whose (mocked) catalog entry reports 4 qubits.
+        requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+    """
+    qc = QuantumCircuit(5, name="too_wide")
+    qc.measure_all()
+
+    with pytest.raises(
+        exceptions.IonQBackendError,
+        match=r"'too_wide' uses 5 qubits.*supports at most 4 qubits",
+    ):
+        mock_backend.run(qc)
+
+    # The circuit was rejected client-side, before any API call.
+    assert len(requests_mock.request_history) == 0
+
+
+def test_run_pinned_limit_when_catalog_unavailable(
+    mock_backend, requests_mock, monkeypatch
+):
+    """Test that the pinned qubit count is enforced as a fallback when the
+    catalog has no entry for the backend.
 
     Args:
         mock_backend (MockBackend): A fake/mock IonQBackend (11 qubits).
         requests_mock (:class:`request_mock.Mocker`): A requests mocker.
+        monkeypatch (pytest.MonkeyPatch): Patcher for the catalog lookup.
     """
+    monkeypatch.setattr(
+        type(mock_backend._provider),
+        "get_backend_config",
+        lambda self, name: {},
+    )
+
     qc = QuantumCircuit(12, name="too_wide")
     qc.measure_all()
 
@@ -260,7 +291,6 @@ def test_run_rejects_too_many_qubits(mock_backend, requests_mock):
     ):
         mock_backend.run(qc)
 
-    # The circuit was rejected client-side, before any API call.
     assert len(requests_mock.request_history) == 0
 
 
@@ -273,7 +303,7 @@ def test_run_rejects_too_many_qubits_in_list(mock_backend, requests_mock):
     """
     ok = QuantumCircuit(2)
     ok.measure_all()
-    too_wide = QuantumCircuit(12, name="too_wide")
+    too_wide = QuantumCircuit(5, name="too_wide")
     too_wide.measure_all()
 
     with pytest.raises(exceptions.IonQBackendError, match="too_wide"):

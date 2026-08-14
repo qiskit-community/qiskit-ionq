@@ -188,15 +188,19 @@ class IonQBackend(Backend):
         return self._basis_gates
 
     def _qubit_limit(self) -> int | None:
-        """Backend qubit capacity from a trusted source: an explicit
-        ``num_qubits`` pin or the API catalog entry. Returns ``None`` when
-        neither is available (e.g. offline), so callers can skip width
-        validation rather than enforce the arbitrary fallback value.
+        """Backend qubit capacity for pre-submission validation.
+
+        The API catalog is the source of truth and takes precedence over an
+        explicitly pinned ``num_qubits`` (queried via the provider directly,
+        since a pin makes ``_get_config`` skip the catalog); the pin serves
+        as fallback when the catalog is unavailable. Returns ``None`` when
+        neither is available (e.g. offline, unpinned), so callers can skip
+        width validation rather than enforce the arbitrary fallback value.
         """
-        if self._pinned_num_qubits is not None:
-            return self._pinned_num_qubits
-        qubits = self._get_config().get("qubits")
-        return int(qubits) if qubits is not None else None
+        qubits = self._provider.get_backend_config(self.name).get("qubits")
+        if qubits is not None:
+            return int(qubits)
+        return self._pinned_num_qubits
 
     def _get_config(self) -> dict:
         """Catalog entry for this backend, resolved once via the provider;
