@@ -76,6 +76,19 @@ def map_output(data, clbits, num_qubits):
     return mapped_output
 
 
+def _sample_counts(
+    probabilities: dict[int, float], shots: int, sampler_seed: int | None
+) -> dict[int, int]:
+    """Sample shot counts from a probability distribution."""
+    rand = np.random.RandomState(sampler_seed)
+    outcomes, weights = zip(*probabilities.items())
+    sample_counts = np.bincount(
+        rand.choice(len(outcomes), shots, p=normalize(weights)),
+        minlength=len(outcomes),
+    )
+    return {outcome: int(count) for outcome, count in zip(outcomes, sample_counts)}
+
+
 def _build_counts(  # pylint: disable=too-many-positional-arguments
     data,
     num_qubits: int,
@@ -126,15 +139,9 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     if data_is_histogram and sum(mapped_output.values()) <= 0:
         raise exceptions.IonQJobError("Cannot normalize an empty histogram")
 
-    sampled = {}
-    if use_sampler and not data_is_histogram:
-        rand = np.random.RandomState(sampler_seed)
-        outcomes, weights = zip(*mapped_output.items())
-        sample_counts = np.bincount(
-            rand.choice(len(outcomes), shots, p=normalize(weights)),
-            minlength=len(outcomes),
-        )
-        sampled = dict(zip(outcomes, sample_counts))
+    sampled_counts = {}
+    if use_sampler:
+        sampled_counts = _sample_counts(mapped_output, shots, sampler_seed)
 
     # Build counts and probabilities
     counts = {}
@@ -149,7 +156,7 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
             prob = float(value / distribution_total)
         else:
             prob = value
-            count = sampled.get(key_int, round(prob * shots))
+            count = sampled_counts.get(key_int, round(prob * shots))
         if count:  # ignore zero bins
             counts[bitstr] = int(count)
             probabilities[bitstr] = float(prob)
