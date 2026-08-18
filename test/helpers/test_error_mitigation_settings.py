@@ -206,6 +206,26 @@ def test_aggregation_dnl_enum(mock_backend, requests_mock):
     assert job.result(aggregation=AggregationMethod.DNL) is not None
 
 
+@pytest.mark.parametrize("aggregation", ["banana", "majority", "plurality"])
+def test_unknown_aggregation_fails_before_request(
+    mock_backend, requests_mock, aggregation
+):
+    """Unknown aggregation names fail locally without fetching results."""
+    job = _setup_job(mock_backend, requests_mock)
+    request_count = requests_mock.call_count
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Unknown aggregation method '{aggregation}'; expected one of "
+            "'average', 'voting', 'dnl'"
+        ),
+    ):
+        job.result(aggregation=aggregation)
+
+    assert requests_mock.call_count == request_count
+
+
 def test_sharpen_true_deprecated_maps_to_voting(mock_backend, requests_mock):
     """sharpen=True emits DeprecationWarning and maps to aggregation='voting'."""
     job = _setup_job(mock_backend, requests_mock, "?aggregation=voting")

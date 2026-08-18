@@ -405,6 +405,7 @@ class IonQJob(JobV1):
                 results request.
 
         Raises:
+            ValueError: If ``aggregation`` is not a supported aggregation method.
             IonQJobTimeoutError: If after the default wait period in
                 :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
                 elapses and the job has not reached a "final" state.
@@ -431,6 +432,15 @@ class IonQJob(JobV1):
 
         if isinstance(aggregation, constants.AggregationMethod):
             aggregation = aggregation.value
+
+        valid_aggregations = tuple(
+            method.value for method in constants.AggregationMethod
+        )
+        if aggregation is not None and aggregation not in valid_aggregations:
+            expected = ", ".join(repr(method) for method in valid_aggregations)
+            raise ValueError(
+                f"Unknown aggregation method {aggregation!r}; expected one of {expected}."
+            )
 
         # Wait for the job to complete.
         try:
