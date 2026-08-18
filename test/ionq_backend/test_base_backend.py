@@ -25,6 +25,7 @@
 # limitations under the License.
 
 """Tests for the IonQ's Backend base/super-class."""
+
 # pylint: disable=redefined-outer-name
 
 import warnings
@@ -240,6 +241,117 @@ def test_run_single_element_list(mock_backend, requests_mock):
 
     assert isinstance(job, ionq_job.IonQJob)
     assert job.job_id() == "fake_job"
+
+
+class MockBackendWithQubitCapacity(ionq_backend.IonQBackend):
+    """A mock backend for testing super-class behavior in isolation."""
+
+    def __init__(self, provider, num_qubits, *, name: str = "ionq_mock_backend"):
+        """
+        Build a minimal mock backend that satisfies BackendV2.
+        """
+        super().__init__(
+            provider=provider,
+            name=name,
+            description="IonQ Mock Backend",
+            gateset="qis",
+            num_qubits=num_qubits,
+            simulator=True,
+            max_shots=10_000,
+        )
+
+
+def test_run_catalog_capacity_overrides_backend_qubits(
+    provider, requests_mock, monkeypatch
+):
+    """Test that the API catalog's backend qubit capacity is the source of
+    truth: it takes precedence over a larger, explicit backend qubit number."""
+    qc = QuantumCircuit(5, name="too_wide")
+    qc.measure_all()
+
+    backend_qubits = 11
+    server_qubits_into_catalog = 4
+    mock_backend = MockBackendWithQubitCapacity(provider, num_qubits=backend_qubits)
+    config = {
+        "qubits": server_qubits_into_catalog,
+        "supported_gates": ["x", "y", "z", "h", "rx", "ry", "rz", "cnot", "swap"],
+        "supported_native_gates": ["gpi", "gpi2"],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
+    }
+    monkeypatch.setattr(
+        type(mock_backend._provider),
+        "get_backend_config",
+        lambda self, name: config,
+    )
+    with pytest.raises(
+        exceptions.IonQBackendError,
+        match=r"'too_wide' uses 5 qubits.*supports at most 4 qubits",
+    ):
+        mock_backend.run(qc)
+
+    # The circuit was rejected client-side, before any API call.
+    assert len(requests_mock.request_history) == 0
+
+
+def test_user_num_qubits_not_backend_qubit_capacity(
+    provider, requests_mock, monkeypatch
+):
+    """Test that a user-defined ``num_qubits`` is never treated as the backend
+    qubit capacity: without a catalog entry, even a circuit wider than the
+    backend qubit count is submitted and the decision is left to the server
+    (which may well support it)."""
+    config_with_no_catalog = {}
+
+    backend_qubits = 11
+    circuit_qubits = 12
+    mock_backend = MockBackendWithQubitCapacity(provider, num_qubits=backend_qubits)
+    monkeypatch.setattr(
+        type(mock_backend._provider),
+        "get_backend_config",
+        lambda self, name: config_with_no_catalog,
+    )
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(circuit_qubits)
+    qc.measure_all()
+    job = mock_backend.run(qc)
+
+    assert job.job_id() == "fake_job"
+
+
+def test_run_rejects_too_many_qubits_in_list(provider, requests_mock, monkeypatch):
+    """Test that the backend-qubit-capacity check covers every circuit in a
+    list."""
+
+    num_qubits_okay = 2
+    num_qubits_too_wide = 5
+    server_qubits_into_catalog = 4
+    good_circuit = QuantumCircuit(num_qubits_okay)
+    good_circuit.measure_all()
+    too_wide = QuantumCircuit(num_qubits_too_wide, name="too_wide")
+    too_wide.measure_all()
+
+    mock_backend = MockBackendWithQubitCapacity(
+        provider, num_qubits=server_qubits_into_catalog
+    )
+    config = {
+        "qubits": server_qubits_into_catalog,
+        "supported_gates": ["x", "y", "z", "h", "rx", "ry", "rz", "cnot", "swap"],
+        "supported_native_gates": ["gpi", "gpi2"],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
+    }
+    monkeypatch.setattr(
+        type(mock_backend._provider),
+        "get_backend_config",
+        lambda self, name: config,
+    )
+    with pytest.raises(exceptions.IonQBackendError, match="too_wide"):
+        mock_backend.run([good_circuit, too_wide])
+
+    assert len(requests_mock.request_history) == 0
 
 
 def test_run_extras(mock_backend, requests_mock):

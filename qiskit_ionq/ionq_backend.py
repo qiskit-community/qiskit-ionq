@@ -184,6 +184,23 @@ class IonQBackend(Backend):
         """Return the basis gates for this backend."""
         return self._basis_gates
 
+    def _get_backend_qubit_capacity(self) -> int | None:
+        """Backend qubit capacity for pre-submission validation.
+
+        Only the API catalog counts as the source of truth (queried via the
+        provider directly; a user-supplied pin is ignored (doesn't describe
+        system support).
+
+        Returns ``None`` when the catalog has no entry.
+        """
+        config = (
+            self._config
+            if self._config
+            else self._provider.get_backend_config(self.name)
+        )
+        qubits = config.get("qubits")
+        return int(qubits) if qubits is not None else None
+
     def _get_config(self) -> dict:
         """Catalog entry for this backend, resolved once via the provider;
         ``{}`` when unavailable."""
@@ -291,8 +308,22 @@ class IonQBackend(Backend):
 
         Returns:
             IonQJob: A reference to the job that was submitted.
+
+        Raises:
+            IonQBackendError: If a circuit uses more qubits than this
+                backend supports.
         """
         circuits = run_input if isinstance(run_input, (list, tuple)) else [run_input]
+
+        backend_qubit_capacity = self._get_backend_qubit_capacity()
+        if backend_qubit_capacity is not None:
+            for circuit in circuits:
+                if circuit.num_qubits > backend_qubit_capacity:
+                    raise exceptions.IonQBackendError(
+                        f"Circuit {circuit.name!r} uses {circuit.num_qubits} "
+                        f"qubits, but backend {self.name!r} supports at most "
+                        f"{backend_qubit_capacity} qubits."
+                    )
 
         if not all(self._has_measurements(c) for c in circuits):
             warnings.warn(
