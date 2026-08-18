@@ -83,6 +83,7 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     shots: int,
     use_sampler: bool = False,
     sampler_seed: int | None = None,
+    data_is_histogram: bool = False,
 ) -> tuple[dict[str, int], dict[str, float]]:
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
@@ -102,6 +103,8 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
         sampler_seed (int): ability to provide a seed for the randomness in the
             sampler for repeatable results. passed as
             `np.random.RandomState(seed)`. If none, `np.random` is used
+        data_is_histogram (bool): whether ``data`` contains integer histogram
+            counts instead of probabilities.
 
     Returns:
         tuple(dict[str, float], dict[str, float]): A tuple (counts, probabilities),
@@ -118,12 +121,15 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
         raise exceptions.IonQJobError("Cannot remap counts without data!")
 
     # Grab the mapped output from response.
-    output_probs = map_output(data, clbits, num_qubits)
+    mapped_output = map_output(data, clbits, num_qubits)
+
+    if data_is_histogram and sum(mapped_output.values()) <= 0:
+        raise exceptions.IonQJobError("Cannot normalize an empty histogram")
 
     sampled = {}
-    if use_sampler:
+    if use_sampler and not data_is_histogram:
         rand = np.random.RandomState(sampler_seed)
-        outcomes, weights = zip(*output_probs.items())
+        outcomes, weights = zip(*mapped_output.items())
         sample_counts = np.bincount(
             rand.choice(len(outcomes), shots, p=normalize(weights)),
             minlength=len(outcomes),
@@ -133,16 +139,48 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     # Build counts and probabilities
     counts = {}
     probabilities = {}
-    for key_int, prob in output_probs.items():
+    distribution_total = sum(mapped_output.values())
+    for key_int, value in mapped_output.items():
         bitstr = bin(int(key_int))[2:].rjust(
             len(clbits) if clbits else num_qubits, "0"
         )  # e.g. '101'
-        cnt = sampled.get(key_int, round(prob * shots))
-        if cnt:  # ignore zero bins
-            counts[bitstr] = int(cnt)
+        if data_is_histogram:
+            count = value
+            prob = float(value / distribution_total)
+        else:
+            prob = value
+            count = sampled.get(key_int, round(prob * shots))
+        if count:  # ignore zero bins
+            counts[bitstr] = int(count)
             probabilities[bitstr] = float(prob)
 
     return counts, probabilities
+
+
+def _decode_distribution_artifact(
+    payload: Any, result_format: str
+) -> tuple[dict[str, int | float], bool]:
+    """Decode a v2 result artifact into the legacy decimal-keyed shape.
+
+    V2 artifacts use wire-order bitstrings (qubit 0 first), while the existing
+    result formatter consumes decimal keys with qubit 0 as the least-significant
+    bit. Return whether the values are histogram counts so they can be preserved
+    exactly rather than multiplied by the requested shot count.
+    """
+    is_histogram = result_format == constants.ResultFormat.HISTOGRAM_V2
+    if is_histogram:
+        result_key = "histogram"
+    else:
+        assert result_format == constants.ResultFormat.PROBABILITIES_V2
+        result_key = "probabilities"
+
+    distribution = payload[result_key]["registers"]["output_all"]
+    decimal_distribution: dict[str, int | float] = {}
+    for bitstring, value in distribution.items():
+        decimal = str(int(bitstring[::-1] or "0", 2))
+        decimal_distribution[decimal] = decimal_distribution.get(decimal, 0) + value
+
+    return decimal_distribution, is_histogram
 
 
 def _build_memory(
@@ -368,6 +406,72 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
+    @staticmethod
+    def _aggregation_artifact_descriptor(
+        response: dict[str, Any], aggregation: str
+    ) -> dict[str, Any] | None:
+        """Return a usable per-method result artifact descriptor, if published."""
+        output = response.get("output") or {}
+        error_mitigation = output.get("error_mitigation") or {}
+        aggregations = error_mitigation.get("aggregations") or {}
+        descriptor = aggregations.get(aggregation)
+        if not isinstance(descriptor, dict) or not descriptor.get("id"):
+            return None
+        if descriptor.get("format") not in {
+            constants.ResultFormat.HISTOGRAM_V2,
+            constants.ResultFormat.PROBABILITIES_V2,
+        }:
+            return None
+        return descriptor
+
+    def _fetch_aggregation_artifacts(
+        self,
+        aggregation: str | None,
+        extra_query_params: dict | None,
+    ) -> tuple[list[dict[str, int | float]], bool] | None:
+        """Fetch a requested aggregation from its published v2 artifact(s).
+
+        Older and single-execution jobs do not publish per-method artifacts;
+        return ``None`` for those so the legacy probabilities URL remains the
+        compatibility fallback.
+        """
+        if aggregation is None:
+            return None
+
+        assert self._job_id is not None
+        if self._num_circuits == 1 or not self._children:
+            jobs = [(self._job_id, self._metadata)]
+        else:
+            jobs = [
+                (child_id, self._client.retrieve_job(child_id))
+                for child_id in self._children
+            ]
+
+        descriptors = [
+            self._aggregation_artifact_descriptor(response, aggregation)
+            for _, response in jobs
+        ]
+        if any(descriptor is None for descriptor in descriptors):
+            return None
+
+        decoded = []
+        data_is_histogram = (
+            descriptors[0]["format"]  # type: ignore[index]
+            == constants.ResultFormat.HISTOGRAM_V2
+        )
+        for (job_id, _), descriptor in zip(jobs, descriptors):
+            assert descriptor is not None
+            payload = self._client.get_artifact(
+                job_id,
+                descriptor["id"],
+                extra_query_params=extra_query_params,
+            )
+            distribution, _ = _decode_distribution_artifact(
+                payload, descriptor["format"]
+            )
+            decoded.append(distribution)
+        return decoded, data_is_histogram
+
     def result(
         self,
         sharpen: bool | None = None,
@@ -470,12 +574,21 @@ class IonQJob(JobV1):
                     self._fetch_qasm3_shots(extra_query_params)
                 )
             else:
-                response = self._client.get_results(
-                    results_url=self._results_urls.get("probabilities", ""),
-                    aggregation=aggregation,
-                    extra_query_params=extra_query_params,
+                artifact_results = self._fetch_aggregation_artifacts(
+                    aggregation, extra_query_params
                 )
-                self._result = self._format_result(response)
+                if artifact_results is not None:
+                    response, data_is_histogram = artifact_results
+                    self._result = self._format_result(
+                        response, data_is_histogram=data_is_histogram
+                    )
+                else:
+                    response = self._client.get_results(
+                        results_url=self._results_urls.get("probabilities", ""),
+                        aggregation=aggregation,
+                        extra_query_params=extra_query_params,
+                    )
+                    self._result = self._format_result(response)
 
         return self._result
 
@@ -807,23 +920,23 @@ class IonQJob(JobV1):
             }
         )
 
-    def _format_result(self, data):
+    def _format_result(self, data, data_is_histogram: bool = False):
         """Translate IonQ result format into a Qiskit `Result` instance.
 
         Args:
-            data: Deserialized probabilities payload from
-                ``GET /v0.4/jobs/<id>/results/probabilities`` (or
-                ``.../aggregated`` for multi-circuit jobs). Accepted shapes:
+            data: Decoded probability distribution or histogram. Accepted shapes:
 
-                - ``dict[str, float]`` -- single circuit; outcome int (as str)
-                  to probability.
-                - ``dict[str, dict[str, float]]`` -- multi-circuit, outer keyed
-                  by child job id; inner shaped as the single-circuit case.
-                - ``list[dict[str, float]]`` -- one entry per circuit (used by
-                  tests; otherwise unusual on the wire).
+                - ``dict[str, int | float]`` -- single circuit; outcome int
+                  (as str) to probability or count.
+                - ``dict[str, dict[str, int | float]]`` -- multi-circuit,
+                  outer keyed by child job id; inner shaped as the
+                  single-circuit case.
+                - ``list[dict[str, int | float]]`` -- one entry per circuit.
 
-                Probability values may be ``int`` (e.g. exact ``0``/``1`` from
-                a noiseless simulator) or ``float``; both are accepted.
+                Probability values may be ``int`` (for example, exact ``0`` or
+                ``1`` from a noiseless simulator) or ``float``.
+            data_is_histogram: Whether ``data`` contains histogram counts rather
+                than probabilities.
 
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>`
@@ -916,7 +1029,10 @@ class IonQJob(JobV1):
                     shots,
                     use_sampler=is_ideal_sim,
                     sampler_seed=sampler_seed,
+                    data_is_histogram=data_is_histogram,
                 )
+                if data_is_histogram:
+                    job_result[i]["shots"] = sum(counts.values())
                 raw_shots = (
                     raw_shots_per_circuit[i] if i < len(raw_shots_per_circuit) else None
                 )

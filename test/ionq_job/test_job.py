@@ -216,6 +216,15 @@ def test_build_counts__bad_input():
     assert exc_info.value.message == "Cannot remap counts without data!"
 
 
+def test_build_counts__empty_histogram():
+    """Test that _build_counts rejects a histogram with no positive counts."""
+    with pytest.raises(
+        exceptions.IonQJobError,
+        match="Cannot normalize an empty histogram",
+    ):
+        ionq_job._build_counts({"0": 0, "1": 0}, 1, [0], 100, data_is_histogram=True)
+
+
 def test_build_counts():
     """Test basic count remapping."""
     (counts, probabilties) = ionq_job._build_counts(
