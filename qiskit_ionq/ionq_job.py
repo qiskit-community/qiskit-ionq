@@ -377,7 +377,7 @@ class IonQJob(JobV1):
         return self._client.get_artifact(self._job_id, circuits[fmt]["id"])
 
     def _load_reachable_states(self) -> set[str] | None:
-        """Read this job's inline reachability metadata, if available."""
+        """Read reachable states from the job's metadata, if present."""
         states = ((self._metadata.get("output") or {}).get("compilation") or {}).get(
             "reachable_states"
         )
