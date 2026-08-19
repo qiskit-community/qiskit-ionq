@@ -37,6 +37,7 @@
 
 from __future__ import annotations
 
+import functools
 import warnings
 from collections.abc import Callable, Collection, Sequence
 from typing import TYPE_CHECKING, Any
@@ -53,9 +54,6 @@ from .ionq_result import IonQResult as Result
 
 if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_backend, ionq_client
-
-
-_REACHABLE_STATES_UNSET = object()
 
 
 def _postselection_selectors(
@@ -284,7 +282,6 @@ class IonQJob(JobV1):
         self._shots_artifact_id: str | None = None
         self._metadata: dict[str, Any] = {}
         self._children: list[str] | None = None
-        self._reachable_states_cache: object = _REACHABLE_STATES_UNSET
 
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
@@ -387,7 +384,7 @@ class IonQJob(JobV1):
             )
         return set(states)
 
-    @property
+    @functools.cached_property
     def reachable_states(self) -> set[str] | list[set[str] | None] | None:
         """Reachable computational-basis states for this job.
 
@@ -397,22 +394,16 @@ class IonQJob(JobV1):
         bit left) bitstrings. A multi-circuit job returns one entry per circuit.
         ``None`` means the compiler could not conservatively determine a set.
         """
-        if self._reachable_states_cache is not _REACHABLE_STATES_UNSET:
-            return self._reachable_states_cache  # type: ignore[return-value]
-
         self.wait_for_final_state()
         if self._status is not jobstatus.JobStatus.DONE:
             return None
 
         if self._children:
-            value: set[str] | list[set[str] | None] | None = [
+            return [
                 IonQJob(self.backend(), child_id, self._client)._load_reachable_states()
                 for child_id in self._children
             ]
-        else:
-            value = self._load_reachable_states()
-        self._reachable_states_cache = value
-        return value
+        return self._load_reachable_states()
 
     def cancel(self) -> None:
         """Cancel this job."""
