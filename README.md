@@ -141,7 +141,7 @@ result = job.result(
 A few details worth knowing:
 
 - `postselect_on` accepts any collection of bitstrings, so you can post-select on your own criteria instead of `job.reachable_states`.
-- For a multi-circuit job, `job.reachable_states` contains one set per circuit; a circuit that could not be analyzed gets `None` and its results are left unchanged.
+- For a multi-circuit job, `job.reachable_states` contains one set per circuit, and `postselect_on` likewise requires one selector (or `None`) per circuit; a circuit that could not be analyzed gets `None` and its results are left unchanged.
 - Discarded outcomes are not redistributed: **post-selection does not renormalize probabilities**.
 
 ### Compilation as a service (`dry_run`)

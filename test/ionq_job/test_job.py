@@ -549,6 +549,21 @@ def test_result_postselection_validates_width(mock_backend, requests_mock):
         job.result(postselect_on={"0"})
 
 
+def test_result_postselection_requires_selector_per_circuit(
+    mock_backend, requests_mock
+):
+    """A flat collection of bitstrings is rejected for multi-circuit jobs."""
+    job_id = "flat_postselection"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=conftest.dummy_job_response(job_id, children=["child_1", "child_2"]),
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(exceptions.IonQJobError, match="one selector"):
+        job.result(postselect_on={"00", "11"})
+
+
 def test_result__with_sharpen(mock_backend, requests_mock):
     """Test basic "happy path" for result fetching.
 

@@ -60,7 +60,11 @@ def _postselection_selectors(
     postselect_on: Collection[str] | Sequence[Collection[str] | None] | None,
     num_circuits: int,
 ) -> list[set[str] | None]:
-    """Normalize one selector or one selector per circuit."""
+    """Normalize postselection input to one selector (or ``None``) per circuit.
+
+    A flat collection of bitstrings is only accepted for single-circuit jobs;
+    multi-circuit jobs must pass one selector (or ``None``) per circuit.
+    """
     if postselect_on is None:
         return [None] * num_circuits
     if isinstance(postselect_on, (str, bytes)):
@@ -69,9 +73,15 @@ def _postselection_selectors(
         )
 
     values = list(postselect_on)
-    if all(isinstance(state, str) for state in values):
-        states = {state for state in values if isinstance(state, str)}
-        return [states] * num_circuits
+    strings = [state for state in values if isinstance(state, str)]
+    if len(strings) == len(values):
+        if num_circuits != 1:
+            raise exceptions.IonQJobError(
+                "postselect_on must provide one selector (or None) for each "
+                f"of the job's {num_circuits} circuits; got a single "
+                "collection of bitstrings"
+            )
+        return [set(strings)]
 
     if len(values) != num_circuits:
         raise exceptions.IonQJobError(
@@ -92,7 +102,7 @@ def _postselection_selectors(
                 raise exceptions.IonQJobError(
                     "Postselection states must be computational-basis bitstrings"
                 )
-            selectors.append({state for state in states if isinstance(state, str)})
+            selectors.append(states)
     return selectors
 
 
@@ -513,8 +523,8 @@ class IonQJob(JobV1):
                 results request.
             postselect_on: Reachable computational-basis states to retain,
                 expressed as Qiskit-order bitstrings. For multi-circuit jobs,
-                pass either one selector for every circuit or one selector per
-                circuit. Aggregate probabilities and derived counts are not
+                pass a sequence with one selector (or ``None``) per circuit.
+                Aggregate probabilities and derived counts are not
                 renormalized; OpenQASM 3 shot results are filtered shot-wise.
 
         Raises:
