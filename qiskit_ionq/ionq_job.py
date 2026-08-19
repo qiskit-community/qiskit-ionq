@@ -107,15 +107,12 @@ def _postselection_selectors(
 
 
 def _validate_postselection_states(states: set[str], num_qubits: int) -> None:
-    invalid = [
-        state
+    if any(
+        len(state) != num_qubits or not state or set(state) - {"0", "1"}
         for state in states
-        if len(state) != num_qubits or not state or set(state) - {"0", "1"}
-    ]
-    if invalid:
+    ):
         raise ValueError(
-            f"Postselection states must be {num_qubits}-bit binary strings; "
-            f"invalid values: {invalid[:3]}"
+            f"Postselection states must be {num_qubits}-bit binary strings"
         )
 
 
