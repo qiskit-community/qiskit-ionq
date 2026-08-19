@@ -68,7 +68,7 @@ def _postselection_selectors(
     if postselect_on is None:
         return [None] * num_circuits
     if isinstance(postselect_on, (str, bytes)):
-        raise exceptions.IonQJobError(
+        raise TypeError(
             "postselect_on must be a collection of bitstrings, not one bitstring"
         )
 
@@ -76,7 +76,7 @@ def _postselection_selectors(
     strings = [state for state in values if isinstance(state, str)]
     if len(strings) == len(values):
         if num_circuits != 1:
-            raise exceptions.IonQJobError(
+            raise ValueError(
                 "postselect_on must provide one selector (or None) for each "
                 f"of the job's {num_circuits} circuits; got a single "
                 "collection of bitstrings"
@@ -84,7 +84,7 @@ def _postselection_selectors(
         return [set(strings)]
 
     if len(values) != num_circuits:
-        raise exceptions.IonQJobError(
+        raise ValueError(
             "postselect_on must contain one reachable-state collection per circuit"
         )
 
@@ -93,13 +93,13 @@ def _postselection_selectors(
         if value is None:
             selectors.append(None)
         elif isinstance(value, (str, bytes)):
-            raise exceptions.IonQJobError(
+            raise TypeError(
                 "Each postselection selector must be a collection of bitstrings"
             )
         else:
             states = set(value)
             if not all(isinstance(state, str) for state in states):
-                raise exceptions.IonQJobError(
+                raise TypeError(
                     "Postselection states must be computational-basis bitstrings"
                 )
             selectors.append(states)
@@ -113,7 +113,7 @@ def _validate_postselection_states(states: set[str], num_qubits: int) -> None:
         if len(state) != num_qubits or not state or set(state) - {"0", "1"}
     ]
     if invalid:
-        raise exceptions.IonQJobError(
+        raise ValueError(
             f"Postselection states must be {num_qubits}-bit binary strings; "
             f"invalid values: {invalid[:3]}"
         )
@@ -535,6 +535,10 @@ class IonQJob(JobV1):
                 the job itself was never converted to a
                 :class:`Result <qiskit.result.Result>`.
             IonQJobStateError: If the job was cancelled before this method fetches it.
+            TypeError: If ``postselect_on`` (or one of its per-circuit
+                entries) is a bare bitstring or contains non-string states.
+            ValueError: If the number of selectors does not match the job's
+                circuits, or states are not full-width binary strings.
 
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.

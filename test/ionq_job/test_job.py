@@ -545,7 +545,7 @@ def test_result_postselection_validates_width(mock_backend, requests_mock):
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    with pytest.raises(exceptions.IonQJobError, match="2-bit binary strings"):
+    with pytest.raises(ValueError, match="2-bit binary strings"):
         job.result(postselect_on={"0"})
 
 
@@ -560,7 +560,7 @@ def test_result_postselection_requires_selector_per_circuit(
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    with pytest.raises(exceptions.IonQJobError, match="one selector"):
+    with pytest.raises(ValueError, match="one selector"):
         job.result(postselect_on={"00", "11"})
 
 
