@@ -288,7 +288,7 @@ class IonQJob(JobV1):
         self._is_qasm3: bool = False
         self._shots_artifact_id: str | None = None
         self._metadata: dict[str, Any] = {}
-        self._children: list[str] | None = None
+        self._child_job_ids: list[str] | None = None
 
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
@@ -405,10 +405,10 @@ class IonQJob(JobV1):
         if self._status is not jobstatus.JobStatus.DONE:
             return None
 
-        if self._children:
+        if self._child_job_ids:
             return [
                 IonQJob(self.backend(), child_id, self._client)._load_reachable_states()
-                for child_id in self._children
+                for child_id in self._child_job_ids
             ]
         return self._load_reachable_states()
 
@@ -642,13 +642,13 @@ class IonQJob(JobV1):
             self._dry_run = bool(response.get("dry_run", False))
 
             stats = response.get("stats", {})
-            self._children = self._first_of(
+            self._child_job_ids = self._first_of(
                 response, "child_job_ids", "children", default=None
             )
 
-            # Circuit count: if we have children, prefer that length
-            if self._children:
-                self._num_circuits = len(self._children)
+            # Circuit count: if we have child jobs, prefer that length
+            if self._child_job_ids:
+                self._num_circuits = len(self._child_job_ids)
             else:
                 self._num_circuits = self._first_of(stats, "circuits", default=1)
 
@@ -800,15 +800,15 @@ class IonQJob(JobV1):
 
         Single-circuit jobs read the top-level ``results.shots.url`` recorded
         in :attr:`_results_urls` during :meth:`status`. Multi-circuit jobs
-        iterate :attr:`_children` and fetch each child's own ``shots.url``
+        iterate :attr:`_child_job_ids` and fetch each child's own ``shots.url``
         (the parent only carries aggregated probabilities). Failures degrade
         per-circuit -- one bad child does not poison the whole result.
         """
-        if self._num_circuits == 1 or not self._children:
+        if self._num_circuits == 1 or not self._child_job_ids:
             return [self._fetch_raw_shots(self._results_urls.get("shots"))]
 
         per_circuit: list[list | None] = []
-        for child_id in self._children:
+        for child_id in self._child_job_ids:
             try:
                 resp = self._client.retrieve_job(child_id)
             except exceptions.IonQAPIError as err:
