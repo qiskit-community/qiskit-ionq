@@ -86,55 +86,49 @@ print(job.result().get_probabilities())
 
 ### Error mitigation
 
+The SDK provides two complementary error-mitigation techniques: **debiasing**, applied when a job runs, and **symmetry verification**, applied when you fetch its results.
+
 #### Debiasing and aggregation
 
-Debiasing is a compiler-level error-mitigation technique.
-It creates physically different but logically equivalent variants of a circuit and divides the requested shots among them.
-The variants have the same ideal output but different error profiles, allowing systematic hardware biases to be suppressed when their results are combined.
+On real hardware, no two qubits or gates behave identically, so the errors a circuit picks up depend on how it is mapped onto the device.
+Debiasing takes advantage of this: instead of running your circuit one way, IonQ compiles several logically equivalent variants and splits shots among them.
+Each variant makes different mistakes, so errors that would consistently skew any single variant tend to wash out when the results are combined.
 
-Enable debiasing when submitting the job. It requires at least 500 shots:
+Enable it when submitting a job (requires at least 500 shots):
 
 ```python
 job = backend.run(qc, shots=1000, debiasing=True)
 ```
 
 Leaving `debiasing` unset defers to the IonQ platform default for the target; passing `False` explicitly disables it.
-When a job is debiased, there are multiple options for how to combine variant results.
-This is achieved by `job.result(aggregation=...)` where the options are:
 
-1. `average` (default) takes the component-wise mean of the variant
-   distributions. It preserves arbitrary distribution shapes and is the safest choice for broad or uneven output distributions.
-2. `voting` performs plurality voting across variants, also called sharpening.
-   It emphasizes outcomes that appear consistently across variants and is best suited to distributions with one or a few roughly equal peaks.
-   It can distort broad or uneven distributions.
-3. `dnl` applies debiasing with non-linear filtering, suppressing outcomes that are not observed consistently across variants.
-   See [arXiv:2506.05757](https://arxiv.org/abs/2506.05757) for details.
-
-For example:
+For a debiased job, you can also choose _how_ the variant results are combined when you fetch them:
 
 ```python
 result = job.result(aggregation="voting")
 print(result.get_counts())
 ```
 
+- `average` (default) takes the mean of the variant distributions. It preserves the shape of any distribution and is the safest general-purpose choice.
+- `voting` keeps the outcomes the variants agree on (also called sharpening). It works best when the ideal output is one or a few dominant peaks, but can distort broad distributions.
+- `dnl` applies non-linear filtering that suppresses outcomes not seen consistently across variants. See [arXiv:2506.05757](https://arxiv.org/abs/2506.05757) for details.
+
 The `aggregation` argument has no effect on a job that ran without debiasing.
 
 #### Symmetry verification
 
-Symmetry verification is a post-processing technique that uses circuit symmetries (such as conserved particle number, Hamming weight, or parity) to discard outcomes that violate those conserved quantities.
-During server-side compilation, IonQ analyzes the circuit to find a conservative set of reachable computational-basis states using a primitive simulation method.
-That set is available through `job.reachable_states` and can be passed to `result()` to discard outcomes outside it:
+Some circuits have symmetries (e.g. a conserved parity, a fixed particle number, etc.) that make certain measurement outcomes impossible in the ideal case.
+If one of those outcomes shows up on hardware, it must be caused by noise and symmetry verification discards it.
+
+When IonQ compiles your job, it analyzes each circuit and computes a conservative set of outcomes the circuit could actually produce.
+That set is available as `job.reachable_states`, and you can post-select on it when fetching results:
 
 ```python
 job = backend.run(qc, shots=1000)
 result = job.result(postselect_on=job.reachable_states)
 ```
 
-For a multi-circuit job, `job.reachable_states` contains one set of bitstrings per circuit.
-If a circuit cannot be analyzed, its entry is `None` and its result is left unchanged.
-**Post-selection does not renormalize aggregate probabilities**.
-
-Because symmetry verification is applied after aggregation, it can be combined with debiasing and any aggregation method:
+Because post-selection happens after aggregation, it combines freely with debiasing and any aggregation method:
 
 ```python
 job = backend.run(qc, shots=1000, debiasing=True)
@@ -144,7 +138,11 @@ result = job.result(
 )
 ```
 
-The `postselect_on` kwarg can be used with custom post-selection as well by passing any collection of bitstrings.
+A few details worth knowing:
+
+- `postselect_on` accepts any collection of bitstrings, so you can post-select on your own criteria instead of `job.reachable_states`.
+- For a multi-circuit job, `job.reachable_states` contains one set per circuit; a circuit that could not be analyzed gets `None` and its results are left unchanged.
+- Discarded outcomes are not redistributed: **post-selection does not renormalize probabilities**.
 
 ### Compilation as a service (`dry_run`)
 
