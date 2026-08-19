@@ -581,9 +581,12 @@ class IonQJob(JobV1):
                 )
             selectors = _postselection_selectors(postselect_on, self._num_circuits)
             if self._is_qasm3:
+                # qasm3 jobs are single-circuit (enforced at submission),
+                # so there is only one selector.
+                (selector,) = selectors
                 self._result = self._format_result_qasm3(
                     self._fetch_qasm3_shots(extra_query_params),
-                    postselect_on=selectors[0],
+                    postselect_on=selector,
                 )
             else:
                 response = self._client.get_results(
