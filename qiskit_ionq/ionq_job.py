@@ -173,9 +173,9 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
 def _decode_distribution_artifact(
     payload: Any, result_format: str
 ) -> tuple[dict[str, int | float], bool]:
-    """Decode a v2 result artifact into the legacy decimal-keyed shape.
+    """Decode a result artifact into the legacy decimal-keyed shape.
 
-    V2 artifacts use wire-order bitstrings (qubit 0 first), while the existing
+    Result artifacts use wire-order bitstrings (qubit 0 first), while the existing
     result formatter consumes decimal keys with qubit 0 as the least-significant
     bit. Return whether the values are histogram counts so they can be preserved
     exactly rather than multiplied by the requested shot count.
@@ -434,7 +434,7 @@ class IonQJob(JobV1):
         aggregation: str | None,
         extra_query_params: dict | None,
     ) -> tuple[list[dict[str, int | float]], bool] | None:
-        """Fetch a requested aggregation from its published v2 artifact(s).
+        """Fetch a requested aggregation from its published artifact(s).
 
         Older and single-execution jobs do not publish per-method artifacts;
         return ``None`` for those so the legacy probabilities URL remains the
