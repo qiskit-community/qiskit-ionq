@@ -55,6 +55,12 @@ if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_client
 
 
+_DISTRIBUTION_ARTIFACT_FORMATS: dict[str, tuple[str, bool]] = {
+    constants.ResultFormat.HISTOGRAM_V2.value: ("histogram", True),
+    constants.ResultFormat.PROBABILITIES_V2.value: ("probabilities", False),
+}
+
+
 def map_output(data, clbits, num_qubits):
     """Map histogram according to measured bits."""
 
@@ -174,12 +180,7 @@ def _decode_distribution_artifact(
     bit. Return whether the values are histogram counts so they can be preserved
     exactly rather than multiplied by the requested shot count.
     """
-    is_histogram = result_format == constants.ResultFormat.HISTOGRAM_V2
-    if is_histogram:
-        result_key = "histogram"
-    else:
-        assert result_format == constants.ResultFormat.PROBABILITIES_V2
-        result_key = "probabilities"
+    result_key, is_histogram = _DISTRIBUTION_ARTIFACT_FORMATS[result_format]
 
     distribution = payload[result_key]["registers"]["output_all"]
     decimal_distribution: dict[str, int | float] = {}
@@ -424,10 +425,7 @@ class IonQJob(JobV1):
         descriptor = aggregations.get(aggregation)
         if not isinstance(descriptor, dict) or not descriptor.get("id"):
             return None
-        if descriptor.get("format") not in {
-            constants.ResultFormat.HISTOGRAM_V2,
-            constants.ResultFormat.PROBABILITIES_V2,
-        }:
+        if descriptor.get("format") not in _DISTRIBUTION_ARTIFACT_FORMATS:
             return None
         return descriptor
 
