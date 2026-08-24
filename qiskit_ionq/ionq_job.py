@@ -443,39 +443,39 @@ class IonQJob(JobV1):
         if aggregation is None:
             return None
 
-        assert self._job_id is not None
         if self._num_circuits == 1 or not self._children:
-            jobs = [(self._job_id, self._metadata)]
+            descriptor = self._aggregation_artifact_descriptor(
+                self._metadata, aggregation
+            )
+            if descriptor is None:
+                return None
+            artifacts = [(self._job_id, descriptor)]
         else:
-            jobs = [
-                (child_id, self._client.retrieve_job(child_id))
-                for child_id in self._children
-            ]
-
-        descriptors = [
-            self._aggregation_artifact_descriptor(response, aggregation)
-            for _, response in jobs
-        ]
-        if any(descriptor is None for descriptor in descriptors):
-            return None
+            artifacts = []
+            for child_id in self._children:
+                response = self._client.retrieve_job(child_id)
+                descriptor = self._aggregation_artifact_descriptor(
+                    response, aggregation
+                )
+                if descriptor is None:
+                    return None
+                artifacts.append((child_id, descriptor))
 
         decoded = []
-        data_is_histogram = (
-            descriptors[0]["format"]  # type: ignore[index]
-            == constants.ResultFormat.HISTOGRAM_V2
-        )
-        for (job_id, _), descriptor in zip(jobs, descriptors):
-            assert descriptor is not None
+        histogram_formats = set()
+        for job_id, descriptor in artifacts:
             payload = self._client.get_artifact(
                 job_id,
                 descriptor["id"],
                 extra_query_params=extra_query_params,
             )
-            distribution, _ = _decode_distribution_artifact(
+            distribution, is_histogram = _decode_distribution_artifact(
                 payload, descriptor["format"]
             )
             decoded.append(distribution)
-        return decoded, data_is_histogram
+            histogram_formats.add(is_histogram)
+
+        return decoded, histogram_formats.pop()
 
     def result(
         self,
