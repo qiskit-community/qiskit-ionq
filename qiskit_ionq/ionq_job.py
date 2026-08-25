@@ -378,9 +378,9 @@ class IonQJob(JobV1):
 
     def _load_reachable_states(self) -> set[str] | None:
         """Read reachable states from the job's metadata, if present."""
-        states = ((self._metadata.get("output") or {}).get("compilation") or {}).get(
-            "reachable_states"
-        )
+        states = (
+            (self._metadata.get("output") or {}).get("error_mitigation") or {}
+        ).get("reachable_states")
         if states is None:
             return None
         if not isinstance(states, list) or not all(

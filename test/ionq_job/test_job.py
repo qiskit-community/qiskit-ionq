@@ -499,7 +499,7 @@ def test_reachable_states_and_result_postselection(mock_backend, requests_mock):
     job_id = "reachable_states_job"
     client = mock_backend.client
     job_response = conftest.dummy_job_response(job_id)
-    job_response.setdefault("output", {}).setdefault("compilation", {})[
+    job_response.setdefault("output", {}).setdefault("error_mitigation", {})[
         "reachable_states"
     ] = ["00", "10"]
     requests_mock.get(client.make_path("jobs", job_id), json=job_response)
@@ -1529,7 +1529,7 @@ def test_qasm3_reachable_states_postselect_shots(mock_backend, requests_mock):
     shots_artifact_id = "shots-postselected"
     client = mock_backend.client
     response = _qasm3_job_response(job_id, shots_artifact_id)
-    response["output"] = {"compilation": {"reachable_states": ["0"]}}
+    response["output"] = {"error_mitigation": {"reachable_states": ["0"]}}
     requests_mock.post(client.make_path("jobs"), json={"id": job_id})
     requests_mock.get(client.make_path("jobs", job_id), json=response)
     requests_mock.get(
