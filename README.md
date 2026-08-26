@@ -126,6 +126,7 @@ That set is available as `job.reachable_states`, and you can post-select on it w
 ```python
 job = backend.run(qc, shots=1000)
 result = job.result(postselect_on=job.reachable_states)
+print(result.get_counts())
 ```
 
 Because post-selection happens after aggregation, it combines freely with debiasing and any aggregation method:
@@ -136,6 +137,7 @@ result = job.result(
     aggregation="dnl",
     postselect_on=job.reachable_states,
 )
+print(result.get_counts())
 ```
 
 A few details worth knowing:
