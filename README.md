@@ -86,28 +86,65 @@ print(job.result().get_probabilities())
 
 ### Error mitigation
 
-Error mitigation is configured with two keyword arguments on `backend.run(...)`:
+The SDK provides two complementary error-mitigation techniques: **debiasing**, applied when a job runs, and **symmetry verification**, applied when you fetch its results.
 
-- `debiasing` (bool): run the circuit as multiple symmetrized variants to
-  suppress systematic hardware biases. Requires at least 500 shots.
-- `symmetry_verification` (bool): discard measurement outcomes that violate
-  the circuit's symmetries.
+#### Debiasing and aggregation
 
-Leaving a kwarg unset defers to the IonQ platform default for the target backend.
+On real hardware, no two qubits or gates behave identically, so the errors a circuit picks up depend on how it is mapped onto the device.
+Debiasing takes advantage of this: instead of running your circuit one way, IonQ compiles several logically equivalent variants and splits shots among them.
+Each variant makes different mistakes, so errors that would consistently skew any single variant tend to wash out when the results are combined.
 
-```python
-job = backend.run(qc, shots=1000, debiasing=True, symmetry_verification=True)
-```
-
-When debiasing is applied, the per-variant results can be combined with different aggregation methods at retrieval time via `job.result(aggregation=...)`:
-
-1. `average` (default),
-2. `voting` (plurality voting, sharpens the distribution; replaces the deprecated `sharpen=True`), or
-3. `dnl` (debiasing with non-linear filtering, see [arXiv:2506.05757](https://arxiv.org/abs/2506.05757)):
+Enable it when submitting a job (requires at least 500 shots):
 
 ```python
-print(job.result(aggregation="voting").get_counts())
+job = backend.run(qc, shots=1000, debiasing=True)
 ```
+
+Leaving `debiasing` unset defers to the IonQ platform default for the target; passing `False` explicitly disables it.
+
+For a debiased job, you can also choose _how_ the variant results are combined when you fetch them:
+
+```python
+result = job.result(aggregation="voting")
+print(result.get_counts())
+```
+
+- `average` (default) takes the mean of the variant distributions. It preserves the shape of any distribution and is the safest general-purpose choice.
+- `voting` keeps the outcomes the variants agree on (also called sharpening). It works best when the ideal output is one or a few dominant peaks, but can distort broad distributions.
+- `dnl` applies non-linear filtering that suppresses outcomes not seen consistently across variants. See [arXiv:2506.05757](https://arxiv.org/abs/2506.05757) for details.
+
+The `aggregation` argument has no effect on a job that ran without debiasing.
+
+#### Symmetry verification
+
+Some circuits have symmetries (e.g. a conserved parity, a fixed particle number, etc.) that make certain measurement outcomes impossible in the ideal case.
+If one of those outcomes shows up on hardware, it must be caused by noise and symmetry verification discards it.
+
+When IonQ compiles your job, it analyzes each circuit and computes a set guaranteed to contain every bitstring the circuit could produce.
+That set is available as `job.reachable_states`, and you can post-select on it when fetching results:
+
+```python
+job = backend.run(qc, shots=1000)
+result = job.result(postselect_on=job.reachable_states)
+print(result.get_counts())
+```
+
+Because post-selection happens after aggregation, it combines freely with debiasing and any aggregation method:
+
+```python
+job = backend.run(qc, shots=1000, debiasing=True)
+result = job.result(
+    aggregation="dnl",
+    postselect_on=job.reachable_states,
+)
+print(result.get_counts())
+```
+
+A few details worth knowing:
+
+- `postselect_on` accepts any collection of bitstrings, so you can post-select on your own criteria instead of `job.reachable_states`.
+- For a multi-circuit job, `job.reachable_states` contains one set per circuit, and `postselect_on` likewise requires one selector (or `None`) per circuit; a circuit that could not be analyzed gets `None` and its results are left unchanged.
+- Discarded outcomes are not redistributed: **post-selection does not renormalize probabilities**.
 
 ### Compilation as a service (`dry_run`)
 
@@ -144,7 +181,7 @@ Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
 
 ### Mid-circuit measurements
 
-The IonQ provider supports mid-circuit measurements, qubit reuse, and mid-circuit `reset`. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; the `debiasing`/`symmetry_verification` kwargs work here as well.
+The IonQ provider supports mid-circuit measurements, qubit reuse, and mid-circuit `reset`. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; the `debiasing` kwarg works here as well.
 
 These run automatically as OpenQASM 3 (`ionq.qasm3.v1`); no extra flags needed. Today they execute on the simulator (mid-circuit-measurement QPU support is rolling out); other targets are rejected server-side. Register names that are OpenQASM 3 reserved words (`output`, `input`, `measure`, …) are rejected at submission.
 
