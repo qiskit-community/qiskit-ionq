@@ -393,13 +393,27 @@ class IonQJob(JobV1):
 
     @functools.cached_property
     def reachable_states(self) -> set[str] | list[set[str] | None] | None:
-        """Reachable computational-basis states for this job.
+        """The computational-basis states each circuit in this job can produce.
 
-        The private analysis runs during server-side compilation. Accessing
-        this property waits for the job to finish if necessary, reads the
-        stored compilation metadata, and returns Qiskit-order (most-significant
-        bit left) bitstrings. A multi-circuit job returns one entry per circuit.
-        ``None`` means the compiler could not conservatively determine a set.
+        The states are computed by IonQ's compiler when the job is processed.
+        The compiler statically tracks the set of possible basis states,
+        starting from the all-zeros state and stepping through the circuit gate
+        by gate: bit-flip gates (X, Y) permute the tracked states, diagonal
+        gates (Z, Rz, S, T, ZZ, ...) leave them unchanged, and
+        particle-conserving excitation gates add the exchanged states. The
+        result is guaranteed to contain every state the ideal circuit can
+        produce, so any outcome outside it must be caused by noise. The
+        analysis yields no result when the circuit contains gates outside that
+        set (e.g. H, Rx, Ry, which create superpositions the tracker does not
+        follow) or when the tracked set exceeds an internal size cap of 10,000.
+
+        Accessing this property blocks until the job completes. Bitstrings
+        use Qiskit ordering (most-significant bit on the left).
+
+        Returns a single set for a single-circuit job, or one entry per
+        circuit for a multi-circuit job. Returns ``None`` if the job did not
+        complete successfully; an entry of ``None`` means the analysis was
+        unavailable for that circuit.
         """
         self.wait_for_final_state()
         if self._status is not jobstatus.JobStatus.DONE:
