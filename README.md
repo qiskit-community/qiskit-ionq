@@ -120,7 +120,7 @@ The `aggregation` argument has no effect on a job that ran without debiasing.
 Some circuits have symmetries (e.g. a conserved parity, a fixed particle number, etc.) that make certain measurement outcomes impossible in the ideal case.
 If one of those outcomes shows up on hardware, it must be caused by noise and symmetry verification discards it.
 
-When IonQ compiles your job, it analyzes each circuit and computes a conservative set of outcomes the circuit could actually produce.
+When IonQ compiles your job, it analyzes each circuit and computes a set guaranteed to contain every bitstring the circuit could produce.
 That set is available as `job.reachable_states`, and you can post-select on it when fetching results:
 
 ```python
