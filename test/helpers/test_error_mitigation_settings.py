@@ -33,7 +33,7 @@ import pytest
 from qiskit import QuantumCircuit
 
 from qiskit_ionq.helpers import qiskit_to_ionq
-from qiskit_ionq.constants import AggregationMethod
+from qiskit_ionq.constants import AggregationMethod, ResultFormat
 from qiskit_ionq import ionq_job
 from ..utils import dummy_job_response
 
@@ -61,6 +61,38 @@ def _setup_job(mock_backend, requests_mock, results_path_suffix=""):
         results_base + results_path_suffix,
         status_code=200,
         json={"0": 0.5, "1": 0.5},
+    )
+    return ionq_job.IonQJob(mock_backend, job_id)
+
+
+def _setup_artifact_job(
+    mock_backend,
+    requests_mock,
+    aggregation,
+    result_format,
+    artifact_payload,
+):
+    """Set up a completed job with one published per-method result artifact."""
+    job_id = "artifact_job"
+    artifact_id = f"{aggregation}-artifact"
+    client = mock_backend.client
+    response = dummy_job_response(job_id)
+    response["metadata"]["shots"] = "10"
+    response["output"] = {
+        "error_mitigation": {
+            "aggregations": {
+                aggregation: {
+                    "id": artifact_id,
+                    "format": result_format,
+                    "media_type": "application/json",
+                }
+            }
+        }
+    }
+    requests_mock.get(client.make_path("jobs", job_id), json=response)
+    requests_mock.get(
+        client.make_path("jobs", job_id, "artifacts", artifact_id),
+        json=artifact_payload,
     )
     return ionq_job.IonQJob(mock_backend, job_id)
 
@@ -204,6 +236,113 @@ def test_aggregation_dnl_enum(mock_backend, requests_mock):
     """AggregationMethod.DNL enum sends ?aggregation=dnl."""
     job = _setup_job(mock_backend, requests_mock, "?aggregation=dnl")
     assert job.result(aggregation=AggregationMethod.DNL) is not None
+
+
+@pytest.mark.parametrize("aggregation", ["banana", "majority", "plurality"])
+def test_unknown_aggregation_fails_before_request(
+    mock_backend, requests_mock, aggregation
+):
+    """Unknown aggregation names fail locally without fetching results."""
+    job = _setup_job(mock_backend, requests_mock)
+    request_count = requests_mock.call_count
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Unknown aggregation method '{aggregation}'; expected one of "
+            "'average', 'voting', 'dnl'"
+        ),
+    ):
+        job.result(aggregation=aggregation)
+
+    assert requests_mock.call_count == request_count
+
+
+@pytest.mark.parametrize(
+    "aggregation,wire_state,expected_state",
+    [
+        (AggregationMethod.AVERAGE, "00", "00"),
+        (AggregationMethod.VOTING, "10", "01"),
+        (AggregationMethod.DNL, "01", "10"),
+    ],
+)
+def test_aggregation_uses_published_probability_artifact(
+    mock_backend, requests_mock, aggregation, wire_state, expected_state
+):
+    """Every SDK aggregation method resolves its own published artifact."""
+    payload = {"probabilities": {"registers": {"output_all": {wire_state: 1.0}}}}
+    job = _setup_artifact_job(
+        mock_backend,
+        requests_mock,
+        aggregation.value,
+        ResultFormat.PROBABILITIES_V2.value,
+        payload,
+    )
+
+    result = job.result(aggregation=aggregation)
+
+    assert result.get_counts() == {expected_state: 10}
+    assert result.get_probabilities() == {expected_state: 1.0}
+    assert requests_mock.last_request.path.endswith(
+        f"/jobs/artifact_job/artifacts/{aggregation.value}-artifact"
+    )
+
+
+def test_aggregation_uses_published_histogram_counts(mock_backend, requests_mock):
+    """Histogram-v2 counts are preserved exactly and normalized for probabilities."""
+    payload = {"histogram": {"registers": {"output_all": {"00": 3, "10": 7}}}}
+    job = _setup_artifact_job(
+        mock_backend,
+        requests_mock,
+        AggregationMethod.VOTING.value,
+        ResultFormat.HISTOGRAM_V2.value,
+        payload,
+    )
+
+    result = job.result(aggregation=AggregationMethod.VOTING)
+
+    assert result.get_counts() == {"00": 3, "01": 7}
+    assert result.get_probabilities() == {"00": 0.3, "01": 0.7}
+    assert result.results[0].shots == 10
+
+
+def test_multi_circuit_aggregation_uses_each_child_artifact(
+    mock_backend, requests_mock
+):
+    """Multi-circuit aggregation reads the selected artifact from every child."""
+    parent_id = "artifact_parent"
+    child_ids = ["artifact_child_0", "artifact_child_1"]
+    client = mock_backend.client
+    parent = dummy_job_response(parent_id, children=child_ids)
+    parent["metadata"]["shots"] = "10"
+    requests_mock.get(client.make_path("jobs", parent_id), json=parent)
+
+    for index, (child_id, wire_state) in enumerate(zip(child_ids, ["00", "10"])):
+        artifact_id = f"dnl-artifact-{index}"
+        child = dummy_job_response(child_id)
+        child["output"] = {
+            "error_mitigation": {
+                "aggregations": {
+                    "dnl": {
+                        "id": artifact_id,
+                        "format": ResultFormat.HISTOGRAM_V2.value,
+                        "media_type": "application/json",
+                    }
+                }
+            }
+        }
+        requests_mock.get(client.make_path("jobs", child_id), json=child)
+        requests_mock.get(
+            client.make_path("jobs", child_id, "artifacts", artifact_id),
+            json={"histogram": {"registers": {"output_all": {wire_state: 10}}}},
+        )
+
+    result = ionq_job.IonQJob(mock_backend, parent_id).result(
+        aggregation=AggregationMethod.DNL
+    )
+
+    assert result.get_counts(0) == {"00": 10}
+    assert result.get_counts(1) == {"01": 10}
 
 
 def test_sharpen_true_deprecated_maps_to_voting(mock_backend, requests_mock):
