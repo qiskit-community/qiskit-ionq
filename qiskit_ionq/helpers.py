@@ -42,6 +42,10 @@ from typing import Literal, Any
 import functools
 import time
 import random
+
+# Use this to get version instead of __version__ to avoid circular dependency.
+from importlib.metadata import version
+
 import requests
 from dotenv import dotenv_values
 
@@ -57,8 +61,6 @@ from qiskit.circuit import (
 )
 from qiskit.quantum_info import SparsePauliOp
 
-# Use this to get version instead of __version__ to avoid circular dependency.
-from importlib_metadata import version
 from qiskit_ionq.constants import ErrorMitigation
 from . import exceptions as ionq_exceptions
 
