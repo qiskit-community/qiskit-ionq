@@ -280,7 +280,8 @@ def test_postselected_histogram_counts_keep_rejected_mass(mock_backend, requests
 
     assert result.get_counts() == {"00": 3}
     assert result.get_probabilities() == {"00": 0.3}
-    assert result.results[0].shots == 3
+    # ``shots`` stays the full sample so the 7 discarded shots remain visible.
+    assert result.results[0].shots == 10
 
 
 def test_multi_circuit_aggregation_uses_each_child_artifact(

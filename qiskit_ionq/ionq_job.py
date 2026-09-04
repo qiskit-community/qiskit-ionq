@@ -1231,7 +1231,11 @@ class IonQJob(JobV1):
                 else:
                     counts, probabilities = {}, {}
                 if data_is_histogram:
-                    job_result[i]["shots"] = sum(counts.values())
+                    # Histogram counts, not the requested shot count, are
+                    # authoritative. Report the pre-postselection total so
+                    # discarded shots stay visible as ``shots - sum(counts)``,
+                    # matching how the probabilities path reports them.
+                    job_result[i]["shots"] = int(sum(counts.values()) + rejected_weight)
                 raw_shots = (
                     raw_shots_per_circuit[i] if i < len(raw_shots_per_circuit) else None
                 )
