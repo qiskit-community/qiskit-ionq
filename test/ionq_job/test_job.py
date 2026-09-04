@@ -226,7 +226,7 @@ def test_build_counts__empty_histogram():
 
 def test_build_counts():
     """Test basic count remapping."""
-    (counts, probabilties) = ionq_job._build_counts(
+    counts, probabilties = ionq_job._build_counts(
         {"5": 0.5, "7": 0.5}, 3, [0, 1, 2], 100
     )
     assert ({"101": 50, "111": 50}) == counts
@@ -523,8 +523,16 @@ def test_reachable_states_and_result_postselection(mock_backend, requests_mock):
     result = job.result(postselect_on=job.reachable_states)
 
     assert result.get_counts() == {"00": 308, "10": 308}
-    assert result.get_probabilities() == {"00": 0.25, "10": 0.25}
-    assert sum(result.get_probabilities().values()) == pytest.approx(0.5)
+    # Probabilities are conditional on the retained outcomes and sum to one;
+    # the discarded half of the sample shows up in the postselection report.
+    assert result.get_probabilities() == {"00": 0.5, "10": 0.5}
+    assert sum(result.get_probabilities().values()) == pytest.approx(1.0)
+    assert result.results[0].shots == 1234
+    assert result.results[0].postselection == {
+        "retained_shots": 616,
+        "executed_shots": 1234,
+        "acceptance_rate": pytest.approx(0.4992, abs=1e-4),
+    }
     assert requests_mock.call_count == 2
 
 
@@ -1620,7 +1628,13 @@ def test_qasm3_reachable_states_postselect_shots(mock_backend, requests_mock):
 
     assert result.get_counts() == {"00 0": 1, "01 1": 1}
     assert result.get_memory() == ["00 0", "01 1"]
-    assert result.results[0].shots == 2
+    # ``shots`` is the executed sample; postselection is reported separately.
+    assert result.results[0].shots == 4
+    assert result.results[0].postselection == {
+        "retained_shots": 2,
+        "executed_shots": 4,
+        "acceptance_rate": 0.5,
+    }
 
 
 def test_qasm3_ideal_sim_no_shots(mock_backend, requests_mock):

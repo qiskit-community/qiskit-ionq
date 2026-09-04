@@ -160,9 +160,8 @@ def _sample_counts(
 ) -> dict[int, int]:
     """Sample shot counts from a probability distribution.
 
-    ``rejected_weight`` adds an unreported outcome to the draw, so a
-    postselected distribution keeps its accepted fraction instead of being
-    implicitly renormalized.
+    ``rejected_weight`` adds an unreported outcome to the draw, so the sampled
+    counts reflect how much of the distribution postselection discarded.
     """
     rand = np.random.RandomState(sampler_seed)
     outcomes, weights = zip(*probabilities.items())
@@ -203,9 +202,10 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
         sampler_seed (int): ability to provide a seed for the randomness in the
             sampler for repeatable results. passed as
             `np.random.RandomState(seed)`. If none, `np.random` is used
-        rejected_weight (float): mass discarded by postselection, kept as an
-            unreported outcome so the reported counts and probabilities retain
-            the accepted fraction instead of being implicitly renormalized.
+        rejected_weight (float): mass discarded by postselection. It enters
+            the sampler as an unreported outcome so sampled counts reflect the
+            acceptance rate; it does not enter the returned probabilities,
+            which are conditional on the retained outcomes.
         data_is_histogram (bool): whether ``data`` contains integer histogram
             counts instead of probabilities.
 
@@ -235,25 +235,43 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
             mapped_output, shots, sampler_seed, rejected_weight
         )
 
-    # Build counts and probabilities
+    # Counts stay on the raw scale, so a postselected result reports the
+    # shots that survived. Probabilities are conditional on that surviving
+    # set and sum to one, matching what "postselection" conventionally means.
     counts = {}
     probabilities = {}
-    distribution_total = sum(mapped_output.values()) + rejected_weight
+    retained_total = sum(mapped_output.values())
     for key_int, value in mapped_output.items():
         bitstr = bin(int(key_int))[2:].rjust(
             len(clbits) if clbits else num_qubits, "0"
         )  # e.g. '101'
         if data_is_histogram:
             count = value
-            prob = float(value / distribution_total)
+            prob = value / retained_total
         else:
-            prob = value
-            count = sampled_counts.get(key_int, round(prob * shots))
+            count = sampled_counts.get(key_int, round(value * shots))
+            # Only rescale when postselection actually discarded mass; the
+            # API's probabilities need not sum to exactly one, and rescaling
+            # an untouched distribution would perturb reported values.
+            prob = value / retained_total if rejected_weight else value
         if count:  # ignore zero bins
             counts[bitstr] = int(count)
             probabilities[bitstr] = float(prob)
 
     return counts, probabilities
+
+
+def _postselection_report(retained: int, executed: int) -> dict[str, float | int]:
+    """Describe what postselection kept, so the discarded shots stay visible.
+
+    Probabilities are conditional on the retained shots, which on its own hides
+    how much of the sample was thrown away; this records it alongside them.
+    """
+    return {
+        "retained_shots": retained,
+        "executed_shots": executed,
+        "acceptance_rate": retained / executed if executed else 0.0,
+    }
 
 
 def _decode_distribution_artifact(
@@ -653,8 +671,10 @@ class IonQJob(JobV1):
             postselect_on: Reachable computational-basis states to retain,
                 expressed as Qiskit-order bitstrings. For multi-circuit jobs,
                 pass a sequence with one selector (or ``None``) per circuit.
-                Aggregate probabilities and derived counts are not
-                renormalized; OpenQASM 3 shot results are filtered shot-wise.
+                Probabilities become conditional on the retained shots,
+                counts report only the surviving shots, and each experiment
+                carries a ``postselection`` report of what was discarded;
+                OpenQASM 3 shot results are filtered shot-wise.
 
         Raises:
             IonQJobTimeoutError: If after the default wait period in
@@ -1020,6 +1040,7 @@ class IonQJob(JobV1):
             for shot in shots
             if not (isinstance(shot, dict) and any(shot.get("leakage_bits") or []))
         ]
+        executed_shots = len(shots)
         if postselect_on is not None:
             num_qubits = header.get("n_qubits", self._num_qubits)
             _validate_postselection_states(postselect_on, num_qubits)
@@ -1074,11 +1095,15 @@ class IonQJob(JobV1):
                     "probabilities": probabilities,
                     "metadata": header,
                 },
-                "shots": total,
+                "shots": executed_shots,
                 "header": header,
                 "success": success,
             }
         ]
+        if postselect_on is not None:
+            job_result[0]["postselection"] = _postselection_report(
+                total, executed_shots
+            )
 
         return Result.from_dict(
             {
@@ -1233,9 +1258,12 @@ class IonQJob(JobV1):
                 if data_is_histogram:
                     # Histogram counts, not the requested shot count, are
                     # authoritative. Report the pre-postselection total so
-                    # discarded shots stay visible as ``shots - sum(counts)``,
-                    # matching how the probabilities path reports them.
+                    # ``shots`` stays the size of the executed sample.
                     job_result[i]["shots"] = int(sum(counts.values()) + rejected_weight)
+                if selector is not None:
+                    job_result[i]["postselection"] = _postselection_report(
+                        sum(counts.values()), job_result[i]["shots"]
+                    )
                 raw_shots = (
                     raw_shots_per_circuit[i] if i < len(raw_shots_per_circuit) else None
                 )

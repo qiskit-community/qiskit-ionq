@@ -144,7 +144,15 @@ A few details worth knowing:
 
 - `postselect_on` accepts any collection of bitstrings, so you can post-select on your own criteria instead of `job.reachable_states`.
 - For a multi-circuit job, `job.reachable_states` contains one set per circuit, and `postselect_on` likewise requires one selector (or `None`) per circuit; a circuit that could not be analyzed gets `None` and its results are left unchanged.
-- Discarded outcomes are not redistributed: **post-selection does not renormalize probabilities**.
+- `result.get_probabilities()` is conditional on the retained shots, so it sums to 1 as `P(outcome | accepted)` does. `result.get_counts()` reports only the shots that survived, and `result.results[i].shots` stays the size of the executed sample.
+- How much was discarded is recorded on each experiment, since a conditional distribution alone does not show it:
+
+```python
+result.results[0].postselection
+# {'retained_shots': 616, 'executed_shots': 1234, 'acceptance_rate': 0.4992}
+```
+
+  A low acceptance rate means most shots landed outside the reachable set, which is itself a useful noise diagnostic. It also means fewer effective shots than you asked for, so size your error bars off `retained_shots`, not `shots`.
 
 ### Compilation as a service (`dry_run`)
 

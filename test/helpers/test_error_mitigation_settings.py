@@ -265,8 +265,8 @@ def test_aggregation_uses_published_histogram_counts(mock_backend, requests_mock
     assert result.results[0].shots == 10
 
 
-def test_postselected_histogram_counts_keep_rejected_mass(mock_backend, requests_mock):
-    """Postselecting histogram counts reports the accepted fraction, unrenormalized."""
+def test_postselected_histogram_counts_report_acceptance(mock_backend, requests_mock):
+    """Postselected histogram counts renormalize, and report what was discarded."""
     payload = {"histogram": {"registers": {"output_all": {"00": 3, "10": 7}}}}
     job = _setup_artifact_job(
         mock_backend,
@@ -279,9 +279,14 @@ def test_postselected_histogram_counts_keep_rejected_mass(mock_backend, requests
     result = job.result(aggregation=AggregationMethod.VOTING, postselect_on={"00"})
 
     assert result.get_counts() == {"00": 3}
-    assert result.get_probabilities() == {"00": 0.3}
-    # ``shots`` stays the full sample so the 7 discarded shots remain visible.
+    assert result.get_probabilities() == {"00": 1.0}
+    # ``shots`` stays the executed sample; the 7 discarded shots are reported.
     assert result.results[0].shots == 10
+    assert result.results[0].postselection == {
+        "retained_shots": 3,
+        "executed_shots": 10,
+        "acceptance_rate": 0.3,
+    }
 
 
 def test_multi_circuit_aggregation_uses_each_child_artifact(
