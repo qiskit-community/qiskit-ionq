@@ -654,6 +654,18 @@ def test_capabilities_warn_offline(provider, monkeypatch):
             assert getattr(backend, prop) == []
 
 
+@pytest.mark.parametrize("gateset", ["qis", "native"])
+def test_unlisted_backend_has_no_width_limit(provider, monkeypatch, gateset):
+    """An unlisted backend has unknown width, so any circuit transpiles."""
+    monkeypatch.setattr(provider, "get_backend_config", lambda _name: {})
+    backend = provider.get_backend("ionq_qpu.unlisted-1", gateset=gateset)
+    qc = QuantumCircuit(40)
+    qc.h(0)
+    qc.cx(0, range(1, 40))
+    assert backend.num_qubits is None
+    assert transpile(qc, backend).num_qubits == 40
+
+
 def test_tempo_qpu_target_zz(provider):
     """A native-gateset Tempo QPU backend exposes ZZ (not MS).
 
