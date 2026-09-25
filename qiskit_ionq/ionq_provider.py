@@ -92,9 +92,8 @@ class IonQProvider:
         config = self._catalog.get(api_id)
         if config is None and self._catalog and api_id != "qpu":
             warnings.warn(
-                f"Backend {api_id!r} not in the IonQ catalog; it will be "
-                "built with a fallback qubit count, and its supported gates "
-                "and error mitigation options will be reported as unknown."
+                f"Backend {api_id!r} not in the IonQ catalog; its qubit count, "
+                "supported gates and error mitigation options are unknown."
             )
         return config or {}
 

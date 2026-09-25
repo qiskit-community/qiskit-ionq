@@ -77,11 +77,6 @@ from .ionq_client import Characterization
 if TYPE_CHECKING:  # pragma: no cover
     from .ionq_provider import IonQProvider
 
-# Fallback qubit count when the /backends catalog has no config for a backend
-# (offline, unknown id), so a Target can still be built; real counts come from
-# the API.
-_DEFAULT_NUM_QUBITS = 4
-
 
 class IonQBackend(Backend):
     """Common functionality for all IonQ backends (simulator and QPU)."""
@@ -172,11 +167,10 @@ class IonQBackend(Backend):
         return self._target
 
     @property
-    def num_qubits(self) -> int:
+    def num_qubits(self) -> int | None:
+        """Qubit count from the API catalog, or ``None`` if unlisted."""
         if self._num_qubits is None:
-            self._num_qubits = int(
-                self._get_config().get("qubits", _DEFAULT_NUM_QUBITS)
-            )
+            self._num_qubits = self._get_config().get("qubits")
         return self._num_qubits
 
     @property
@@ -238,8 +232,9 @@ class IonQBackend(Backend):
         return self._config_list("supported_error_mitigations")
 
     @property
-    def coupling_map(self) -> CouplingMap:
-        """Qubit connectivity from the characterization, else all-to-all."""
+    def coupling_map(self) -> CouplingMap | None:
+        """Qubit connectivity from the characterization, else all-to-all
+        (``None`` if ``num_qubits`` is unknown)."""
         return self._get_coupling_map()
 
     @property
@@ -406,7 +401,7 @@ class IonQBackend(Backend):
             return cal.connectivity
         return None
 
-    def _get_coupling_map(self) -> CouplingMap:
+    def _get_coupling_map(self) -> CouplingMap | None:
         """Backend coupling map, resolved once and cached.
 
         Uses the characterization's connectivity when it describes a genuine
@@ -419,6 +414,8 @@ class IonQBackend(Backend):
             return self._coupling_map
 
         n = self.num_qubits
+        if n is None:
+            return None
         pairs = self._fetch_connectivity()
         if pairs:
             # Collect into a set (symmetrize + dedupe + bounds-check) so we can
