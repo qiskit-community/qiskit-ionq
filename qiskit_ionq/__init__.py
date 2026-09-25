@@ -26,6 +26,8 @@
 
 """Provider for IonQ backends"""
 
+from importlib.metadata import version
+
 from .ionq_provider import IonQProvider
 from .ionq_session import Session
 from .ionq_optimizer_plugin import (
@@ -34,10 +36,11 @@ from .ionq_optimizer_plugin import (
     TrappedIonOptimizerPluginCompactGates,
     TrappedIonOptimizerPluginCommuteGpi2ThroughMs,
 )
-from .version import __version__
 from .ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
 from .constants import AggregationMethod, ErrorMitigation
 from .ionq_equivalence_library import add_equivalences
+
+__version__ = version("qiskit-ionq")
 
 __all__ = [
     "__version__",
