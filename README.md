@@ -191,7 +191,7 @@ transpiled_circuit = transpile(qc2, simulator_backend)
 
 ## Contributing
 
-If you'd like to contribute to the IonQ Provider, please take a look at the [contribution guidelines](CONTRIBUTING.md). This project adheres the Qiskit Community code of conduct. By participating, you are agreeing to uphold this code.
+If you'd like to contribute to the IonQ Provider, please take a look at the [contribution guidelines](CONTRIBUTING.md). This project adheres to the Qiskit Community code of conduct. By participating, you are agreeing to uphold this code.
 
 If you have an enhancement request or bug report, we encourage you to open an issue in [this repo's issues tracker](https://github.com/qiskit-partners/qiskit-ionq/issues). If you have a support question or general discussion topic, we recommend instead asking on the [Qiskit community slack](https://qiskit.slack.com/) (you can join using [this link](https://ibm.co/joinqiskitslack)) or the [Quantum Computing StackExchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
@@ -219,7 +219,7 @@ Global pytest fixtures for the test suite can be found in the top-level [test/co
 
 ## SSL certificate issues
 
-If you receive the error `SSLError(SSLCertVerificationError)` or otherwise are unable to connect succesfully, there are a few possible resolutions:
+If you receive the error `SSLError(SSLCertVerificationError)` or otherwise are unable to connect successfully, there are a few possible resolutions:
 
 1. Try accessing <https://api.ionq.co/v0.4/health> in your browser; if this does not load, you need to contact an IT administrator about allowing IonQ API access.
 2. `pip install pip_system_certs` instructs python to use the same certificate roots of trust as your local browser - install this if the first step succeeded but qiskit-ionq continues to have issues.
