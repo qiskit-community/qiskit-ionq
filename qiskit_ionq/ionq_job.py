@@ -72,7 +72,13 @@ def _postselection_selectors(
             "postselect_on must be a collection of bitstrings, not one bitstring"
         )
 
-    values = list(postselect_on)
+    try:
+        values = list(postselect_on)
+    except TypeError as exc:
+        raise TypeError(
+            "postselect_on must be a collection of bitstrings or a sequence "
+            "with one selector (or None) per circuit"
+        ) from exc
     strings = [state for state in values if isinstance(state, str)]
     if len(strings) == len(values):
         if num_circuits != 1:
@@ -97,7 +103,13 @@ def _postselection_selectors(
                 "Each postselection selector must be a collection of bitstrings"
             )
         else:
-            states = set(value)
+            try:
+                states = set(value)
+            except TypeError as exc:
+                raise TypeError(
+                    "Each postselect_on selector must be a collection of "
+                    "bitstrings or None"
+                ) from exc
             if not all(isinstance(state, str) for state in states):
                 raise TypeError(
                     "Postselection states must be computational-basis bitstrings"
@@ -521,6 +533,9 @@ class IonQJob(JobV1):
     def get_counts(self, circuit: QuantumCircuit | None = None) -> dict:
         """Return the counts for the job.
 
+        This convenience method calls ``job.result()`` with default options.
+        For aggregation or post-selection, use ``job.result(...).get_counts()``.
+
         .. ATTENTION::
 
             Result counts for jobs processed by
@@ -685,7 +700,8 @@ class IonQJob(JobV1):
                 :class:`Result <qiskit.result.Result>`.
             IonQJobStateError: If the job was cancelled before this method fetches it.
             TypeError: If ``postselect_on`` (or one of its per-circuit
-                entries) is a bare bitstring or contains non-string states.
+                entries) is a bare bitstring, is not iterable, or contains
+                non-string states.
             ValueError: If ``aggregation`` is not a supported aggregation
                 method, if the number of selectors does not match the job's
                 circuits, or if states are not full-width binary strings.

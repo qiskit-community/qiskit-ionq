@@ -548,6 +548,35 @@ def test_reachable_states_unavailable(mock_backend, requests_mock):
     assert job.reachable_states is None
 
 
+@pytest.mark.parametrize(
+    "postselect_on, children, message",
+    [
+        (42, None, "postselect_on must be a collection of bitstrings"),
+        ([42], None, "Each postselect_on selector must be a collection of bitstrings"),
+        (
+            [{"00"}, 42],
+            ["child_1", "child_2"],
+            "Each postselect_on selector must be a collection of bitstrings",
+        ),
+        ("00", None, "not one bitstring"),
+        (b"00", None, "not one bitstring"),
+    ],
+)
+def test_result_postselection_invalid_input_errors(
+    mock_backend, requests_mock, postselect_on, children, message
+):
+    """Invalid selectors produce errors that explain the postselection input."""
+    job_id = "invalid_postselection_input"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=conftest.dummy_job_response(job_id, children=children),
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)
+    with pytest.raises(TypeError, match=message):
+        job.result(postselect_on=postselect_on)
+
+
 def test_result_postselection_validates_width(mock_backend, requests_mock):
     """A selector must describe full-width computational-basis states."""
     job_id = "bad_postselection"
