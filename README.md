@@ -102,8 +102,9 @@ job = backend.run(qc, shots=1000, debiasing=True, symmetry_verification=True)
 When debiasing is applied, the per-variant results can be combined with different aggregation methods at retrieval time via `job.result(aggregation=...)`:
 
 1. `average` (default),
-2. `voting` (plurality voting, sharpens the distribution; replaces the deprecated `sharpen=True`), or
-3. `dnl` (debiasing with non-linear filtering, see [arXiv:2506.05757](https://arxiv.org/abs/2506.05757)):
+2. `voting` (plurality voting, sharpens the distribution),
+3. `dnl` (debiasing with non-linear filtering, see [arXiv:2506.05757](https://arxiv.org/abs/2506.05757)), or
+4. `majority` (the results the deprecated `sharpen=True` returned):
 
 ```python
 print(job.result(aggregation="voting").get_counts())

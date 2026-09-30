@@ -238,7 +238,7 @@ def test_aggregation_dnl_enum(mock_backend, requests_mock):
     assert job.result(aggregation=AggregationMethod.DNL) is not None
 
 
-@pytest.mark.parametrize("aggregation", ["banana", "majority", "plurality"])
+@pytest.mark.parametrize("aggregation", ["banana", "plurality"])
 def test_unknown_aggregation_fails_before_request(
     mock_backend, requests_mock, aggregation
 ):
@@ -345,9 +345,9 @@ def test_multi_circuit_aggregation_uses_each_child_artifact(
     assert result.get_counts(1) == {"01": 10}
 
 
-def test_sharpen_true_deprecated_maps_to_voting(mock_backend, requests_mock):
-    """sharpen=True emits DeprecationWarning and maps to aggregation='voting'."""
-    job = _setup_job(mock_backend, requests_mock, "?aggregation=voting")
+def test_sharpen_true_deprecated_maps_to_majority(mock_backend, requests_mock):
+    """sharpen=True emits DeprecationWarning and maps to aggregation='majority'."""
+    job = _setup_job(mock_backend, requests_mock, "?aggregation=majority")
     with pytest.warns(DeprecationWarning, match="sharpen parameter is deprecated"):
         result = job.result(sharpen=True)
     assert result is not None
@@ -364,14 +364,14 @@ def test_sharpen_false_deprecated_no_aggregation(mock_backend, requests_mock):
 
 def test_client_get_results_sharpen_positional_back_compat(mock_backend, requests_mock):
     """IonQClient.get_results still accepts sharpen positionally, mapping True
-    to aggregation='voting' with a DeprecationWarning."""
+    to aggregation='majority' with a DeprecationWarning."""
     client = mock_backend.client
     job_id = "test_id"
     # Relative URL as returned by the v0.4 API in a job's results block.
     results_url = f"/v0.4/jobs/{job_id}/results/probabilities"
     requests_mock.get(
         client.make_path("jobs", job_id, "results", "probabilities")
-        + "?aggregation=voting",
+        + "?aggregation=majority",
         status_code=200,
         json={"0": 0.5, "1": 0.5},
     )
