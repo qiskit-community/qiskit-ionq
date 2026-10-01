@@ -29,12 +29,12 @@
 import json
 
 import pytest
-
 from qiskit import QuantumCircuit
 
-from qiskit_ionq.helpers import qiskit_to_ionq
-from qiskit_ionq.constants import AggregationMethod, ResultFormat
 from qiskit_ionq import ionq_job
+from qiskit_ionq.constants import AggregationMethod, ResultFormat
+from qiskit_ionq.helpers import qiskit_to_ionq
+
 from ..utils import dummy_job_response
 
 
@@ -130,47 +130,6 @@ def test_debiasing_none_produces_no_em_block(simulator_backend):
 
 
 # ---------------------------------------------------------------------------
-# Flat kwargs: symmetry_verification=
-# ---------------------------------------------------------------------------
-
-
-def test_sv_true(simulator_backend):
-    """symmetry_verification=True serializes correctly."""
-    args = {"shots": 10, "symmetry_verification": True}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"symmetry_verification": True}
-
-
-def test_sv_false(simulator_backend):
-    """symmetry_verification=False serializes correctly."""
-    args = {"shots": 10, "symmetry_verification": False}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"symmetry_verification": False}
-
-
-def test_sv_none_produces_no_em_block(simulator_backend):
-    """symmetry_verification=None produces no error_mitigation block."""
-    args = {"shots": 10, "symmetry_verification": None}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {}
-
-
-def test_both_flat_kwargs(simulator_backend):
-    """Both flat kwargs serialize together."""
-    args = {"shots": 10, "debiasing": False, "symmetry_verification": False}
-    em_block = _extract_em_settings(
-        qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
-    )
-    assert em_block == {"debiasing": False, "symmetry_verification": False}
-
-
-# ---------------------------------------------------------------------------
 # job_settings escape hatch
 # ---------------------------------------------------------------------------
 
@@ -179,13 +138,13 @@ def test_flat_kwarg_merges_with_job_settings(simulator_backend):
     """Flat kwarg merges with an existing job_settings EM block."""
     args = {
         "shots": 10,
-        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
+        "job_settings": {"error_mitigation": {"_test_passthrough": True}},
         "debiasing": False,
     }
     em_block = _extract_em_settings(
         qiskit_to_ionq(_simple_circuit(), simulator_backend, passed_args=args)
     )
-    assert em_block == {"symmetry_verification": True, "debiasing": False}
+    assert em_block == {"_test_passthrough": True, "debiasing": False}
 
 
 # ---------------------------------------------------------------------------
@@ -304,6 +263,30 @@ def test_aggregation_uses_published_histogram_counts(mock_backend, requests_mock
     assert result.get_counts() == {"00": 3, "01": 7}
     assert result.get_probabilities() == {"00": 0.3, "01": 0.7}
     assert result.results[0].shots == 10
+
+
+def test_postselected_histogram_counts_report_acceptance(mock_backend, requests_mock):
+    """Postselected histogram counts renormalize, and report what was discarded."""
+    payload = {"histogram": {"registers": {"output_all": {"00": 3, "10": 7}}}}
+    job = _setup_artifact_job(
+        mock_backend,
+        requests_mock,
+        AggregationMethod.VOTING.value,
+        ResultFormat.HISTOGRAM_V2.value,
+        payload,
+    )
+
+    result = job.result(aggregation=AggregationMethod.VOTING, postselect_on={"00"})
+
+    assert result.get_counts() == {"00": 3}
+    assert result.get_probabilities() == {"00": 1.0}
+    # ``shots`` stays the executed sample; the 7 discarded shots are reported.
+    assert result.results[0].shots == 10
+    assert result.results[0].postselection == {
+        "retained_shots": 3,
+        "executed_shots": 10,
+        "acceptance_rate": 0.3,
+    }
 
 
 def test_multi_circuit_aggregation_uses_each_child_artifact(

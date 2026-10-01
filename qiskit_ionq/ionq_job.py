@@ -37,22 +37,66 @@
 
 from __future__ import annotations
 
+import functools
 import warnings
-from typing import TYPE_CHECKING, Any, Callable
-import numpy as np
+from collections.abc import Callable, Collection, Sequence
+from typing import TYPE_CHECKING, Any
 
+import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.providers import JobV1, jobstatus
 from qiskit.providers.exceptions import JobTimeoutError
-from .ionq_result import IonQResult as Result
-from .helpers import decompress_metadata_string, normalize
-from .exceptions import IonQBackendError
 
 from . import constants, exceptions
+from .exceptions import IonQBackendError
+from .helpers import decompress_metadata_string, normalize
+from .ionq_result import IonQResult as Result
 
 if TYPE_CHECKING:  # pragma: no cover
-    from . import ionq_backend
-    from . import ionq_client
+    from . import ionq_backend, ionq_client
+
+
+def _postselection_selectors(
+    postselect_on: Collection[str] | Sequence[Collection[str] | None] | None,
+) -> list[set[str] | None] | None:
+    """Normalize postselection input to a list of selectors, or ``None``.
+
+    A flat collection of bitstrings is one selector; anything else is read as
+    a sequence with one selector (or ``None``) per circuit. The caller checks
+    the list's length against the job's circuit count.
+    """
+    if postselect_on is None:
+        return None
+    if isinstance(postselect_on, str):
+        raise TypeError(
+            "postselect_on must be a collection of bitstrings, not one bitstring"
+        )
+    values = list(postselect_on)
+    strings = [value for value in values if isinstance(value, str)]
+    if len(strings) == len(values):
+        return [set(strings)]
+    if strings:
+        raise TypeError(
+            "Each postselect_on selector must be a collection of bitstrings or "
+            "None, not one bitstring"
+        )
+    return [None if value is None else set(value) for value in values]
+
+
+def _validate_postselection_states(states: set[str], num_qubits: int) -> None:
+    if any(len(state) != num_qubits or set(state) - {"0", "1"} for state in states):
+        raise ValueError(
+            f"Postselection states must be {num_qubits}-bit binary strings"
+        )
+
+
+def _postselect_distribution(data: dict, states: set[str], num_qubits: int) -> dict:
+    """Filter a decimal-keyed IonQ distribution using Qiskit-order bitstrings."""
+    _validate_postselection_states(states, num_qubits)
+    allowed = {int(state, 2) for state in states}
+    return {
+        key: probability for key, probability in data.items() if int(key) in allowed
+    }
 
 
 _DISTRIBUTION_ARTIFACT_FORMATS: dict[str, tuple[str, bool]] = {
@@ -83,14 +127,23 @@ def map_output(data, clbits, num_qubits):
 
 
 def _sample_counts(
-    probabilities: dict[int, float], shots: int, sampler_seed: int | None
+    probabilities: dict[int, float],
+    shots: int,
+    sampler_seed: int | None,
+    rejected_weight: float = 0.0,
 ) -> dict[int, int]:
-    """Sample shot counts from a probability distribution."""
+    """Sample shot counts from a probability distribution.
+
+    ``rejected_weight`` adds an unreported outcome to the draw, so the sampled
+    counts reflect how much of the distribution postselection discarded.
+    """
     rand = np.random.RandomState(sampler_seed)
     outcomes, weights = zip(*probabilities.items())
+    if rejected_weight > 0:
+        weights += (rejected_weight,)
     sample_counts = np.bincount(
-        rand.choice(len(outcomes), shots, p=normalize(weights)),
-        minlength=len(outcomes),
+        rand.choice(len(weights), shots, p=normalize(weights)),
+        minlength=len(weights),
     )
     return {outcome: int(count) for outcome, count in zip(outcomes, sample_counts)}
 
@@ -102,6 +155,7 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     shots: int,
     use_sampler: bool = False,
     sampler_seed: int | None = None,
+    rejected_weight: float = 0.0,
     data_is_histogram: bool = False,
 ) -> tuple[dict[str, int], dict[str, float]]:
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
@@ -122,6 +176,10 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
         sampler_seed (int): ability to provide a seed for the randomness in the
             sampler for repeatable results. passed as
             `np.random.RandomState(seed)`. If none, `np.random` is used
+        rejected_weight (float): mass discarded by postselection. It enters
+            the sampler as an unreported outcome so sampled counts reflect the
+            acceptance rate; it does not enter the returned probabilities,
+            which are conditional on the retained outcomes.
         data_is_histogram (bool): whether ``data`` contains integer histogram
             counts instead of probabilities.
 
@@ -147,27 +205,47 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
 
     sampled_counts = {}
     if use_sampler:
-        sampled_counts = _sample_counts(mapped_output, shots, sampler_seed)
+        sampled_counts = _sample_counts(
+            mapped_output, shots, sampler_seed, rejected_weight
+        )
 
-    # Build counts and probabilities
+    # Counts stay on the raw scale, so a postselected result reports the
+    # shots that survived. Probabilities are conditional on that surviving
+    # set and sum to one, matching what "postselection" conventionally means.
     counts = {}
     probabilities = {}
-    distribution_total = sum(mapped_output.values())
+    retained_total = sum(mapped_output.values())
     for key_int, value in mapped_output.items():
         bitstr = bin(int(key_int))[2:].rjust(
             len(clbits) if clbits else num_qubits, "0"
         )  # e.g. '101'
         if data_is_histogram:
             count = value
-            prob = float(value / distribution_total)
+            prob = value / retained_total
         else:
-            prob = value
-            count = sampled_counts.get(key_int, round(prob * shots))
+            count = sampled_counts.get(key_int, round(value * shots))
+            # Only rescale when postselection actually discarded mass; the
+            # API's probabilities need not sum to exactly one, and rescaling
+            # an untouched distribution would perturb reported values.
+            prob = value / retained_total if rejected_weight else value
         if count:  # ignore zero bins
             counts[bitstr] = int(count)
             probabilities[bitstr] = float(prob)
 
     return counts, probabilities
+
+
+def _postselection_report(retained: int, executed: int) -> dict[str, float | int]:
+    """Describe what postselection kept, so the discarded shots stay visible.
+
+    Probabilities are conditional on the retained shots, which on its own hides
+    how much of the sample was thrown away; this records it alongside them.
+    """
+    return {
+        "retained_shots": retained,
+        "executed_shots": executed,
+        "acceptance_rate": retained / executed if executed else 0.0,
+    }
 
 
 def _decode_distribution_artifact(
@@ -257,6 +335,7 @@ class IonQJob(JobV1):
         self._is_qasm3: bool = False
         self._shots_artifact_id: str | None = None
         self._metadata: dict[str, Any] = {}
+        self._child_job_ids: list[str] | None = None
 
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
@@ -344,6 +423,48 @@ class IonQJob(JobV1):
             )
         return self._client.get_artifact(self._job_id, circuits[fmt]["id"])
 
+    def _load_reachable_states(self) -> set[str] | None:
+        """Read reachable states from the job's metadata, if present."""
+        output = self._metadata.get("output") or {}
+        error_mitigation = output.get("error_mitigation") or {}
+        states = error_mitigation.get("reachable_states")
+        return None if states is None else set(states)
+
+    @functools.cached_property
+    def reachable_states(self) -> set[str] | list[set[str] | None] | None:
+        """The computational-basis states each circuit in this job can produce.
+
+        The states are computed by IonQ's compiler when the job is processed.
+        The compiler statically tracks the set of possible basis states,
+        starting from the all-zeros state and stepping through the circuit gate
+        by gate: bit-flip gates (X, Y) permute the tracked states, diagonal
+        gates (Z, Rz, S, T, ZZ, ...) leave them unchanged, and
+        particle-conserving excitation gates add the exchanged states. The
+        result is guaranteed to contain every state the ideal circuit can
+        produce, so any outcome outside it must be caused by noise. The
+        analysis yields no result when the circuit contains gates outside that
+        set (e.g. H, Rx, Ry, which create superpositions the tracker does not
+        follow) or when the tracked set exceeds an internal size cap of 10,000.
+
+        Accessing this property blocks until the job completes. Bitstrings
+        use Qiskit ordering (most-significant bit on the left).
+
+        Returns a single set for a single-circuit job, or one entry per
+        circuit for a multi-circuit job. Returns ``None`` if the job did not
+        complete successfully; an entry of ``None`` means the analysis was
+        unavailable for that circuit.
+        """
+        self.wait_for_final_state()
+        if self._status is not jobstatus.JobStatus.DONE:
+            return None
+
+        if self._child_job_ids:
+            return [
+                IonQJob(self.backend(), child_id, self._client)._load_reachable_states()
+                for child_id in self._child_job_ids
+            ]
+        return self._load_reachable_states()
+
     def cancel(self) -> None:
         """Cancel this job."""
         assert self._job_id is not None, "Cannot cancel a job without a job_id."
@@ -365,6 +486,9 @@ class IonQJob(JobV1):
 
     def get_counts(self, circuit: QuantumCircuit | None = None) -> dict:
         """Return the counts for the job.
+
+        This convenience method calls ``job.result()`` with default options.
+        For aggregation or post-selection, use ``job.result(...).get_counts()``.
 
         .. ATTENTION::
 
@@ -443,7 +567,7 @@ class IonQJob(JobV1):
         if aggregation is None:
             return None
 
-        if self._num_circuits == 1 or not self._children:
+        if self._num_circuits == 1 or not self._child_job_ids:
             descriptor = self._aggregation_artifact_descriptor(
                 self._metadata, aggregation
             )
@@ -452,7 +576,7 @@ class IonQJob(JobV1):
             artifacts = [(self._job_id, descriptor)]
         else:
             artifacts = []
-            for child_id in self._children:
+            for child_id in self._child_job_ids:
                 response = self._client.retrieve_job(child_id)
                 descriptor = self._aggregation_artifact_descriptor(
                     response, aggregation
@@ -485,6 +609,7 @@ class IonQJob(JobV1):
         wait: float = 5,
         callback: Callable | None = None,
         extra_query_params: dict | None = None,
+        postselect_on: Collection[str] | Sequence[Collection[str] | None] | None = None,
     ):  # pylint: disable=too-many-positional-arguments
         """Retrieve job result data, blocking until the job is complete.
 
@@ -512,9 +637,15 @@ class IonQJob(JobV1):
                 <qiskit.providers.BaseJob.wait_for_final_state>`.
             extra_query_params: Extra query parameters forwarded on the
                 results request.
+            postselect_on: Reachable computational-basis states to retain,
+                expressed as Qiskit-order bitstrings. For multi-circuit jobs,
+                pass a sequence with one selector (or ``None``) per circuit.
+                Probabilities become conditional on the retained shots,
+                counts report only the surviving shots, and each experiment
+                carries a ``postselection`` report of what was discarded;
+                OpenQASM 3 shot results are filtered shot-wise.
 
         Raises:
-            ValueError: If ``aggregation`` is not a supported aggregation method.
             IonQJobTimeoutError: If after the default wait period in
                 :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
                 elapses and the job has not reached a "final" state.
@@ -522,6 +653,11 @@ class IonQJob(JobV1):
                 the job itself was never converted to a
                 :class:`Result <qiskit.result.Result>`.
             IonQJobStateError: If the job was cancelled before this method fetches it.
+            TypeError: If ``postselect_on`` (or one of its per-circuit
+                entries) is a bare bitstring rather than a collection.
+            ValueError: If ``aggregation`` is not a supported aggregation
+                method, if the number of selectors does not match the job's
+                circuits, or if states are not full-width binary strings.
 
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
@@ -574,9 +710,20 @@ class IonQJob(JobV1):
                     "job.compiled_circuit(...) to "
                     "retrieve the compiled circuit instead."
                 )
+            selectors = _postselection_selectors(postselect_on)
+            if selectors is not None and len(selectors) != self._num_circuits:
+                raise ValueError(
+                    "postselect_on must provide one selector (or None) for each "
+                    f"of the job's {self._num_circuits} circuits; got "
+                    f"{len(selectors)}"
+                )
             if self._is_qasm3:
+                # qasm3 jobs are single-circuit (enforced at submission),
+                # so there is at most one selector.
+                selector = selectors[0] if selectors else None
                 self._result = self._format_result_qasm3(
-                    self._fetch_qasm3_shots(extra_query_params)
+                    self._fetch_qasm3_shots(extra_query_params),
+                    postselect_on=selector,
                 )
             else:
                 artifact_results = self._fetch_aggregation_artifacts(
@@ -585,7 +732,9 @@ class IonQJob(JobV1):
                 if artifact_results is not None:
                     response, data_is_histogram = artifact_results
                     self._result = self._format_result(
-                        response, data_is_histogram=data_is_histogram
+                        response,
+                        postselect_on=selectors,
+                        data_is_histogram=data_is_histogram,
                     )
                 else:
                     response = self._client.get_results(
@@ -593,7 +742,9 @@ class IonQJob(JobV1):
                         aggregation=aggregation,
                         extra_query_params=extra_query_params,
                     )
-                    self._result = self._format_result(response)
+                    self._result = self._format_result(
+                        response, postselect_on=selectors
+                    )
 
         return self._result
 
@@ -644,13 +795,13 @@ class IonQJob(JobV1):
             self._dry_run = bool(response.get("dry_run", False))
 
             stats = response.get("stats", {})
-            self._children = self._first_of(
+            self._child_job_ids = self._first_of(
                 response, "child_job_ids", "children", default=None
             )
 
-            # Circuit count: if we have children, prefer that length
-            if self._children:
-                self._num_circuits = len(self._children)
+            # Circuit count: if we have child jobs, prefer that length
+            if self._child_job_ids:
+                self._num_circuits = len(self._child_job_ids)
             else:
                 self._num_circuits = self._first_of(stats, "circuits", default=1)
 
@@ -802,15 +953,15 @@ class IonQJob(JobV1):
 
         Single-circuit jobs read the top-level ``results.shots.url`` recorded
         in :attr:`_results_urls` during :meth:`status`. Multi-circuit jobs
-        iterate :attr:`_children` and fetch each child's own ``shots.url``
+        iterate :attr:`_child_job_ids` and fetch each child's own ``shots.url``
         (the parent only carries aggregated probabilities). Failures degrade
         per-circuit -- one bad child does not poison the whole result.
         """
-        if self._num_circuits == 1 or not self._children:
+        if self._num_circuits == 1 or not self._child_job_ids:
             return [self._fetch_raw_shots(self._results_urls.get("shots"))]
 
         per_circuit: list[list | None] = []
-        for child_id in self._children:
+        for child_id in self._child_job_ids:
             try:
                 resp = self._client.retrieve_job(child_id)
             except exceptions.IonQAPIError as err:
@@ -843,7 +994,7 @@ class IonQJob(JobV1):
         )
         return payload.get("shots", [])  # artifact is {"shots": [...]}
 
-    def _format_result_qasm3(self, shots: list):
+    def _format_result_qasm3(self, shots: list, postselect_on: set[str] | None = None):
         """Build a Result from per-register shots, folding the declared
         registers via the header's ``clbit_labels``. ``output_all``
         (system-added) is excluded, as are shots tagged with nonzero
@@ -864,6 +1015,18 @@ class IonQJob(JobV1):
             for shot in shots
             if not (isinstance(shot, dict) and any(shot.get("leakage_bits") or []))
         ]
+        executed_shots = len(shots)
+        if postselect_on is not None:
+            num_qubits = header.get("n_qubits", self._num_qubits)
+            _validate_postselection_states(postselect_on, num_qubits)
+            shots = [
+                shot
+                for shot in shots
+                if isinstance(shot, dict)
+                and (bits := (shot.get("registers") or {}).get("output_all"))
+                is not None
+                and "".join(str(int(bit)) for bit in reversed(bits)) in postselect_on
+            ]
         clbit_labels = header.get("clbit_labels") or []
         # Zero-padded binary so get_counts() splits by creg_sizes.
         width = header.get("memory_slots") or len(clbit_labels)
@@ -907,11 +1070,15 @@ class IonQJob(JobV1):
                     "probabilities": probabilities,
                     "metadata": header,
                 },
-                "shots": total,
+                "shots": executed_shots,
                 "header": header,
                 "success": success,
             }
         ]
+        if postselect_on is not None:
+            job_result[0]["postselection"] = _postselection_report(
+                total, executed_shots
+            )
 
         return Result.from_dict(
             {
@@ -925,7 +1092,12 @@ class IonQJob(JobV1):
             }
         )
 
-    def _format_result(self, data, data_is_histogram: bool = False):
+    def _format_result(
+        self,
+        data,
+        postselect_on: list[set[str] | None] | None = None,
+        data_is_histogram: bool = False,
+    ):
         """Translate IonQ result format into a Qiskit `Result` instance.
 
         Args:
@@ -940,6 +1112,8 @@ class IonQJob(JobV1):
 
                 Probability values may be ``int`` (for example, exact ``0`` or
                 ``1`` from a noiseless simulator) or ``float``.
+            postselect_on: Per-circuit collections of Qiskit-order bitstrings
+                to retain, or ``None`` to keep every outcome.
             data_is_histogram: Whether ``data`` contains histogram counts rather
                 than probabilities.
 
@@ -994,6 +1168,8 @@ class IonQJob(JobV1):
         else:
             raise exceptions.IonQJobError("Unexpected result payload type")
 
+        selectors = postselect_on or [None] * self._num_circuits
+
         # pad headers if API dropped them
         while len(qiskit_header) < self._num_circuits:
             qiskit_header.append({})
@@ -1027,17 +1203,42 @@ class IonQJob(JobV1):
                     clbits = list(range(inferred_nq))
                 n_qubits = header.get("n_qubits", len(clbits) or self._num_qubits)
 
-                counts, probabilities = _build_counts(
-                    data[i],
-                    n_qubits,
-                    clbits,
-                    shots,
-                    use_sampler=is_ideal_sim,
-                    sampler_seed=sampler_seed,
-                    data_is_histogram=data_is_histogram,
-                )
+                selector = selectors[i]
+                if selector is not None:
+                    selected_data = _postselect_distribution(
+                        data[i], selector, n_qubits
+                    )
+                    # Histogram payloads carry counts, probabilities carry mass
+                    # summing to one; either way, hold on to what postselection
+                    # threw away so the survivors are not renormalized.
+                    total = sum(data[i].values()) if data_is_histogram else 1.0
+                    rejected_weight = max(0.0, total - sum(selected_data.values()))
+                else:
+                    selected_data = data[i]
+                    rejected_weight = 0.0
+
+                if selected_data:
+                    counts, probabilities = _build_counts(
+                        selected_data,
+                        n_qubits,
+                        clbits,
+                        shots,
+                        use_sampler=is_ideal_sim,
+                        sampler_seed=sampler_seed,
+                        rejected_weight=rejected_weight,
+                        data_is_histogram=data_is_histogram,
+                    )
+                else:
+                    counts, probabilities = {}, {}
                 if data_is_histogram:
-                    job_result[i]["shots"] = sum(counts.values())
+                    # Histogram counts, not the requested shot count, are
+                    # authoritative. Report the pre-postselection total so
+                    # ``shots`` stays the size of the executed sample.
+                    job_result[i]["shots"] = int(sum(counts.values()) + rejected_weight)
+                if selector is not None:
+                    job_result[i]["postselection"] = _postselection_report(
+                        sum(counts.values()), job_result[i]["shots"]
+                    )
                 raw_shots = (
                     raw_shots_per_circuit[i] if i < len(raw_shots_per_circuit) else None
                 )

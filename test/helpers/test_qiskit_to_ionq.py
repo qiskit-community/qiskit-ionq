@@ -27,23 +27,23 @@
 """Test the qiskit_to_ionq function."""
 
 import json
-import pytest
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+import pytest
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.result import marginal_counts
 from qiskit.transpiler.exceptions import TranspilerError
 
+from qiskit_ionq.constants import ErrorMitigation
 from qiskit_ionq.exceptions import IonQGateError, IonQJobError
 from qiskit_ionq.helpers import (
-    qiskit_to_ionq,
     circuit_requires_qasm3,
-    decompress_metadata_string,
     compress_to_metadata_string,
+    decompress_metadata_string,
     get_user_agent,
+    qiskit_to_ionq,
 )
-from qiskit_ionq.ionq_gates import GPIGate, GPI2Gate, MSGate, ZZGate
-from qiskit_ionq.constants import ErrorMitigation
+from qiskit_ionq.ionq_gates import GPI2Gate, GPIGate, MSGate, ZZGate
 
 
 def test_output_map__with_multiple_measurements_to_different_clbits(
@@ -563,12 +563,12 @@ def test_qasm3_settings_passthrough(qpu_backend):
     """job_settings flow through and flat EM kwargs merge in."""
     args = {
         "shots": 10,
-        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
+        "job_settings": {"error_mitigation": {"_test_passthrough": True}},
         "debiasing": False,
     }
     payload = json.loads(qiskit_to_ionq(_mcm_circuit(), qpu_backend, passed_args=args))
     assert payload["settings"]["error_mitigation"] == {
-        "symmetry_verification": True,
+        "_test_passthrough": True,
         "debiasing": False,
     }
 
@@ -634,23 +634,6 @@ def test_qasm3_reserved_creg(qpu_backend):
         qiskit_to_ionq(qc, qpu_backend, passed_args={"shots": 10})
 
 
-def test_v1_settings_merge(simulator_backend):
-    """v1 path merges flat EM kwargs into job_settings.error_mitigation."""
-    args = {
-        "shots": 10,
-        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
-        "debiasing": False,
-    }
-    qc = QuantumCircuit(1, 1)
-    qc.h(0)
-    qc.measure(0, 0)
-    payload = json.loads(qiskit_to_ionq(qc, simulator_backend, passed_args=args))
-    assert payload["settings"]["error_mitigation"] == {
-        "symmetry_verification": True,
-        "debiasing": False,
-    }
-
-
 # ---------------------------------------------------------------------------
 # Backward compatibility: legacy ErrorMitigation enum emits DeprecationWarning
 # ---------------------------------------------------------------------------
@@ -673,21 +656,3 @@ def test_legacy_error_mitigation_enum_warns(
         ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
     em_block = json.loads(ionq_json)["settings"].get("error_mitigation", {})
     assert em_block == expected
-
-
-def test_legacy_enum_merges_with_job_settings_and_warns(simulator_backend):
-    """Legacy enum still merges into job_settings.error_mitigation while warning."""
-    qc = QuantumCircuit(1, 1)
-    qc.h(0)
-    qc.measure(0, 0)
-    args = {
-        "shots": 10,
-        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
-        "error_mitigation": ErrorMitigation.NO_DEBIASING,
-    }
-    with pytest.warns(DeprecationWarning, match="ErrorMitigation"):
-        payload = json.loads(qiskit_to_ionq(qc, simulator_backend, passed_args=args))
-    assert payload["settings"]["error_mitigation"] == {
-        "symmetry_verification": True,
-        "debiasing": False,
-    }
