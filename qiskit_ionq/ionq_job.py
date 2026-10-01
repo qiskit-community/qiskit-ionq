@@ -498,7 +498,7 @@ class IonQJob(JobV1):
 
         Args:
             sharpen: Deprecated; use ``aggregation`` instead. ``sharpen=True``
-                maps to ``aggregation="voting"``.
+                maps to ``aggregation="majority"``.
             aggregation: How the per-variant results of a debiased job are
                 combined. One of ``"average"`` (default), ``"voting"``, or
                 ``"dnl"``, or an :class:`AggregationMethod
@@ -537,7 +537,7 @@ class IonQJob(JobV1):
                 DeprecationWarning,
             )
             if sharpen is True and aggregation is None:
-                aggregation = constants.AggregationMethod.VOTING
+                aggregation = constants.AggregationMethod.MAJORITY
 
         if isinstance(aggregation, constants.AggregationMethod):
             aggregation = aggregation.value

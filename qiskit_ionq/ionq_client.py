@@ -270,7 +270,7 @@ class IonQClient:
         Args:
             results_url (str): The URL of the job results to retrieve.
             sharpen (bool | None): Deprecated; use ``aggregation`` instead.
-                ``sharpen=True`` maps to ``aggregation="voting"``.
+                ``sharpen=True`` maps to ``aggregation="majority"``.
             extra_query_params (dict): Specify any parameters to include in the request
             aggregation (str | None): Aggregation method for debiased jobs.
                 One of ``"average"`` (default), ``"voting"``, or ``"dnl"``.
@@ -288,7 +288,7 @@ class IonQClient:
                 DeprecationWarning,
             )
             if sharpen is True and aggregation is None:
-                aggregation = "voting"
+                aggregation = "majority"
 
         params = {}
 
