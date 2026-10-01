@@ -1435,6 +1435,12 @@ def test_multi_null_meta_result(mock_backend, requests_mock):
         json=aggregated,
     )
 
+    for child_id in child_ids:
+        requests_mock.get(
+            client.make_path("jobs", child_id),
+            json=conftest.dummy_job_response(child_id),
+        )
+
     # Null-meta handling is the focus here; memory is exercised separately.
     job = ionq_job.IonQJob(
         mock_backend,

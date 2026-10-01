@@ -142,6 +142,9 @@ memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 
 Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
 
+For QIS/native jobs, per-shot memory excludes readouts flagged for leakage.
+Memory contains individual observations; its histogram can differ from the `get_counts()` distribution when cloud mitigation or aggregation is used.
+
 ### Mid-circuit measurements
 
 The IonQ provider supports mid-circuit measurements, qubit reuse, and mid-circuit `reset`. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; the `debiasing`/`symmetry_verification` kwargs work here as well.
