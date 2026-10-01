@@ -58,71 +58,33 @@ if TYPE_CHECKING:  # pragma: no cover
 
 def _postselection_selectors(
     postselect_on: Collection[str] | Sequence[Collection[str] | None] | None,
-    num_circuits: int,
-) -> list[set[str] | None]:
-    """Normalize postselection input to one selector (or ``None``) per circuit.
+) -> list[set[str] | None] | None:
+    """Normalize postselection input to a list of selectors, or ``None``.
 
-    A flat collection of bitstrings is only accepted for single-circuit jobs;
-    multi-circuit jobs must pass one selector (or ``None``) per circuit.
+    A flat collection of bitstrings is one selector; anything else is read as
+    a sequence with one selector (or ``None``) per circuit. The caller checks
+    the list's length against the job's circuit count.
     """
     if postselect_on is None:
-        return [None] * num_circuits
-    if isinstance(postselect_on, (str, bytes)):
+        return None
+    if isinstance(postselect_on, str):
         raise TypeError(
             "postselect_on must be a collection of bitstrings, not one bitstring"
         )
-
-    try:
-        values = list(postselect_on)
-    except TypeError as exc:
-        raise TypeError(
-            "postselect_on must be a collection of bitstrings or a sequence "
-            "with one selector (or None) per circuit"
-        ) from exc
-    strings = [state for state in values if isinstance(state, str)]
+    values = list(postselect_on)
+    strings = [value for value in values if isinstance(value, str)]
     if len(strings) == len(values):
-        if num_circuits != 1:
-            raise ValueError(
-                "postselect_on must provide one selector (or None) for each "
-                f"of the job's {num_circuits} circuits; got a single "
-                "collection of bitstrings"
-            )
         return [set(strings)]
-
-    if len(values) != num_circuits:
-        raise ValueError(
-            "postselect_on must contain one reachable-state collection per circuit"
+    if strings:
+        raise TypeError(
+            "Each postselect_on selector must be a collection of bitstrings or "
+            "None, not one bitstring"
         )
-
-    selectors: list[set[str] | None] = []
-    for value in values:
-        if value is None:
-            selectors.append(None)
-        elif isinstance(value, (str, bytes)):
-            raise TypeError(
-                "Each postselection selector must be a collection of bitstrings"
-            )
-        else:
-            try:
-                states = set(value)
-            except TypeError as exc:
-                raise TypeError(
-                    "Each postselect_on selector must be a collection of "
-                    "bitstrings or None"
-                ) from exc
-            if not all(isinstance(state, str) for state in states):
-                raise TypeError(
-                    "Postselection states must be computational-basis bitstrings"
-                )
-            selectors.append(states)
-    return selectors
+    return [None if value is None else set(value) for value in values]
 
 
 def _validate_postselection_states(states: set[str], num_qubits: int) -> None:
-    if any(
-        len(state) != num_qubits or not state or set(state) - {"0", "1"}
-        for state in states
-    ):
+    if any(len(state) != num_qubits or set(state) - {"0", "1"} for state in states):
         raise ValueError(
             f"Postselection states must be {num_qubits}-bit binary strings"
         )
@@ -700,8 +662,7 @@ class IonQJob(JobV1):
                 :class:`Result <qiskit.result.Result>`.
             IonQJobStateError: If the job was cancelled before this method fetches it.
             TypeError: If ``postselect_on`` (or one of its per-circuit
-                entries) is a bare bitstring, is not iterable, or contains
-                non-string states.
+                entries) is a bare bitstring rather than a collection.
             ValueError: If ``aggregation`` is not a supported aggregation
                 method, if the number of selectors does not match the job's
                 circuits, or if states are not full-width binary strings.
@@ -757,11 +718,17 @@ class IonQJob(JobV1):
                     "job.compiled_circuit(...) to "
                     "retrieve the compiled circuit instead."
                 )
-            selectors = _postselection_selectors(postselect_on, self._num_circuits)
+            selectors = _postselection_selectors(postselect_on)
+            if selectors is not None and len(selectors) != self._num_circuits:
+                raise ValueError(
+                    "postselect_on must provide one selector (or None) for each "
+                    f"of the job's {self._num_circuits} circuits; got "
+                    f"{len(selectors)}"
+                )
             if self._is_qasm3:
                 # qasm3 jobs are single-circuit (enforced at submission),
-                # so there is only one selector.
-                (selector,) = selectors
+                # so there is at most one selector.
+                selector = selectors[0] if selectors else None
                 self._result = self._format_result_qasm3(
                     self._fetch_qasm3_shots(extra_query_params),
                     postselect_on=selector,
@@ -1244,7 +1211,7 @@ class IonQJob(JobV1):
                     clbits = list(range(inferred_nq))
                 n_qubits = header.get("n_qubits", len(clbits) or self._num_qubits)
 
-                selector = selectors[i] if i < len(selectors) else None
+                selector = selectors[i]
                 if selector is not None:
                     selected_data = _postselect_distribution(
                         data[i], selector, n_qubits

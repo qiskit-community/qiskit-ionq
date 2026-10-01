@@ -551,15 +551,11 @@ def test_reachable_states_unavailable(mock_backend, requests_mock):
 @pytest.mark.parametrize(
     "postselect_on, children, message",
     [
-        (42, None, "postselect_on must be a collection of bitstrings"),
-        ([42], None, "Each postselect_on selector must be a collection of bitstrings"),
-        (
-            [{"00"}, 42],
-            ["child_1", "child_2"],
-            "Each postselect_on selector must be a collection of bitstrings",
-        ),
+        (42, None, "not iterable"),
+        ([42], None, "not iterable"),
+        ([{"00"}, 42], ["child_1", "child_2"], "not iterable"),
         ("00", None, "not one bitstring"),
-        (b"00", None, "not one bitstring"),
+        ([{"00"}, "11"], ["child_1", "child_2"], "not one bitstring"),
     ],
 )
 def test_result_postselection_invalid_input_errors(
