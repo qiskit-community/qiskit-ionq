@@ -425,18 +425,10 @@ class IonQJob(JobV1):
 
     def _load_reachable_states(self) -> set[str] | None:
         """Read reachable states from the job's metadata, if present."""
-        states = (
-            (self._metadata.get("output") or {}).get("error_mitigation") or {}
-        ).get("reachable_states")
-        if states is None:
-            return None
-        if not isinstance(states, list) or not all(
-            isinstance(state, str) for state in states
-        ):
-            raise exceptions.IonQJobError(
-                f"Reachable states for job {self._job_id} have an invalid payload"
-            )
-        return set(states)
+        output = self._metadata.get("output") or {}
+        error_mitigation = output.get("error_mitigation") or {}
+        states = error_mitigation.get("reachable_states")
+        return None if states is None else set(states)
 
     @functools.cached_property
     def reachable_states(self) -> set[str] | list[set[str] | None] | None:
