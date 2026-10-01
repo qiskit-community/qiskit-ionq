@@ -81,7 +81,7 @@ class AggregationMethod(enum.Enum):
     - ``DNL``: debiasing with non-linear filtering — a power-law filter that
       suppresses outcomes observed in only a few variants
       (see `arXiv:2506.05757 <https://arxiv.org/abs/2506.05757>`__).
-    - ``MAJORITY``: the results the deprecated ``sharpen=True`` returned.
+    - ``MAJORITY``: all counts from each execution are assigned to the highest-probability bitstring from that execution (also known as plurality voting).
     """
 
     AVERAGE = "average"
