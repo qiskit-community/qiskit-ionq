@@ -121,11 +121,12 @@ Some circuits have symmetries (e.g. a conserved parity, a fixed particle number,
 If one of those outcomes shows up on hardware, it must be caused by noise and symmetry verification discards it.
 
 When IonQ compiles your job, it analyzes each circuit and computes a set guaranteed to contain every bitstring the circuit could produce.
-That set is available as `job.reachable_states`, and you can post-select on it when fetching results:
+That set is available from `job.reachable_states()`, and you can post-select on it when fetching results.
+The analysis is published as soon as the job is compiled, so `reachable_states()` blocks only until then, normally a few seconds after submission, even while the job is still queued.
 
 ```python
 job = backend.run(qc, shots=1000)
-result = job.result(postselect_on=job.reachable_states)
+result = job.result(postselect_on=job.reachable_states())
 print(result.get_counts())
 ```
 
@@ -135,15 +136,15 @@ Because post-selection happens after aggregation, it combines freely with debias
 job = backend.run(qc, shots=1000, debiasing=True)
 result = job.result(
     aggregation="dnl",
-    postselect_on=job.reachable_states,
+    postselect_on=job.reachable_states(),
 )
 print(result.get_counts())
 ```
 
 A few details worth knowing:
 
-- `postselect_on` accepts any collection of bitstrings, so you can post-select on your own criteria instead of `job.reachable_states`.
-- For a multi-circuit job, `job.reachable_states` contains one set per circuit, and `postselect_on` likewise requires one selector (or `None`) per circuit; a circuit that could not be analyzed gets `None` and its results are left unchanged.
+- `postselect_on` accepts any collection of bitstrings, so you can post-select on your own criteria instead of `job.reachable_states()`.
+- For a multi-circuit job, `job.reachable_states()` returns one set per circuit, and `postselect_on` likewise requires one selector (or `None`) per circuit; a circuit that could not be analyzed gets `None` and its results are left unchanged.
 - `result.get_probabilities()` is conditional on the retained shots, so it sums to 1 as `P(outcome | accepted)` does. `result.get_counts()` reports only the shots that survived, and `result.results[i].shots` stays the size of the executed sample.
 - How much was discarded is recorded on each experiment, since a conditional distribution alone does not show it:
 

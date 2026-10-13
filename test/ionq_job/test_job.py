@@ -519,8 +519,8 @@ def test_reachable_states_and_result_postselection(mock_backend, requests_mock):
 
     job = ionq_job.IonQJob(mock_backend, job_id)
 
-    assert job.reachable_states == {"00", "10"}
-    result = job.result(postselect_on=job.reachable_states)
+    assert job.reachable_states() == {"00", "10"}
+    result = job.result(postselect_on=job.reachable_states())
 
     assert result.get_counts() == {"00": 308, "10": 308}
     # Probabilities are conditional on the retained outcomes and sum to one;
@@ -545,7 +545,86 @@ def test_reachable_states_unavailable(mock_backend, requests_mock):
     )
 
     job = ionq_job.IonQJob(mock_backend, job_id)
-    assert job.reachable_states is None
+    assert job.reachable_states() is None
+
+
+def test_reachable_states_available_once_compiled(mock_backend, requests_mock):
+    """Reachable states are returned as soon as the job is compiled, before it
+    completes, and are cached afterwards."""
+    job_id = "compiled_not_done"
+    client = mock_backend.client
+    submitted = conftest.dummy_job_response(job_id, status="submitted")
+    ready = conftest.dummy_job_response(job_id, status="ready")
+    ready["output"] = {"error_mitigation": {"reachable_states": ["00", "10"]}}
+    completed = conftest.dummy_job_response(job_id)
+    completed["output"] = ready["output"]
+    requests_mock.get(
+        client.make_path("jobs", job_id),
+        [
+            {"json": submitted},
+            {"json": submitted},
+            {"json": ready},
+            {"json": completed},
+        ],
+    )
+    requests_mock.get(
+        client.make_path("jobs", job_id, "results", "probabilities"),
+        json={"0": 0.5, "2": 0.5},
+    )
+
+    job = ionq_job.IonQJob(mock_backend, job_id)  # fetches "submitted"
+
+    # Still "submitted" on the first poll, compiled on the second.
+    with mock.patch.object(ionq_job.time, "sleep") as sleep:
+        assert job.reachable_states() == {"00", "10"}
+    sleep.assert_called_once()
+    assert job._status is jobstatus.JobStatus.QUEUED
+    assert requests_mock.call_count == 3
+    # The answer is cached: no further request on repeat calls.
+    assert job.reachable_states() == {"00", "10"}
+    assert requests_mock.call_count == 3
+
+    result = job.result(postselect_on=job.reachable_states())
+    assert set(result.get_counts()) == {"00", "10"}
+
+
+def test_reachable_states_cancelled_before_compilation(mock_backend, requests_mock):
+    """A job that ends before it is compiled has no reachable states."""
+    job_id = "cancelled_early"
+    requests_mock.get(
+        mock_backend.client.make_path("jobs", job_id),
+        json=conftest.dummy_job_response(job_id, status="canceled"),
+    )
+
+    with pytest.warns(UserWarning, match="cancelled"):
+        job = ionq_job.IonQJob(mock_backend, job_id)
+    assert job.reachable_states() is None
+
+
+def test_reachable_states_multi_circuit_waits_per_child(mock_backend, requests_mock):
+    """Each child is compiled on its own; the parent only needs the child ids."""
+    parent_id, child_ids = "multi_parent", ["child_a", "child_b"]
+    client = mock_backend.client
+    requests_mock.get(
+        client.make_path("jobs", parent_id),
+        json=conftest.dummy_multi_parent_response(parent_id, child_ids, status="ready"),
+    )
+    child_a = conftest.dummy_job_response("child_a", status="ready")
+    child_a["output"] = {"error_mitigation": {"reachable_states": ["01"]}}
+    requests_mock.get(client.make_path("jobs", "child_a"), json=child_a)
+    child_b_pending = conftest.dummy_job_response("child_b", status="submitted")
+    child_b_compiled = conftest.dummy_job_response("child_b", status="ready")
+    child_b_compiled["output"] = {"error_mitigation": {"debiasing": False}}
+    requests_mock.get(
+        client.make_path("jobs", "child_b"),
+        [{"json": child_b_pending}, {"json": child_b_compiled}],
+    )
+
+    job = ionq_job.IonQJob(mock_backend, parent_id)
+
+    assert job.reachable_states() == [{"01"}, None]
+    # Parent and child_a were compiled on first fetch; child_b needed one poll.
+    assert requests_mock.call_count == 4
 
 
 @pytest.mark.parametrize(
@@ -1649,7 +1728,7 @@ def test_qasm3_reachable_states_postselect_shots(mock_backend, requests_mock):
         json=_QASM3_SHOTS,
     )
     job = mock_backend.run(_mcm_circuit(), shots=4, memory=True)
-    result = job.result(postselect_on=job.reachable_states)
+    result = job.result(postselect_on=job.reachable_states())
 
     assert result.get_counts() == {"00 0": 1, "01 1": 1}
     assert result.get_memory() == ["00 0", "01 1"]

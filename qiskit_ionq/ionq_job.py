@@ -37,7 +37,7 @@
 
 from __future__ import annotations
 
-import functools
+import time
 import warnings
 from collections.abc import Callable, Collection, Sequence
 from typing import TYPE_CHECKING, Any
@@ -336,6 +336,8 @@ class IonQJob(JobV1):
         self._shots_artifact_id: str | None = None
         self._metadata: dict[str, Any] = {}
         self._child_job_ids: list[str] | None = None
+        self._reachable_states: set[str] | list[set[str] | None] | None = None
+        self._reachable_states_resolved = False
 
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
@@ -430,9 +432,31 @@ class IonQJob(JobV1):
         states = error_mitigation.get("reachable_states")
         return None if states is None else set(states)
 
-    @functools.cached_property
+    def _is_compiled(self) -> bool:
+        """Whether compile-time metadata has been published for this job.
+
+        The API writes ``output.error_mitigation`` when compilation finishes,
+        before the job is queued for execution. A multi-circuit parent is
+        compiled per child, so knowing the child ids is enough to proceed.
+        """
+        output = self._metadata.get("output") or {}
+        return "error_mitigation" in output or bool(self._child_job_ids)
+
+    def _wait_for_compilation(self) -> None:
+        """Poll until this job is compiled or reaches a final state."""
+
+        def ready() -> bool:
+            return self._is_compiled() or self._status in jobstatus.JOB_FINAL_STATES
+
+        if ready():
+            return
+        self.status()
+        while not ready():
+            time.sleep(5)  # same cadence as wait_for_final_state()
+            self.status()
+
     def reachable_states(self) -> set[str] | list[set[str] | None] | None:
-        """The computational-basis states each circuit in this job can produce.
+        """Return the computational-basis states each circuit in this job can produce.
 
         The states are computed by IonQ's compiler when the job is processed.
         The compiler statically tracks the set of possible basis states,
@@ -446,24 +470,34 @@ class IonQJob(JobV1):
         set (e.g. H, Rx, Ry, which create superpositions the tracker does not
         follow) or when the tracked set exceeds an internal size cap of 10,000.
 
-        Accessing this property blocks until the job completes. Bitstrings
-        use Qiskit ordering (most-significant bit on the left).
+        This method blocks until circuit compilation is complete, and caches the
+        answer so later calls make no further requests. Bitstrings use Qiskit
+        ordering (most-significant bit on the left).
 
-        Returns a single set for a single-circuit job, or one entry per
-        circuit for a multi-circuit job. Returns ``None`` if the job did not
-        complete successfully; an entry of ``None`` means the analysis was
-        unavailable for that circuit.
+        Returns:
+            A single set for a single-circuit job, or one entry per circuit for
+            a multi-circuit job. An entry is ``None`` when the analysis was
+            unavailable for that circuit, or when the job was cancelled before
+            it was compiled.
         """
-        self.wait_for_final_state()
-        if self._status is not jobstatus.JobStatus.DONE:
-            return None
+        if self._reachable_states_resolved:
+            return self._reachable_states
 
+        self._wait_for_compilation()
+
+        states: set[str] | list[set[str] | None] | None
         if self._child_job_ids:
-            return [
-                IonQJob(self.backend(), child_id, self._client)._load_reachable_states()
-                for child_id in self._child_job_ids
-            ]
-        return self._load_reachable_states()
+            states = []
+            for child_id in self._child_job_ids:
+                child = IonQJob(self.backend(), child_id, self._client)
+                child._wait_for_compilation()
+                states.append(child._load_reachable_states())
+        else:
+            states = self._load_reachable_states()
+
+        self._reachable_states = states
+        self._reachable_states_resolved = True
+        return states
 
     def cancel(self) -> None:
         """Cancel this job."""
@@ -786,8 +820,13 @@ class IonQJob(JobV1):
                 f"Unknown or unmappable job status {api_response_status}"
             ) from ex
 
-        if self._status in jobstatus.JOB_FINAL_STATES:
-            self._save_metadata(response)
+        # Keep the latest response on every poll, not only the final one:
+        # compile-time output such as reachable states is published while the
+        # job is still queued, and child job ids are known from submission.
+        self._save_metadata(response)
+        self._child_job_ids = self._first_of(
+            response, "child_job_ids", "children", default=None
+        )
 
         if self._status == jobstatus.JobStatus.DONE:
             # Track dry-run regardless of source; the API echoes it as a
@@ -795,9 +834,6 @@ class IonQJob(JobV1):
             self._dry_run = bool(response.get("dry_run", False))
 
             stats = response.get("stats", {})
-            self._child_job_ids = self._first_of(
-                response, "child_job_ids", "children", default=None
-            )
 
             # Circuit count: if we have child jobs, prefer that length
             if self._child_job_ids:
