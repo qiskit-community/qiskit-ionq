@@ -266,16 +266,16 @@ def test_unknown_aggregation_fails_before_request(
         (AggregationMethod.DNL, "01", "10"),
     ],
 )
-def test_aggregation_uses_published_probability_artifact(
+def test_aggregation_uses_published_artifact(
     mock_backend, requests_mock, aggregation, wire_state, expected_state
 ):
     """Every SDK aggregation method resolves its own published artifact."""
-    payload = {"probabilities": {"registers": {"output_all": {wire_state: 1.0}}}}
+    payload = {"histogram": {"registers": {"output_all": {wire_state: 10}}}}
     job = _setup_artifact_job(
         mock_backend,
         requests_mock,
         aggregation.value,
-        ResultFormat.PROBABILITIES_V2.value,
+        ResultFormat.HISTOGRAM_V2.value,
         payload,
     )
 

@@ -108,23 +108,9 @@ def test_default_preserves_cloud_mitigation(mock_backend, requests_mock, v2_only
     assert requests_mock.last_request.path.endswith(ResultFormat.PROBABILITIES_V2.value)
 
 
-@pytest.mark.parametrize(
-    "descriptor",
-    [
-        None,
-        {},
-        {"id": "unsupported", "format": "future"},
-        {"id": "wrong-format", "format": ResultFormat.HISTOGRAM_V2},
-    ],
-)
-def test_default_legacy_fallback(mock_backend, requests_mock, descriptor):
-    """Missing/unusable default descriptors retain the legacy distribution."""
+def test_default_legacy_fallback(mock_backend, requests_mock):
+    """Jobs from before v2 result artifacts keep the legacy distribution."""
     response = _response("legacy")
-    response["results"][ResultFormat.PROBABILITIES_V2] = descriptor
-    response["results"][ResultFormat.HISTOGRAM_V2] = {
-        "id": "raw-histogram",
-        "format": ResultFormat.HISTOGRAM_V2,
-    }
     client = mock_backend.client
     requests_mock.get(
         client.make_path("jobs", "legacy", "results", "probabilities"), json={"2": 1.0}
@@ -182,30 +168,19 @@ def test_missing_method_keeps_legacy_query(mock_backend, requests_mock):
 
 
 @pytest.mark.parametrize(
-    "aggregation,formats",
-    [
-        (None, [ResultFormat.PROBABILITIES_V2, ResultFormat.PROBABILITIES_V2]),
-        ("dnl", [ResultFormat.PROBABILITIES_V2, ResultFormat.PROBABILITIES_V2]),
-        ("dnl", [ResultFormat.PROBABILITIES_V2, ResultFormat.HISTOGRAM_V2]),
-        ("dnl", [ResultFormat.HISTOGRAM_V2, ResultFormat.PROBABILITIES_V2]),
-    ],
+    "aggregation,result_format",
+    [(None, ResultFormat.PROBABILITIES_V2), ("dnl", ResultFormat.HISTOGRAM_V2)],
 )
-def test_batch_order_and_mixed_formats(
-    mock_backend, requests_mock, aggregation, formats
-):
-    """Each child's type and input order survive decoding, including mixed formats."""
+def test_batch_order(mock_backend, requests_mock, aggregation, result_format):
+    """Each child's distribution keeps its circuit's position in the batch."""
     parent = _response("batch")
     parent["child_job_ids"] = ["z-first", "a-second"]
     client = mock_backend.client
-    expected = []
-    totals = []
-    for child_id, wire_state, result_format in zip(
-        parent["child_job_ids"], ["10", "01"], formats
-    ):
+    is_histogram = result_format == ResultFormat.HISTOGRAM_V2
+    key = "histogram" if is_histogram else "probabilities"
+    value = 4 if is_histogram else 1.0
+    for child_id, wire_state in zip(parent["child_job_ids"], ["10", "01"]):
         child = _response(child_id)
-        is_histogram = result_format == ResultFormat.HISTOGRAM_V2
-        key = "histogram" if is_histogram else "probabilities"
-        value = 4 if is_histogram else 1.0
         _artifact(
             requests_mock,
             client,
@@ -215,12 +190,10 @@ def test_batch_order_and_mixed_formats(
             aggregation=aggregation,
         )
         requests_mock.get(client.make_path("jobs", child_id), json=child)
-        total = 4 if is_histogram else 10
-        expected.append({wire_state[::-1]: total})
-        totals.append(total)
+    total = 4 if is_histogram else 10
     result = _job(mock_backend, requests_mock, parent).result(aggregation=aggregation)
-    assert result.get_counts() == expected
-    assert [experiment.shots for experiment in result.results] == totals
+    assert result.get_counts() == [{"01": total}, {"10": total}]
+    assert [experiment.shots for experiment in result.results] == [total, total]
 
 
 def test_batch_legacy_fallback(mock_backend, requests_mock):
@@ -258,6 +231,35 @@ def test_one_child_batch_uses_artifact(mock_backend, requests_mock):
     )
     requests_mock.get(client.make_path("jobs", child["id"]), json=child)
     assert _job(mock_backend, requests_mock, parent).result().get_counts() == {"01": 10}
+
+
+def test_batch_retrieves_each_child_once(mock_backend, requests_mock):
+    """Distributions and memory share a single retrieval of each child."""
+    parent = _response("once")
+    parent["child_job_ids"] = ["child-a", "child-b"]
+    client = mock_backend.client
+    for child_id in parent["child_job_ids"]:
+        child = _response(child_id)
+        _artifact(
+            requests_mock,
+            client,
+            child,
+            ResultFormat.PROBABILITIES_V2,
+            {"probabilities": {"registers": {"output_all": {"10": 1.0}}}},
+        )
+        _artifact(
+            requests_mock,
+            client,
+            child,
+            ResultFormat.SHOTS_V2,
+            {"shots": [{"registers": {"output_all": [1, 0]}}]},
+        )
+        requests_mock.get(client.make_path("jobs", child_id), json=child)
+    result = _job(mock_backend, requests_mock, parent, memory=True).result()
+    assert result.get_memory(0) == result.get_memory(1) == ["01"]
+    requested = [request.url for request in requests_mock.request_history]
+    for child_id in parent["child_job_ids"]:
+        assert requested.count(client.make_path("jobs", child_id)) == 1
 
 
 def test_default_simulator_sampling(simulator_backend, requests_mock):
