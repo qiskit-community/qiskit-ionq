@@ -1435,6 +1435,12 @@ def test_multi_null_meta_result(mock_backend, requests_mock):
         json=aggregated,
     )
 
+    for child_id in child_ids:
+        requests_mock.get(
+            client.make_path("jobs", child_id),
+            json=conftest.dummy_job_response(child_id),
+        )
+
     # Null-meta handling is the focus here; memory is exercised separately.
     job = ionq_job.IonQJob(
         mock_backend,
@@ -1598,10 +1604,8 @@ def test_qasm3_missing_reg_warns(mock_backend, requests_mock):
     assert res.get_counts() == {"01 0": 1}
 
 
-def test_qasm3_leaked_shots_excluded(mock_backend, requests_mock):
-    """Shots tagged with nonzero ``leakage_bits`` are invalid readouts and are
-    excluded from counts/memory, matching the platform's histogram and
-    probabilities aggregation (e.g. the staging stub's forced ~5% surplus)."""
+def test_qasm3_leaked_shots_counted(mock_backend, requests_mock):
+    """Leaked shots count in counts and memory, as on IonQ Cloud, and are flagged."""
     job_id = "mcm_leak"
     artifact_id = "shots-leak"
     client = mock_backend.client
@@ -1610,8 +1614,7 @@ def test_qasm3_leaked_shots_excluded(mock_backend, requests_mock):
         client.make_path("jobs", job_id),
         json=_qasm3_job_response(job_id, artifact_id),
     )
-    # An all-zero mask is "not leaked" and must still count; a set bit drops
-    # the whole shot.
+    # Any non-empty leakage_bits marks a leaked shot, even all zeros.
     zero_mask = {
         "registers": {"mid": [0], "result": [0, 0], "output_all": [1]},
         "leakage_bits": [0],
@@ -1628,9 +1631,10 @@ def test_qasm3_leaked_shots_excluded(mock_backend, requests_mock):
     job = mock_backend.run(_mcm_circuit(), shots=5, memory=True)
     res = job.result()
 
-    # The leaked shot ("11 1") disappears; totals match the clean shot count.
-    assert res.get_counts() == {"00 0": 4, "01 1": 1}
-    assert len(res.get_memory()) == 5
+    # Both leaked shots still count, so the total can exceed the shots requested.
+    assert res.get_counts() == {"00 0": 4, "01 1": 1, "11 1": 1}
+    assert len(res.get_memory()) == 6
+    assert res.get_leaked() == [False] * 4 + [True, True]
 
 
 def test_qasm3_memory_false(mock_backend, requests_mock):

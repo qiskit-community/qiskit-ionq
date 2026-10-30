@@ -38,7 +38,10 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Any, Callable
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from functools import partial
+from typing import TYPE_CHECKING, Any, Callable, Iterable, NamedTuple, TypeVar
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -55,10 +58,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_client
 
 
-_DISTRIBUTION_ARTIFACT_FORMATS: dict[str, tuple[str, bool]] = {
-    constants.ResultFormat.HISTOGRAM_V2.value: ("histogram", True),
-    constants.ResultFormat.PROBABILITIES_V2.value: ("probabilities", False),
-}
+# Multi-circuit results take a request per child; bound how many run at once.
+_MAX_CONCURRENT_REQUESTS = 8
+
+_R = TypeVar("_R")
 
 
 def map_output(data, clbits, num_qubits):
@@ -170,25 +173,21 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     return counts, probabilities
 
 
+def _wire_order_to_decimal(bits: str | list[int]) -> int:
+    """Read wire-order bits (qubit 0 first) as an integer whose lowest bit is qubit 0."""
+    return int("".join(str(bit) for bit in bits)[::-1] or "0", 2)
+
+
 def _decode_distribution_artifact(
-    payload: Any, result_format: str
-) -> tuple[dict[str, int | float], bool]:
-    """Decode a result artifact into the legacy decimal-keyed shape.
-
-    Result artifacts use wire-order bitstrings (qubit 0 first), while the existing
-    result formatter consumes decimal keys with qubit 0 as the least-significant
-    bit. Return whether the values are histogram counts so they can be preserved
-    exactly rather than multiplied by the requested shot count.
-    """
-    result_key, is_histogram = _DISTRIBUTION_ARTIFACT_FORMATS[result_format]
-
-    distribution = payload[result_key]["registers"]["output_all"]
+    distribution: dict[str, Any],
+) -> dict[str, int | float]:
+    """Re-key an artifact's ``output_all`` distribution by legacy decimal outcome."""
     decimal_distribution: dict[str, int | float] = {}
-    for bitstring, value in distribution.items():
-        decimal = str(int(bitstring[::-1] or "0", 2))
+    for bitstring, value in distribution["registers"]["output_all"].items():
+        decimal = str(_wire_order_to_decimal(bitstring))
         decimal_distribution[decimal] = decimal_distribution.get(decimal, 0) + value
 
-    return decimal_distribution, is_histogram
+    return decimal_distribution
 
 
 def _build_memory(
@@ -218,6 +217,82 @@ def _build_memory(
         return mapped.rjust(out_width, "0")
 
     return [remap_raw_shot(s) for s in raw_shots]
+
+
+def _is_leaked(shot: dict[str, Any]) -> bool:
+    """Whether a v2 shot leaked: any non-empty ``leakage_bits``, even all zeros.
+
+    Upstream has stored real leaked shots as all zeros. A missing or empty list
+    is clean.
+    """
+    return bool(shot.get("leakage_bits"))
+
+
+class _Shots(NamedTuple):
+    """One circuit's shots as legacy decimal outcomes, plus per-shot leak flags.
+
+    ``leaked`` is ``None`` when the source, a legacy results URL, has no flags.
+    """
+
+    outcomes: list[int | str]
+    leaked: list[bool] | None
+
+
+def _map_concurrently(func: Callable[..., _R], *iterables: Iterable[Any]) -> list[_R]:
+    """Map ``func`` over ``iterables`` on a bounded thread pool, keeping input order.
+
+    The first exception raised by ``func`` propagates, as it would from a loop.
+    """
+    with ThreadPoolExecutor(max_workers=_MAX_CONCURRENT_REQUESTS) as pool:
+        return list(pool.map(func, *iterables))
+
+
+@dataclass(frozen=True)
+class _CircuitResults:
+    """One circuit's result locations, parsed once from its job response.
+
+    Jobs that predate v2 result artifacts have no artifact IDs and are read from
+    their legacy result URLs instead.
+
+    Attributes:
+        job_id: The job that owns the artifacts (a child, in a multi-circuit job).
+        probabilities_id: The default distribution
+            (``ionq.result.probabilities.json.v2``).
+        shots_id: Per-shot outcomes (``ionq.result.shots.json.v2``).
+        legacy_shots_url: Per-shot outcomes for jobs without ``shots_id``.
+        aggregation_ids: Each aggregation method's histogram
+            (``ionq.result.histogram.json.v2``), on debiased jobs.
+    """
+
+    job_id: str
+    probabilities_id: str | None
+    shots_id: str | None
+    legacy_shots_url: str | None
+    aggregation_ids: dict[str, str]
+
+    @classmethod
+    def from_response(cls, response: dict[str, Any]) -> _CircuitResults:
+        """Parse the result locations out of a job response."""
+        results = response.get("results") or {}
+        probabilities = results.get(constants.ResultFormat.PROBABILITIES_V2)
+        shots = results.get(constants.ResultFormat.SHOTS_V2)
+        error_mitigation = (response.get("output") or {}).get("error_mitigation")
+        aggregations = (error_mitigation or {}).get("aggregations") or {}
+        return cls(
+            job_id=response["id"],
+            probabilities_id=None if probabilities is None else probabilities["id"],
+            shots_id=None if shots is None else shots["id"],
+            legacy_shots_url=results["shots"]["url"] if "shots" in results else None,
+            aggregation_ids={
+                method: descriptor["id"] for method, descriptor in aggregations.items()
+            },
+        )
+
+    def distribution_id(self, aggregation: str | None) -> str | None:
+        """Artifact ID of ``aggregation``'s histogram, or of the default if ``None``."""
+        if aggregation is None:
+            return self.probabilities_id
+        return self.aggregation_ids.get(aggregation)
 
 
 class IonQJob(JobV1):
@@ -414,68 +489,49 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
-    @staticmethod
-    def _aggregation_artifact_descriptor(
-        response: dict[str, Any], aggregation: str
-    ) -> dict[str, Any] | None:
-        """Return a usable per-method result artifact descriptor, if published."""
-        output = response.get("output") or {}
-        error_mitigation = output.get("error_mitigation") or {}
-        aggregations = error_mitigation.get("aggregations") or {}
-        descriptor = aggregations.get(aggregation)
-        if not isinstance(descriptor, dict) or not descriptor.get("id"):
-            return None
-        if descriptor.get("format") not in _DISTRIBUTION_ARTIFACT_FORMATS:
-            return None
-        return descriptor
+    def _circuit_results(self) -> list[_CircuitResults]:
+        """Return each circuit's result locations, in circuit order.
 
-    def _fetch_aggregation_artifacts(
+        A multi-circuit job keeps per-circuit results on its children (the
+        parent only has an aggregate), so each child is retrieved once and
+        shared by the distributions and memory.
+        """
+        if not self._children:
+            return [_CircuitResults.from_response(self._metadata)]
+        responses = _map_concurrently(self._client.retrieve_job, self._children)
+        return [_CircuitResults.from_response(response) for response in responses]
+
+    def _fetch_result_artifacts(
         self,
+        circuits: list[_CircuitResults],
         aggregation: str | None,
         extra_query_params: dict | None,
     ) -> tuple[list[dict[str, int | float]], bool] | None:
-        """Fetch a requested aggregation from its published artifact(s).
+        """Fetch each circuit's distribution by artifact ID: the default
+        probabilities, or ``aggregation``'s histogram, never the default instead.
 
-        Older and single-execution jobs do not publish per-method artifacts;
-        return ``None`` for those so the legacy probabilities URL remains the
-        compatibility fallback.
+        Return ``None`` if any circuit lacks that artifact (an older job, or a
+        method on a job run without debiasing), so the legacy endpoint serves
+        the whole job. Otherwise return the distributions and whether they are
+        histogram counts.
         """
-        if aggregation is None:
+        artifact_ids = [circuit.distribution_id(aggregation) for circuit in circuits]
+        if None in artifact_ids:
             return None
 
-        if self._num_circuits == 1 or not self._children:
-            descriptor = self._aggregation_artifact_descriptor(
-                self._metadata, aggregation
-            )
-            if descriptor is None:
-                return None
-            artifacts = [(self._job_id, descriptor)]
-        else:
-            artifacts = []
-            for child_id in self._children:
-                response = self._client.retrieve_job(child_id)
-                descriptor = self._aggregation_artifact_descriptor(
-                    response, aggregation
-                )
-                if descriptor is None:
-                    return None
-                artifacts.append((child_id, descriptor))
-
-        decoded = []
-        histogram_formats = set()
-        for job_id, descriptor in artifacts:
-            payload = self._client.get_artifact(
-                job_id,
-                descriptor["id"],
-                extra_query_params=extra_query_params,
-            )
-            distribution, is_histogram = _decode_distribution_artifact(
-                payload, descriptor["format"]
-            )
-            decoded.append(distribution)
-            histogram_formats.add(is_histogram)
-
-        return decoded, histogram_formats.pop()
+        payloads = _map_concurrently(
+            partial(self._client.get_artifact, extra_query_params=extra_query_params),
+            [circuit.job_id for circuit in circuits],
+            artifact_ids,
+        )
+        # The default is published as probabilities, every aggregation method as
+        # histogram counts.
+        is_histogram = aggregation is not None
+        result_key = "histogram" if is_histogram else "probabilities"
+        distributions = [
+            _decode_distribution_artifact(payload[result_key]) for payload in payloads
+        ]
+        return distributions, is_histogram
 
     def result(
         self,
@@ -495,6 +551,12 @@ class IonQJob(JobV1):
         This method calls the
         :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
         method to poll for a completed job.
+
+        For QIS/native jobs, counts and probabilities reflect cloud mitigation
+        and the selected aggregation, while memory holds every recorded shot, so
+        its histogram can differ from the counts. Leaked shots stay in memory
+        and the default counts, as on IonQ Cloud; :meth:`IonQResult.get_leaked
+        <qiskit_ionq.ionq_result.IonQResult.get_leaked>` flags them.
 
         Args:
             sharpen: Deprecated; use ``aggregation`` instead. ``sharpen=True``
@@ -579,13 +641,14 @@ class IonQJob(JobV1):
                     self._fetch_qasm3_shots(extra_query_params)
                 )
             else:
-                artifact_results = self._fetch_aggregation_artifacts(
-                    aggregation, extra_query_params
+                circuits = self._circuit_results()
+                artifact_results = self._fetch_result_artifacts(
+                    circuits, aggregation, extra_query_params
                 )
                 if artifact_results is not None:
-                    response, data_is_histogram = artifact_results
+                    distributions, data_is_histogram = artifact_results
                     self._result = self._format_result(
-                        response, data_is_histogram=data_is_histogram
+                        distributions, circuits, data_is_histogram=data_is_histogram
                     )
                 else:
                     response = self._client.get_results(
@@ -593,7 +656,7 @@ class IonQJob(JobV1):
                         aggregation=aggregation,
                         extra_query_params=extra_query_params,
                     )
-                    self._result = self._format_result(response)
+                    self._result = self._format_result(response, circuits)
 
         return self._result
 
@@ -777,54 +840,56 @@ class IonQJob(JobV1):
             "statuses": child_statuses,
         }
 
-    def _fetch_raw_shots(self, shots_url: str | None, ctx: str = "") -> list | None:
-        """GET a ``CircuitJobResult.shots.url`` and return its decimal-encoded
-        outcome list, or ``None`` if no URL was given or the fetch failed.
-
-        ``ctx`` is appended to the failure warning so callers can identify
-        which circuit's memory went missing in a multi-circuit job.
-        """
-        if not shots_url:
+    def _fetch_raw_shots(self, shots_url: str | None, job_id: str) -> list | None:
+        """GET a legacy ``shots.url`` and return its decimal outcomes, or ``None``
+        if there is no URL or the fetch fails (with a warning)."""
+        if shots_url is None:
             return None
         try:
             return self._client.get_results(shots_url)
         except exceptions.IonQAPIError as err:
-            suffix = f" for {ctx}" if ctx else ""
             warnings.warn(
-                f"Failed to fetch per-shot memory{suffix} ({err!r}); "
+                f"Failed to fetch per-shot memory for {job_id} ({err!r}); "
                 "memory will be None.",
                 UserWarning,
             )
             return None
 
-    def _raw_shots_per_circuit(self) -> list[list | None]:
-        """Return one raw-shots list per circuit (or ``None`` per slot).
+    def _fetch_circuit_shots(self, circuit: _CircuitResults) -> _Shots | None:
+        """Read a circuit's shots as legacy decimal outcomes, with leak flags.
 
-        Single-circuit jobs read the top-level ``results.shots.url`` recorded
-        in :attr:`_results_urls` during :meth:`status`. Multi-circuit jobs
-        iterate :attr:`_children` and fetch each child's own ``shots.url``
-        (the parent only carries aggregated probabilities). Failures degrade
-        per-circuit -- one bad child does not poison the whole result.
+        Only the v2 ``output_all`` register is read; the memory formatter then
+        applies the Qiskit measurement map. Jobs without a v2 shots artifact
+        read the legacy ``shots.url``, which has no leak flags. A failed fetch
+        warns and returns ``None``.
         """
-        if self._num_circuits == 1 or not self._children:
-            return [self._fetch_raw_shots(self._results_urls.get("shots"))]
+        if circuit.shots_id is None:
+            outcomes = self._fetch_raw_shots(circuit.legacy_shots_url, circuit.job_id)
+            return None if outcomes is None else _Shots(outcomes, leaked=None)
 
-        per_circuit: list[list | None] = []
-        for child_id in self._children:
-            try:
-                resp = self._client.retrieve_job(child_id)
-            except exceptions.IonQAPIError as err:
-                warnings.warn(
-                    f"Failed to retrieve child {child_id} for per-shot memory "
-                    f"({err!r}); memory for this circuit will be None.",
-                    UserWarning,
-                )
-                per_circuit.append(None)
-                continue
-            shots = (resp.get("results") or {}).get("shots") or {}
-            url = shots.get("url") if isinstance(shots, dict) else None
-            per_circuit.append(self._fetch_raw_shots(url, ctx=f"child {child_id}"))
-        return per_circuit
+        try:
+            payload = self._client.get_artifact(circuit.job_id, circuit.shots_id)
+        except exceptions.IonQAPIError as err:
+            warnings.warn(
+                f"Failed to fetch per-shot memory for {circuit.job_id} ({err!r}); "
+                "memory will be None.",
+                UserWarning,
+            )
+            return None
+
+        try:
+            shots = payload["shots"]
+            return _Shots(
+                outcomes=[
+                    _wire_order_to_decimal(shot["registers"]["output_all"])
+                    for shot in shots
+                ],
+                leaked=[_is_leaked(shot) for shot in shots],
+            )
+        except (AttributeError, KeyError, TypeError, ValueError) as err:
+            raise exceptions.IonQJobError(
+                f"Invalid v2 shots artifact for job {circuit.job_id}: {err}"
+            ) from err
 
     def _fetch_qasm3_shots(self, extra_query_params: dict | None = None) -> list:
         """Fetch the per-register shots array for a qasm3 (MCM) job."""
@@ -846,8 +911,8 @@ class IonQJob(JobV1):
     def _format_result_qasm3(self, shots: list):
         """Build a Result from per-register shots, folding the declared
         registers via the header's ``clbit_labels``. ``output_all``
-        (system-added) is excluded, as are shots tagged with nonzero
-        ``leakage_bits``.
+        (system-added) is excluded; leaked shots count like any other and are
+        flagged alongside memory.
         """
         backend = self.backend()
         success = self._status == jobstatus.JobStatus.DONE
@@ -856,14 +921,6 @@ class IonQJob(JobV1):
         header = decoded if isinstance(decoded, dict) else {}
 
         shots = shots or []
-        # Shots with any leakage bit set are invalid readouts; the platform
-        # excludes them from histogram/probabilities/legacy shots, so exclude
-        # them here too or counts would sum past the requested shot count.
-        shots = [
-            shot
-            for shot in shots
-            if not (isinstance(shot, dict) and any(shot.get("leakage_bits") or []))
-        ]
         clbit_labels = header.get("clbit_labels") or []
         # Zero-padded binary so get_counts() splits by creg_sizes.
         width = header.get("memory_slots") or len(clbit_labels)
@@ -899,14 +956,18 @@ class IonQJob(JobV1):
         total = len(shots)
         probabilities = {k: v / total for k, v in counts.items()} if total else {}
 
+        data: dict[str, Any] = {
+            "counts": counts,
+            "memory": memory if self.memory else None,
+            "probabilities": probabilities,
+            "metadata": header,
+        }
+        if self.memory:
+            data["leaked"] = [_is_leaked(shot) for shot in shots]
+
         job_result = [
             {
-                "data": {
-                    "counts": counts,
-                    "memory": memory if self.memory else None,
-                    "probabilities": probabilities,
-                    "metadata": header,
-                },
+                "data": data,
                 "shots": total,
                 "header": header,
                 "success": success,
@@ -925,7 +986,12 @@ class IonQJob(JobV1):
             }
         )
 
-    def _format_result(self, data, data_is_histogram: bool = False):
+    def _format_result(
+        self,
+        data,
+        circuits: list[_CircuitResults],
+        data_is_histogram: bool = False,
+    ):
         """Translate IonQ result format into a Qiskit `Result` instance.
 
         Args:
@@ -940,6 +1006,7 @@ class IonQJob(JobV1):
 
                 Probability values may be ``int`` (for example, exact ``0`` or
                 ``1`` from a noiseless simulator) or ``float``.
+            circuits: Each circuit's result locations, read for per-shot memory.
             data_is_histogram: Whether ``data`` contains histogram counts rather
                 than probabilities.
 
@@ -1008,11 +1075,11 @@ class IonQJob(JobV1):
             for i in range(self._num_circuits)
         ]
         if self._status == jobstatus.JobStatus.DONE:
-            # Resolve per-circuit shots before the loop. For multi-circuit
-            # jobs the parent only advertises aggregated probabilities, so
-            # each child's own ``shots.url`` is fetched individually.
+            # Fetch every circuit's shots up front, concurrently for batches.
             if self.memory and not is_ideal_sim:
-                raw_shots_per_circuit = self._raw_shots_per_circuit()
+                raw_shots_per_circuit = _map_concurrently(
+                    self._fetch_circuit_shots, circuits
+                )
             else:
                 raw_shots_per_circuit = [None] * self._num_circuits
 
@@ -1043,7 +1110,9 @@ class IonQJob(JobV1):
                 )
                 if raw_shots is not None:
                     memory_slots = header.get("memory_slots") or len(clbits or [])
-                    memory = _build_memory(raw_shots, n_qubits, clbits, memory_slots)
+                    memory = _build_memory(
+                        raw_shots.outcomes, n_qubits, clbits, memory_slots
+                    )
                 else:
                     memory = None
                 job_result[i]["data"] = {
@@ -1052,6 +1121,8 @@ class IonQJob(JobV1):
                     "probabilities": probabilities,
                     "metadata": header,
                 }
+                if raw_shots is not None and raw_shots.leaked is not None:
+                    job_result[i]["data"]["leaked"] = raw_shots.leaked
 
         # Final Qiskit Result object
         return Result.from_dict(

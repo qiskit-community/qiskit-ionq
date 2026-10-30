@@ -92,3 +92,30 @@ class IonQResult(Result):
         if len(dict_list) == 1:
             return dict_list[0]
         return dict_list
+
+    def get_leaked(self, experiment=None):
+        """
+        Get the experiment's per-shot leakage flags, aligned with its memory.
+
+        ``leaked[k]`` is ``True`` if the hardware flagged shot ``k`` as leaked
+        (an ion left the qubit states mid-shot). Memory and the default counts
+        keep leaked shots, as on IonQ Cloud; drop them with e.g.
+        ``[m for m, bad in zip(memory, leaked) if not bad]``.
+
+        Args:
+            experiment (Union[int, QuantumCircuit, Schedule, dict], optional): If provided, this
+                argument is used to get an experiment using Result's ``_get_experiment`` method.
+
+        Raises:
+            IonQJobError: If the experiment has no per-shot memory, or its shots
+                predate v2 result artifacts.
+
+        Returns:
+            list[bool]: One flag per memory entry.
+        """
+        leaked = self.data(experiment).get("leaked")
+        if leaked is None:
+            raise exceptions.IonQJobError(
+                f'No leakage flags for experiment "{repr(experiment)}"'
+            )
+        return leaked
