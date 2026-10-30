@@ -287,8 +287,8 @@ def test_default_simulator_sampling(simulator_backend, requests_mock):
     assert actual.data(0).get("memory") is None
 
 
-def test_v2_memory_maps_bits_and_filters_leakage(mock_backend, requests_mock):
-    """Keep shot order and measurement mapping without replacing mitigated counts."""
+def test_v2_memory_maps_bits_and_flags_leakage(mock_backend, requests_mock):
+    """Keep every shot in order and mapped, flagging leaked ones without dropping."""
     response = _response("mapped")
     response["metadata"]["qiskit_header"] = compress_to_metadata_string(
         {
@@ -324,15 +324,14 @@ def test_v2_memory_maps_bits_and_filters_leakage(mock_backend, requests_mock):
         },
     )
     result = _job(mock_backend, requests_mock, response, memory=True).result()
-    assert result.get_memory() == ["0100", "1001", "0100"]
+    assert result.get_memory() == ["0100", "1001", "1001", "0100"]
+    # Any non-empty leakage_bits marks a leaked shot, even all zeros.
+    assert result.get_leaked() == [False, True, True, False]
     assert result.get_counts() == {"1001": 10}
 
 
-@pytest.mark.parametrize(
-    "shots", [[], [{"registers": {"output_all": [1, 0]}, "leakage_bits": [1, 0]}]]
-)
-def test_empty_clean_memory(mock_backend, requests_mock, shots):
-    """An empty shot stream, including all-leaked samples, stays empty."""
+def test_empty_memory(mock_backend, requests_mock):
+    """An empty shot stream gives empty memory and leakage flags."""
     response = _response("empty-memory")
     client = mock_backend.client
     _artifact(
@@ -342,13 +341,27 @@ def test_empty_clean_memory(mock_backend, requests_mock, shots):
         ResultFormat.PROBABILITIES_V2,
         {"probabilities": {"registers": {"output_all": {"00": 1.0}}}},
     )
-    _artifact(requests_mock, client, response, ResultFormat.SHOTS_V2, {"shots": shots})
-    assert (
-        _job(mock_backend, requests_mock, response, memory=True)
-        .result()
-        .data(0)["memory"]
-        == []
+    _artifact(requests_mock, client, response, ResultFormat.SHOTS_V2, {"shots": []})
+    result = _job(mock_backend, requests_mock, response, memory=True).result()
+    assert result.data(0)["memory"] == []
+    assert result.get_leaked() == []
+
+
+def test_legacy_memory_has_no_leak_flags(mock_backend, requests_mock):
+    """Legacy shots carry no leakage information, so there are no flags."""
+    response = _response("legacy-memory")
+    client = mock_backend.client
+    requests_mock.get(
+        client.make_path("jobs", response["id"], "results", "probabilities"),
+        json={"2": 1.0},
     )
+    requests_mock.get(
+        client.make_path("jobs", response["id"], "results", "shots"), json=[2, 2]
+    )
+    result = _job(mock_backend, requests_mock, response, memory=True).result()
+    assert result.get_memory() == ["10", "10"]
+    with pytest.raises(exceptions.IonQJobError, match="No leakage flags"):
+        result.get_leaked()
 
 
 def test_batch_mixed_memory_sources(mock_backend, requests_mock):

@@ -41,7 +41,7 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, Iterable, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Iterable, NamedTuple, TypeVar
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -173,6 +173,12 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     return counts, probabilities
 
 
+def _wire_order_to_decimal(bits: str | list[int]) -> int:
+    """Read wire-order bits (qubit 0 first) as an outcome integer in the legacy
+    convention, where qubit 0 is the least-significant bit."""
+    return int("".join(str(bit) for bit in bits)[::-1] or "0", 2)
+
+
 def _decode_distribution_artifact(
     distribution: dict[str, Any],
 ) -> dict[str, int | float]:
@@ -185,7 +191,7 @@ def _decode_distribution_artifact(
     """
     decimal_distribution: dict[str, int | float] = {}
     for bitstring, value in distribution["registers"]["output_all"].items():
-        decimal = str(int(bitstring[::-1] or "0", 2))
+        decimal = str(_wire_order_to_decimal(bitstring))
         decimal_distribution[decimal] = decimal_distribution.get(decimal, 0) + value
 
     return decimal_distribution
@@ -218,6 +224,28 @@ def _build_memory(
         return mapped.rjust(out_width, "0")
 
     return [remap_raw_shot(s) for s in raw_shots]
+
+
+def _is_leaked(shot: dict[str, Any]) -> bool:
+    """Whether the hardware flagged a v2 shot as leaked.
+
+    Any non-empty ``leakage_bits`` marks a leaked shot, even with no bit set
+    (upstream has stored real leaked shots as all zeros); a missing or empty
+    list is clean. IonQ Cloud counts leaked shots everywhere except its error
+    mitigation aggregations, and this provider does the same.
+    """
+    return bool(shot.get("leakage_bits"))
+
+
+class _Shots(NamedTuple):
+    """One circuit's per-shot outcomes in the legacy decimal convention.
+
+    ``leaked`` flags each outcome the hardware marked as leaked, or is ``None``
+    when the source (a legacy results URL) carries no leakage information.
+    """
+
+    outcomes: list[int | str]
+    leaked: list[bool] | None
 
 
 def _map_concurrently(func: Callable[..., _R], *iterables: Iterable[Any]) -> list[_R]:
@@ -536,9 +564,11 @@ class IonQJob(JobV1):
         method to poll for a completed job.
 
         For QIS/native jobs, counts and probabilities reflect cloud mitigation
-        and the selected aggregation. Per-shot memory contains individual
-        observations with leaked shots excluded; its histogram can differ from
-        the aggregated counts.
+        and the selected aggregation. Per-shot memory contains every recorded
+        shot, including ones the hardware flagged as leaked (as do the default
+        counts, like IonQ Cloud's own results), and its histogram can differ
+        from the aggregated counts. :meth:`IonQResult.get_leaked
+        <qiskit_ionq.ionq_result.IonQResult.get_leaked>` flags the leaked shots.
 
         Args:
             sharpen: Deprecated; use ``aggregation`` instead. ``sharpen=True``
@@ -842,17 +872,21 @@ class IonQJob(JobV1):
             )
             return None
 
-    def _fetch_circuit_shots(self, circuit: _CircuitResults) -> list | None:
-        """Read a circuit's clean shots in the legacy decimal convention.
+    def _fetch_circuit_shots(self, circuit: _CircuitResults) -> _Shots | None:
+        """Read a circuit's shots in the legacy decimal convention.
 
         V2 register arrays are in wire order (qubit 0 first). Convert only
         ``output_all``; the existing memory formatter then applies the Qiskit
         measurement map. Cloud aggregation is not reconstructed from shots.
-        Jobs without a v2 shots artifact read the legacy ``shots.url``. Fetch
-        failures warn and leave this circuit's memory as ``None``.
+        Jobs without a v2 shots artifact read the legacy ``shots.url``, which
+        carries no leakage flags. Fetch failures warn and leave this circuit's
+        memory as ``None``.
         """
         if circuit.shots_id is None:
-            return self._fetch_raw_shots(circuit.legacy_shots_url, ctx=circuit.job_id)
+            outcomes = self._fetch_raw_shots(
+                circuit.legacy_shots_url, ctx=circuit.job_id
+            )
+            return None if outcomes is None else _Shots(outcomes, leaked=None)
 
         circuit_id = circuit.job_id
         try:
@@ -866,15 +900,14 @@ class IonQJob(JobV1):
             return None
 
         try:
-            return [
-                int(
-                    "".join(str(bit) for bit in shot["registers"]["output_all"])[::-1]
-                    or "0",
-                    2,
-                )
-                for shot in payload["shots"]
-                if not any(shot.get("leakage_bits") or [])
-            ]
+            shots = payload["shots"]
+            return _Shots(
+                outcomes=[
+                    _wire_order_to_decimal(shot["registers"]["output_all"])
+                    for shot in shots
+                ],
+                leaked=[_is_leaked(shot) for shot in shots],
+            )
         except (AttributeError, KeyError, TypeError, ValueError) as err:
             raise exceptions.IonQJobError(
                 f"Invalid v2 shots artifact for job {circuit_id}: {err}"
@@ -900,8 +933,8 @@ class IonQJob(JobV1):
     def _format_result_qasm3(self, shots: list):
         """Build a Result from per-register shots, folding the declared
         registers via the header's ``clbit_labels``. ``output_all``
-        (system-added) is excluded, as are shots tagged with nonzero
-        ``leakage_bits``.
+        (system-added) is excluded. Leaked shots count like any other, as in
+        IonQ Cloud's own histogram, and are flagged alongside memory.
         """
         backend = self.backend()
         success = self._status == jobstatus.JobStatus.DONE
@@ -910,14 +943,6 @@ class IonQJob(JobV1):
         header = decoded if isinstance(decoded, dict) else {}
 
         shots = shots or []
-        # Shots with any leakage bit set are invalid readouts; the platform
-        # excludes them from histogram/probabilities/legacy shots, so exclude
-        # them here too or counts would sum past the requested shot count.
-        shots = [
-            shot
-            for shot in shots
-            if not (isinstance(shot, dict) and any(shot.get("leakage_bits") or []))
-        ]
         clbit_labels = header.get("clbit_labels") or []
         # Zero-padded binary so get_counts() splits by creg_sizes.
         width = header.get("memory_slots") or len(clbit_labels)
@@ -953,14 +978,18 @@ class IonQJob(JobV1):
         total = len(shots)
         probabilities = {k: v / total for k, v in counts.items()} if total else {}
 
+        data = {
+            "counts": counts,
+            "memory": memory if self.memory else None,
+            "probabilities": probabilities,
+            "metadata": header,
+        }
+        if self.memory:
+            data["leaked"] = [_is_leaked(shot) for shot in shots]
+
         job_result = [
             {
-                "data": {
-                    "counts": counts,
-                    "memory": memory if self.memory else None,
-                    "probabilities": probabilities,
-                    "metadata": header,
-                },
+                "data": data,
                 "shots": total,
                 "header": header,
                 "success": success,
@@ -1105,7 +1134,9 @@ class IonQJob(JobV1):
                 )
                 if raw_shots is not None:
                     memory_slots = header.get("memory_slots") or len(clbits or [])
-                    memory = _build_memory(raw_shots, n_qubits, clbits, memory_slots)
+                    memory = _build_memory(
+                        raw_shots.outcomes, n_qubits, clbits, memory_slots
+                    )
                 else:
                     memory = None
                 job_result[i]["data"] = {
@@ -1114,6 +1145,8 @@ class IonQJob(JobV1):
                     "probabilities": probabilities,
                     "metadata": header,
                 }
+                if raw_shots is not None and raw_shots.leaked is not None:
+                    job_result[i]["data"]["leaked"] = raw_shots.leaked
 
         # Final Qiskit Result object
         return Result.from_dict(

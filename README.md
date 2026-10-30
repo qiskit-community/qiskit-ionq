@@ -142,8 +142,14 @@ memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 
 Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
 
-For QIS/native jobs, per-shot memory excludes readouts flagged for leakage.
-Memory contains individual observations; its histogram can differ from the `get_counts()` distribution when cloud mitigation or aggregation is used.
+Memory holds every recorded shot, including any the hardware flagged as leaked (an ion left the qubit states mid-shot), and so do the default counts, matching IonQ Cloud's own results. Only `aggregation=...` on a debiased job leaves leaked shots out. To drop them yourself, `get_leaked()` gives one flag per memory entry:
+
+```python
+result = job.result()
+clean = [shot for shot, leaked in zip(result.get_memory(), result.get_leaked()) if not leaked]
+```
+
+Memory's histogram can still differ from the `get_counts()` distribution when cloud mitigation or aggregation is used.
 
 ### Mid-circuit measurements
 
@@ -172,7 +178,10 @@ job = backend.run(qc, shots=100, memory=True, noise_model="aria-1")
 result = job.result()
 result.get_counts()        # split across registers, e.g. {'01 0': 96, '10 1': 104}
 result.get_memory()        # per-shot, e.g. ['01 0', '10 1', ...]
+result.get_leaked()        # per-shot leakage flags, e.g. [False, False, ...]
 ```
+
+As with per-shot memory above, these counts include leaked shots; with `memory=True`, `get_leaked()` flags them.
 
 ### Basis gates and transpilation
 
