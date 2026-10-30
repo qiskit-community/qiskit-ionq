@@ -173,9 +173,6 @@ def qiskit_circ_to_ionq_circ(
 ):
     """Build a circuit in IonQ's instruction format from qiskit instructions.
 
-    .. ATTENTION:: This function ignores the following compiler directives:
-       * ``barrier``
-
     Parameters:
         input_circuit (:class:`qiskit.circuit.QuantumCircuit`): A Qiskit quantum circuit.
         gateset (string): Set of gates to target. It can be QIS (required transpilation pass in
@@ -197,16 +194,22 @@ def qiskit_circ_to_ionq_circ(
         int: The number of measurements.
         dict: The measurement map from qubit number to classical bit number.
     """
-    compiler_directives = ["barrier"]
     output_circuit = []
     num_meas = 0
     meas_map = [None] * len(input_circuit.clbits)
     for inst in input_circuit.data:
         instruction, qargs, cargs = inst.operation, inst.qubits, inst.clbits
-
-        # Don't process compiler directives.
         instruction_name = instruction.name
-        if instruction_name in compiler_directives:
+
+        # Pass barriers through as-is: they're valid in any gateset and, being
+        # no-ops, may follow a measurement.
+        if instruction_name == "barrier":
+            output_circuit.append(
+                {
+                    "gate": "barrier",
+                    "targets": [input_circuit.qubits.index(q) for q in qargs],
+                }
+            )
             continue
 
         # Don't process measurement instructions.
