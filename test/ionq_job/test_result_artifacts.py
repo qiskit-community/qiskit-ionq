@@ -65,7 +65,7 @@ def _job(backend, requests_mock, response, memory=False):
 
 @pytest.mark.parametrize("v2_only", [False, True])
 def test_default_preserves_cloud_mitigation(mock_backend, requests_mock, v2_only):
-    """Default probabilities can differ from both raw and per-method histograms."""
+    """The default reads the probabilities artifact, not a raw or method histogram."""
     response = _response("default")
     client = mock_backend.client
     _artifact(
@@ -147,7 +147,7 @@ def test_requested_method_over_default(mock_backend, requests_mock, aggregation)
 
 
 def test_missing_method_keeps_legacy_query(mock_backend, requests_mock):
-    """Missing voting must not silently select the default v2 probabilities."""
+    """A method the job doesn't publish keeps the legacy query, never the default."""
     response = _response("legacy-method")
     client = mock_backend.client
     _artifact(
@@ -217,7 +217,7 @@ def test_batch_legacy_fallback(mock_backend, requests_mock):
 
 
 def test_one_child_batch_uses_artifact(mock_backend, requests_mock):
-    """A list containing one circuit still carries results on its child."""
+    """A one-circuit batch reads its results from the child."""
     parent = _response("one-parent")
     parent["child_job_ids"] = ["only-child"]
     child = _response("only-child")
@@ -288,7 +288,7 @@ def test_default_simulator_sampling(simulator_backend, requests_mock):
 
 
 def test_v2_memory_maps_bits_and_flags_leakage(mock_backend, requests_mock):
-    """Keep every shot in order and mapped, flagging leaked ones without dropping."""
+    """Memory keeps every shot, in order and mapped, with leaked ones flagged."""
     response = _response("mapped")
     response["metadata"]["qiskit_header"] = compress_to_metadata_string(
         {

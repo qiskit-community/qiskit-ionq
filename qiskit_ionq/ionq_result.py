@@ -95,12 +95,11 @@ class IonQResult(Result):
 
     def get_leaked(self, experiment=None):
         """
-        Get per-shot leakage flags for the experiment, aligned with its memory.
+        Get the experiment's per-shot leakage flags, aligned with its memory.
 
-        ``leaked[k]`` is ``True`` when the hardware flagged shot ``k`` of
-        :meth:`get_memory` as leaked (an ion left the qubit states during the
-        shot). Counts and memory include leaked shots, like IonQ Cloud's own
-        results, so pair the two lists to drop them, e.g.
+        ``leaked[k]`` is ``True`` if the hardware flagged shot ``k`` as leaked
+        (an ion left the qubit states mid-shot). Memory and the default counts
+        keep leaked shots, as on IonQ Cloud; drop them with e.g.
         ``[m for m, bad in zip(memory, leaked) if not bad]``.
 
         Args:
@@ -108,8 +107,8 @@ class IonQResult(Result):
                 argument is used to get an experiment using Result's ``_get_experiment`` method.
 
         Raises:
-            IonQJobError: The experiment has no leakage flags: it has no per-shot
-                memory, or its shots predate v2 result artifacts.
+            IonQJobError: If the experiment has no per-shot memory, or its shots
+                predate v2 result artifacts.
 
         Returns:
             list[bool]: One flag per memory entry.

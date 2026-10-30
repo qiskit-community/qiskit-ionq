@@ -1605,8 +1605,7 @@ def test_qasm3_missing_reg_warns(mock_backend, requests_mock):
 
 
 def test_qasm3_leaked_shots_counted(mock_backend, requests_mock):
-    """Leaked shots count in counts/memory, as in IonQ Cloud's own histogram,
-    and are flagged per shot so callers can drop them."""
+    """Leaked shots count in counts and memory, as on IonQ Cloud, and are flagged."""
     job_id = "mcm_leak"
     artifact_id = "shots-leak"
     client = mock_backend.client
