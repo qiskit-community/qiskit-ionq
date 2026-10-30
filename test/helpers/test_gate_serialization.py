@@ -40,8 +40,8 @@ from qiskit.quantum_info import SparsePauliOp, SparseObservable
 
 from qiskit_ionq import exceptions
 from qiskit_ionq.helpers import qiskit_circ_to_ionq_circ
+from qiskit_ionq.ionq_gates import GPI2Gate, MSGate
 
-compiler_directives = ["barrier"]
 unsupported_instructions = [
     "reset",
     "initialize",
@@ -139,19 +139,68 @@ gate_serializations = [
 ]
 
 
-@pytest.mark.parametrize("directive", compiler_directives)
-def test_compiler_directives(directive):
-    """Test that compiler directives are skipped.
+def test_barrier_is_preserved():
+    """Test that a barrier is serialized in place, between the gates around it."""
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.barrier()
+    qc.cx(0, 1)
+    expected = [
+        {"gate": "h", "targets": [0]},
+        {"gate": "barrier", "targets": [0, 1]},
+        {"gate": "x", "targets": [1], "controls": [0]},
+    ]
+    built, _, _ = qiskit_circ_to_ionq_circ(qc)
+    assert built == expected
 
-    Args:
-        directive (str): A compiler directive name.
-    """
-    unsupported = instruction.Instruction(directive, 0, 0, [])
+
+def test_partial_barrier_targets():
+    """Test that a barrier on a subset of qubits only targets those qubits."""
+    qc = QuantumCircuit(3)
+    qc.barrier(2, 1)
+    expected = [{"gate": "barrier", "targets": [2, 1]}]
+    built, _, _ = qiskit_circ_to_ionq_circ(qc)
+    assert built == expected
+
+
+def test_barrier_native_gateset():
+    """Test that a barrier is preserved when targeting the native gateset."""
+    qc = QuantumCircuit(2)
+    qc.append(GPI2Gate(0.2), [0])
+    qc.barrier()
+    qc.append(MSGate(0.2, 0.3, 0.25), [0, 1])
+    expected = [
+        {"gate": "gpi2", "target": 0, "phase": 0.2},
+        {"gate": "barrier", "targets": [0, 1]},
+        {"gate": "ms", "targets": [0, 1], "phases": [0.2, 0.3], "angle": 0.25},
+    ]
+    built, _, _ = qiskit_circ_to_ionq_circ(qc, gateset="native")
+    assert built == expected
+
+
+def test_measure_all_barrier_is_preserved():
+    """Test that the barrier inserted by measure_all is preserved."""
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.measure_all()
+    expected = [
+        {"gate": "h", "targets": [0]},
+        {"gate": "barrier", "targets": [0, 1]},
+    ]
+    built, num_meas, meas_map = qiskit_circ_to_ionq_circ(qc)
+    assert built == expected
+    assert num_meas == 2
+    assert meas_map == [0, 1]
+
+
+def test_barrier_after_measurement_is_allowed():
+    """Test that a barrier on a measured qubit is not a mid-circuit measurement."""
     qc = QuantumCircuit(1, 1)
-    qc.append(unsupported)
-    circuit, _, _ = qiskit_circ_to_ionq_circ(qc)
-    instruction_names = [instruction["gate"] for instruction in circuit]
-    assert directive not in instruction_names
+    qc.measure(0, 0)
+    qc.barrier()
+    expected = [{"gate": "barrier", "targets": [0]}]
+    built, _, _ = qiskit_circ_to_ionq_circ(qc)
+    assert built == expected
 
 
 @pytest.mark.parametrize("instruction_name", unsupported_instructions)
