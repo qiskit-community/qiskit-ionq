@@ -978,7 +978,7 @@ class IonQJob(JobV1):
         total = len(shots)
         probabilities = {k: v / total for k, v in counts.items()} if total else {}
 
-        data = {
+        data: dict[str, Any] = {
             "counts": counts,
             "memory": memory if self.memory else None,
             "probabilities": probabilities,
