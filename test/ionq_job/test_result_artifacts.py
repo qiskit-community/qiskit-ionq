@@ -60,6 +60,19 @@ def _artifact(
     )
 
 
+def _distribution(requests_mock, client, response, states, *, aggregation=None):
+    """Publish ``states`` (wire order) as the default probabilities, or as
+    ``aggregation``'s histogram, the formats the API uses for each."""
+    if aggregation is None:
+        result_format, key = ResultFormat.PROBABILITIES_V2, "probabilities"
+    else:
+        result_format, key = ResultFormat.HISTOGRAM_V2, "histogram"
+    payload = {key: {"registers": {"output_all": states}}}
+    _artifact(
+        requests_mock, client, response, result_format, payload, aggregation=aggregation
+    )
+
+
 def _job(backend, requests_mock, response, memory=False):
     requests_mock.get(backend.client.make_path("jobs", response["id"]), json=response)
     return ionq_job.IonQJob(backend, response["id"], passed_args={"memory": memory})
@@ -70,13 +83,7 @@ def test_default_preserves_cloud_mitigation(mock_backend, requests_mock, v2_only
     """The default reads the probabilities artifact, not a raw or method histogram."""
     response = _response("default")
     client = mock_backend.client
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"10": 0.3, "01": 0.7}}}},
-    )
+    _distribution(requests_mock, client, response, {"10": 0.3, "01": 0.7})
     _artifact(
         requests_mock,
         client,
@@ -84,14 +91,7 @@ def test_default_preserves_cloud_mitigation(mock_backend, requests_mock, v2_only
         ResultFormat.HISTOGRAM_V2,
         {"histogram": {"registers": {"output_all": {"00": 10}}}},
     )
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.HISTOGRAM_V2,
-        {"histogram": {"registers": {"output_all": {"11": 4}}}},
-        aggregation="average",
-    )
+    _distribution(requests_mock, client, response, {"11": 4}, aggregation="average")
     # memory=False must not request even an advertised v2 shots artifact.
     response["results"][ResultFormat.SHOTS_V2] = {"id": "unused"}
     if v2_only:
@@ -127,20 +127,9 @@ def test_requested_method_over_default(mock_backend, requests_mock, aggregation)
     """An explicit method selects its histogram and preserves its actual total."""
     response = _response("selected")
     client = mock_backend.client
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"00": 1.0}}}},
-    )
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.HISTOGRAM_V2,
-        {"histogram": {"registers": {"output_all": {"10": 3, "01": 1}}}},
-        aggregation=aggregation,
+    _distribution(requests_mock, client, response, {"00": 1.0})
+    _distribution(
+        requests_mock, client, response, {"10": 3, "01": 1}, aggregation=aggregation
     )
     result = _job(mock_backend, requests_mock, response).result(aggregation=aggregation)
     assert result.get_counts() == {"01": 3, "10": 1}
@@ -152,13 +141,7 @@ def test_missing_method_keeps_legacy_query(mock_backend, requests_mock):
     """A method the job doesn't publish keeps the legacy query, never the default."""
     response = _response("legacy-method")
     client = mock_backend.client
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"00": 1.0}}}},
-    )
+    _distribution(requests_mock, client, response, {"00": 1.0})
     requests_mock.get(
         client.make_path("jobs", response["id"], "results", "probabilities")
         + "?aggregation=voting",
@@ -169,30 +152,18 @@ def test_missing_method_keeps_legacy_query(mock_backend, requests_mock):
     assert result.get_counts() == {"11": 10}
 
 
-@pytest.mark.parametrize(
-    "aggregation,result_format",
-    [(None, ResultFormat.PROBABILITIES_V2), ("dnl", ResultFormat.HISTOGRAM_V2)],
-)
-def test_batch_order(mock_backend, requests_mock, aggregation, result_format):
+@pytest.mark.parametrize("aggregation,value,total", [(None, 1.0, 10), ("dnl", 4, 4)])
+def test_batch_order(mock_backend, requests_mock, aggregation, value, total):
     """Each child's distribution keeps its circuit's position in the batch."""
     parent = _response("batch")
     parent["child_job_ids"] = ["z-first", "a-second"]
     client = mock_backend.client
-    is_histogram = result_format == ResultFormat.HISTOGRAM_V2
-    key = "histogram" if is_histogram else "probabilities"
-    value = 4 if is_histogram else 1.0
     for child_id, wire_state in zip(parent["child_job_ids"], ["10", "01"]):
         child = _response(child_id)
-        _artifact(
-            requests_mock,
-            client,
-            child,
-            result_format,
-            {key: {"registers": {"output_all": {wire_state: value}}}},
-            aggregation=aggregation,
+        _distribution(
+            requests_mock, client, child, {wire_state: value}, aggregation=aggregation
         )
         requests_mock.get(client.make_path("jobs", child_id), json=child)
-    total = 4 if is_histogram else 10
     result = _job(mock_backend, requests_mock, parent).result(aggregation=aggregation)
     assert result.get_counts() == [{"01": total}, {"10": total}]
     assert [experiment.shots for experiment in result.results] == [total, total]
@@ -224,13 +195,7 @@ def test_one_child_batch_uses_artifact(mock_backend, requests_mock):
     parent["child_job_ids"] = ["only-child"]
     child = _response("only-child")
     client = mock_backend.client
-    _artifact(
-        requests_mock,
-        client,
-        child,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"10": 1.0}}}},
-    )
+    _distribution(requests_mock, client, child, {"10": 1.0})
     requests_mock.get(client.make_path("jobs", child["id"]), json=child)
     assert _job(mock_backend, requests_mock, parent).result().get_counts() == {"01": 10}
 
@@ -242,13 +207,7 @@ def test_batch_retrieves_each_child_once(mock_backend, requests_mock):
     client = mock_backend.client
     for child_id in parent["child_job_ids"]:
         child = _response(child_id)
-        _artifact(
-            requests_mock,
-            client,
-            child,
-            ResultFormat.PROBABILITIES_V2,
-            {"probabilities": {"registers": {"output_all": {"10": 1.0}}}},
-        )
+        _distribution(requests_mock, client, child, {"10": 1.0})
         _artifact(
             requests_mock,
             client,
@@ -273,13 +232,7 @@ def test_default_simulator_sampling(simulator_backend, requests_mock):
         json={"1": 0.25, "2": 0.75},
     )
     modern = _response("modern-sim")
-    _artifact(
-        requests_mock,
-        client,
-        modern,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"10": 0.25, "01": 0.75}}}},
-    )
+    _distribution(requests_mock, client, modern, {"10": 0.25, "01": 0.75})
     # An advertised shots artifact must not be fetched for ideal simulation.
     modern["results"][ResultFormat.SHOTS_V2] = {"id": "unused"}
     expected = _job(simulator_backend, requests_mock, legacy, memory=True).result()
@@ -301,13 +254,7 @@ def test_v2_memory_maps_bits_and_flags_leakage(mock_backend, requests_mock):
         }
     )
     client = mock_backend.client
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"011": 1.0}}}},
-    )
+    _distribution(requests_mock, client, response, {"011": 1.0})
     _artifact(
         requests_mock,
         client,
@@ -336,13 +283,7 @@ def test_empty_memory(mock_backend, requests_mock):
     """An empty shot stream gives empty memory and leakage flags."""
     response = _response("empty-memory")
     client = mock_backend.client
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"00": 1.0}}}},
-    )
+    _distribution(requests_mock, client, response, {"00": 1.0})
     _artifact(requests_mock, client, response, ResultFormat.SHOTS_V2, {"shots": []})
     result = _job(mock_backend, requests_mock, response, memory=True).result()
     assert result.data(0)["memory"] == []
@@ -373,13 +314,7 @@ def test_batch_mixed_memory_sources(mock_backend, requests_mock):
     client = mock_backend.client
     for child_id in parent["child_job_ids"]:
         child = _response(child_id)
-        _artifact(
-            requests_mock,
-            client,
-            child,
-            ResultFormat.PROBABILITIES_V2,
-            {"probabilities": {"registers": {"output_all": {"10": 1.0}}}},
-        )
+        _distribution(requests_mock, client, child, {"10": 1.0})
         if child_id == "new-memory":
             _artifact(
                 requests_mock,
@@ -403,20 +338,7 @@ def _batch_with_unretrievable_child(requests_mock, client, aggregation=None):
     parent = _response("partial-batch")
     parent["child_job_ids"] = ["reachable", "unreachable"]
     child = _response("reachable")
-    result_format = (
-        ResultFormat.PROBABILITIES_V2
-        if aggregation is None
-        else ResultFormat.HISTOGRAM_V2
-    )
-    key = "probabilities" if aggregation is None else "histogram"
-    _artifact(
-        requests_mock,
-        client,
-        child,
-        result_format,
-        {key: {"registers": {"output_all": {"10": 1.0}}}},
-        aggregation=aggregation,
-    )
+    _distribution(requests_mock, client, child, {"10": 1}, aggregation=aggregation)
     _artifact(
         requests_mock,
         client,
@@ -449,7 +371,7 @@ def test_batch_unretrieved_child_keeps_counts(mock_backend, requests_mock, memor
     # Counts come from the parent's legacy endpoint, as before v2 artifacts.
     assert result.get_counts() == [{"01": 10}, {"10": 10}]
     warned = any(
-        "Failed to retrieve child unreachable for per-shot memory" in str(w.message)
+        "Failed to fetch per-shot memory for unreachable" in str(w.message)
         for w in caught
     )
     assert warned is memory
@@ -490,13 +412,7 @@ def test_v2_memory_fetch_failure_warns(mock_backend, requests_mock):
     """Optional memory failure leaves counts available, matching legacy behavior."""
     response = _response("memory-forbidden")
     client = mock_backend.client
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"10": 1.0}}}},
-    )
+    _distribution(requests_mock, client, response, {"10": 1.0})
     response["results"][ResultFormat.SHOTS_V2] = {"id": "denied"}
     requests_mock.get(
         client.make_path("jobs", response["id"], "artifacts", "denied"),
@@ -513,13 +429,7 @@ def test_invalid_shots_raise(mock_backend, requests_mock):
     """Missing output_all is malformed, not an all-zero measurement."""
     response = _response("invalid-shots")
     client = mock_backend.client
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"10": 1.0}}}},
-    )
+    _distribution(requests_mock, client, response, {"10": 1.0})
     _artifact(
         requests_mock,
         client,
@@ -535,13 +445,7 @@ def test_default_extra_query_params(mock_backend, requests_mock):
     """Extra result parameters are forwarded to the artifact request."""
     response = _response("extra-query")
     client = mock_backend.client
-    _artifact(
-        requests_mock,
-        client,
-        response,
-        ResultFormat.PROBABILITIES_V2,
-        {"probabilities": {"registers": {"output_all": {"10": 1.0}}}},
-    )
+    _distribution(requests_mock, client, response, {"10": 1.0})
     _job(mock_backend, requests_mock, response).result(
         extra_query_params={"custom": "value"}
     )

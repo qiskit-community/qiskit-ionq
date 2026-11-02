@@ -99,7 +99,7 @@ class IonQResult(Result):
 
         ``leaked[k]`` is ``True`` if the hardware flagged shot ``k`` as leaked
         (an ion left the qubit states mid-shot). Memory and the default counts
-        keep leaked shots, as on IonQ Cloud; drop them with e.g.
+        keep leaked shots, as IonQ Cloud does; to drop them, use
         ``[m for m, bad in zip(memory, leaked) if not bad]``.
 
         Args:
