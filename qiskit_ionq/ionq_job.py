@@ -295,6 +295,24 @@ class _CircuitResults:
         return self.aggregation_ids.get(aggregation)
 
 
+@dataclass(frozen=True)
+class _UnretrievedChild:
+    """A child of a multi-circuit job whose response could not be retrieved.
+
+    The batch's default distributions then come from the parent's legacy
+    endpoint, and this circuit's memory is ``None``. A requested aggregation
+    re-raises ``error`` instead, because the legacy endpoint ignores
+    ``aggregation``.
+
+    Attributes:
+        job_id: The child job.
+        error: Why retrieving it failed.
+    """
+
+    job_id: str
+    error: exceptions.IonQAPIError
+
+
 class IonQJob(JobV1):
     """Representation of a Job that will run on an IonQ backend.
 
@@ -489,39 +507,62 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
-    def _circuit_results(self) -> list[_CircuitResults]:
+    def _circuit_results(self) -> list[_CircuitResults | _UnretrievedChild]:
         """Return each circuit's result locations, in circuit order.
 
         A multi-circuit job keeps per-circuit results on its children (the
         parent only has an aggregate), so each child is retrieved once and
-        shared by the distributions and memory.
+        shared by the distributions and memory. A child that fails to retrieve
+        is returned as an :class:`_UnretrievedChild` rather than failing the
+        whole batch.
         """
         if not self._children:
             return [_CircuitResults.from_response(self._metadata)]
-        responses = _map_concurrently(self._client.retrieve_job, self._children)
-        return [_CircuitResults.from_response(response) for response in responses]
+        return _map_concurrently(self._retrieve_child, self._children)
+
+    def _retrieve_child(self, child_id: str) -> _CircuitResults | _UnretrievedChild:
+        """Retrieve one child's result locations, keeping a failure for later."""
+        try:
+            response = self._client.retrieve_job(child_id)
+        except exceptions.IonQAPIError as err:
+            return _UnretrievedChild(child_id, err)
+        return _CircuitResults.from_response(response)
 
     def _fetch_result_artifacts(
         self,
-        circuits: list[_CircuitResults],
+        circuits: list[_CircuitResults | _UnretrievedChild],
         aggregation: str | None,
         extra_query_params: dict | None,
     ) -> tuple[list[dict[str, int | float]], bool] | None:
         """Fetch each circuit's distribution by artifact ID: the default
         probabilities, or ``aggregation``'s histogram, never the default instead.
 
-        Return ``None`` if any circuit lacks that artifact (an older job, or a
-        method on a job run without debiasing), so the legacy endpoint serves
-        the whole job. Otherwise return the distributions and whether they are
+        Return ``None`` so the legacy endpoint serves the whole job if any
+        circuit lacks that artifact (an older job, or a method on a job run
+        without debiasing), or if a child could not be retrieved for the
+        default. Otherwise return the distributions and whether they are
         histogram counts.
+
+        Raises:
+            IonQAPIError: A child could not be retrieved for ``aggregation``.
+                The legacy endpoint ignores ``aggregation``, so it cannot
+                stand in.
         """
-        artifact_ids = [circuit.distribution_id(aggregation) for circuit in circuits]
+        retrieved: list[_CircuitResults] = []
+        for circuit in circuits:
+            if isinstance(circuit, _UnretrievedChild):
+                if aggregation is not None:
+                    raise circuit.error
+                return None
+            retrieved.append(circuit)
+
+        artifact_ids = [circuit.distribution_id(aggregation) for circuit in retrieved]
         if None in artifact_ids:
             return None
 
         payloads = _map_concurrently(
             partial(self._client.get_artifact, extra_query_params=extra_query_params),
-            [circuit.job_id for circuit in circuits],
+            [circuit.job_id for circuit in retrieved],
             artifact_ids,
         )
         # The default is published as probabilities, every aggregation method as
@@ -855,14 +896,24 @@ class IonQJob(JobV1):
             )
             return None
 
-    def _fetch_circuit_shots(self, circuit: _CircuitResults) -> _Shots | None:
+    def _fetch_circuit_shots(
+        self, circuit: _CircuitResults | _UnretrievedChild
+    ) -> _Shots | None:
         """Read a circuit's shots as legacy decimal outcomes, with leak flags.
 
         Only the v2 ``output_all`` register is read; the memory formatter then
         applies the Qiskit measurement map. Jobs without a v2 shots artifact
-        read the legacy ``shots.url``, which has no leak flags. A failed fetch
-        warns and returns ``None``.
+        read the legacy ``shots.url``, which has no leak flags. A child that
+        could not be retrieved, or a failed fetch, warns and returns ``None``.
         """
+        if isinstance(circuit, _UnretrievedChild):
+            warnings.warn(
+                f"Failed to retrieve child {circuit.job_id} for per-shot memory "
+                f"({circuit.error!r}); memory for this circuit will be None.",
+                UserWarning,
+            )
+            return None
+
         if circuit.shots_id is None:
             outcomes = self._fetch_raw_shots(circuit.legacy_shots_url, circuit.job_id)
             return None if outcomes is None else _Shots(outcomes, leaked=None)
@@ -989,7 +1040,7 @@ class IonQJob(JobV1):
     def _format_result(
         self,
         data,
-        circuits: list[_CircuitResults],
+        circuits: list[_CircuitResults | _UnretrievedChild],
         data_is_histogram: bool = False,
     ):
         """Translate IonQ result format into a Qiskit `Result` instance.

@@ -26,6 +26,8 @@
 
 """Result artifact selection preserves cloud processing and Qiskit bit order."""
 
+import warnings
+
 import pytest
 
 from qiskit_ionq import exceptions, ionq_job
@@ -394,6 +396,77 @@ def test_batch_mixed_memory_sources(mock_backend, requests_mock):
     result = _job(mock_backend, requests_mock, parent, memory=True).result()
     assert result.get_memory(0) == ["01"]
     assert result.get_memory(1) == ["10"]
+
+
+def _batch_with_unretrievable_child(requests_mock, client, aggregation=None):
+    """A two-circuit batch whose second child cannot be retrieved."""
+    parent = _response("partial-batch")
+    parent["child_job_ids"] = ["reachable", "unreachable"]
+    child = _response("reachable")
+    result_format = (
+        ResultFormat.PROBABILITIES_V2
+        if aggregation is None
+        else ResultFormat.HISTOGRAM_V2
+    )
+    key = "probabilities" if aggregation is None else "histogram"
+    _artifact(
+        requests_mock,
+        client,
+        child,
+        result_format,
+        {key: {"registers": {"output_all": {"10": 1.0}}}},
+        aggregation=aggregation,
+    )
+    _artifact(
+        requests_mock,
+        client,
+        child,
+        ResultFormat.SHOTS_V2,
+        {"shots": [{"registers": {"output_all": [1, 0]}}]},
+    )
+    requests_mock.get(client.make_path("jobs", "reachable"), json=child)
+    requests_mock.get(
+        client.make_path("jobs", "unreachable"),
+        status_code=404,
+        json={"statusCode": 404, "error": "Not Found"},
+    )
+    legacy = requests_mock.get(
+        client.make_path("jobs", parent["id"], "results", "probabilities"),
+        json={"reachable": {"1": 1.0}, "unreachable": {"2": 1.0}},
+    )
+    return parent, legacy
+
+
+@pytest.mark.parametrize("memory", [False, True])
+def test_batch_unretrieved_child_keeps_counts(mock_backend, requests_mock, memory):
+    """A child that cannot be retrieved costs only its own memory, not the batch."""
+    client = mock_backend.client
+    parent, _ = _batch_with_unretrievable_child(requests_mock, client)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = _job(mock_backend, requests_mock, parent, memory=memory).result()
+
+    # Counts come from the parent's legacy endpoint, as before v2 artifacts.
+    assert result.get_counts() == [{"01": 10}, {"10": 10}]
+    warned = any(
+        "Failed to retrieve child unreachable for per-shot memory" in str(w.message)
+        for w in caught
+    )
+    assert warned is memory
+    if memory:
+        assert result.get_memory(0) == ["01"]
+        assert result.data(1).get("memory") is None
+
+
+def test_batch_unretrieved_child_fails_aggregation(mock_backend, requests_mock):
+    """The legacy endpoint ignores aggregation, so it cannot cover for a lost child."""
+    client = mock_backend.client
+    parent, legacy = _batch_with_unretrievable_child(
+        requests_mock, client, aggregation="dnl"
+    )
+    with pytest.raises(exceptions.IonQAPIError):
+        _job(mock_backend, requests_mock, parent).result(aggregation="dnl")
+    assert not legacy.called
 
 
 def test_artifact_failure_is_not_fallback(mock_backend, requests_mock):
