@@ -62,6 +62,8 @@ disable=fixme,              # disabled as TODOs would show up as warnings
                         # convention strictly
     duplicate-code,     # disabled as it is too verbose
     redundant-returns-doc, # for @abstractmethod, it cannot interpret "pass"
+    abstract-method,    # BackendV2.dtm/meas_map raise NotImplementedError,
+                        # which newer pylint reports as abstract
     # disable the "too-many/few-..." refactoring hints
     too-many-lines, too-many-branches, too-many-locals, too-many-nested-blocks,
     too-many-statements, too-many-instance-attributes, too-many-arguments,
