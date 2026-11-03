@@ -51,6 +51,9 @@ unsupported_instructions = [
 ]
 
 gate_serializations = [
+    ("barrier", [0, 1], [{"gate": "barrier", "targets": [0, 1]}]),
+    ("barrier", [2, 1], [{"gate": "barrier", "targets": [2, 1]}]),
+    ("barrier", [[]], [{"gate": "barrier", "targets": []}]),
     ("ccx", [0, 1, 2], [{"gate": "x", "targets": [2], "controls": [0, 1]}]),
     ("ch", [0, 1], [{"gate": "h", "targets": [1], "controls": [0]}]),
     ("cx", [0, 1], [{"gate": "x", "targets": [1], "controls": [0]}]),
@@ -150,15 +153,6 @@ def test_barrier_is_preserved():
         {"gate": "barrier", "targets": [0, 1]},
         {"gate": "x", "targets": [1], "controls": [0]},
     ]
-    built, _, _ = qiskit_circ_to_ionq_circ(qc)
-    assert built == expected
-
-
-def test_partial_barrier_targets():
-    """Test that a barrier on a subset of qubits only targets those qubits."""
-    qc = QuantumCircuit(3)
-    qc.barrier(2, 1)
-    expected = [{"gate": "barrier", "targets": [2, 1]}]
     built, _, _ = qiskit_circ_to_ionq_circ(qc)
     assert built == expected
 

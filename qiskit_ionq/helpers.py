@@ -69,6 +69,7 @@ from . import exceptions as ionq_exceptions
 #
 # Some of these gates may be deprecated or removed in qiskit 1.0
 ionq_basis_gates = [
+    "barrier",
     "ccx",
     "ch",
     "cnot",
@@ -128,6 +129,7 @@ ionq_api_aliases = {  # todo fix alias bug
 
 # https://ionq.com/docs/getting-started-with-native-gates
 ionq_native_basis_gates = [
+    "barrier",
     "gpi",
     "gpi2",
     "ms",  # Pairwise MS gate
@@ -201,17 +203,6 @@ def qiskit_circ_to_ionq_circ(
         instruction, qargs, cargs = inst.operation, inst.qubits, inst.clbits
         instruction_name = instruction.name
 
-        # Pass barriers through as-is: they're valid in any gateset and, being
-        # no-ops, may follow a measurement.
-        if instruction_name == "barrier":
-            output_circuit.append(
-                {
-                    "gate": "barrier",
-                    "targets": [input_circuit.qubits.index(q) for q in qargs],
-                }
-            )
-            continue
-
         # Don't process measurement instructions.
         if instruction_name == "measure":
             meas_map[input_circuit.clbits.index(cargs[0])] = input_circuit.qubits.index(
@@ -252,9 +243,7 @@ def qiskit_circ_to_ionq_circ(
                 }
 
         # Default conversion is simple, just gate & target(s).
-        targets = [input_circuit.qubits.index(qargs[0])]
-        if instruction_name in {"ms", "zz"}:
-            targets.append(input_circuit.qubits.index(qargs[1]))
+        targets = [input_circuit.qubits.index(q) for q in qargs]
 
         converted = (
             {"gate": instruction_name, "targets": targets}
@@ -269,13 +258,6 @@ def qiskit_circ_to_ionq_circ(
         if instruction_name in ionq_api_aliases:
             instruction_name = ionq_api_aliases[instruction_name]
             converted["gate"] = instruction_name
-
-        # Make sure uncontrolled multi-targets use all qargs.
-        if instruction.num_qubits > 1 and not hasattr(instruction, "num_ctrl_qubits"):
-            converted["targets"] = [
-                input_circuit.qubits.index(qargs[i])
-                for i in range(instruction.num_qubits)
-            ]
 
         # If this is a controlled gate, make sure to set control qubits.
         if isinstance(instruction, q_cgates.ControlledGate):
@@ -335,8 +317,8 @@ def qiskit_circ_to_ionq_circ(
             }
             converted.update(gate)
 
-        # if there's a valid instruction after a measurement,
-        if num_meas > 0:
+        # if there's a valid instruction (barriers are no-ops) after a measurement,
+        if num_meas > 0 and instruction_name != "barrier":
             # see if any of the involved qubits have been measured,
             # and raise if so — no mid-circuit measurement!
             controls_and_targets = converted.get("targets", []) + converted.get(
