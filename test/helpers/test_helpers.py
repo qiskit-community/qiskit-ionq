@@ -100,6 +100,18 @@ def test_get_backends_success():
         assert result["qpu.tempo-1"]["qubits"] == 100
 
 
+@pytest.mark.parametrize(
+    "token, headers", [("key", {"Authorization": "apiKey key"}), (None, None)]
+)
+def test_get_backends_auth(monkeypatch, token, headers):
+    """get_backends sends the API key when one resolves, and no auth otherwise."""
+    creds = {"token": token, "url": ""}
+    monkeypatch.setattr("qiskit_ionq.helpers.resolve_credentials", lambda *_: creds)
+    with patch("requests.get") as mock_get:
+        get_backends()
+    assert mock_get.call_args.kwargs["headers"] == headers
+
+
 def test_get_backends_raises():
     """get_backends propagates request failures."""
     with patch("requests.get", side_effect=RuntimeError("Network error")):
