@@ -31,35 +31,39 @@ to IonQ REST API compatible values.
 
 from __future__ import annotations
 
-import json
-import re
-import gzip
 import base64
-import platform
-import warnings
-import os
-from typing import Literal, Any
 import functools
-import time
+import gzip
+import json
+import os
+import platform
 import random
+import re
+import time
+import warnings
+from typing import Any, Literal
+
+import numpy as np
 import requests
 from dotenv import dotenv_values
 
-import numpy as np
+# Use this to get version instead of __version__ to avoid circular dependency.
+from importlib_metadata import version
 from qiskit import __version__ as qiskit_version
-from qiskit.user_config import get_config
 from qiskit.circuit import (
-    controlledgate as q_cgates,
+    ClassicalRegister,
     ControlFlowOp,
     QuantumCircuit,
     QuantumRegister,
-    ClassicalRegister,
+)
+from qiskit.circuit import (
+    controlledgate as q_cgates,
 )
 from qiskit.quantum_info import SparsePauliOp
+from qiskit.user_config import get_config
 
-# Use this to get version instead of __version__ to avoid circular dependency.
-from importlib_metadata import version
 from qiskit_ionq.constants import ErrorMitigation
+
 from . import exceptions as ionq_exceptions
 
 # the qiskit gates that the IonQ backend can serialize to our IR
@@ -477,9 +481,9 @@ def _qasm3_data(circuit: QuantumCircuit) -> str:
 def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
     """Resolve error mitigation config from passed_args and backend defaults.
 
-    Flat kwargs (``debiasing``, ``symmetry_verification``) are the primary way to
-    configure error mitigation. The legacy ``ErrorMitigation`` enum is still
-    accepted via ``error_mitigation=`` with a deprecation warning.
+    The ``debiasing`` kwarg is the primary way to configure error mitigation.
+    The legacy ``ErrorMitigation`` enum is still accepted via
+    ``error_mitigation=`` with a deprecation warning.
 
     Returns a dict ready to merge into ``settings["error_mitigation"]``.
     """
@@ -491,7 +495,7 @@ def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
     if isinstance(legacy_enum, ErrorMitigation):
         warnings.warn(
             f"Passing ErrorMitigation.{legacy_enum.name} is deprecated. "
-            "Use the debiasing= and symmetry_verification= kwargs on backend.run() instead.",
+            "Use the debiasing= kwarg on backend.run() instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -501,10 +505,6 @@ def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
     debiasing = passed_args.get("debiasing")
     if debiasing is not None:
         em_cfg["debiasing"] = debiasing
-
-    sym_ver = passed_args.get("symmetry_verification")
-    if sym_ver is not None:
-        em_cfg["symmetry_verification"] = sym_ver
 
     return em_cfg
 
