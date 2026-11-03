@@ -529,6 +529,33 @@ def test_requires_qasm3_reuse():
     assert circuit_requires_qasm3(qc) is True
 
 
+def test_requires_qasm3_barrier_after_measure():
+    """A barrier on a measured qubit is a no-op, so it stays on the v1 path."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    qc.barrier()
+    assert circuit_requires_qasm3(qc) is False
+
+
+def test_barrier_payload(simulator_backend):
+    """A barrier survives into the v1 circuit payload, between its gates."""
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.barrier()
+    qc.cx(0, 1)
+    qc.measure([0, 1], [0, 1])
+    payload = json.loads(
+        qiskit_to_ionq(qc, simulator_backend, passed_args={"shots": 10})
+    )
+    assert payload["type"] == "ionq.circuit.v1"
+    assert payload["input"]["circuit"] == [
+        {"gate": "h", "targets": [0]},
+        {"gate": "barrier", "targets": [0, 1]},
+        {"gate": "x", "controls": [0], "targets": [1]},
+    ]
+
+
 def test_qasm3_payload_shape(qpu_backend):
     """MCM circuits serialize to an ionq.qasm3.v1 payload with QASM 3 input."""
     ionq_json = qiskit_to_ionq(_mcm_circuit(), qpu_backend, passed_args={"shots": 10})
@@ -618,6 +645,15 @@ def test_qasm3_reset_payload(qpu_backend):
     payload = json.loads(qiskit_to_ionq(qc, qpu_backend, passed_args={"shots": 10}))
     assert payload["type"] == "ionq.qasm3.v1"
     assert "reset" in payload["input"]["data"]
+
+
+def test_qasm3_barrier_payload(qpu_backend):
+    """A barrier on an MCM circuit survives qasm3 export."""
+    qc = _mcm_circuit()
+    qc.barrier()
+    payload = json.loads(qiskit_to_ionq(qc, qpu_backend, passed_args={"shots": 10}))
+    assert payload["type"] == "ionq.qasm3.v1"
+    assert payload["input"]["data"].count("barrier") == 1
 
 
 def test_qasm3_reserved_creg(qpu_backend):
