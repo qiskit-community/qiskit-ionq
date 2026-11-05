@@ -41,7 +41,7 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, Iterable, NamedTuple, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -58,10 +58,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_client
 
 
-# Multi-circuit results take a request per child; bound how many run at once.
+# Batch results take a request per child. Cap how many run at once so a big
+# batch doesn't send them all in one burst; the client retries 429s with
+# backoff, so the exact value only affects latency.
 _MAX_CONCURRENT_REQUESTS = 8
-
-_R = TypeVar("_R")
 
 
 def map_output(data, clbits, num_qubits):
@@ -181,7 +181,12 @@ def _wire_order_to_decimal(bits: str | list[int]) -> int:
 def _decode_distribution_artifact(
     distribution: dict[str, Any],
 ) -> dict[str, int | float]:
-    """Re-key an artifact's ``output_all`` distribution by legacy decimal outcome."""
+    """Decode a result artifact's distribution into the legacy decimal-keyed shape.
+
+    Result artifacts use wire-order bitstrings (qubit 0 first), while the existing
+    result formatter consumes decimal keys with qubit 0 as the least-significant
+    bit.
+    """
     decimal_distribution: dict[str, int | float] = {}
     for bitstring, value in distribution["registers"]["output_all"].items():
         decimal = str(_wire_order_to_decimal(bitstring))
@@ -238,17 +243,8 @@ class _Shots(NamedTuple):
     leaked: list[bool] | None
 
 
-def _map_concurrently(func: Callable[..., _R], *iterables: Iterable[Any]) -> list[_R]:
-    """Map ``func`` over ``iterables`` on a bounded thread pool, keeping input order.
-
-    The first exception raised by ``func`` propagates, as it would from a loop.
-    """
-    with ThreadPoolExecutor(max_workers=_MAX_CONCURRENT_REQUESTS) as pool:
-        return list(pool.map(func, *iterables))
-
-
 @dataclass(frozen=True)
-class _CircuitResults:
+class _ResultLocations:
     """One circuit's result locations, parsed once from its job response.
 
     Jobs that predate v2 result artifacts have no artifact IDs and are read from
@@ -271,7 +267,7 @@ class _CircuitResults:
     aggregation_ids: dict[str, str]
 
     @classmethod
-    def from_response(cls, response: dict[str, Any]) -> _CircuitResults:
+    def from_response(cls, response: dict[str, Any]) -> _ResultLocations:
         """Parse the result locations out of a job response."""
         results = response.get("results") or {}
         probabilities = results.get(constants.ResultFormat.PROBABILITIES_V2)
@@ -475,15 +471,16 @@ class IonQJob(JobV1):
         """
         return self.result().get_counts(circuit)
 
-    def get_memory(self, circuit=None):
+    def get_memory(self, circuit=None, *, drop_leaked=False):
         """Return per-shot memory bitstrings (MSB-left), one entry per shot.
 
-        ``circuit`` follows the same semantics as :meth:`get_counts`.
+        ``circuit`` works as in :meth:`get_counts`, and ``drop_leaked`` as in
+        :meth:`IonQResult.get_memory <qiskit_ionq.ionq_result.IonQResult.get_memory>`.
         Raises :class:`IonQBackendError` if the job was submitted with
         ``memory=False``.
         """
         if self.memory:
-            return self.result().get_memory(circuit)
+            return self.result().get_memory(circuit, drop_leaked=drop_leaked)
 
         label = "" if circuit is None else getattr(circuit, "name", circuit)
         raise IonQBackendError(
@@ -505,7 +502,7 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
-    def _circuit_results(self) -> list[_CircuitResults | _UnretrievedChild]:
+    def _result_locations(self) -> list[_ResultLocations | _UnretrievedChild]:
         """Return each circuit's result locations, in circuit order.
 
         A multi-circuit job keeps per-circuit results on its children (the
@@ -514,55 +511,54 @@ class IonQJob(JobV1):
         :class:`_UnretrievedChild` instead of failing the batch.
         """
         if not self._children:
-            return [_CircuitResults.from_response(self._metadata)]
-        return _map_concurrently(self._retrieve_child, self._children)
+            return [_ResultLocations.from_response(self._metadata)]
+        with ThreadPoolExecutor(max_workers=_MAX_CONCURRENT_REQUESTS) as pool:
+            return list(pool.map(self._retrieve_child, self._children))
 
-    def _retrieve_child(self, child_id: str) -> _CircuitResults | _UnretrievedChild:
+    def _retrieve_child(self, child_id: str) -> _ResultLocations | _UnretrievedChild:
         """Retrieve one child's result locations, keeping a failure for later."""
         try:
             response = self._client.retrieve_job(child_id)
         except exceptions.IonQAPIError as err:
             return _UnretrievedChild(child_id, err)
-        return _CircuitResults.from_response(response)
+        return _ResultLocations.from_response(response)
 
     def _fetch_result_artifacts(
         self,
-        circuits: list[_CircuitResults | _UnretrievedChild],
+        locations: list[_ResultLocations | _UnretrievedChild],
         aggregation: str | None,
         extra_query_params: dict | None,
     ) -> list[dict[str, int | float]] | None:
         """Fetch each circuit's distribution artifact: the default probabilities,
         or ``aggregation``'s histogram counts (never the default in its place).
 
-        Return ``None``, so the legacy endpoint serves the whole job, if a
-        circuit lacks that artifact (an older job, or a method on a job run
-        without debiasing) or, for the default, if a child could not be
-        retrieved.
+        Return ``None`` to fall back to the legacy endpoint for the whole job
+        when any circuit lacks that artifact (an older job, or a method the job
+        didn't publish) or, for the default, when a child couldn't be retrieved.
 
         Raises:
             IonQAPIError: If a child could not be retrieved and ``aggregation``
                 is set; the legacy endpoint ignores ``aggregation``, so it
                 cannot stand in.
         """
-        retrieved: list[_CircuitResults] = []
-        for circuit in circuits:
-            if isinstance(circuit, _UnretrievedChild):
+        retrieved: list[_ResultLocations] = []
+        for location in locations:
+            if isinstance(location, _UnretrievedChild):
                 if aggregation is not None:
-                    raise circuit.error
+                    raise location.error
                 return None
-            retrieved.append(circuit)
+            retrieved.append(location)
 
-        artifact_ids = [circuit.distribution_id(aggregation) for circuit in retrieved]
+        artifact_ids = [location.distribution_id(aggregation) for location in retrieved]
         if None in artifact_ids:
             return None
 
-        payloads = _map_concurrently(
-            partial(self._client.get_artifact, extra_query_params=extra_query_params),
-            [circuit.job_id for circuit in retrieved],
-            artifact_ids,
+        get_artifact = partial(
+            self._client.get_artifact, extra_query_params=extra_query_params
         )
-        # The API publishes the default as probabilities and every aggregation
-        # method as histogram counts.
+        job_ids = [location.job_id for location in retrieved]
+        with ThreadPoolExecutor(max_workers=_MAX_CONCURRENT_REQUESTS) as pool:
+            payloads = list(pool.map(get_artifact, job_ids, artifact_ids))
         result_key = "probabilities" if aggregation is None else "histogram"
         return [
             _decode_distribution_artifact(payload[result_key]) for payload in payloads
@@ -587,11 +583,11 @@ class IonQJob(JobV1):
         :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
         method to poll for a completed job.
 
-        For QIS and native-gate jobs, counts and probabilities reflect cloud
-        error mitigation and the selected aggregation, while memory holds every
+        For QIS and native-gate jobs, counts and probabilities reflect error
+        mitigation and the selected aggregation, while memory holds every
         recorded shot, so the two can disagree. Memory and the default counts
-        keep leaked shots, as IonQ Cloud does; :meth:`IonQResult.get_leaked
-        <qiskit_ionq.ionq_result.IonQResult.get_leaked>` flags them.
+        keep leaked shots, as IonQ Cloud does; ``get_memory(drop_leaked=True)``
+        drops them from memory.
 
         Args:
             sharpen: Deprecated; use ``aggregation`` instead. ``sharpen=True``
@@ -676,9 +672,9 @@ class IonQJob(JobV1):
                     self._fetch_qasm3_shots(extra_query_params)
                 )
             else:
-                circuits = self._circuit_results()
+                locations = self._result_locations()
                 distributions = self._fetch_result_artifacts(
-                    circuits, aggregation, extra_query_params
+                    locations, aggregation, extra_query_params
                 )
                 if distributions is None:
                     data = self._client.get_results(
@@ -692,7 +688,7 @@ class IonQJob(JobV1):
                     data_is_histogram = aggregation is not None
                 self._result = self._format_result(
                     data,
-                    self._fetch_memory(circuits),
+                    self._fetch_memory(locations),
                     data_is_histogram=data_is_histogram,
                 )
 
@@ -874,7 +870,7 @@ class IonQJob(JobV1):
         }
 
     def _fetch_memory(
-        self, circuits: list[_CircuitResults | _UnretrievedChild]
+        self, locations: list[_ResultLocations | _UnretrievedChild]
     ) -> list[_Shots | None]:
         """Fetch each circuit's shots for memory, concurrently for batches.
 
@@ -882,11 +878,12 @@ class IonQJob(JobV1):
         which records no shots.
         """
         if not self.memory or self._is_ideal_simulation():
-            return [None] * len(circuits)
-        return _map_concurrently(self._fetch_circuit_shots, circuits)
+            return [None] * len(locations)
+        with ThreadPoolExecutor(max_workers=_MAX_CONCURRENT_REQUESTS) as pool:
+            return list(pool.map(self._fetch_circuit_shots, locations))
 
     def _fetch_circuit_shots(
-        self, circuit: _CircuitResults | _UnretrievedChild
+        self, location: _ResultLocations | _UnretrievedChild
     ) -> _Shots | None:
         """Read a circuit's shots as legacy decimal outcomes, with leak flags.
 
@@ -896,18 +893,18 @@ class IonQJob(JobV1):
         or the child holding them, can't be fetched, warn and return ``None``.
         """
         try:
-            if isinstance(circuit, _UnretrievedChild):
-                raise circuit.error
-            if circuit.shots_id is None:
-                if circuit.legacy_shots_url is None:
+            if isinstance(location, _UnretrievedChild):
+                raise location.error
+            if location.shots_id is None:
+                if location.legacy_shots_url is None:
                     return None
                 return _Shots(
-                    self._client.get_results(circuit.legacy_shots_url), leaked=None
+                    self._client.get_results(location.legacy_shots_url), leaked=None
                 )
-            payload = self._client.get_artifact(circuit.job_id, circuit.shots_id)
+            payload = self._client.get_artifact(location.job_id, location.shots_id)
         except exceptions.IonQAPIError as err:
             warnings.warn(
-                f"Failed to fetch per-shot memory for {circuit.job_id} ({err!r}); "
+                f"Failed to fetch per-shot memory for {location.job_id} ({err!r}); "
                 "memory will be None.",
                 UserWarning,
             )
@@ -924,12 +921,12 @@ class IonQJob(JobV1):
             )
         except (AttributeError, KeyError, TypeError, ValueError) as err:
             raise exceptions.IonQJobError(
-                f"Invalid v2 shots artifact for job {circuit.job_id}: {err}"
+                f"Invalid v2 shots artifact for job {location.job_id}: {err}"
             ) from err
 
     def _fetch_qasm3_shots(self, extra_query_params: dict | None = None) -> list:
         """Fetch the per-register shots array for a qasm3 (MCM) job."""
-        shots_id = _CircuitResults.from_response(self._metadata).shots_id
+        shots_id = _ResultLocations.from_response(self._metadata).shots_id
         if shots_id is None:
             raise exceptions.IonQJobError(
                 f"Job {self._job_id} produced no per-register shot data. "
@@ -1026,10 +1023,8 @@ class IonQJob(JobV1):
     def _is_ideal_simulation(self) -> bool:
         """Whether the job ran on the noiseless simulator."""
         backend = self.backend()
-        # Resolve the noise model the job actually ran as either of:
-        # - Backend.run's current option (kwarg passed to backend.run);
-        # - Retrieved job: carries it only in the API response (e.g., backend.retrieve_job(job_id));
-        # - Backend option.
+        # The noise model the job ran with: the backend.run kwarg, else the API
+        # response (all a retrieved job has), else the backend option.
         noise_model = (
             self._passed_args.get("noise_model")
             or (self._metadata.get("noise") or {}).get("model")

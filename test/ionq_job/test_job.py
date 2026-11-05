@@ -1634,7 +1634,8 @@ def test_qasm3_leaked_shots_counted(mock_backend, requests_mock):
     # Both leaked shots still count, so the total can exceed the shots requested.
     assert res.get_counts() == {"00 0": 4, "01 1": 1, "11 1": 1}
     assert len(res.get_memory()) == 6
-    assert res.get_leaked() == [False] * 4 + [True, True]
+    assert res.data(0)["leaked"] == [False] * 4 + [True, True]
+    assert res.get_memory(drop_leaked=True) == res.get_memory()[:4]
 
 
 def test_qasm3_memory_false(mock_backend, requests_mock):

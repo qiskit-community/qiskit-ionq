@@ -93,29 +93,39 @@ class IonQResult(Result):
             return dict_list[0]
         return dict_list
 
-    def get_leaked(self, experiment=None):
+    def get_memory(self, experiment=None, *, drop_leaked=False):
         """
-        Get the experiment's per-shot leakage flags, aligned with its memory.
+        Get the experiment's per-shot memory.
 
-        ``leaked[k]`` is ``True`` if the hardware flagged shot ``k`` as leaked
-        (an ion left the qubit states mid-shot). Memory and the default counts
-        keep leaked shots, as IonQ Cloud does; to drop them, use
-        ``[m for m, bad in zip(memory, leaked) if not bad]``.
+        Memory keeps every recorded shot, as IonQ Cloud does, including shots
+        the hardware flagged as leaked (an ion left the qubit states mid-shot).
+        ``data(experiment)["leaked"]`` holds the per-shot flags, aligned with
+        memory.
 
         Args:
             experiment (Union[int, QuantumCircuit, Schedule, dict], optional): If provided, this
                 argument is used to get an experiment using Result's ``_get_experiment`` method.
+            drop_leaked (bool): Drop the shots the hardware flagged as leaked.
 
         Raises:
-            IonQJobError: If the experiment has no per-shot memory, or its shots
-                predate v2 result artifacts.
+            QiskitError: If the experiment has no memory.
+            IonQJobError: If ``drop_leaked`` is set and the experiment has no
+                leakage flags, because its shots predate v2 result artifacts.
 
         Returns:
-            list[bool]: One flag per memory entry.
+            list[str]: One bitstring per shot.
         """
+        memory = super().get_memory(experiment)
+        if not drop_leaked:
+            return memory
         leaked = self.data(experiment).get("leaked")
         if leaked is None:
             raise exceptions.IonQJobError(
-                f'No leakage flags for experiment "{repr(experiment)}"'
+                f'No leakage flags for experiment "{experiment!r}"; '
+                "its shots predate v2 result artifacts."
             )
-        return leaked
+        return [
+            shot
+            for shot, is_leaked in zip(memory, leaked, strict=True)
+            if not is_leaked
+        ]

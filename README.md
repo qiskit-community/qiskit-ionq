@@ -142,14 +142,15 @@ memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 
 Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
 
-Memory and the default counts keep every recorded shot, including ones the hardware flagged as leaked (an ion left the qubit states mid-shot), as IonQ Cloud does; only `aggregation=...` on a debiased job drops them. To drop them yourself, filter memory with `get_leaked()`:
+Memory keeps every recorded shot, as IonQ Cloud does, including shots where the hardware flagged an ion as leaked (it left the qubit states mid-shot). So memory can hold more entries than the `shots` you requested. To drop leaked shots:
 
 ```python
-result = job.result()
-clean = [s for s, leaked in zip(result.get_memory(), result.get_leaked()) if not leaked]
+memory = job.get_memory(drop_leaked=True)
 ```
 
-Even so, memory's histogram can differ from `get_counts()` when cloud error mitigation or aggregation is applied.
+The per-shot flags are in `job.result().data()["leaked"]`, aligned with memory. The default counts include leaked shots too; only `aggregation=...` on a debiased job drops them.
+
+Memory's histogram can also differ from `get_counts()` under [error mitigation](#error-mitigation) (debiasing or symmetry verification) or an aggregation method: counts come from IonQ's post-processed distribution, while memory holds the raw shots.
 
 ### Mid-circuit measurements
 
@@ -176,12 +177,11 @@ qc.measure(0, result[1])
 
 job = backend.run(qc, shots=100, memory=True, noise_model="aria-1")
 result = job.result()
-result.get_counts()        # split across registers, e.g. {'01 0': 96, '10 1': 104}
+result.get_counts()        # split across registers, e.g. {'01 0': 48, '10 1': 52}
 result.get_memory()        # per-shot, e.g. ['01 0', '10 1', ...]
-result.get_leaked()        # per-shot leakage flags, e.g. [False, False, ...]
 ```
 
-These counts include leaked shots too; with `memory=True`, `get_leaked()` flags them.
+Here counts come straight from the recorded shots, leaked ones included, so they can total more than `shots`, and `aggregation=...` has no effect. `get_memory(drop_leaked=True)` works here too.
 
 ### Basis gates and transpilation
 
