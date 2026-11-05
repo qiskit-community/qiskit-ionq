@@ -26,6 +26,7 @@
 
 """Test basic behavior of :class:`IonQJob`."""
 
+from collections import Counter
 from unittest import mock
 import warnings
 
@@ -972,7 +973,7 @@ def test_per_run_noise_model_fetches_shots(simulator_backend, requests_mock):
         },
     )
     result = job.result()
-    assert result.data(0).get("memory") == ["00", "11", "00", "11"]
+    assert result.data(0).get("memory") == ["0x0", "0x3", "0x0", "0x3"]
     assert job.get_memory() == ["00", "11", "00", "11"]
 
 
@@ -1002,12 +1003,12 @@ def test_noise_model_in_job_metada_fetches_shots(simulator_backend, requests_moc
         passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
     )
     result = job.result()
-    assert result.data(0).get("memory") == ["11", "00"]
+    assert result.data(0).get("memory") == ["0x3", "0x0"]
     assert job.get_memory() == ["11", "00"]
 
 
-def test_no_shots_url_returns_none(mock_backend, requests_mock):
-    """memory=True + no shots URL in the response -> memory=None, no fetch."""
+def test_no_shots_url_uses_counts(mock_backend, requests_mock):
+    """memory=True + no shots URL (as on forte-1) -> memory is the counts."""
     job_id = "no_shots_url"
     client = mock_backend.client
 
@@ -1025,8 +1026,7 @@ def test_no_shots_url_returns_none(mock_backend, requests_mock):
         passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
     )
     result = job.result()
-    assert result.data(0).get("memory") is None
-    assert result.get_counts()
+    assert Counter(result.get_memory()) == result.get_counts()
 
 
 def test_build_memory_3q_format():
@@ -1037,8 +1037,14 @@ def test_build_memory_3q_format():
 
     raw = ["6", "1", "0", "7"]
     out = _build_memory(raw, n_qubits=3, clbits=[0, 1, 2])
-    assert out == ["110", "001", "000", "111"]
+    assert out == ["0x6", "0x1", "0x0", "0x7"]
     assert _build_memory([6, 1, 0, 7], n_qubits=3, clbits=[0, 1, 2]) == out
+
+
+def test_memory_from_counts_rescales_to_shots():
+    """Debiased counts can total 504 for 500 shots, as seen on forte-1."""
+    memory = ionq_job._memory_from_counts({"00": 253, "11": 251}, 500, seed=None)
+    assert Counter(memory) == {"0x0": 251, "0x3": 249}
 
 
 def test_get_memory_raises_when_off(mock_backend, requests_mock):
@@ -1107,13 +1113,13 @@ def test_multi_mem_per_child(mock_backend, requests_mock):
     result = job.result()
 
     # Bell-like child: outcomes 0 and 3 on 2 inferred qubits -> '00' / '11'.
-    assert result.data(0).get("memory") == ["00", "11", "00", "11"]
+    assert result.data(0).get("memory") == ["0x0", "0x3", "0x0", "0x3"]
     # X-like child: outcome 1 on 1 inferred qubit -> '1'.
-    assert result.data(1).get("memory") == ["1", "1", "1"]
+    assert result.data(1).get("memory") == ["0x1", "0x1", "0x1"]
 
 
 def test_multi_mem_partial(mock_backend, requests_mock):
-    """If one child lacks a shots URL, only that circuit's memory is ``None``;
+    """If one child lacks a shots URL, only that circuit's memory is its counts;
     the others still assemble.
     """
     job_id = "multi_mem_partial"
@@ -1155,12 +1161,12 @@ def test_multi_mem_partial(mock_backend, requests_mock):
         passed_args={"memory": True, "shots": 1024, "sampler_seed": None},
     )
     result = job.result()
-    assert result.data(0).get("memory") == ["00", "11"]
-    assert result.data(1).get("memory") is None
+    assert result.data(0).get("memory") == ["0x0", "0x3"]
+    assert Counter(result.get_memory(1)) == result.get_counts(1)
 
 
 def test_shots_fetch_warns_on_error(mock_backend, requests_mock):
-    """A 5xx on /results/shots surfaces a UserWarning and yields memory=None
+    """A 5xx on /results/shots surfaces a UserWarning and falls back to counts
     rather than failing silently.
     """
     job_id = "shots_500"
@@ -1185,7 +1191,7 @@ def test_shots_fetch_warns_on_error(mock_backend, requests_mock):
     )
     with pytest.warns(UserWarning, match="Failed to fetch per-shot memory"):
         result = job.result()
-    assert result.data(0).get("memory") is None
+    assert Counter(result.get_memory()) == result.get_counts()
 
 
 # ---------------------------------------------------------------------------

@@ -195,29 +195,37 @@ def _build_memory(
     raw_shots: list[int | str],
     n_qubits: int,
     clbits: list[int] | None,
-    memory_slots: int | None = None,
 ) -> list[str]:
-    """Convert IonQ shot outcomes into Qiskit memory bitstrings.
+    """Convert IonQ shot outcomes into Qiskit memory.
 
     The IonQ v0.4 ``CircuitJobResult.shots.url`` endpoint serves an ordered
     list of decimal-encoded outcome integers (same convention as histogram
     keys); this function applies the ``clbits`` mapping and returns one
-    MSB-left bitstring per shot.
+    hex string per shot (Qiskit's level-2 memory format).
     """
     if clbits is None:
         clbits = list(range(n_qubits))
-    out_width = (
-        int(memory_slots) if memory_slots is not None else (len(clbits) or n_qubits)
-    )
 
     def remap_raw_shot(val: int | str) -> str:
         raw = bin(int(val))[2:].rjust(n_qubits, "0")[::-1]
         mapped = "".join(
             raw[b] if b is not None and 0 <= b < n_qubits else "0" for b in clbits
         )[::-1]
-        return mapped.rjust(out_width, "0")
+        return hex(int(mapped, 2))
 
     return [remap_raw_shot(s) for s in raw_shots]
+
+
+def _memory_from_counts(counts: dict[str, int], shots: int, seed) -> list[str]:
+    """Memory for a circuit with no per-shot data: its counts in random order,
+    rescaled by largest remainder to exactly ``shots`` (mitigated counts may
+    not sum to it)."""
+    scaled = np.array(list(counts.values())) * shots / sum(counts.values())
+    per_key = np.floor(scaled).astype(int)
+    per_key[np.argsort(per_key - scaled)[: shots - per_key.sum()]] += 1
+    memory = np.repeat([hex(int(k, 2)) for k in counts], per_key)
+    np.random.default_rng(seed).shuffle(memory)
+    return memory.tolist()
 
 
 class IonQJob(JobV1):
@@ -792,7 +800,7 @@ class IonQJob(JobV1):
             suffix = f" for {ctx}" if ctx else ""
             warnings.warn(
                 f"Failed to fetch per-shot memory{suffix} ({err!r}); "
-                "memory will be None.",
+                "memory falls back to the counts.",
                 UserWarning,
             )
             return None
@@ -816,7 +824,7 @@ class IonQJob(JobV1):
             except exceptions.IonQAPIError as err:
                 warnings.warn(
                     f"Failed to retrieve child {child_id} for per-shot memory "
-                    f"({err!r}); memory for this circuit will be None.",
+                    f"({err!r}); its memory falls back to the counts.",
                     UserWarning,
                 )
                 per_circuit.append(None)
@@ -1042,8 +1050,9 @@ class IonQJob(JobV1):
                     raw_shots_per_circuit[i] if i < len(raw_shots_per_circuit) else None
                 )
                 if raw_shots is not None:
-                    memory_slots = header.get("memory_slots") or len(clbits or [])
-                    memory = _build_memory(raw_shots, n_qubits, clbits, memory_slots)
+                    memory = _build_memory(raw_shots, n_qubits, clbits)
+                elif self.memory:
+                    memory = _memory_from_counts(counts, shots, sampler_seed)
                 else:
                     memory = None
                 job_result[i]["data"] = {
