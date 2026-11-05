@@ -27,7 +27,7 @@
 """Provider for IonQ backends"""
 
 from .ionq_provider import IonQProvider
-from .ionq_primitives import IonQSampler, IonQEstimator, IonQPrimitiveJob
+from .ionq_primitives import IonQEstimator, IonQSampler
 from .ionq_session import Session
 from .ionq_optimizer_plugin import (
     TrappedIonOptimizerPlugin,
@@ -45,7 +45,6 @@ __all__ = [
     "IonQProvider",
     "IonQSampler",
     "IonQEstimator",
-    "IonQPrimitiveJob",
     "Session",
     "TrappedIonOptimizerPlugin",
     "TrappedIonOptimizerPluginSimpleRules",

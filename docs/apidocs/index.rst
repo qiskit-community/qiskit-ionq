@@ -7,6 +7,7 @@ Qiskit IonQ Provider API Reference
    :maxdepth: 1
 
    job
+   primitives
    provider
    backends
    client

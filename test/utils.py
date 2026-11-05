@@ -26,6 +26,15 @@
 
 """Shared (non-fixture) test helpers, importable from any test module."""
 
+import json
+import re
+import uuid
+
+import numpy as np
+from qiskit import QuantumCircuit
+from qiskit.circuit import library
+from qiskit.quantum_info import Statevector
+
 from qiskit_ionq.helpers import compress_to_metadata_string
 
 
@@ -96,3 +105,125 @@ def dummy_job_response(
         response["children"] = children
 
     return response
+
+
+# IonQ QIS wire name -> (Qiskit gate class, takes a rotation angle).
+_QIS_GATES = {
+    "h": (library.HGate, False),
+    "x": (library.XGate, False),
+    "y": (library.YGate, False),
+    "z": (library.ZGate, False),
+    "s": (library.SGate, False),
+    "si": (library.SdgGate, False),
+    "t": (library.TGate, False),
+    "ti": (library.TdgGate, False),
+    "v": (library.SXGate, False),
+    "vi": (library.SXdgGate, False),
+    "swap": (library.SwapGate, False),
+    "rx": (library.RXGate, True),
+    "ry": (library.RYGate, True),
+    "rz": (library.RZGate, True),
+    "xx": (library.RXXGate, True),
+    "yy": (library.RYYGate, True),
+    "zz": (library.RZZGate, True),
+}
+
+
+def _simulate(gates, num_qubits):
+    """Probabilities of an IonQ QIS gate list; index ``i`` has qubit 0 as LSB."""
+    circ = QuantumCircuit(num_qubits)
+    for inst in gates:
+        gate_cls, rotates = _QIS_GATES[inst["gate"]]
+        if inst["gate"] == "z" and "rotation" in inst:
+            gate = library.PhaseGate(inst["rotation"])  # "p" is sent as "z"
+        else:
+            gate = gate_cls(inst["rotation"]) if rotates else gate_cls()
+        controls = inst.get("controls", [])
+        if controls:
+            gate = gate.control(len(controls))
+        circ.append(gate, controls + inst["targets"])
+    return Statevector(circ).probabilities()
+
+
+class FakeIonQCloud:
+    """Simulates each circuit POSTed to ``/jobs`` and serves the results.
+
+    The ideal simulator serves exact probabilities and no per-shot data, as
+    IonQ Cloud does; QPUs and noisy simulators serve sampled shots. A
+    multi-circuit job keeps per-circuit shots on its children.
+    """
+
+    def __init__(self, requests_mock, client, seed=1234):
+        self._rng = np.random.default_rng(seed)
+        self._jobs = {}
+        self._results = {}
+        self.submitted = []
+        requests_mock.post(client.make_path("jobs"), json=self._submit)
+        requests_mock.get(re.compile(r".*/jobs/[^/]+$"), json=self._get_job)
+        requests_mock.get(re.compile(r".*/results/.*"), json=self._get_results)
+
+    def _run(self, job_id, gates, num_qubits, shots, ideal):
+        """Store one circuit's results; return its ``results`` URLs."""
+        probs = _simulate(gates, num_qubits)
+        urls = {"probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"}}
+        if ideal:
+            self._results[f"{job_id}/probabilities"] = {
+                str(k): p for k, p in enumerate(probs) if p > 1e-12
+            }
+            return urls
+        raw = self._rng.choice(len(probs), size=shots, p=probs / probs.sum())
+        values, freq = np.unique(raw, return_counts=True)
+        self._results[f"{job_id}/shots"] = raw.tolist()
+        self._results[f"{job_id}/probabilities"] = {
+            str(v): f / shots for v, f in zip(values.tolist(), freq.tolist())
+        }
+        return {**urls, "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"}}
+
+    def _submit(self, request, _context):
+        payload = json.loads(request.body)
+        self.submitted.append(payload)
+        job_id = str(uuid.uuid4())
+        ideal = (payload.get("noise") or {}).get("model") == "ideal"
+        num_qubits, shots = payload["input"]["qubits"], payload["shots"]
+        job = {
+            "id": job_id,
+            "status": "completed",
+            "type": payload["type"],
+            "metadata": payload["metadata"],
+            "noise": payload.get("noise"),
+            "stats": {"qubits": num_qubits},
+            "execution_duration_ms": 1,
+        }
+        if payload["type"] == "ionq.multi-circuit.v1":
+            children = {}
+            for circuit in payload["input"]["circuits"]:
+                child_id = str(uuid.uuid4())
+                results = self._run(
+                    child_id, circuit["circuit"], num_qubits, shots, ideal
+                )
+                self._jobs[child_id] = {
+                    "id": child_id,
+                    "status": "completed",
+                    "results": results,
+                }
+                children[child_id] = self._results[f"{child_id}/probabilities"]
+            self._results[f"{job_id}/probabilities/aggregated"] = children
+            job["child_job_ids"] = list(children)
+            url = f"/v0.4/jobs/{job_id}/results/probabilities/aggregated"
+            job["results"] = {"probabilities": {"url": url}}
+        else:
+            gates = payload["input"]["circuit"]
+            job["results"] = self._run(job_id, gates, num_qubits, shots, ideal)
+        self._jobs[job_id] = job
+        return {"id": job_id, "status": "submitted"}
+
+    def _get_job(self, request, context):
+        job_id = request.path.rsplit("/", 1)[-1]
+        if job_id not in self._jobs:
+            context.status_code = 404
+            return {"statusCode": 404, "error": "Not Found", "message": "Not Found"}
+        return self._jobs[job_id]
+
+    def _get_results(self, request, _context):
+        job_id, kind = re.match(r".*/jobs/([^/]+)/results/(.*)", request.path).groups()
+        return self._results[f"{job_id}/{kind}"]

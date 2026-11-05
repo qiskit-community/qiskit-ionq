@@ -25,8 +25,8 @@ For example, running a Bell State:
 Per-shot memory
 ===============
 
-Pass ``memory=True`` to get per-shot bitstrings back from QPU or noisy-simulator
-jobs (the ideal simulator returns probabilities, not shots)::
+Pass ``memory=True`` to get per-shot bitstrings back. The ideal simulator returns
+probabilities, not shots, so its shots are sampled locally, like its counts::
 
    job = simulator_backend.run(qc, shots=1000, memory=True)
    print(job.get_memory())
