@@ -25,9 +25,8 @@ For example, running a Bell State:
 Per-shot memory
 ===============
 
-Pass ``memory=True`` to get per-shot bitstrings back. Backends that return only a
-distribution (the ideal simulator, and QPUs such as forte-1) give memory as the
-job's counts in random order::
+Pass ``memory=True`` to get per-shot bitstrings back (backends that return only a
+distribution, like the ideal simulator and forte-1, give the counts in random order)::
 
    job = simulator_backend.run(qc, shots=1000, memory=True)
    print(job.get_memory())

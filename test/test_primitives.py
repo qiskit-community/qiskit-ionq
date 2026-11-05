@@ -24,9 +24,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""V2 primitives on IonQ backends, against a fake IonQ Cloud that simulates the
-submitted circuits: Qiskit's generic ones, and IonQSampler / IonQEstimator,
-whose job IDs are IonQ job IDs (issue #242)."""
+"""Qiskit's V2 primitives and IonQSampler / IonQEstimator, on a fake IonQ Cloud."""
 
 from collections import Counter
 
@@ -61,7 +59,7 @@ def _ry():
 
 
 def test_memory_matches_counts(any_backend, fake_cloud):
-    """Per-shot memory agrees with counts, on the ideal simulator too."""
+    """Memory agrees with counts, with or without served shots."""
     circ = transpile(_two_registers(), any_backend, optimization_level=0)
     result = any_backend.run([circ], shots=100, memory=True).result()
     assert Counter(result.get_memory()) == result.get_counts()
@@ -146,10 +144,10 @@ def test_pubs_must_share_shots(simulator_backend):
     """One IonQ job has one shot count, so pubs that need different ones raise."""
     circ = QuantumCircuit(1, 1)
     circ.measure(0, 0)
-    with pytest.raises(ValueError, match="share a shot count; got \\[10, 20\\]"):
+    with pytest.raises(ValueError, match=r"got shots \[10, 20\]"):
         IonQSampler(backend=simulator_backend).run([(circ, None, 10), (circ, None, 20)])
     z_obs = SparsePauliOp("Z")
-    with pytest.raises(ValueError, match="share a shot count; got \\[25, 100\\]"):
+    with pytest.raises(ValueError, match=r"got shots \[25, 100\]"):
         IonQEstimator(backend=simulator_backend).run(
             [
                 (QuantumCircuit(1), z_obs, None, 0.1),

@@ -128,9 +128,9 @@ The compiled circuit is fetched from the job's published artifacts (`output.comp
 
 ### Per-shot memory (`memory`)
 
-Pass `memory=True` on `backend.run(...)` to opt in (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention), then call `job.get_memory()` to retrieve the per-shot bitstrings.
+Pass `memory=True` to `backend.run(...)` to get per-shot bitstrings from `job.get_memory()` (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention).
 
-The noisy simulator returns its measured shots. Backends that return only a distribution (the ideal simulator, and QPUs such as forte-1) give memory as the job's counts in random order, so shot order carries no information there:
+Backends that return only a distribution (the ideal simulator, and QPUs such as forte-1) give the counts in random order, so for sampled shots set a noise model on the simulator:
 
 ```python
 backend = provider.get_backend("ionq_simulator")
@@ -144,19 +144,14 @@ Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
 
 ### Sampler and Estimator primitives
 
-`IonQSampler` and `IonQEstimator` work like Qiskit's `BackendSamplerV2` and `BackendEstimatorV2`, but `job.job_id()` is the IonQ job ID, so `backend.retrieve_job(job_id)` finds the job later. A `run()` call submits all its pubs as one IonQ job, so they must share a shot count (one precision, for the estimator).
+`IonQSampler` and `IonQEstimator` work like Qiskit's `BackendSamplerV2` and `BackendEstimatorV2`, except that `job.job_id()` is the IonQ job ID, which `backend.retrieve_job` accepts. Each `run()` submits its pubs as one IonQ job, so they must share a shot count (for the estimator, a precision).
 
 ```python
-from qiskit import transpile
 from qiskit_ionq import IonQSampler
 
-sampler = IonQSampler(backend=simulator_backend)
-job = sampler.run([transpile(qc, simulator_backend)], shots=1000)
-print(job.job_id())                       # an IonQ job ID
-print(job.result()[0].data.c.get_counts())
+job = IonQSampler(backend=simulator_backend).run([qc], shots=1000)
+print(job.job_id(), job.result()[0].data.c.get_counts())
 ```
-
-`IonQEstimator(backend=...)` takes `(circuit, observables)` pubs the same way. The sampler reads per-shot memory, so on backends that return only a distribution its shots are the counts in random order (see above).
 
 ### Mid-circuit measurements
 

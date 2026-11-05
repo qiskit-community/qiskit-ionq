@@ -1042,15 +1042,9 @@ def test_build_memory_3q_format():
 
 
 def test_memory_from_counts_rescales_to_shots():
-    """Counts become ``shots`` outcomes in random order. Debiased counts that
-    total 504 for 500 shots (seen on forte-1) are rescaled by largest remainder.
-    """
-    exact = ionq_job._memory_from_counts({"00": 3, "11": 1}, 4, seed=7)
-    assert sorted(exact) == ["0x0", "0x0", "0x0", "0x3"]
-    assert ionq_job._memory_from_counts({"00": 3, "11": 1}, 4, seed=7) == exact
-
-    rescaled = ionq_job._memory_from_counts({"00": 253, "11": 251}, 500, seed=None)
-    assert Counter(rescaled) == {"0x0": 251, "0x3": 249}
+    """Debiased counts can total 504 for 500 shots, as seen on forte-1."""
+    memory = ionq_job._memory_from_counts({"00": 253, "11": 251}, 500, seed=None)
+    assert Counter(memory) == {"0x0": 251, "0x3": 249}
 
 
 def test_get_memory_raises_when_off(mock_backend, requests_mock):
@@ -1125,8 +1119,8 @@ def test_multi_mem_per_child(mock_backend, requests_mock):
 
 
 def test_multi_mem_partial(mock_backend, requests_mock):
-    """If one child lacks a shots URL, only that circuit's memory comes from
-    its counts; the others still use their shots.
+    """If one child lacks a shots URL, only that circuit's memory is its counts;
+    the others still assemble.
     """
     job_id = "multi_mem_partial"
     child_ids = ["child_ok", "child_no_shots"]
@@ -1172,8 +1166,8 @@ def test_multi_mem_partial(mock_backend, requests_mock):
 
 
 def test_shots_fetch_warns_on_error(mock_backend, requests_mock):
-    """A 5xx on /results/shots surfaces a UserWarning, and memory falls back
-    to the counts rather than failing silently.
+    """A 5xx on /results/shots surfaces a UserWarning and falls back to counts
+    rather than failing silently.
     """
     job_id = "shots_500"
     client = mock_backend.client

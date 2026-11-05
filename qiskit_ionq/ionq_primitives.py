@@ -24,13 +24,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""V2 primitives whose jobs are IonQ jobs.
 
-Qiskit's :class:`~qiskit.primitives.BackendSamplerV2` and
-:class:`~qiskit.primitives.BackendEstimatorV2` return a job with a random
-UUID and submit to the backend in a worker thread, so ``job.job_id()`` is
-unknown to IonQ. These subclasses submit all of a ``run`` call's pubs as one
-IonQ job before returning, and the returned job's ID is that IonQ job's ID.
+"""Qiskit's backend V2 primitives, with IonQ job IDs.
+
+Each ``run`` submits its pubs as one IonQ job before returning, so
+``job.job_id()`` is that job's ID (Qiskit's own classes return a random UUID).
 """
 
 from __future__ import annotations
@@ -38,17 +36,18 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Iterable
 
-from qiskit.primitives import BackendEstimatorV2, BackendSamplerV2
-from qiskit.primitives.backend_estimator_v2 import _prepare_counts
-from qiskit.primitives.backend_sampler_v2 import _analyze_circuit, _prepare_memory
-from qiskit.primitives.base.base_primitive_job import BasePrimitiveJob
-from qiskit.primitives.containers import (
+from qiskit.primitives import (
+    BackendEstimatorV2,
+    BackendSamplerV2,
+    BasePrimitiveJob,
+    EstimatorPub,
     EstimatorPubLike,
     PrimitiveResult,
+    SamplerPub,
     SamplerPubLike,
 )
-from qiskit.primitives.containers.estimator_pub import EstimatorPub
-from qiskit.primitives.containers.sampler_pub import SamplerPub
+from qiskit.primitives.backend_estimator_v2 import _prepare_counts
+from qiskit.primitives.backend_sampler_v2 import _analyze_circuit, _prepare_memory
 from qiskit.providers import JobStatus
 from qiskit.result import Result
 
@@ -56,12 +55,7 @@ from .ionq_job import IonQJob
 
 
 class IonQPrimitiveJob(BasePrimitiveJob[PrimitiveResult, JobStatus]):
-    """A primitive job backed by one IonQ job.
-
-    :meth:`job_id` is the IonQ job ID, which
-    :meth:`IonQBackend.retrieve_job <qiskit_ionq.ionq_backend.IonQBackend.retrieve_job>`
-    accepts.
-    """
+    """A primitive job whose :meth:`job_id` is its IonQ job's ID."""
 
     def __init__(
         self, ionq_job: IonQJob, postprocess: Callable[[Result], PrimitiveResult]
@@ -99,8 +93,8 @@ def _one_job_shots(shots: list[int]) -> int:
     """The shot count of the one IonQ job that runs every pub."""
     if len(set(shots)) != 1:
         raise ValueError(
-            "IonQ primitives run all pubs of a run() call as one IonQ job, so "
-            f"the pubs must share a shot count; got {sorted(set(shots))}."
+            "A run() is one IonQ job, so its pubs must share a shot count "
+            f"(for the estimator, a precision); got shots {sorted(set(shots))}."
         )
     return shots[0]
 
@@ -182,6 +176,3 @@ class IonQEstimator(BackendEstimatorV2):
             return PrimitiveResult(pub_results, metadata={"version": 2})
 
         return IonQPrimitiveJob(job, postprocess)
-
-
-__all__ = ["IonQEstimator", "IonQPrimitiveJob", "IonQSampler"]

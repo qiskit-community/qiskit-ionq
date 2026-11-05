@@ -307,12 +307,12 @@ def simulator_backend(provider):
 
 @pytest.fixture(params=["ideal_simulator", "noisy_simulator", "qpu"])
 def any_backend(request, provider):
-    """One backend per result path: the ideal simulator serves no shots."""
+    """One backend per result shape; only the noisy simulator serves shots."""
     if request.param == "qpu":
-        return provider.get_backend("ionq_qpu.aria-1")
+        return provider.get_backend("ionq_qpu.forte-1")
     backend = provider.get_backend("ionq_simulator")
     if request.param == "noisy_simulator":
-        backend.set_options(noise_model="aria-1")
+        backend.set_options(noise_model="forte-1")
     return backend
 
 
