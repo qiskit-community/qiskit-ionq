@@ -34,9 +34,10 @@ from qiskit.compiler import transpile
 from qiskit.result import marginal_counts
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit_ionq.exceptions import IonQGateError
+from qiskit_ionq.exceptions import IonQGateError, IonQJobError
 from qiskit_ionq.helpers import (
     qiskit_to_ionq,
+    circuit_requires_qasm3,
     decompress_metadata_string,
     compress_to_metadata_string,
     get_user_agent,
@@ -47,7 +48,7 @@ from qiskit_ionq.constants import ErrorMitigation
 
 def test_output_map__with_multiple_measurements_to_different_clbits(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """
     Test output mapping handles multiple measurements from the same qubit to
     different clbits correctly
@@ -70,7 +71,7 @@ def test_output_map__with_multiple_measurements_to_different_clbits(
 
 def test_output_map__with_multiple_measurements_to_same_clbit(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """Test output mapping handles multiple measurements to same clbit correctly
 
     Args:
@@ -91,7 +92,7 @@ def test_output_map__with_multiple_measurements_to_same_clbit(
 
 def test_output_map__with_multiple_registers(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """Test output map with multiple registers
 
     Args:
@@ -117,7 +118,7 @@ def test_output_map__with_multiple_registers(
 
 def test_metadata_header__with_multiple_registers(
     simulator_backend,
-):  # pylint: disable=invalid-name
+):
     """Test correct metadata headers when we have multiple qregs and cregs"""
     qr0 = QuantumRegister(2, "qr0")
     qr1 = QuantumRegister(2, "qr1")
@@ -396,23 +397,17 @@ def test_full_native_circuit(simulator_backend):
 
 
 @pytest.mark.parametrize(
-    "error_mitigation,expected",
+    "debiasing,expected",
     [
-        (ErrorMitigation.NO_DEBIASING, {"debiasing": False}),
-        (ErrorMitigation.DEBIASING, {"debiasing": True}),
+        (False, {"debiasing": False}),
+        (True, {"debiasing": True}),
     ],
 )
-def test__error_mitigation_settings(simulator_backend, error_mitigation, expected):
-    """Test error_mitigation settings get serialized accordingly
-
-    Args:
-        simulator_backend (IonQSimulatorBackend): A simulator backend fixture.
-        error_mitigation (ErrorMitigation): error mitigation setting
-        expected (dict): expected serialization
-    """
+def test__error_mitigation_settings(simulator_backend, debiasing, expected):
+    """Test debiasing kwarg gets serialized accordingly."""
     qc = QuantumCircuit(1, 1)
 
-    args = {"shots": 123, "sampler_seed": 42, "error_mitigation": error_mitigation}
+    args = {"shots": 123, "sampler_seed": 42, "debiasing": debiasing}
     ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
     actual = json.loads(ionq_json)
     debiased = actual["settings"].get("error_mitigation", {})
@@ -463,3 +458,236 @@ def test_counts_marginalize(simulator_backend, requests_mock):
     ]
     assert counts_full == {"0000": shots}
     assert marginal_counts(counts_full, indices=measured) == {"00": shots}
+
+
+def _mcm_circuit():
+    """1-qubit mid-circuit-measurement circuit (the API schema example)."""
+    qr = QuantumRegister(1, "q")
+    mid = ClassicalRegister(1, "mid")
+    result = ClassicalRegister(2, "result")
+    qc = QuantumCircuit(qr, mid, result, name="mcm")
+    qc.h(0)
+    qc.measure(0, mid[0])
+    qc.x(0)
+    qc.measure(0, result[0])
+    qc.x(0)
+    qc.measure(0, result[1])
+    return qc
+
+
+def test_requires_qasm3_mcm():
+    """Reusing a qubit after measurement requires the qasm3 path."""
+    assert circuit_requires_qasm3(_mcm_circuit()) is True
+
+
+def test_requires_qasm3_reset():
+    """A mid-circuit reset requires the qasm3 path."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.reset(0)
+    qc.measure(0, 0)
+    assert circuit_requires_qasm3(qc) is True
+
+
+def test_requires_qasm3_ctrl_flow():
+    """Classical control flow requires the qasm3 path."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    with qc.if_test((qc.cregs[0], 1)):
+        qc.x(0)
+    assert circuit_requires_qasm3(qc) is True
+
+
+def test_requires_qasm3_plain():
+    """A plain terminal-measurement circuit stays on the v1 path."""
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.measure([0, 1], [0, 1])
+    assert circuit_requires_qasm3(qc) is False
+
+
+def test_requires_qasm3_if_else():
+    """An if/else block (both branches) requires the qasm3 path."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    with qc.if_test((qc.cregs[0], 1)) as else_:
+        qc.x(0)
+    with else_:
+        qc.z(0)
+    assert circuit_requires_qasm3(qc) is True
+
+
+def test_requires_qasm3_reuse():
+    """A gate after a measurement (qubit reuse) requires the qasm3 path."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    qc.x(0)
+    assert circuit_requires_qasm3(qc) is True
+
+
+def test_qasm3_payload_shape(qpu_backend):
+    """MCM circuits serialize to an ionq.qasm3.v1 payload with QASM 3 input."""
+    ionq_json = qiskit_to_ionq(_mcm_circuit(), qpu_backend, passed_args={"shots": 10})
+    payload = json.loads(ionq_json)
+    assert payload["type"] == "ionq.qasm3.v1"
+    assert payload["input"]["qubits"] == 1
+    data = payload["input"]["data"]
+    assert data.startswith("OPENQASM 3.0;")
+    # Don't assert qiskit's exact qasm3 spelling; just the structure.
+    assert "measure" in data and "mid" in data and "result" in data
+    # Exactly the gates we built (1 H, 2 X, 3 measure) and nothing injected.
+    assert data.count("measure") == 3
+    assert data.count("h q") == 1
+    assert data.count("x q") == 2
+    header = decompress_metadata_string(payload["metadata"]["qiskit_header"])
+    assert header["creg_sizes"] == [["mid", 1], ["result", 2]]
+    assert header["memory_slots"] == 3
+
+
+def test_qasm3_strips_layout(qpu_backend):
+    """Transpiled circuits emit a virtual qubit register, not physical $0."""
+    isa = transpile(_mcm_circuit(), backend=qpu_backend, optimization_level=1)
+    assert isa.layout is not None  # transpile attached a layout
+    payload = json.loads(qiskit_to_ionq(isa, qpu_backend, passed_args={"shots": 10}))
+    data = payload["input"]["data"]
+    assert payload["type"] == "ionq.qasm3.v1"
+    assert "$" not in data  # no physical qubits
+    assert "qubit[" in data  # virtual register declared
+
+
+def test_qasm3_settings_passthrough(qpu_backend):
+    """job_settings flow through and flat EM kwargs merge in."""
+    args = {
+        "shots": 10,
+        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
+        "debiasing": False,
+    }
+    payload = json.loads(qiskit_to_ionq(_mcm_circuit(), qpu_backend, passed_args=args))
+    assert payload["settings"]["error_mitigation"] == {
+        "symmetry_verification": True,
+        "debiasing": False,
+    }
+
+
+def test_qasm3_service_version(qpu_backend):
+    """qasm3 jobs pin compilation.service_version v0.4; a caller can override."""
+    default = json.loads(
+        qiskit_to_ionq(_mcm_circuit(), qpu_backend, passed_args={"shots": 10})
+    )
+    assert default["settings"]["compilation"]["service_version"] == "v0.4"
+    override = json.loads(
+        qiskit_to_ionq(
+            _mcm_circuit(),
+            qpu_backend,
+            passed_args={
+                "shots": 10,
+                "job_settings": {"compilation": {"service_version": "v0.5"}},
+            },
+        )
+    )
+    assert override["settings"]["compilation"]["service_version"] == "v0.5"
+
+
+def test_multi_circuit_mcm_raises(qpu_backend):
+    """Multi-circuit MCM submissions are rejected with a clear error."""
+    circuits = [_mcm_circuit(), _mcm_circuit()]
+    with pytest.raises(IonQJobError, match="single-circuit"):
+        qiskit_to_ionq(circuits, qpu_backend, passed_args={"shots": 10})
+
+
+def test_qasm3_simulator_noise(simulator_backend):
+    """MCM on the simulator carries the noise block, like the v1 path."""
+    payload = json.loads(
+        qiskit_to_ionq(_mcm_circuit(), simulator_backend, passed_args={"shots": 10})
+    )
+    assert payload["type"] == "ionq.qasm3.v1"
+    assert payload["backend"] == "simulator"
+    assert payload["noise"]["model"] == "ideal"
+
+
+def test_qasm3_reset_payload(qpu_backend):
+    """A mid-circuit reset routes to qasm3 and the reset survives export."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.reset(0)
+    qc.measure(0, 0)
+    payload = json.loads(qiskit_to_ionq(qc, qpu_backend, passed_args={"shots": 10}))
+    assert payload["type"] == "ionq.qasm3.v1"
+    assert "reset" in payload["input"]["data"]
+
+
+def test_qasm3_reserved_creg(qpu_backend):
+    """A creg name that qasm3 renames (reserved word) is rejected, not silent."""
+    qr = QuantumRegister(1, "q")
+    mid = ClassicalRegister(1, "mid")
+    out = ClassicalRegister(1, "output")  # 'output' is renamed to 'output_0'
+    qc = QuantumCircuit(qr, mid, out)
+    qc.h(0)
+    qc.measure(0, mid[0])
+    qc.x(0)
+    qc.measure(0, out[0])
+    with pytest.raises(IonQJobError, match="reserved words"):
+        qiskit_to_ionq(qc, qpu_backend, passed_args={"shots": 10})
+
+
+def test_v1_settings_merge(simulator_backend):
+    """v1 path merges flat EM kwargs into job_settings.error_mitigation."""
+    args = {
+        "shots": 10,
+        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
+        "debiasing": False,
+    }
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    payload = json.loads(qiskit_to_ionq(qc, simulator_backend, passed_args=args))
+    assert payload["settings"]["error_mitigation"] == {
+        "symmetry_verification": True,
+        "debiasing": False,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Backward compatibility: legacy ErrorMitigation enum emits DeprecationWarning
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "error_mitigation,expected",
+    [
+        (ErrorMitigation.NO_DEBIASING, {"debiasing": False}),
+        (ErrorMitigation.DEBIASING, {"debiasing": True}),
+    ],
+)
+def test_legacy_error_mitigation_enum_warns(
+    simulator_backend, error_mitigation, expected
+):
+    """Legacy ErrorMitigation enum still serializes correctly but emits a DeprecationWarning."""
+    qc = QuantumCircuit(1, 1)
+    args = {"shots": 10, "error_mitigation": error_mitigation}
+    with pytest.warns(DeprecationWarning, match="ErrorMitigation"):
+        ionq_json = qiskit_to_ionq(qc, simulator_backend, passed_args=args)
+    em_block = json.loads(ionq_json)["settings"].get("error_mitigation", {})
+    assert em_block == expected
+
+
+def test_legacy_enum_merges_with_job_settings_and_warns(simulator_backend):
+    """Legacy enum still merges into job_settings.error_mitigation while warning."""
+    qc = QuantumCircuit(1, 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    args = {
+        "shots": 10,
+        "job_settings": {"error_mitigation": {"symmetry_verification": True}},
+        "error_mitigation": ErrorMitigation.NO_DEBIASING,
+    }
+    with pytest.warns(DeprecationWarning, match="ErrorMitigation"):
+        payload = json.loads(qiskit_to_ionq(qc, simulator_backend, passed_args=args))
+    assert payload["settings"]["error_mitigation"] == {
+        "symmetry_verification": True,
+        "debiasing": False,
+    }

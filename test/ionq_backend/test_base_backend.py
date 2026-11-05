@@ -25,29 +25,101 @@
 # limitations under the License.
 
 """Tests for the IonQ's Backend base/super-class."""
+
 # pylint: disable=redefined-outer-name
 
+import warnings
 from unittest import mock
 from collections import Counter
 
 import pytest
 from qiskit import QuantumCircuit, transpile
+from qiskit.transpiler import CouplingMap
 
-from qiskit_ionq import exceptions, ionq_client, ionq_job
+from qiskit_ionq import exceptions, ionq_backend, ionq_client, ionq_job
 from qiskit_ionq.helpers import get_user_agent
 
 from .. import conftest
 
+# Real _fetch_connectivity captured before the autouse fixture stubs it.
+_REAL_FETCH_CONNECTIVITY = ionq_backend.IonQBackend._fetch_connectivity
 
-def test_status_dummy_response(mock_backend):
-    """Test that the IonQBackend returns an aribtrary backend status.
 
-    Args:
-        mock_backend (MockBackend): A fake/mock IonQBackend.
+def test_simulator_status_is_true(mock_backend):
+    """Simulator ``status()`` returns ``True`` (short-circuits before HTTP)."""
+    assert mock_backend.status() is True
+
+
+def test_qpu_status_with_real_cal(qpu_backend, requests_mock):
+    """Real-QPU ``Characterization`` payloads omit ``status`` per the v0.4
+    spec, so ``Characterization.status`` must fall back, not ``KeyError``.
     """
-    # TODO mock the client status call
-    status = mock_backend.status()
-    assert status is False
+    client = qpu_backend.client
+    url = client.make_path(
+        "backends", qpu_backend._api_backend_name, "characterizations"
+    )
+    requests_mock.get(
+        url,
+        json={
+            "characterizations": [
+                {
+                    "id": "abc-123",
+                    "backend": qpu_backend._api_backend_name,
+                    "date": "2026-01-01T00:00:00Z",
+                    "qubits": 25,
+                    "connectivity": [[0, 1], [0, 2]],
+                    "fidelity": {"spam": {"median": 0.99}},
+                    "timing": {},
+                }
+            ],
+            "pages": 0,
+        },
+    )
+    assert qpu_backend.status() is True
+
+
+def test_get_cal_data_no_chars(qpu_backend, requests_mock):
+    """``{"characterizations": null}`` (seen on backends without data like
+    ``qpu.qpu``) must yield ``[]``, not ``TypeError``. The convenience
+    wrapper returns ``None`` in the same situation. Backend.status() must
+    surface that as ``False``, not crash.
+    """
+    client = qpu_backend.client
+    name = qpu_backend._api_backend_name
+    url = client.make_path("backends", name, "characterizations")
+    requests_mock.get(url, json={"characterizations": None, "pages": 0})
+    assert client.get_calibration_data(name, limit=1) == []
+    assert client.get_latest_calibration(name) is None
+    assert qpu_backend.status() is False
+
+
+def test_get_cal_data_always_list(qpu_backend, requests_mock):
+    """``get_calibration_data`` returns a list regardless of ``limit``;
+    ``get_latest_calibration`` is the way to ask for a single entry.
+    """
+    client = qpu_backend.client
+    name = qpu_backend._api_backend_name
+    url = client.make_path("backends", name, "characterizations")
+
+    def _cal(uid):
+        return {
+            "id": uid,
+            "backend": name,
+            "date": "2026-01-01T00:00:00Z",
+            "qubits": 25,
+            "connectivity": [[0, 1]],
+            "fidelity": {},
+            "timing": {},
+        }
+
+    requests_mock.get(
+        url,
+        json={"characterizations": [_cal("a"), _cal("b")], "pages": 1},
+    )
+    chars = client.get_calibration_data(name, limit=2)
+    assert isinstance(chars, list) and len(chars) == 2
+    latest = client.get_latest_calibration(name)
+    assert latest is not None and latest.id == "a"
 
 
 def test_client_property(mock_backend):
@@ -169,6 +241,117 @@ def test_run_single_element_list(mock_backend, requests_mock):
 
     assert isinstance(job, ionq_job.IonQJob)
     assert job.job_id() == "fake_job"
+
+
+class MockBackendWithQubitCapacity(ionq_backend.IonQBackend):
+    """A mock backend for testing super-class behavior in isolation."""
+
+    def __init__(self, provider, num_qubits, *, name: str = "ionq_mock_backend"):
+        """
+        Build a minimal mock backend that satisfies BackendV2.
+        """
+        super().__init__(
+            provider=provider,
+            name=name,
+            description="IonQ Mock Backend",
+            gateset="qis",
+            num_qubits=num_qubits,
+            simulator=True,
+            max_shots=10_000,
+        )
+
+
+def test_run_catalog_capacity_overrides_backend_qubits(
+    provider, requests_mock, monkeypatch
+):
+    """Test that the API catalog's backend qubit capacity is the source of
+    truth: it takes precedence over a larger, explicit backend qubit number."""
+    qc = QuantumCircuit(5, name="too_wide")
+    qc.measure_all()
+
+    backend_qubits = 11
+    server_qubits_into_catalog = 4
+    mock_backend = MockBackendWithQubitCapacity(provider, num_qubits=backend_qubits)
+    config = {
+        "qubits": server_qubits_into_catalog,
+        "supported_gates": ["x", "y", "z", "h", "rx", "ry", "rz", "cnot", "swap"],
+        "supported_native_gates": ["gpi", "gpi2"],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
+    }
+    monkeypatch.setattr(
+        type(mock_backend._provider),
+        "get_backend_config",
+        lambda self, name: config,
+    )
+    with pytest.raises(
+        exceptions.IonQBackendError,
+        match=r"'too_wide' uses 5 qubits.*supports at most 4 qubits",
+    ):
+        mock_backend.run(qc)
+
+    # The circuit was rejected client-side, before any API call.
+    assert len(requests_mock.request_history) == 0
+
+
+def test_user_num_qubits_not_backend_qubit_capacity(
+    provider, requests_mock, monkeypatch
+):
+    """Test that a user-defined ``num_qubits`` is never treated as the backend
+    qubit capacity: without a catalog entry, even a circuit wider than the
+    backend qubit count is submitted and the decision is left to the server
+    (which may well support it)."""
+    config_with_no_catalog = {}
+
+    backend_qubits = 11
+    circuit_qubits = 12
+    mock_backend = MockBackendWithQubitCapacity(provider, num_qubits=backend_qubits)
+    monkeypatch.setattr(
+        type(mock_backend._provider),
+        "get_backend_config",
+        lambda self, name: config_with_no_catalog,
+    )
+    path = mock_backend.client.make_path("jobs")
+    requests_mock.post(
+        path, json=conftest.dummy_job_response("fake_job"), status_code=200
+    )
+
+    qc = QuantumCircuit(circuit_qubits)
+    qc.measure_all()
+    job = mock_backend.run(qc)
+
+    assert job.job_id() == "fake_job"
+
+
+def test_run_rejects_too_many_qubits_in_list(provider, requests_mock, monkeypatch):
+    """Test that the backend-qubit-capacity check covers every circuit in a
+    list."""
+
+    num_qubits_okay = 2
+    num_qubits_too_wide = 5
+    server_qubits_into_catalog = 4
+    good_circuit = QuantumCircuit(num_qubits_okay)
+    good_circuit.measure_all()
+    too_wide = QuantumCircuit(num_qubits_too_wide, name="too_wide")
+    too_wide.measure_all()
+
+    mock_backend = MockBackendWithQubitCapacity(
+        provider, num_qubits=server_qubits_into_catalog
+    )
+    config = {
+        "qubits": server_qubits_into_catalog,
+        "supported_gates": ["x", "y", "z", "h", "rx", "ry", "rz", "cnot", "swap"],
+        "supported_native_gates": ["gpi", "gpi2"],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
+    }
+    monkeypatch.setattr(
+        type(mock_backend._provider),
+        "get_backend_config",
+        lambda self, name: config,
+    )
+    with pytest.raises(exceptions.IonQBackendError, match="too_wide"):
+        mock_backend.run([good_circuit, too_wide])
+
+    assert len(requests_mock.request_history) == 0
 
 
 def test_run_extras(mock_backend, requests_mock):
@@ -379,13 +562,14 @@ def test_dry_run_via_extra_params(mock_backend, requests_mock):
 
 
 def test_native_sim_target_noise(provider):
-    """Test that simulator native target uses ZZ gate for Forte noise models.
+    """Simulator native target picks its 2q gate from the noise model's config.
 
     Args:
         provider (IonQProvider): A test IonQProvider.
     """
     sim_backend = provider.get_backend("ionq_simulator", gateset="native")
 
+    # Default (ideal) has no real device -> historical ms default.
     target_ops = [op.name for op in sim_backend.target.operations]
     assert "ms" in target_ops
     assert "zz" not in target_ops
@@ -399,6 +583,11 @@ def test_native_sim_target_noise(provider):
     target_ops = [op.name for op in sim_backend.target.operations]
     assert "ms" in target_ops
     assert "zz" not in target_ops
+
+    sim_backend.set_options(noise_model="tempo-1")
+    target_ops = [op.name for op in sim_backend.target.operations]
+    assert "zz" in target_ops
+    assert "ms" not in target_ops
 
 
 def test_forte_rzz_transpiles_to_zz(provider):
@@ -420,3 +609,133 @@ def test_forte_rzz_transpiles_to_zz(provider):
 
     assert "zz" in ops
     assert "ms" not in ops
+
+
+@pytest.mark.parametrize(
+    "name, two_q",
+    [("ionq_qpu.forte-1", "zz"), ("ionq_qpu.aria-1", "ms")],
+)
+def test_capabilities_from_api(provider, monkeypatch, name, two_q):
+    """Qubit count, native gateset, and capability lists come from the API config."""
+    config = {
+        "qubits": 36,
+        "supported_gates": ["x", "cnot"],
+        "supported_native_gates": ["gpi", "gpi2", two_q],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
+    }
+    monkeypatch.setattr(provider, "get_backend_config", lambda _name: config)
+
+    backend = provider.get_backend(name, gateset="native")
+    assert backend.num_qubits == 36
+    assert backend.supported_native_gates == ["gpi", "gpi2", two_q]
+    assert backend.supported_gates == ["x", "cnot"]
+    assert backend.supported_error_mitigations == ["Debias", "Sharpen"]
+    # native 2q gate is selected from supported_native_gates
+    assert two_q in [op.name for op in backend.target.operations]
+
+    # a populated config resolves capabilities silently
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert backend.supported_gates == ["x", "cnot"]
+
+
+def test_capabilities_warn_offline(provider, monkeypatch):
+    """An unavailable API config warns on capability access instead of
+    silently returning an empty list."""
+    monkeypatch.setattr(provider, "get_backend_config", lambda _name: {})
+    backend = provider.get_backend("ionq_qpu.tempo-1")
+
+    for prop in (
+        "supported_gates",
+        "supported_native_gates",
+        "supported_error_mitigations",
+    ):
+        with pytest.warns(UserWarning, match=f"{prop} is unknown"):
+            assert getattr(backend, prop) == []
+
+
+@pytest.mark.parametrize("gateset", ["qis", "native"])
+def test_unlisted_backend_has_no_width_limit(provider, monkeypatch, gateset):
+    """An unlisted backend has unknown width, so any circuit transpiles."""
+    monkeypatch.setattr(provider, "get_backend_config", lambda _name: {})
+    backend = provider.get_backend("ionq_qpu.unlisted-1", gateset=gateset)
+    qc = QuantumCircuit(40)
+    qc.h(0)
+    qc.cx(0, range(1, 40))
+    assert backend.num_qubits is None
+    assert transpile(qc, backend).num_qubits == 40
+
+
+def test_tempo_qpu_target_zz(provider):
+    """A native-gateset Tempo QPU backend exposes ZZ (not MS).
+
+    Complements ``test_native_sim_target_noise`` (simulator noise-model path)
+    by exercising the QPU path, where the 2q gate is inferred from the backend
+    name rather than ``options.noise_model``.
+    """
+    tempo = provider.get_backend("ionq_qpu.tempo-1", gateset="native")
+    target_ops = [op.name for op in tempo.target.operations]
+    assert "zz" in target_ops
+    assert "ms" not in target_ops
+    assert {"gpi", "gpi2"}.issubset(target_ops)
+
+
+def test_tempo_rzz_transpiles_to_zz(provider):
+    """rzz transpiles to zz (not ms) with a Tempo noise model."""
+    native_simulator = provider.get_backend("ionq_simulator", gateset="native")
+    native_simulator.set_options(noise_model="tempo-1")
+
+    qc = QuantumCircuit(2)
+    qc.rzz(1, 0, 1)
+
+    transpiled_qc = transpile(qc, backend=native_simulator, optimization_level=3)
+    ops = transpiled_qc.count_ops()
+
+    assert "zz" in ops
+    assert "ms" not in ops
+
+
+def test_coupling_map_restricted(provider):
+    """A genuine connectivity subset becomes a restricted, symmetric Target."""
+    tempo = provider.get_backend("ionq_qpu.tempo-1", gateset="native")
+    tempo._num_qubits = 5
+    chain = [(0, 1), (1, 2), (2, 3), (3, 4)]
+    expected = {(a, b) for x, y in chain for a, b in ((x, y), (y, x))}
+    with mock.patch.object(tempo, "_fetch_connectivity", return_value=chain):
+        assert set(tempo.coupling_map.get_edges()) == expected
+        assert tempo._restricted_coupling is True
+        # the 2q gate is scoped to exactly those pairs in the Target
+        assert set(tempo.target["zz"].keys()) == expected
+
+
+def test_coupling_map_complete(provider):
+    """A complete pair list (what Aria/Forte report) stays implicit all-to-all."""
+    forte = provider.get_backend("ionq_qpu.forte-1", gateset="native")
+    forte._num_qubits = 4
+    complete = [(i, j) for i in range(4) for j in range(i + 1, 4)]
+    with mock.patch.object(forte, "_fetch_connectivity", return_value=complete):
+        assert set(forte.coupling_map.get_edges()) == set(
+            CouplingMap.from_full(4).get_edges()
+        )
+        assert forte._restricted_coupling is False
+        # global 2q gate -> Target reports all-to-all
+        assert forte.target.build_coupling_map() is None
+
+
+def test_coupling_map_fallback(provider):
+    """No characterization connectivity (default) -> all-to-all, unrestricted."""
+    qpu = provider.get_backend("ionq_qpu.forte-1", gateset="native")
+    qpu._num_qubits = 3
+    # autouse fixture already stubs _fetch_connectivity -> None
+    assert set(qpu.coupling_map.get_edges()) == set(
+        CouplingMap.from_full(3).get_edges()
+    )
+    assert qpu._restricted_coupling is False
+
+
+def test_sim_skips_connectivity(provider):
+    """Simulators short-circuit connectivity (no network) and stay all-to-all."""
+    sim = provider.get_backend("ionq_simulator")
+    # Exercise the real method: it returns None for simulators before any call.
+    assert _REAL_FETCH_CONNECTIVITY(sim) is None
+    assert sim._restricted_coupling is False

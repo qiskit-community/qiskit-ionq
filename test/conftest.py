@@ -35,18 +35,46 @@ from requests_mock import Mocker, adapter as rm_adapter
 from qiskit_ionq import ionq_backend, ionq_job, ionq_provider
 from qiskit_ionq.helpers import compress_to_metadata_string
 
+# Re-exported so existing `conftest.dummy_job_response(...)` call sites keep
+# working; new tests should import from `test.utils` directly.
+from .utils import _def_results_template, dummy_job_response  # noqa: F401  pylint: disable=unused-import
 
-def _def_results_template(job_id):
-    """A template for the results field in a job response."""
-    return {
-        "histogram": {
-            # v0.4 returns a relative path - the client prefixes it with the base URL
-            # https://docs.ionq.com/api-reference/v0.4/jobs/get-job
-            "url": f"/v0.4/jobs/{job_id}/results/histogram"
-        },
-        "probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"},
-        "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"},
+# Offline stand-in for one backend's catalog entry. Native gatesets match
+# the real API per family; qubit counts stay small so backend-transpiled
+# statevector tests stay tractable (realistic counts: test_capabilities_from_api).
+_SAFE_QUBITS = 4
+_FAMILY_2Q = {"aria": "ms", "forte": "zz", "tempo": "zz"}
+
+
+def fake_backend_config(name, token=None, url=None):  # pylint: disable=unused-argument
+    """Canned GET /backends/{id} payload, network-free."""
+    api_name = name.removeprefix("ionq_").removeprefix("qpu.")
+    two_q = next((g for fam, g in _FAMILY_2Q.items() if api_name.startswith(fam)), "zz")
+    config = {
+        "qubits": _SAFE_QUBITS,
+        "supported_gates": ["x", "y", "z", "h", "rx", "ry", "rz", "cnot", "swap"],
+        "supported_native_gates": ["gpi", "gpi2", two_q],
+        "supported_error_mitigations": ["Debias", "Sharpen"],
     }
+    if api_name == "simulator":
+        config["noise_models"] = ["aria-1", "forte-1", "forte-enterprise-1", "ideal"]
+    return config
+
+
+@pytest.fixture(autouse=True)
+def _offline_backend_data(monkeypatch):
+    """Network-free default: empty catalog fetch, canned per-backend config, and
+    no connectivity (all-to-all). Restricted-topology tests patch
+    ``_fetch_connectivity`` per instance."""
+    monkeypatch.setattr(ionq_provider, "get_backends", lambda *a, **k: {})
+    monkeypatch.setattr(
+        ionq_provider.IonQProvider,
+        "get_backend_config",
+        lambda self, name: fake_backend_config(name),
+    )
+    monkeypatch.setattr(
+        ionq_backend.IonQBackend, "_fetch_connectivity", lambda self: None
+    )
 
 
 class MockBackend(ionq_backend.IonQBackend):
@@ -65,62 +93,6 @@ class MockBackend(ionq_backend.IonQBackend):
             simulator=True,
             max_shots=10_000,
         )
-
-
-def dummy_job_response(
-    job_id, target="mock_backend", status="completed", job_settings=None, children=None
-):
-    """A dummy response payload for `job_id`.
-
-    Args:
-        job_id (str): An arbitrary job id.
-        target (str): Backend target string.
-        status (str): A provided status string.
-        job_settings (dict): Settings provided to the API.
-        children (list): A list of child job IDs.
-
-    Returns:
-        dict: A json response dict.
-    """
-    qiskit_header = compress_to_metadata_string(
-        {
-            "qubit_labels": [["q", 0], ["q", 1]],
-            "n_qubits": 2,
-            "qreg_sizes": [["q", 2]],
-            "clbit_labels": [["c", 0], ["c", 1]],
-            "memory_slots": 2,
-            "creg_sizes": [["c", 2]],
-            "name": job_id,
-            "global_phase": 0,
-        }
-    )
-    response = {
-        "status": status,
-        "predicted_execution_time": 4,
-        "metadata": {
-            "qobj_id": "test_qobj_id",
-            "shots": "1234",
-            "sampler_seed": "42",
-            "output_length": "2",
-            "qiskit_header": qiskit_header,
-        },
-        "execution_time": 8,
-        "qubits": 2,
-        "type": "circuit",
-        "request": 1600000000,
-        "start": 1600000001,
-        "response": 1600000002,
-        "backend": target,
-        "results": _def_results_template(job_id),
-        "id": job_id,
-        "settings": (job_settings or {}),
-        "name": "test_name",
-    }
-
-    if children is not None:
-        response["children"] = children
-
-    return response
 
 
 def dummy_mapped_job_response(

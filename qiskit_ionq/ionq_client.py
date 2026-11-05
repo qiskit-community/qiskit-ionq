@@ -221,70 +221,39 @@ class IonQClient:
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_calibration_data(
         self, backend_name: str, limit: int | None = None
-    ) -> Characterization | list[Characterization]:
+    ) -> list[Characterization]:
         """Retrieve calibration data for a specified backend.
+
+        Always returns a list. Use :meth:`get_latest_calibration` for the
+        single most recent entry.
 
         Args:
             backend_name (str): The IonQ backend to fetch data for.
-            limit (int, optional): Limit the number of results returned.
+            limit (int, optional): Cap on how many entries to return (API
+                accepts 1–10, default 10).
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
             IonQRetriableError: When a retriable error occurs during the request.
 
         Returns:
-            Characterization: An instance of Characterization containing the calibration data
-            or a list of Characterization instances if multiple results are returned.
+            A list of ``Characterization`` instances, empty if the backend
+            has no characterization data (e.g. simulator, ``qpu.qpu``).
         """
         params = {"limit": limit} if limit else None
         url = self.make_path("backends", backend_name, "characterizations")
         res = self.get_with_retry(url, headers=self.api_headers, params=params)
         exceptions.IonQAPIError.raise_for_status(res)
-        chars = res.json().get("characterizations", [])
-        return (
-            Characterization(chars[0])
-            if limit == 1
-            else [Characterization(item) for item in chars]
-        )
+        # API may ship ``null`` here; dict.get(k, []) won't substitute the default.
+        chars = res.json().get("characterizations") or []
+        return [Characterization(item) for item in chars]
 
-    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
-    def get_compiled_circuit(self, job_id: str, lang: str = "native") -> str:
-        """Retrieve the server-compiled circuit for a job.
-
-        Hits ``GET /v0.4/jobs/{UUID}/circuits/{lang}``, which is populated by the
-        IonQ Cloud compiler-as-a-service for jobs submitted with ``dry_run=True``
-        (and, for fully-executed jobs, the post-compilation circuit actually run
-        on hardware).
-
-        Args:
-            job_id (str): The ID of the job whose compiled circuit to fetch.
-            lang (str): Output language. ``"native"`` (default) returns the
-                IonQ-native gate JSON; ``"qasm3"`` returns OpenQASM 3 source.
-                Other values may be accepted depending on organization
-                entitlement; consult the IonQ API reference for the current
-                set. Unsupported or non-entitled values are rejected by the
-                API with a ``4xx`` response.
-
-        Raises:
-            IonQAPIError: When the API returns a non-2xx status code (this
-                covers both unsupported ``lang`` values and per-organization
-                entitlement rejections).
-            IonQRetriableError: When a retriable error occurs during the request.
-
-        Returns:
-            str: The compiled circuit as a string. For ``lang="qasm3"`` this is
-            an OpenQASM 3 program; for ``lang="native"`` this is the IonQ JSON
-            circuit representation in native gates.
+    def get_latest_calibration(self, backend_name: str) -> Characterization | None:
+        """Return the most recent ``Characterization`` for a backend, or
+        ``None`` if the backend has no characterization data.
         """
-        req_path = self.make_path("jobs", job_id, "circuits", lang)
-        res = self.get_with_retry(req_path, headers=self.api_headers)
-        exceptions.IonQAPIError.raise_for_status(res)
-        # The API returns a JSON-encoded string body; .json() unwraps the outer
-        # quotes and returns a plain Python str.
-        try:
-            return res.json()
-        except ValueError:
-            return res.text
+        chars = self.get_calibration_data(backend_name, limit=1)
+        return chars[0] if chars else None
 
     @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
     def get_results(
@@ -292,6 +261,7 @@ class IonQClient:
         results_url: str,
         sharpen: bool | None = None,
         extra_query_params: dict | None = None,
+        aggregation: str | None = None,
     ) -> dict:
         """Retrieve job results from the IonQ API.
 
@@ -299,9 +269,11 @@ class IonQClient:
 
         Args:
             results_url (str): The URL of the job results to retrieve.
-            sharpen (bool): Supported if the job is debiased,
-            allows you to filter out physical qubit bias from the results.
+            sharpen (bool | None): Deprecated; use ``aggregation`` instead.
+                ``sharpen=True`` maps to ``aggregation="voting"``.
             extra_query_params (dict): Specify any parameters to include in the request
+            aggregation (str | None): Aggregation method for debiased jobs.
+                One of ``"average"`` (default), ``"voting"``, or ``"dnl"``.
 
         Raises:
             IonQAPIError: When the API returns a non-200 status code.
@@ -310,11 +282,18 @@ class IonQClient:
         Returns:
             dict: A :mod:`requests <requests>` response :meth:`json <requests.Response.json>` dict.
         """
+        if sharpen is not None:
+            warn(
+                "The sharpen parameter is deprecated; use aggregation=... instead.",
+                DeprecationWarning,
+            )
+            if sharpen is True and aggregation is None:
+                aggregation = "voting"
 
         params = {}
 
-        if sharpen is not None:
-            params["sharpen"] = sharpen
+        if aggregation is not None:
+            params["aggregation"] = aggregation
 
         if extra_query_params is not None:
             warn(
@@ -331,6 +310,37 @@ class IonQClient:
         exceptions.IonQAPIError.raise_for_status(res)
         # Use json.loads with object_pairs_hook to maintain order of JSON keys
         return json.loads(res.text, object_pairs_hook=OrderedDict)
+
+    @retry(exceptions=IonQRetriableError, max_delay=60, backoff=2, jitter=1)
+    def get_artifact(
+        self,
+        job_id: str,
+        artifact_id: str,
+        extra_query_params: dict | None = None,
+    ) -> dict | list | str | bytes:
+        """GET a result artifact by id (``/jobs/{id}/artifacts/{aid}``).
+
+        Decodes by content type: JSON (``ionq.native.v1``, ``ionq.ore.v*``,
+        result artifacts) to order-preserving objects, text (``ionq.qasm3.v1``
+        compiled circuit, ``text/plain``) to ``str``, and binary
+        (``ionq.mir.v1``, ``application/octet-stream``) to raw ``bytes``.
+        """
+        req_path = self.make_path("jobs", job_id, "artifacts", artifact_id)
+        res = self.get_with_retry(
+            req_path, headers=self.api_headers, params=extra_query_params or None
+        )
+        exceptions.IonQAPIError.raise_for_status(res)
+        content_type = res.headers.get("Content-Type", "").lower()
+        if "octet-stream" in content_type:
+            return res.content
+        if content_type.startswith("text/"):
+            return res.text
+        try:
+            return json.loads(res.text, object_pairs_hook=OrderedDict)
+        except ValueError:
+            # Content type was missing or unrecognized and the body isn't
+            # JSON; return the raw text rather than raising.
+            return res.text
 
     def estimate_job(
         self,
@@ -417,13 +427,17 @@ class Characterization:
 
     @property
     def backend(self) -> str:
-        """Backend name, e.g. `"qpu.aria-1"`."""
+        """Backend name, e.g. `"qpu.forte-1"`."""
         return self._data["backend"]
 
     @property
     def status(self) -> str:
-        """Status of the characterization, e.g. `"available"`."""
-        return self._data["status"]
+        """Status of the characterization, e.g. ``"available"``.
+
+        The v0.4 schema omits ``status``; fall back so callers like
+        :meth:`IonQBackend.status` don't ``KeyError``.
+        """
+        return self._data.get("status", "available")
 
     @property
     def date(self) -> datetime:

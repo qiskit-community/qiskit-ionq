@@ -55,6 +55,12 @@ if TYPE_CHECKING:  # pragma: no cover
     from . import ionq_client
 
 
+_DISTRIBUTION_ARTIFACT_FORMATS: dict[str, tuple[str, bool]] = {
+    constants.ResultFormat.HISTOGRAM_V2.value: ("histogram", True),
+    constants.ResultFormat.PROBABILITIES_V2.value: ("probabilities", False),
+}
+
+
 def map_output(data, clbits, num_qubits):
     """Map histogram according to measured bits."""
 
@@ -76,6 +82,19 @@ def map_output(data, clbits, num_qubits):
     return mapped_output
 
 
+def _sample_counts(
+    probabilities: dict[int, float], shots: int, sampler_seed: int | None
+) -> dict[int, int]:
+    """Sample shot counts from a probability distribution."""
+    rand = np.random.RandomState(sampler_seed)
+    outcomes, weights = zip(*probabilities.items())
+    sample_counts = np.bincount(
+        rand.choice(len(outcomes), shots, p=normalize(weights)),
+        minlength=len(outcomes),
+    )
+    return {outcome: int(count) for outcome, count in zip(outcomes, sample_counts)}
+
+
 def _build_counts(  # pylint: disable=too-many-positional-arguments
     data,
     num_qubits: int,
@@ -83,6 +102,7 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
     shots: int,
     use_sampler: bool = False,
     sampler_seed: int | None = None,
+    data_is_histogram: bool = False,
 ) -> tuple[dict[str, int], dict[str, float]]:
     """Map IonQ's ``counts`` onto qiskit's ``counts`` model.
 
@@ -102,6 +122,8 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
         sampler_seed (int): ability to provide a seed for the randomness in the
             sampler for repeatable results. passed as
             `np.random.RandomState(seed)`. If none, `np.random` is used
+        data_is_histogram (bool): whether ``data`` contains integer histogram
+            counts instead of probabilities.
 
     Returns:
         tuple(dict[str, float], dict[str, float]): A tuple (counts, probabilities),
@@ -118,31 +140,55 @@ def _build_counts(  # pylint: disable=too-many-positional-arguments
         raise exceptions.IonQJobError("Cannot remap counts without data!")
 
     # Grab the mapped output from response.
-    output_probs = map_output(data, clbits, num_qubits)
+    mapped_output = map_output(data, clbits, num_qubits)
 
-    sampled = {}
+    if data_is_histogram and sum(mapped_output.values()) <= 0:
+        raise exceptions.IonQJobError("Cannot normalize an empty histogram")
+
+    sampled_counts = {}
     if use_sampler:
-        rand = np.random.RandomState(sampler_seed)
-        outcomes, weights = zip(*output_probs.items())
-        sample_counts = np.bincount(
-            rand.choice(len(outcomes), shots, p=normalize(weights)),
-            minlength=len(outcomes),
-        )
-        sampled = dict(zip(outcomes, sample_counts))
+        sampled_counts = _sample_counts(mapped_output, shots, sampler_seed)
 
     # Build counts and probabilities
     counts = {}
     probabilities = {}
-    for key_int, prob in output_probs.items():
+    distribution_total = sum(mapped_output.values())
+    for key_int, value in mapped_output.items():
         bitstr = bin(int(key_int))[2:].rjust(
             len(clbits) if clbits else num_qubits, "0"
         )  # e.g. '101'
-        cnt = sampled.get(key_int, round(prob * shots))
-        if cnt:  # ignore zero bins
-            counts[bitstr] = int(cnt)
+        if data_is_histogram:
+            count = value
+            prob = float(value / distribution_total)
+        else:
+            prob = value
+            count = sampled_counts.get(key_int, round(prob * shots))
+        if count:  # ignore zero bins
+            counts[bitstr] = int(count)
             probabilities[bitstr] = float(prob)
 
     return counts, probabilities
+
+
+def _decode_distribution_artifact(
+    payload: Any, result_format: str
+) -> tuple[dict[str, int | float], bool]:
+    """Decode a result artifact into the legacy decimal-keyed shape.
+
+    Result artifacts use wire-order bitstrings (qubit 0 first), while the existing
+    result formatter consumes decimal keys with qubit 0 as the least-significant
+    bit. Return whether the values are histogram counts so they can be preserved
+    exactly rather than multiplied by the requested shot count.
+    """
+    result_key, is_histogram = _DISTRIBUTION_ARTIFACT_FORMATS[result_format]
+
+    distribution = payload[result_key]["registers"]["output_all"]
+    decimal_distribution: dict[str, int | float] = {}
+    for bitstring, value in distribution.items():
+        decimal = str(int(bitstring[::-1] or "0", 2))
+        decimal_distribution[decimal] = decimal_distribution.get(decimal, 0) + value
+
+    return decimal_distribution, is_histogram
 
 
 def _build_memory(
@@ -207,12 +253,16 @@ class IonQJob(JobV1):
         self._execution_time = None
         self._dry_run: bool = False
         self._results_urls: dict[str, str | None] = {}
+        # Set in status() for ionq.qasm3.v1 (mid-circuit measurement) jobs.
+        self._is_qasm3: bool = False
+        self._shots_artifact_id: str | None = None
         self._metadata: dict[str, Any] = {}
 
         if passed_args is not None:
             self.extra_query_params = passed_args.pop("extra_query_params", {})
             self.extra_metadata = passed_args.pop("extra_metadata", {})
             self.memory = passed_args.pop("memory", False)
+            self._dry_run = bool(passed_args.get("dry_run", False))
             self._passed_args = passed_args
         else:
             self.extra_query_params = {}
@@ -249,31 +299,32 @@ class IonQJob(JobV1):
         """
         return self._dry_run
 
-    def compiled_circuit(self, lang: str = "native") -> str:
-        """Fetch the server-compiled circuit for this job.
-
-        Useful for jobs submitted with ``dry_run=True`` (compilation as a
-        service) but also works for any completed job to inspect what was
-        actually run on hardware after IonQ's compiler resynthesizes the input.
-
-        Args:
-            lang (str): Output language. ``"native"`` (default) returns the
-                IonQ-native gate JSON; ``"qasm3"`` returns OpenQASM 3 source.
-                Other values may be accepted depending on organization
-                entitlement; the API rejects unsupported or non-entitled
-                values with a ``4xx`` response surfaced here as
-                :class:`~qiskit_ionq.exceptions.IonQAPIError`.
-
-        Raises:
-            IonQJobStateError: If the job has not reached a final state yet.
-            IonQJobFailureError: If the job failed before compilation completed.
-            IonQAPIError: If the API rejects the ``lang`` value.
-
-        Returns:
-            str: The compiled circuit as a string (IonQ-native JSON or OpenQASM 3).
+    @staticmethod
+    def _resolve_compiled_format(lang: str, available: dict) -> str | None:
+        """Map ``lang`` (exact key or short name like ``"native"``) to an
+        available format key with an artifact ``id``, else ``None``.
         """
-        # Make sure we're in a final state and the job-id is known. status()
-        # raises IonQJobFailureError on failure, which is the right behavior.
+
+        def has_id(key: str) -> bool:
+            entry = available.get(key)
+            return isinstance(entry, dict) and bool(entry.get("id"))
+
+        if has_id(lang):
+            return lang
+        return next(
+            (k for k in available if has_id(k) and k.split(".")[1:2] == [lang]),
+            None,
+        )
+
+    def compiled_circuit(self, lang: str = "native") -> dict | list | str | bytes:
+        """Fetch the server-compiled circuit, parsed from its published artifact.
+
+        ``lang`` is a short name -- ``"native"`` or ``"ore"`` (QIS jobs),
+        ``"mir"`` (OpenQASM 3 jobs) -- or an exact format key, matched against
+        ``output.compilation.compiled_circuits``; raises ``IonQJobError`` if
+        none match. Returns a ``dict``/``list`` for JSON formats or ``bytes``
+        for binary ones (``ionq.mir.v1``).
+        """
         self.status()
         if self._status not in jobstatus.JOB_FINAL_STATES:
             raise exceptions.IonQJobStateError(
@@ -281,7 +332,17 @@ class IonQJob(JobV1):
                 "Call wait_for_final_state() first."
             )
         assert self._job_id is not None
-        return self._client.get_compiled_circuit(self._job_id, lang=lang)
+        circuits = ((self._metadata.get("output") or {}).get("compilation") or {}).get(
+            "compiled_circuits"
+        ) or {}
+        fmt = self._resolve_compiled_format(lang, circuits)
+        if fmt is None:
+            available = ", ".join(sorted(circuits)) or "none"
+            raise exceptions.IonQJobError(
+                f"No compiled circuit matching {lang!r} for job {self._job_id}. "
+                f"Available formats: {available}."
+            )
+        return self._client.get_artifact(self._job_id, circuits[fmt]["id"])
 
     def cancel(self) -> None:
         """Cancel this job."""
@@ -353,9 +414,73 @@ class IonQJob(JobV1):
         """
         return self.result().get_probabilities()
 
+    @staticmethod
+    def _aggregation_artifact_descriptor(
+        response: dict[str, Any], aggregation: str
+    ) -> dict[str, Any] | None:
+        """Return a usable per-method result artifact descriptor, if published."""
+        output = response.get("output") or {}
+        error_mitigation = output.get("error_mitigation") or {}
+        aggregations = error_mitigation.get("aggregations") or {}
+        descriptor = aggregations.get(aggregation)
+        if not isinstance(descriptor, dict) or not descriptor.get("id"):
+            return None
+        if descriptor.get("format") not in _DISTRIBUTION_ARTIFACT_FORMATS:
+            return None
+        return descriptor
+
+    def _fetch_aggregation_artifacts(
+        self,
+        aggregation: str | None,
+        extra_query_params: dict | None,
+    ) -> tuple[list[dict[str, int | float]], bool] | None:
+        """Fetch a requested aggregation from its published artifact(s).
+
+        Older and single-execution jobs do not publish per-method artifacts;
+        return ``None`` for those so the legacy probabilities URL remains the
+        compatibility fallback.
+        """
+        if aggregation is None:
+            return None
+
+        if self._num_circuits == 1 or not self._children:
+            descriptor = self._aggregation_artifact_descriptor(
+                self._metadata, aggregation
+            )
+            if descriptor is None:
+                return None
+            artifacts = [(self._job_id, descriptor)]
+        else:
+            artifacts = []
+            for child_id in self._children:
+                response = self._client.retrieve_job(child_id)
+                descriptor = self._aggregation_artifact_descriptor(
+                    response, aggregation
+                )
+                if descriptor is None:
+                    return None
+                artifacts.append((child_id, descriptor))
+
+        decoded = []
+        histogram_formats = set()
+        for job_id, descriptor in artifacts:
+            payload = self._client.get_artifact(
+                job_id,
+                descriptor["id"],
+                extra_query_params=extra_query_params,
+            )
+            distribution, is_histogram = _decode_distribution_artifact(
+                payload, descriptor["format"]
+            )
+            decoded.append(distribution)
+            histogram_formats.add(is_histogram)
+
+        return decoded, histogram_formats.pop()
+
     def result(
         self,
         sharpen: bool | None = None,
+        aggregation: str | constants.AggregationMethod | None = None,
         timeout: float | None = None,
         wait: float = 5,
         callback: Callable | None = None,
@@ -371,7 +496,25 @@ class IonQJob(JobV1):
         :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
         method to poll for a completed job.
 
+        Args:
+            sharpen: Deprecated; use ``aggregation`` instead. ``sharpen=True``
+                maps to ``aggregation="voting"``.
+            aggregation: How the per-variant results of a debiased job are
+                combined. One of ``"average"`` (default), ``"voting"``, or
+                ``"dnl"``, or an :class:`AggregationMethod
+                <qiskit_ionq.constants.AggregationMethod>` member. Has no
+                effect on jobs that ran without debiasing.
+            timeout: Seconds to wait for the job to reach a final state;
+                ``None`` waits indefinitely.
+            wait: Seconds between status polls.
+            callback: Callback invoked on each status poll; see
+                :meth:`wait_for_final_state
+                <qiskit.providers.BaseJob.wait_for_final_state>`.
+            extra_query_params: Extra query parameters forwarded on the
+                results request.
+
         Raises:
+            ValueError: If ``aggregation`` is not a supported aggregation method.
             IonQJobTimeoutError: If after the default wait period in
                 :meth:`wait_for_final_state <qiskit.providers.BaseJob.wait_for_final_state>`
                 elapses and the job has not reached a "final" state.
@@ -383,9 +526,30 @@ class IonQJob(JobV1):
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>` representation of this job.
         """
-        # Validate args
+        # Resolve aggregation method, with sharpen as a deprecated alias.
         if sharpen is not None and not isinstance(sharpen, bool):
             warnings.warn("Invalid sharpen type")
+            sharpen = None
+
+        if sharpen is not None:
+            warnings.warn(
+                "The sharpen parameter is deprecated; use aggregation=... instead.",
+                DeprecationWarning,
+            )
+            if sharpen is True and aggregation is None:
+                aggregation = constants.AggregationMethod.VOTING
+
+        if isinstance(aggregation, constants.AggregationMethod):
+            aggregation = aggregation.value
+
+        valid_aggregations = tuple(
+            method.value for method in constants.AggregationMethod
+        )
+        if aggregation is not None and aggregation not in valid_aggregations:
+            expected = ", ".join(repr(method) for method in valid_aggregations)
+            raise ValueError(
+                f"Unknown aggregation method {aggregation!r}; expected one of {expected}."
+            )
 
         # Wait for the job to complete.
         try:
@@ -407,15 +571,29 @@ class IonQJob(JobV1):
                 raise exceptions.IonQJobError(
                     f"Job {self._job_id} was submitted with dry_run=True; "
                     "no measurement results are produced. Use "
-                    "job.compiled_circuit(lang='native' or 'qasm3') to "
+                    "job.compiled_circuit(...) to "
                     "retrieve the compiled circuit instead."
                 )
-            response = self._client.get_results(
-                results_url=self._results_urls.get("probabilities", ""),
-                sharpen=sharpen,
-                extra_query_params=extra_query_params,
-            )
-            self._result = self._format_result(response)
+            if self._is_qasm3:
+                self._result = self._format_result_qasm3(
+                    self._fetch_qasm3_shots(extra_query_params)
+                )
+            else:
+                artifact_results = self._fetch_aggregation_artifacts(
+                    aggregation, extra_query_params
+                )
+                if artifact_results is not None:
+                    response, data_is_histogram = artifact_results
+                    self._result = self._format_result(
+                        response, data_is_histogram=data_is_histogram
+                    )
+                else:
+                    response = self._client.get_results(
+                        results_url=self._results_urls.get("probabilities", ""),
+                        aggregation=aggregation,
+                        extra_query_params=extra_query_params,
+                    )
+                    self._result = self._format_result(response)
 
         return self._result
 
@@ -478,6 +656,9 @@ class IonQJob(JobV1):
 
             self._num_qubits = self._first_of(stats, "qubits", default=0)
 
+            # qasm3 jobs carry per-register results in a separate artifact.
+            self._is_qasm3 = response.get("type") == "ionq.qasm3.v1"
+
             # Dry-run jobs have results=null; non-dry-run may also be null mid-rollout.
             if not self._dry_run:
                 results = response.get("results") or {}
@@ -486,6 +667,11 @@ class IonQJob(JobV1):
                     for k, v in results.items()
                     if isinstance(v, dict) and isinstance(v.get("url"), str)
                 }
+                if self._is_qasm3:
+                    shots = results.get(constants.ResultFormat.SHOTS_V2)
+                    self._shots_artifact_id = (
+                        shots.get("id") if isinstance(shots, dict) else None
+                    )
 
             # Classical-bit maps per circuit
             def _meas_map_from_header(header_dict, fallback_nq):
@@ -531,8 +717,8 @@ class IonQJob(JobV1):
             failure = response.get("failure") or {}
             raise exceptions.IonQJobFailureError(
                 f"Unable to retrieve result for job {self._job_id}. "
-                f'Failure from IonQ API "{failure.get("code","")}: '
-                f'{failure.get("error","")}"'
+                f'Failure from IonQ API "{failure.get("code", "")}: '
+                f'{failure.get("error", "")}"'
             )
 
         if self._status == jobstatus.JobStatus.CANCELLED:
@@ -640,23 +826,122 @@ class IonQJob(JobV1):
             per_circuit.append(self._fetch_raw_shots(url, ctx=f"child {child_id}"))
         return per_circuit
 
-    def _format_result(self, data):
+    def _fetch_qasm3_shots(self, extra_query_params: dict | None = None) -> list:
+        """Fetch the per-register shots array for a qasm3 (MCM) job."""
+        if not self._shots_artifact_id:
+            raise exceptions.IonQJobError(
+                f"Job {self._job_id} produced no per-register shot data. "
+                "Mid-circuit measurement results require sampling — run on a "
+                'QPU or pass a noise model (e.g. noise_model="aria-1"); the '
+                "ideal simulator returns only the aggregate distribution."
+            )
+        assert self._job_id is not None
+        payload = self._client.get_artifact(
+            self._job_id,
+            self._shots_artifact_id,
+            extra_query_params=extra_query_params,
+        )
+        return payload.get("shots", [])  # artifact is {"shots": [...]}
+
+    def _format_result_qasm3(self, shots: list):
+        """Build a Result from per-register shots, folding the declared
+        registers via the header's ``clbit_labels``. ``output_all``
+        (system-added) is excluded, as are shots tagged with nonzero
+        ``leakage_bits``.
+        """
+        backend = self.backend()
+        success = self._status == jobstatus.JobStatus.DONE
+        metadata = self._metadata.get("metadata") or {}
+        decoded = decompress_metadata_string(metadata.get("qiskit_header"))
+        header = decoded if isinstance(decoded, dict) else {}
+
+        shots = shots or []
+        # Shots with any leakage bit set are invalid readouts; the platform
+        # excludes them from histogram/probabilities/legacy shots, so exclude
+        # them here too or counts would sum past the requested shot count.
+        shots = [
+            shot
+            for shot in shots
+            if not (isinstance(shot, dict) and any(shot.get("leakage_bits") or []))
+        ]
+        clbit_labels = header.get("clbit_labels") or []
+        # Zero-padded binary so get_counts() splits by creg_sizes.
+        width = header.get("memory_slots") or len(clbit_labels)
+
+        # Missing registers default to all-zeros. Emit a warning because an
+        # omitted register (e.g. compiler-elided measurements) is not the same
+        # as a register that was actually measured and found to be all zeros.
+        declared = {label[0] for label in clbit_labels}
+        first = shots[0] if shots and isinstance(shots[0], dict) else {}
+        missing = declared - set(first.get("registers") or {})
+        if shots and missing:
+            warnings.warn(
+                f"Register(s) {sorted(missing)} declared by the circuit are "
+                "missing from the job's shots artifact; their bits will read "
+                "as 0 in counts/memory.",
+                UserWarning,
+            )
+
+        counts: dict[str, int] = {}
+        memory: list[str] = []
+        for shot in shots:
+            registers = shot.get("registers", {}) if isinstance(shot, dict) else {}
+            value = 0
+            for index, label in enumerate(clbit_labels):
+                name, bit = label[0], label[1]
+                bits = registers.get(name)
+                if bits is not None and bit < len(bits) and int(bits[bit]):
+                    value |= 1 << index
+            key = format(value, f"0{width}b") if width else "0"
+            memory.append(key)
+            counts[key] = counts.get(key, 0) + 1
+
+        total = len(shots)
+        probabilities = {k: v / total for k, v in counts.items()} if total else {}
+
+        job_result = [
+            {
+                "data": {
+                    "counts": counts,
+                    "memory": memory if self.memory else None,
+                    "probabilities": probabilities,
+                    "metadata": header,
+                },
+                "shots": total,
+                "header": header,
+                "success": success,
+            }
+        ]
+
+        return Result.from_dict(
+            {
+                "results": job_result,
+                "job_id": self.job_id(),
+                "backend_name": backend.name,
+                "backend_version": backend.backend_version,
+                "qobj_id": metadata.get("qobj_id"),
+                "success": success,
+                "time_taken": self._execution_time,
+            }
+        )
+
+    def _format_result(self, data, data_is_histogram: bool = False):
         """Translate IonQ result format into a Qiskit `Result` instance.
 
         Args:
-            data: Deserialized probabilities payload from
-                ``GET /v0.4/jobs/<id>/results/probabilities`` (or
-                ``.../aggregated`` for multi-circuit jobs). Accepted shapes:
+            data: Decoded probability distribution or histogram. Accepted shapes:
 
-                - ``dict[str, float]`` -- single circuit; outcome int (as str)
-                  to probability.
-                - ``dict[str, dict[str, float]]`` -- multi-circuit, outer keyed
-                  by child job id; inner shaped as the single-circuit case.
-                - ``list[dict[str, float]]`` -- one entry per circuit (used by
-                  tests; otherwise unusual on the wire).
+                - ``dict[str, int | float]`` -- single circuit; outcome int
+                  (as str) to probability or count.
+                - ``dict[str, dict[str, int | float]]`` -- multi-circuit,
+                  outer keyed by child job id; inner shaped as the
+                  single-circuit case.
+                - ``list[dict[str, int | float]]`` -- one entry per circuit.
 
-                Probability values may be ``int`` (e.g. exact ``0``/``1`` from
-                a noiseless simulator) or ``float``; both are accepted.
+                Probability values may be ``int`` (for example, exact ``0`` or
+                ``1`` from a noiseless simulator) or ``float``.
+            data_is_histogram: Whether ``data`` contains histogram counts rather
+                than probabilities.
 
         Returns:
             Result: A Qiskit :class:`Result <qiskit.result.Result>`
@@ -668,9 +953,16 @@ class IonQJob(JobV1):
         backend = self.backend()
         backend_name = backend.name
         backend_version = backend.backend_version
-        is_ideal_sim = (
-            backend_name == "ionq_simulator" and backend.options.noise_model == "ideal"
+        # Resolve the noise model the job actually ran as either of:
+        # - Backend.run's current option (kwarg passed to backend.run);
+        # - Retrieved job: carries it only in the API response (e.g., backend.retrieve_job(job_id));
+        # - Backend option.
+        noise_model = (
+            self._passed_args.get("noise_model")
+            or (self._metadata.get("noise") or {}).get("model")
+            or getattr(backend.options, "noise_model", None)
         )
+        is_ideal_sim = backend_name == "ionq_simulator" and noise_model == "ideal"
 
         success = self._status == jobstatus.JobStatus.DONE
         metadata = self._metadata.get("metadata") or {}
@@ -742,7 +1034,10 @@ class IonQJob(JobV1):
                     shots,
                     use_sampler=is_ideal_sim,
                     sampler_seed=sampler_seed,
+                    data_is_histogram=data_is_histogram,
                 )
+                if data_is_histogram:
+                    job_result[i]["shots"] = sum(counts.values())
                 raw_shots = (
                     raw_shots_per_circuit[i] if i < len(raw_shots_per_circuit) else None
                 )

@@ -32,6 +32,7 @@ to IonQ REST API compatible values.
 from __future__ import annotations
 
 import json
+import re
 import gzip
 import base64
 import platform
@@ -49,6 +50,7 @@ from qiskit import __version__ as qiskit_version
 from qiskit.user_config import get_config
 from qiskit.circuit import (
     controlledgate as q_cgates,
+    ControlFlowOp,
     QuantumCircuit,
     QuantumRegister,
     ClassicalRegister,
@@ -138,23 +140,30 @@ GATESET_MAP = {
     "native": ionq_native_basis_gates,
 }
 
-# Native 2-qubit entangling gate by IonQ device family. Add a row when a
-# new family ships; consulted by IonQBackend._make_target().
-NATIVE_2Q_BY_FAMILY: dict[str, Literal["ms", "zz"]] = {
-    "aria": "ms",
-    "forte": "zz",
-}
 
+def circuit_requires_qasm3(input_circuit: QuantumCircuit) -> bool:
+    """True for circuits the flat v1 gate list can't express -- mid-circuit
+    measurement, reset, or control flow -- which are submitted as OpenQASM 3.
 
-def native_2q_gate(value: str | None) -> Literal["ms", "zz"] | None:
-    """Pick "ms"/"zz" implied by a backend name or noise_model, else None."""
-    if not isinstance(value, str):
-        return None
-    value = value.lower()
-    for fam, gate in NATIVE_2Q_BY_FAMILY.items():
-        if value == fam or f"{fam}-" in value or value.endswith((f".{fam}", f"_{fam}")):
-            return gate
-    return None
+    Control flow is detected and routed, but isn't supported server-side yet.
+    """
+    measured: set[int] = set()
+    for inst in input_circuit.data:
+        operation = inst.operation
+        name = operation.name
+        if name in ("barrier", "delay"):
+            continue
+        if isinstance(operation, ControlFlowOp):
+            return True
+        if name == "reset":
+            return True
+        qubit_indices = [input_circuit.qubits.index(q) for q in inst.qubits]
+        if name == "measure":
+            measured.update(qubit_indices)
+            continue
+        if measured.intersection(qubit_indices):
+            return True
+    return False
 
 
 def qiskit_circ_to_ionq_circ(
@@ -177,7 +186,9 @@ def qiskit_circ_to_ionq_circ(
 
     Raises:
         IonQGateError: If an unsupported instruction is supplied.
-        IonQMidCircuitMeasurementError: If a mid-circuit measurement is detected.
+        IonQMidCircuitMeasurementError: If a qubit is used after measurement. The
+          flat v1 format can't express this; ``backend.run`` routes such circuits
+          to OpenQASM 3, so this only fires when this builder is called directly.
         IonQPauliExponentialError: If non-commuting PauliExponentials are found without
           the appropriate flag.
 
@@ -298,10 +309,9 @@ def qiskit_circ_to_ionq_circ(
             if not hasattr(operator, "to_list"):
                 operator = SparsePauliOp.from_sparse_observable(operator)
             imag_coeff = any(coeff.imag for coeff in operator.coeffs)
-            assert not imag_coeff, (
-                "PauliEvolution gate must have real coefficients, "
-                f"but got {imag_coeff}"
-            )
+            assert (
+                not imag_coeff
+            ), f"PauliEvolution gate must have real coefficients, but got {imag_coeff}"
             terms = [term[0] for term in operator.to_list()]
             if not ionq_compiler_synthesis and not paulis_commute(terms):
                 raise ionq_exceptions.IonQPauliExponentialError(
@@ -435,6 +445,150 @@ def decompress_metadata_string(
     return json.loads(decompressed)
 
 
+def _qasm3_data(circuit: QuantumCircuit) -> str:
+    """OpenQASM 3 for submission.
+
+    Rejects cregs that ``dumps`` renames to dodge reserved words
+    (``output`` -> ``output_0``); the rename would misalign per-register
+    results decoded by the original name.
+    """
+    from qiskit.qasm3 import (  # pylint: disable=import-outside-toplevel
+        dumps as _qasm3_dumps,
+    )
+
+    # Drop the layout so dumps emits a virtual register (qubit[n] q;) instead
+    # of OpenQASM 3 physical-qubit references ($0, $1, ...), which the API
+    # rejects.
+    if getattr(circuit, "layout", None) is not None:
+        circuit = circuit.copy()
+        circuit._layout = None  # pylint: disable=protected-access
+
+    data = _qasm3_dumps(circuit)
+    emitted = set(re.findall(r"\bbit(?:\[\d+\])?\s+(\w+)\s*;", data))
+    renamed = [creg.name for creg in circuit.cregs if creg.name not in emitted]
+    if renamed:
+        raise ionq_exceptions.IonQJobError(
+            f"Classical register name(s) {renamed} are OpenQASM 3 reserved "
+            "words; rename them and resubmit."
+        )
+    return data
+
+
+def _resolve_em_config(passed_args: dict, backend) -> dict[str, Any]:
+    """Resolve error mitigation config from passed_args and backend defaults.
+
+    Flat kwargs (``debiasing``, ``symmetry_verification``) are the primary way to
+    configure error mitigation. The legacy ``ErrorMitigation`` enum is still
+    accepted via ``error_mitigation=`` with a deprecation warning.
+
+    Returns a dict ready to merge into ``settings["error_mitigation"]``.
+    """
+    legacy_enum = passed_args.get("error_mitigation") or backend.options.get(
+        "error_mitigation"
+    )
+
+    em_cfg: dict[str, Any] = {}
+    if isinstance(legacy_enum, ErrorMitigation):
+        warnings.warn(
+            f"Passing ErrorMitigation.{legacy_enum.name} is deprecated. "
+            "Use the debiasing= and symmetry_verification= kwargs on backend.run() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        em_cfg = dict(legacy_enum.value)
+
+    # Flat kwargs override the legacy enum (None means "not set", so skip)
+    debiasing = passed_args.get("debiasing")
+    if debiasing is not None:
+        em_cfg["debiasing"] = debiasing
+
+    sym_ver = passed_args.get("symmetry_verification")
+    if sym_ver is not None:
+        em_cfg["symmetry_verification"] = sym_ver
+
+    return em_cfg
+
+
+def _build_settings(passed_args: dict, backend) -> dict[str, Any]:
+    """Build ``settings`` from ``job_settings`` and error mitigation config."""
+    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
+    em_cfg = _resolve_em_config(passed_args, backend)
+    if em_cfg:
+        em_block = dict(settings.get("error_mitigation") or {})
+        em_block.update(em_cfg)
+        settings["error_mitigation"] = em_block
+    return settings
+
+
+def _qiskit_to_qasm3_json(  # pylint: disable=too-many-positional-arguments
+    circuit: QuantumCircuit,
+    backend,
+    backend_name: str,
+    passed_args: dict,
+    extra_query_params: dict,
+    extra_metadata: dict,
+) -> str:
+    """Build the ``ionq.qasm3.v1`` payload (OpenQASM 3 input) for one circuit."""
+    qiskit_header = compress_to_metadata_string(
+        {
+            "memory_slots": circuit.num_clbits,
+            "global_phase": circuit.global_phase,
+            "n_qubits": circuit.num_qubits,
+            "name": circuit.name,
+            "creg_sizes": get_register_sizes_and_labels(circuit.cregs)[0],
+            "clbit_labels": get_register_sizes_and_labels(circuit.cregs)[1],
+            "qreg_sizes": get_register_sizes_and_labels(circuit.qregs)[0],
+            "qubit_labels": get_register_sizes_and_labels(circuit.qregs)[1],
+            **({"metadata": circuit.metadata} if circuit.metadata else {}),
+        }
+    )
+
+    ionq_json: dict[str, Any] = {
+        "type": "ionq.qasm3.v1",
+        "backend": backend_name,
+        "shots": passed_args.get("shots"),
+        "name": passed_args.get("name") or circuit.name,
+        "input": {
+            "qubits": circuit.num_qubits,
+            "data": _qasm3_data(circuit),
+        },
+        **(
+            {"session_id": passed_args["session_id"]}
+            if passed_args.get("session_id") is not None
+            else {}
+        ),
+        "metadata": {
+            "shots": str(passed_args.get("shots")),
+            "sampler_seed": str(passed_args.get("sampler_seed")),
+            "qiskit_header": qiskit_header,
+            "user_agent": get_user_agent(),
+        },
+    }
+
+    # simulator noise model
+    if backend_name == "simulator":
+        ionq_json["noise"] = {
+            "model": passed_args.get("noise_model") or backend.options.noise_model,
+            "seed": backend.options.sampler_seed,
+        }
+
+    settings = _build_settings(passed_args, backend)
+    # OpenQASM 3 jobs need the v0.4 compiler stack to return register-named
+    # results; pin it unless the caller set their own service_version.
+    compilation = dict(settings.get("compilation") or {})
+    compilation.setdefault("service_version", "v0.4")
+    settings["compilation"] = compilation
+    ionq_json["settings"] = settings
+
+    if passed_args.get("dry_run"):
+        ionq_json["dry_run"] = True
+
+    ionq_json.update(extra_query_params)
+    ionq_json["metadata"].update(extra_metadata)
+
+    return json.dumps(ionq_json, cls=SafeEncoder)
+
+
 def qiskit_to_ionq(
     circuit,
     backend,
@@ -458,10 +612,30 @@ def qiskit_to_ionq(
     extra_query_params = extra_query_params or {}
     extra_metadata = extra_metadata or {}
 
+    backend_name = backend.name[5:] if backend.name.startswith("ionq") else backend.name
+
+    multi_circuit = isinstance(circuit, (list, tuple))
+
+    # Route circuits the v1 gate list can't express (see circuit_requires_qasm3).
+    circuits_to_check = circuit if multi_circuit else [circuit]
+    if any(circuit_requires_qasm3(c) for c in circuits_to_check):
+        if multi_circuit:
+            raise ionq_exceptions.IonQJobError(
+                "Mid-circuit measurement and reset are only supported for "
+                "single-circuit submissions. Submit such circuits in separate jobs."
+            )
+        return _qiskit_to_qasm3_json(
+            circuit,
+            backend,
+            backend_name,
+            passed_args,
+            extra_query_params,
+            extra_metadata,
+        )
+
     # build the (multi-)circuit block
     ionq_circs: list[Any] | Any = []
     meas_map: list[int] | None = None
-    multi_circuit = isinstance(circuit, (list, tuple))
 
     if multi_circuit:
         for circ in circuit:
@@ -536,7 +710,6 @@ def qiskit_to_ionq(
         input_block["circuit"] = ionq_circs
 
     # top-level fields
-    backend_name = backend.name[5:] if backend.name.startswith("ionq") else backend.name
     ionq_json: dict[str, Any] = {
         "type": "ionq.multi-circuit.v1" if multi_circuit else "ionq.circuit.v1",
         "backend": backend_name,
@@ -565,14 +738,7 @@ def qiskit_to_ionq(
         }
 
     # settings / error mitigation
-    settings: dict[str, Any] = dict(passed_args.get("job_settings") or {})
-    error_mitigation = passed_args.get("error_mitigation") or backend.options.get(
-        "error_mitigation"
-    )
-
-    if isinstance(error_mitigation, ErrorMitigation):
-        settings["error_mitigation"] = error_mitigation.value
-
+    settings = _build_settings(passed_args, backend)
     if settings:
         ionq_json["settings"] = settings
 
@@ -634,9 +800,9 @@ class SafeEncoder(json.JSONEncoder):
 def resolve_credentials(token: str | None = None, url: str | None = None) -> dict:
     """Resolve credentials for use in IonQ API calls.
 
-    If the provided ``token`` and ``url`` are both ``None``, then these values
-    are loaded from the ``IONQ_API_TOKEN`` and ``IONQ_API_URL``
-    environment variables, respectively.
+    If the provided ``token`` and ``url`` are both ``None``, the token is read
+    from ``IONQ_API_KEY`` (also ``QISKIT_IONQ_API_TOKEN`` or ``IONQ_API_TOKEN``)
+    and the url from ``IONQ_API_URL`` (or ``QISKIT_IONQ_API_URL``).
 
     If no url is discovered, then ``https://api.ionq.co/v0.4`` is used.
 
@@ -668,27 +834,34 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     }
 
 
-def get_n_qubits(backend, fallback=4):
-    """Get the number of qubits for a given backend."""
-    backend = backend.removeprefix("ionq_")
-    backend = (
-        backend
-        if backend == "simulator" or backend.startswith("qpu.")
-        else f"qpu.{backend}"
-    )
-    try:
-        return (
-            requests.get(
-                f"{resolve_credentials()['url']}/backends/{backend}", timeout=5
-            )
-            .json()
-            .get("qubits", fallback)
-        )
-    except Exception as exception:  # pylint: disable=broad-except
-        warnings.warn(
-            f"Failed to get qubits for {backend}: {exception}. Using {fallback}"
-        )
-        return fallback
+def api_backend_id(name: str) -> str:
+    """Map a local backend name to its API id -- the identifier the IonQ REST
+    API uses for a backend (the ``backend`` field in ``GET /backends``).
+
+    ``ionq_qpu.forte-1``/``forte-1`` -> ``qpu.forte-1``,
+    ``ionq_simulator`` -> ``simulator``, ``ionq_qpu`` -> ``qpu``.
+    """
+    name = name.removeprefix("ionq_")
+    if name in ("simulator", "qpu") or name.startswith("qpu."):
+        return name
+    return f"qpu.{name}"
+
+
+def get_backends(token: str | None = None, url: str | None = None) -> dict[str, dict]:
+    """Fetch the ``GET /backends`` catalog, keyed by API id.
+
+    One request returns every backend's static config (qubit count,
+    supported/native gates, supported error-mitigation techniques), so the
+    provider can resolve them all locally instead of querying per device.
+    Failures raise; graceful fallbacks are the caller's responsibility.
+    """
+    creds = resolve_credentials(token, url)
+    headers = {"Authorization": f"apiKey {creds['token']}"} if creds["token"] else None
+    resp = requests.get(f"{creds['url']}/backends", headers=headers, timeout=5)
+    resp.raise_for_status()
+    payload = resp.json()
+    backends = payload if isinstance(payload, list) else (payload.get("backends") or [])
+    return {b["backend"]: b for b in backends if isinstance(b, dict) and "backend" in b}
 
 
 def retry(
@@ -768,10 +941,12 @@ def warn_bad_transpile_level():
 __all__ = [
     "qiskit_to_ionq",
     "qiskit_circ_to_ionq_circ",
+    "circuit_requires_qasm3",
     "compress_to_metadata_string",
     "decompress_metadata_string",
     "get_user_agent",
     "resolve_credentials",
-    "get_n_qubits",
+    "api_backend_id",
+    "get_backends",
     "retry",
 ]

@@ -35,16 +35,16 @@ provider = IonQProvider("token")
 
 ### Credential Environment Variables
 
-Alternatively, the IonQ Provider can discover your access token from environment variables:
+Alternatively, the IonQ Provider can discover your access token from environment variables. It checks `QISKIT_IONQ_API_TOKEN`, then `IONQ_API_KEY`, then `IONQ_API_TOKEN`:
 
 ```bash
-export IONQ_API_TOKEN="token"
+export IONQ_API_KEY="token"
 ```
 
 Then invoke instantiate the provider without any arguments:
 
 ```python
-from qiskit_ionq import IonQProvider, ErrorMitigation
+from qiskit_ionq import IonQProvider
 
 provider = IonQProvider()
 ```
@@ -73,19 +73,40 @@ qc.h(0)
 qc.cx(0, 1)
 qc.measure([0, 1], [0, 1])
 
-# Run the circuit on IonQ's platform with error mitigation:
-job = simulator_backend.run(qc, error_mitigation=ErrorMitigation.DEBIASING)
+# Run the circuit on IonQ's platform with debiasing:
+job = simulator_backend.run(qc, shots=1000, debiasing=True)
 
 # Print the results.
 print(job.result().get_counts())
 
-# Get results with a different aggregation method when debiasing
-# is applied as an error mitigation strategy
-print(job.result(sharpen=True).get_counts())
-
 # The simulator specifically provides the ideal probabilities and creates
 # counts by sampling from these probabilities. The raw probabilities are also accessible:
 print(job.result().get_probabilities())
+```
+
+### Error mitigation
+
+Error mitigation is configured with two keyword arguments on `backend.run(...)`:
+
+- `debiasing` (bool): run the circuit as multiple symmetrized variants to
+  suppress systematic hardware biases. Requires at least 500 shots.
+- `symmetry_verification` (bool): discard measurement outcomes that violate
+  the circuit's symmetries.
+
+Leaving a kwarg unset defers to the IonQ platform default for the target backend.
+
+```python
+job = backend.run(qc, shots=1000, debiasing=True, symmetry_verification=True)
+```
+
+When debiasing is applied, the per-variant results can be combined with different aggregation methods at retrieval time via `job.result(aggregation=...)`:
+
+1. `average` (default),
+2. `voting` (plurality voting, sharpens the distribution; replaces the deprecated `sharpen=True`), or
+3. `dnl` (debiasing with non-linear filtering, see [arXiv:2506.05757](https://arxiv.org/abs/2506.05757)):
+
+```python
+print(job.result(aggregation="voting").get_counts())
 ```
 
 ### Compilation as a service (`dry_run`)
@@ -97,25 +118,58 @@ Set `dry_run=True` on `backend.run(...)` and then read the compiled circuit back
 ```python
 backend = provider.get_backend("ionq_qpu.forte-1")
 
-job = backend.run(qc, dry_run=True)
+job = backend.run(qc, dry_run=True, job_settings={"compilation": {"service_version": "v0.4"}})
 job.wait_for_final_state()
 
-native_json = job.compiled_circuit(lang="native")   # IonQ-native JSON
-qasm3       = job.compiled_circuit(lang="qasm3")    # OpenQASM 3
+native = job.compiled_circuit(lang="native")   # IonQ-native gate JSON (dict)
 ```
 
-Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
+The compiled circuit is fetched from the job's published artifacts (`output.compilation.compiled_circuits`); `lang` is matched against the available format keys (e.g. `"native"` → `ionq.native.v1`). Compiled-circuit artifacts come from the v0.4 compiler stack, which is rolling out as the prod default — until then, pass `service_version="v0.4"` as above, otherwise no compiled circuit is published and `compiled_circuit()` raises listing the available formats (`none`). Dry-run jobs produce no measurement results, so calling `job.result()` on one raises `IonQJobError` directing you to `compiled_circuit(...)`.
 
 ### Per-shot memory (`memory`)
 
-QPU and noisy-simulator jobs can return per-shot measurement outcomes. Pass `memory=True` on `backend.run(...)` to opt in (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention), then call `job.get_memory()` to retrieve the per-shot bitstrings:
+QPU and noisy-simulator jobs can return per-shot measurement outcomes. Pass `memory=True` on `backend.run(...)` to opt in (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention), then call `job.get_memory()` to retrieve the per-shot bitstrings.
+
+Per-shot data requires sampling, so on the simulator set a noise model first (the ideal simulator returns only an aggregate distribution; QPU backends need no extra setup):
 
 ```python
+backend = provider.get_backend("ionq_simulator")
+backend.set_options(noise_model="forte-1")
+
 job = backend.run(qc, shots=1000, memory=True)
 memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 ```
 
-The ideal simulator does not produce per-shot data; calling `get_memory()` on a job submitted without `memory=True` raises `IonQBackendError`.
+Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
+
+### Mid-circuit measurements
+
+The IonQ provider supports mid-circuit measurements, qubit reuse, and mid-circuit `reset`. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; the `debiasing`/`symmetry_verification` kwargs work here as well.
+
+These run automatically as OpenQASM 3 (`ionq.qasm3.v1`); no extra flags needed. Today they execute on the simulator (mid-circuit-measurement QPU support is rolling out); other targets are rejected server-side. Register names that are OpenQASM 3 reserved words (`output`, `input`, `measure`, …) are rejected at submission.
+
+Per-register results require sampling, so use a noisy simulator (`noise_model=...`) or a QPU; the ideal simulator returns only the aggregate distribution and `result()` raises there.
+
+```python
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+qr = QuantumRegister(1, "q")
+mid = ClassicalRegister(1, "mid")
+result = ClassicalRegister(2, "result")
+qc = QuantumCircuit(qr, mid, result)
+
+qc.h(0)
+qc.measure(0, mid[0])          # mid-circuit measurement
+qc.x(0)
+qc.measure(0, result[0])       # qubit reused after measurement
+qc.x(0)
+qc.measure(0, result[1])
+
+job = backend.run(qc, shots=100, memory=True, noise_model="aria-1")
+result = job.result()
+result.get_counts()        # split across registers, e.g. {'01 0': 96, '10 1': 104}
+result.get_memory()        # per-shot, e.g. ['01 0', '10 1', ...]
+```
 
 ### Basis gates and transpilation
 

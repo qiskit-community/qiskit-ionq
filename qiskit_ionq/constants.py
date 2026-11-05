@@ -71,4 +71,41 @@ class ErrorMitigation(enum.Enum):
     NO_DEBIASING = {"debiasing": False}
 
 
-__all__ = ["APIJobStatus", "JobStatusMap", "ErrorMitigation"]
+class AggregationMethod(enum.Enum):
+    """How the per-variant results of a debiased job are combined into one
+    distribution.
+
+    - ``AVERAGE`` (default): mean of the variant histograms.
+    - ``VOTING``: plurality voting across variants; sharpens the distribution
+      toward the most frequent outcomes.
+    - ``DNL``: debiasing with non-linear filtering — a power-law filter that
+      suppresses outcomes observed in only a few variants
+      (see `arXiv:2506.05757 <https://arxiv.org/abs/2506.05757>`__).
+    """
+
+    AVERAGE = "average"
+    VOTING = "voting"
+    DNL = "dnl"
+
+
+class ResultFormat(str, enum.Enum):
+    """Format keys for the id-addressed v2 result artifacts in a job's
+    ``results`` map (fetched via ``GET /jobs/{id}/artifacts/{id}``).
+
+    Subclasses ``str`` so a member is usable directly as a dict key, e.g.
+    ``results.get(ResultFormat.SHOTS_V2)`` (``enum.StrEnum`` is 3.11+; the
+    repo floor is 3.10).
+    """
+
+    SHOTS_V2 = "ionq.result.shots.json.v2"
+    HISTOGRAM_V2 = "ionq.result.histogram.json.v2"
+    PROBABILITIES_V2 = "ionq.result.probabilities.json.v2"
+
+
+__all__ = [
+    "APIJobStatus",
+    "JobStatusMap",
+    "ErrorMitigation",
+    "AggregationMethod",
+    "ResultFormat",
+]
