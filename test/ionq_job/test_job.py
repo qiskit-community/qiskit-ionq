@@ -263,7 +263,9 @@ def test_counts__simulator_probs(simulator_backend, requests_mock):
 
     # Create the request path for accessing the dummy job:
     path = simulator_backend.client.make_path("jobs", job_id)
-    requests_mock.get(path, json=conftest.dummy_job_response(job_id))
+    requests_mock.get(
+        path, json=conftest.dummy_job_response(job_id, target="simulator")
+    )
 
     results_path = simulator_backend.client.make_path(
         "jobs", job_id, "results", "probabilities"
@@ -295,7 +297,9 @@ def test_counts_and_probs_from_job(simulator_backend, requests_mock):
 
     # Create the request path for accessing the dummy job:
     path = simulator_backend.client.make_path("jobs", job_id)
-    requests_mock.get(path, json=conftest.dummy_job_response(job_id))
+    requests_mock.get(
+        path, json=conftest.dummy_job_response(job_id, target="simulator")
+    )
     results_path = simulator_backend.client.make_path(
         "jobs", job_id, "results", "probabilities"
     )
@@ -1605,7 +1609,7 @@ def test_qasm3_missing_reg_warns(mock_backend, requests_mock):
 
 
 def test_qasm3_leaked_shots_counted(mock_backend, requests_mock):
-    """Leaked shots stay in counts and memory, as on IonQ Cloud; drop_leaked drops them."""
+    """Leaked shots stay in counts and memory; drop_leaked drops them from memory."""
     job_id = "mcm_leak"
     artifact_id = "shots-leak"
     client = mock_backend.client

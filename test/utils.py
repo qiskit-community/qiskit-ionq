@@ -99,6 +99,9 @@ def dummy_job_response(
         "name": "test_name",
     }
 
+    if target == "simulator":
+        # Like the API, which sends noise on simulator jobs only.
+        response["noise"] = {"model": "ideal"}
     if children is not None:
         response["children"] = children
 

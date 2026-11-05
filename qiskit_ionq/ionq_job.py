@@ -181,11 +181,11 @@ def _wire_order_to_decimal(bits: str | list[int]) -> int:
 def _decode_distribution_artifact(
     distribution: dict[str, Any],
 ) -> dict[str, int | float]:
-    """Decode a result artifact's distribution into the legacy decimal-keyed shape.
+    """Re-key a probabilities or histogram artifact by decimal outcome.
 
-    Result artifacts use wire-order bitstrings (qubit 0 first), while the existing
-    result formatter consumes decimal keys with qubit 0 as the least-significant
-    bit.
+    Artifacts key outcomes by wire-order bitstring (qubit 0 first), while
+    ``IonQJob._result_from_distributions`` takes decimal keys with qubit 0
+    as the lowest bit, as the results endpoint returns for older jobs.
     """
     decimal_distribution: dict[str, int | float] = {}
     for bitstring, value in distribution["registers"]["output_all"].items():
@@ -474,10 +474,19 @@ class IonQJob(JobV1):
     def get_memory(self, circuit=None, *, drop_leaked=False):
         """Return per-shot memory bitstrings (MSB-left), one entry per shot.
 
-        ``circuit`` works as in :meth:`get_counts`, and ``drop_leaked`` as in
-        :meth:`IonQResult.get_memory <qiskit_ionq.ionq_result.IonQResult.get_memory>`.
-        Raises :class:`IonQBackendError` if the job was submitted with
-        ``memory=False``.
+        Shorthand for ``job.result().get_memory(...)`` that fails clearly when
+        the job ran without memory.
+
+        Args:
+            circuit (str or QuantumCircuit or int or None): Optional.
+                The index of the experiment.
+            drop_leaked (bool): Drop the shots the hardware flagged as leaked.
+
+        Raises:
+            IonQBackendError: If the job was submitted with ``memory=False``.
+
+        Returns:
+            list[str]: One bitstring per shot.
         """
         if self.memory:
             return self.result().get_memory(circuit, drop_leaked=drop_leaked)
@@ -586,8 +595,8 @@ class IonQJob(JobV1):
         For QIS and native-gate jobs, counts and probabilities reflect error
         mitigation and the selected aggregation, while memory holds every
         recorded shot, so the two can disagree. Memory and the default counts
-        keep leaked shots, as IonQ Cloud does; ``get_memory(drop_leaked=True)``
-        drops them from memory.
+        include leaked shots; ``get_memory(drop_leaked=True)`` drops them from
+        memory.
 
         Args:
             sharpen: Deprecated; use ``aggregation`` instead. ``sharpen=True``
@@ -668,7 +677,7 @@ class IonQJob(JobV1):
                     "retrieve the compiled circuit instead."
                 )
             if self._is_qasm3:
-                self._result = self._format_result_qasm3(
+                self._result = self._result_from_register_shots(
                     self._fetch_qasm3_shots(extra_query_params)
                 )
             else:
@@ -686,7 +695,7 @@ class IonQJob(JobV1):
                 else:
                     data = distributions
                     data_is_histogram = aggregation is not None
-                self._result = self._format_result(
+                self._result = self._result_from_distributions(
                     data,
                     self._fetch_memory(locations),
                     data_is_histogram=data_is_histogram,
@@ -942,7 +951,7 @@ class IonQJob(JobV1):
         )
         return payload.get("shots", [])  # artifact is {"shots": [...]}
 
-    def _format_result_qasm3(self, shots: list):
+    def _result_from_register_shots(self, shots: list):
         """Build a Result from per-register shots, folding the declared
         registers via the header's ``clbit_labels``. ``output_all``
         (system-added) is excluded; leaked shots count like any other and are
@@ -1021,24 +1030,20 @@ class IonQJob(JobV1):
         )
 
     def _is_ideal_simulation(self) -> bool:
-        """Whether the job ran on the noiseless simulator."""
-        backend = self.backend()
-        # The noise model the job ran with: the backend.run kwarg, else the API
-        # response (all a retrieved job has), else the backend option.
-        noise_model = (
-            self._passed_args.get("noise_model")
-            or (self._metadata.get("noise") or {}).get("model")
-            or getattr(backend.options, "noise_model", None)
-        )
-        return backend.name == "ionq_simulator" and noise_model == "ideal"
+        """Whether the job ran on the noiseless simulator.
 
-    def _format_result(
+        Simulator job responses always carry ``noise``; others never do.
+        """
+        noise = self._metadata.get("noise")
+        return noise is not None and noise["model"] == "ideal"
+
+    def _result_from_distributions(
         self,
         data,
         circuit_shots: list[_Shots | None],
         data_is_histogram: bool = False,
     ):
-        """Translate IonQ result format into a Qiskit `Result` instance.
+        """Build a Qiskit `Result` from each circuit's distribution and shots.
 
         Args:
             data: Decoded probability distribution or histogram. Accepted shapes:

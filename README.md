@@ -142,7 +142,7 @@ memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 
 Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
 
-Memory keeps every recorded shot, as IonQ Cloud does, including shots where the hardware flagged an ion as leaked (it left the qubit states mid-shot). So memory can hold more entries than the `shots` you requested. To drop leaked shots:
+Memory keeps every recorded shot, including shots where the hardware flagged an ion as leaked (it left the qubit states mid-shot). So memory can hold more entries than the `shots` you requested. To drop leaked shots:
 
 ```python
 memory = job.get_memory(drop_leaked=True)

@@ -29,6 +29,7 @@
 import warnings
 
 import pytest
+from qiskit.exceptions import QiskitError
 
 from qiskit_ionq import exceptions, ionq_job
 from qiskit_ionq.constants import ResultFormat
@@ -230,12 +231,12 @@ def test_batch_retrieves_each_child_once(mock_backend, requests_mock):
 def test_default_simulator_sampling(simulator_backend, requests_mock):
     """V2 probabilities preserve seeded sampling on the ideal simulator."""
     client = simulator_backend.client
-    legacy = dummy_job_response("legacy-sim", shots=10)
+    legacy = dummy_job_response("legacy-sim", target="simulator", shots=10)
     requests_mock.get(
         client.make_path("jobs", legacy["id"], "results", "probabilities"),
         json={"1": 0.25, "2": 0.75},
     )
-    modern = dummy_job_response("modern-sim", shots=10)
+    modern = dummy_job_response("modern-sim", target="simulator", shots=10)
     _distribution(requests_mock, client, modern, {"10": 0.25, "01": 0.75})
     # An advertised shots artifact must not be fetched for ideal simulation.
     modern["results"][ResultFormat.SHOTS_V2] = {"id": "unused"}
@@ -323,7 +324,7 @@ def test_legacy_memory_has_no_leak_flags(mock_backend, requests_mock):
     result = job.result()
     assert result.get_memory() == ["10", "10"]
     assert "leaked" not in result.data(0)
-    with pytest.raises(exceptions.IonQJobError, match="No leakage flags"):
+    with pytest.raises(QiskitError, match="No leakage flags"):
         result.get_memory(drop_leaked=True)
 
 
