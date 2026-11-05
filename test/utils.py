@@ -148,9 +148,11 @@ def _simulate(gates, num_qubits):
 class FakeIonQCloud:
     """Simulates each circuit POSTed to ``/jobs`` and serves the results.
 
-    The ideal simulator serves exact probabilities and no per-shot data, as
-    IonQ Cloud does; QPUs and noisy simulators serve sampled shots. A
-    multi-circuit job keeps per-circuit shots on its children.
+    The result shapes match IonQ Cloud's: the ideal simulator serves exact
+    probabilities, a QPU (as forte-1 does) serves sampled probabilities only,
+    and only a noisy simulator also serves per-shot data. A job with several
+    circuits keeps each circuit's results on a child; a one-circuit list has
+    no children.
     """
 
     def __init__(self, requests_mock, client, seed=1234):
@@ -162,28 +164,34 @@ class FakeIonQCloud:
         requests_mock.get(re.compile(r".*/jobs/[^/]+$"), json=self._get_job)
         requests_mock.get(re.compile(r".*/results/.*"), json=self._get_results)
 
-    def _run(self, job_id, gates, num_qubits, shots, ideal):
-        """Store one circuit's results; return its ``results`` URLs."""
+    def _run(self, job_id, gates, num_qubits, shots, noise):
+        """Store one circuit's results; return its ``results`` URLs.
+
+        ``noise`` is the payload's noise model, or ``None`` for a QPU.
+        """
         probs = _simulate(gates, num_qubits)
         urls = {"probabilities": {"url": f"/v0.4/jobs/{job_id}/results/probabilities"}}
-        if ideal:
+        if noise == "ideal":
             self._results[f"{job_id}/probabilities"] = {
                 str(k): p for k, p in enumerate(probs) if p > 1e-12
             }
             return urls
         raw = self._rng.choice(len(probs), size=shots, p=probs / probs.sum())
         values, freq = np.unique(raw, return_counts=True)
-        self._results[f"{job_id}/shots"] = raw.tolist()
         self._results[f"{job_id}/probabilities"] = {
             str(v): f / shots for v, f in zip(values.tolist(), freq.tolist())
         }
+        if noise is None:
+            return urls
+        self._results[f"{job_id}/shots"] = raw.tolist()
         return {**urls, "shots": {"url": f"/v0.4/jobs/{job_id}/results/shots"}}
 
     def _submit(self, request, _context):
         payload = json.loads(request.body)
         self.submitted.append(payload)
         job_id = str(uuid.uuid4())
-        ideal = (payload.get("noise") or {}).get("model") == "ideal"
+        noise = (payload.get("noise") or {}).get("model")
+        circuits = payload["input"].get("circuits") or [payload["input"]]
         num_qubits, shots = payload["input"]["qubits"], payload["shots"]
         job = {
             "id": job_id,
@@ -194,12 +202,12 @@ class FakeIonQCloud:
             "stats": {"qubits": num_qubits},
             "execution_duration_ms": 1,
         }
-        if payload["type"] == "ionq.multi-circuit.v1":
+        if len(circuits) > 1:
             children = {}
-            for circuit in payload["input"]["circuits"]:
+            for circuit in circuits:
                 child_id = str(uuid.uuid4())
                 results = self._run(
-                    child_id, circuit["circuit"], num_qubits, shots, ideal
+                    child_id, circuit["circuit"], num_qubits, shots, noise
                 )
                 self._jobs[child_id] = {
                     "id": child_id,
@@ -212,8 +220,8 @@ class FakeIonQCloud:
             url = f"/v0.4/jobs/{job_id}/results/probabilities/aggregated"
             job["results"] = {"probabilities": {"url": url}}
         else:
-            gates = payload["input"]["circuit"]
-            job["results"] = self._run(job_id, gates, num_qubits, shots, ideal)
+            gates = circuits[0]["circuit"]
+            job["results"] = self._run(job_id, gates, num_qubits, shots, noise)
         self._jobs[job_id] = job
         return {"id": job_id, "status": "submitted"}
 

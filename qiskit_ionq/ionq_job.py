@@ -217,6 +217,27 @@ def _build_memory(
     return [remap_raw_shot(s) for s in raw_shots]
 
 
+def _memory_from_counts(
+    counts: dict[str, int], shots: int, seed: int | None
+) -> list[str]:
+    """Memory for a circuit with no per-shot data: its counts as ``shots`` hex
+    outcomes in random order.
+
+    Mitigated counts can total more or less than ``shots``, so they are
+    rescaled to exactly ``shots`` (largest remainder), as Qiskit's
+    ``BackendSamplerV2`` requires. The shuffle uses a different generator from
+    the ``RandomState`` that samples ideal-simulator counts.
+    """
+    keys = list(counts)
+    exact = np.array([counts[k] for k in keys], dtype=float)
+    exact *= shots / exact.sum()
+    per_key = np.floor(exact).astype(int)
+    per_key[np.argsort(per_key - exact, kind="stable")[: shots - per_key.sum()]] += 1
+    memory = np.repeat([hex(int(k, 2)) for k in keys], per_key)
+    np.random.default_rng(seed).shuffle(memory)
+    return memory.tolist()
+
+
 class IonQJob(JobV1):
     """Representation of a Job that will run on an IonQ backend.
 
@@ -789,7 +810,7 @@ class IonQJob(JobV1):
             suffix = f" for {ctx}" if ctx else ""
             warnings.warn(
                 f"Failed to fetch per-shot memory{suffix} ({err!r}); "
-                "memory will be None.",
+                "memory falls back to the counts.",
                 UserWarning,
             )
             return None
@@ -803,7 +824,7 @@ class IonQJob(JobV1):
         (the parent only carries aggregated probabilities). Failures degrade
         per-circuit -- one bad child does not poison the whole result.
         """
-        if not self._children:
+        if self._num_circuits == 1 or not self._children:
             return [self._fetch_raw_shots(self._results_urls.get("shots"))]
 
         per_circuit: list[list | None] = []
@@ -813,7 +834,7 @@ class IonQJob(JobV1):
             except exceptions.IonQAPIError as err:
                 warnings.warn(
                     f"Failed to retrieve child {child_id} for per-shot memory "
-                    f"({err!r}); memory for this circuit will be None.",
+                    f"({err!r}); its memory falls back to the counts.",
                     UserWarning,
                 )
                 per_circuit.append(None)
@@ -1040,14 +1061,9 @@ class IonQJob(JobV1):
                 )
                 if raw_shots is not None:
                     memory = _build_memory(raw_shots, n_qubits, clbits)
-                elif self.memory and is_ideal_sim:
-                    # The ideal simulator serves no shots: shuffle the shots
-                    # sampled into ``counts`` above, using a generator other
-                    # than the one that sampled them.
-                    memory = [
-                        hex(int(k, 2)) for k, n in counts.items() for _ in range(n)
-                    ]
-                    np.random.default_rng(sampler_seed).shuffle(memory)
+                elif self.memory:
+                    # The ideal simulator and some QPUs serve no per-shot data.
+                    memory = _memory_from_counts(counts, shots, sampler_seed)
                 else:
                     memory = None
                 job_result[i]["data"] = {
