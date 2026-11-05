@@ -125,9 +125,8 @@ def test_requested_method_over_default(mock_backend, requests_mock, aggregation)
         requests_mock, client, response, {"10": 3, "01": 1}, aggregation=aggregation
     )
     requests_mock.get(client.make_path("jobs", response["id"]), json=response)
-    result = ionq_job.IonQJob(mock_backend, response["id"]).result(
-        aggregation=aggregation
-    )
+    job = ionq_job.IonQJob(mock_backend, response["id"])
+    result = job.result(aggregation=aggregation)
     assert result.get_counts() == {"01": 3, "10": 1}
     assert result.get_probabilities() == {"01": 0.75, "10": 0.25}
     assert result.results[0].shots == 4
@@ -156,15 +155,14 @@ def test_batch_order(mock_backend, requests_mock, aggregation, value, total):
     parent["child_job_ids"] = ["z-first", "a-second"]
     client = mock_backend.client
     for child_id, wire_state in zip(parent["child_job_ids"], ["10", "01"]):
-        child = dummy_job_response(child_id, shots=10)
+        child = dummy_job_response(child_id)
         _distribution(
             requests_mock, client, child, {wire_state: value}, aggregation=aggregation
         )
         requests_mock.get(client.make_path("jobs", child_id), json=child)
     requests_mock.get(client.make_path("jobs", parent["id"]), json=parent)
-    result = ionq_job.IonQJob(mock_backend, parent["id"]).result(
-        aggregation=aggregation
-    )
+    job = ionq_job.IonQJob(mock_backend, parent["id"])
+    result = job.result(aggregation=aggregation)
     assert result.get_counts() == [{"01": total}, {"10": total}]
     assert [experiment.shots for experiment in result.results] == [total, total]
 
@@ -174,13 +172,13 @@ def test_batch_legacy_fallback(mock_backend, requests_mock):
     parent = dummy_job_response("mixed-batch", shots=10)
     parent["child_job_ids"] = ["modern", "older"]
     client = mock_backend.client
-    modern = dummy_job_response("modern", shots=10)
+    modern = dummy_job_response("modern")
     modern["results"][ResultFormat.PROBABILITIES_V2] = {
         "id": "unused",
         "format": ResultFormat.PROBABILITIES_V2,
     }
     requests_mock.get(client.make_path("jobs", "modern"), json=modern)
-    older = dummy_job_response("older", shots=10)
+    older = dummy_job_response("older")
     requests_mock.get(client.make_path("jobs", "older"), json=older)
     requests_mock.get(
         client.make_path("jobs", parent["id"], "results", "probabilities"),
@@ -195,7 +193,7 @@ def test_one_child_batch_uses_artifact(mock_backend, requests_mock):
     """A one-circuit batch reads its results from the child."""
     parent = dummy_job_response("one-parent", shots=10)
     parent["child_job_ids"] = ["only-child"]
-    child = dummy_job_response("only-child", shots=10)
+    child = dummy_job_response("only-child")
     client = mock_backend.client
     _distribution(requests_mock, client, child, {"10": 1.0})
     requests_mock.get(client.make_path("jobs", child["id"]), json=child)
@@ -210,7 +208,7 @@ def test_batch_retrieves_each_child_once(mock_backend, requests_mock):
     parent["child_job_ids"] = ["child-a", "child-b"]
     client = mock_backend.client
     for child_id in parent["child_job_ids"]:
-        child = dummy_job_response(child_id, shots=10)
+        child = dummy_job_response(child_id)
         _distribution(requests_mock, client, child, {"10": 1.0})
         _artifact(
             requests_mock,
@@ -221,9 +219,8 @@ def test_batch_retrieves_each_child_once(mock_backend, requests_mock):
         )
         requests_mock.get(client.make_path("jobs", child_id), json=child)
     requests_mock.get(client.make_path("jobs", parent["id"]), json=parent)
-    result = ionq_job.IonQJob(
-        mock_backend, parent["id"], passed_args={"memory": True}
-    ).result()
+    job = ionq_job.IonQJob(mock_backend, parent["id"], passed_args={"memory": True})
+    result = job.result()
     assert result.get_memory(0) == result.get_memory(1) == ["01"]
     requested = [request.url for request in requests_mock.request_history]
     for child_id in parent["child_job_ids"]:
@@ -256,7 +253,7 @@ def test_default_simulator_sampling(simulator_backend, requests_mock):
 
 
 def test_v2_memory_maps_bits_and_flags_leakage(mock_backend, requests_mock):
-    """Memory keeps every shot, in order and mapped; drop_leaked removes flagged ones."""
+    """Memory keeps every shot in order and mapped; drop_leaked drops flagged ones."""
     response = dummy_job_response("mapped", shots=10)
     response["metadata"]["qiskit_header"] = compress_to_metadata_string(
         {
@@ -303,9 +300,8 @@ def test_empty_memory(mock_backend, requests_mock):
     _distribution(requests_mock, client, response, {"00": 1.0})
     _artifact(requests_mock, client, response, ResultFormat.SHOTS_V2, {"shots": []})
     requests_mock.get(client.make_path("jobs", response["id"]), json=response)
-    result = ionq_job.IonQJob(
-        mock_backend, response["id"], passed_args={"memory": True}
-    ).result()
+    job = ionq_job.IonQJob(mock_backend, response["id"], passed_args={"memory": True})
+    result = job.result()
     assert result.data(0)["memory"] == []
     assert result.data(0)["leaked"] == []
     assert result.get_memory(drop_leaked=True) == []
@@ -323,9 +319,8 @@ def test_legacy_memory_has_no_leak_flags(mock_backend, requests_mock):
         client.make_path("jobs", response["id"], "results", "shots"), json=[2, 2]
     )
     requests_mock.get(client.make_path("jobs", response["id"]), json=response)
-    result = ionq_job.IonQJob(
-        mock_backend, response["id"], passed_args={"memory": True}
-    ).result()
+    job = ionq_job.IonQJob(mock_backend, response["id"], passed_args={"memory": True})
+    result = job.result()
     assert result.get_memory() == ["10", "10"]
     assert "leaked" not in result.data(0)
     with pytest.raises(exceptions.IonQJobError, match="No leakage flags"):
@@ -338,7 +333,7 @@ def test_batch_mixed_memory_sources(mock_backend, requests_mock):
     parent["child_job_ids"] = ["new-memory", "old-memory"]
     client = mock_backend.client
     for child_id in parent["child_job_ids"]:
-        child = dummy_job_response(child_id, shots=10)
+        child = dummy_job_response(child_id)
         _distribution(requests_mock, client, child, {"10": 1.0})
         if child_id == "new-memory":
             _artifact(
@@ -354,9 +349,8 @@ def test_batch_mixed_memory_sources(mock_backend, requests_mock):
             )
         requests_mock.get(client.make_path("jobs", child_id), json=child)
     requests_mock.get(client.make_path("jobs", parent["id"]), json=parent)
-    result = ionq_job.IonQJob(
-        mock_backend, parent["id"], passed_args={"memory": True}
-    ).result()
+    job = ionq_job.IonQJob(mock_backend, parent["id"], passed_args={"memory": True})
+    result = job.result()
     assert result.get_memory(0) == ["01"]
     assert result.get_memory(1) == ["10"]
 
@@ -365,7 +359,7 @@ def _batch_with_unretrievable_child(requests_mock, client, aggregation=None):
     """A two-circuit batch whose second child cannot be retrieved."""
     parent = dummy_job_response("partial-batch", shots=10)
     parent["child_job_ids"] = ["reachable", "unreachable"]
-    child = dummy_job_response("reachable", shots=10)
+    child = dummy_job_response("reachable")
     _distribution(requests_mock, client, child, {"10": 1}, aggregation=aggregation)
     _artifact(
         requests_mock,
@@ -485,7 +479,6 @@ def test_default_extra_query_params(mock_backend, requests_mock):
     client = mock_backend.client
     _distribution(requests_mock, client, response, {"10": 1.0})
     requests_mock.get(client.make_path("jobs", response["id"]), json=response)
-    ionq_job.IonQJob(mock_backend, response["id"]).result(
-        extra_query_params={"custom": "value"}
-    )
+    job = ionq_job.IonQJob(mock_backend, response["id"])
+    job.result(extra_query_params={"custom": "value"})
     assert requests_mock.last_request.qs == {"custom": ["value"]}
