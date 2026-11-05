@@ -43,7 +43,13 @@ def _def_results_template(job_id):
 
 
 def dummy_job_response(
-    job_id, target="mock_backend", status="completed", job_settings=None, children=None
+    job_id,
+    target="mock_backend",
+    status="completed",
+    job_settings=None,
+    children=None,
+    *,
+    shots=1234,
 ):
     """A dummy response payload for `job_id`.
 
@@ -53,6 +59,7 @@ def dummy_job_response(
         status (str): A provided status string.
         job_settings (dict): Settings provided to the API.
         children (list): A list of child job IDs.
+        shots (int): The shot count recorded in the job's metadata.
 
     Returns:
         dict: A json response dict.
@@ -74,7 +81,7 @@ def dummy_job_response(
         "predicted_execution_time": 4,
         "metadata": {
             "qobj_id": "test_qobj_id",
-            "shots": "1234",
+            "shots": str(shots),
             "sampler_seed": "42",
             "output_length": "2",
             "qiskit_header": qiskit_header,
@@ -92,6 +99,9 @@ def dummy_job_response(
         "name": "test_name",
     }
 
+    if target == "simulator":
+        # Like the API, which sends noise on simulator jobs only.
+        response["noise"] = {"model": "ideal"}
     if children is not None:
         response["children"] = children
 

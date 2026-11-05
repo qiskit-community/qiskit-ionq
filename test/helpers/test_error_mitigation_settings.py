@@ -76,8 +76,7 @@ def _setup_artifact_job(
     job_id = "artifact_job"
     artifact_id = f"{aggregation}-artifact"
     client = mock_backend.client
-    response = dummy_job_response(job_id)
-    response["metadata"]["shots"] = "10"
+    response = dummy_job_response(job_id, shots=10)
     response["output"] = {
         "error_mitigation": {
             "aggregations": {
@@ -266,16 +265,16 @@ def test_unknown_aggregation_fails_before_request(
         (AggregationMethod.DNL, "01", "10"),
     ],
 )
-def test_aggregation_uses_published_probability_artifact(
+def test_aggregation_uses_published_artifact(
     mock_backend, requests_mock, aggregation, wire_state, expected_state
 ):
     """Every SDK aggregation method resolves its own published artifact."""
-    payload = {"probabilities": {"registers": {"output_all": {wire_state: 1.0}}}}
+    payload = {"histogram": {"registers": {"output_all": {wire_state: 10}}}}
     job = _setup_artifact_job(
         mock_backend,
         requests_mock,
         aggregation.value,
-        ResultFormat.PROBABILITIES_V2.value,
+        ResultFormat.HISTOGRAM_V2.value,
         payload,
     )
 
@@ -313,8 +312,7 @@ def test_multi_circuit_aggregation_uses_each_child_artifact(
     parent_id = "artifact_parent"
     child_ids = ["artifact_child_0", "artifact_child_1"]
     client = mock_backend.client
-    parent = dummy_job_response(parent_id, children=child_ids)
-    parent["metadata"]["shots"] = "10"
+    parent = dummy_job_response(parent_id, children=child_ids, shots=10)
     requests_mock.get(client.make_path("jobs", parent_id), json=parent)
 
     for index, (child_id, wire_state) in enumerate(zip(child_ids, ["00", "10"])):

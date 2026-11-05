@@ -436,6 +436,7 @@ def test_counts_marginalize(simulator_backend, requests_mock):
     requests_mock.get(
         client.make_path("jobs", job_id),
         json={
+            "id": job_id,
             "status": "completed",
             "stats": {"qubits": 4, "circuits": 1},
             "metadata": {"qiskit_header": header, "shots": str(shots)},
