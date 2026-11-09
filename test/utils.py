@@ -140,8 +140,8 @@ class FakeIonQCloud:
     no children.
     """
 
-    def __init__(self, requests_mock, client, seed=1234):
-        self._rng = np.random.default_rng(seed)
+    def __init__(self, requests_mock, client):
+        self._rng = np.random.default_rng(1234)
         self._jobs = {}
         self._results = {}
         self.submitted = []
@@ -163,8 +163,7 @@ class FakeIonQCloud:
             exact = {str(k): p for k, p in enumerate(probs) if p > 1e-12}
             return {"probabilities": self._serve(f"{base}/probabilities", exact)}
         raw = self._rng.choice(len(probs), size=shots, p=probs / probs.sum())
-        values, freq = np.unique(raw, return_counts=True)
-        sampled = {str(v): f / shots for v, f in zip(values.tolist(), freq.tolist())}
+        sampled = {str(v): f / shots for v, f in enumerate(np.bincount(raw)) if f}
         results = {"probabilities": self._serve(f"{base}/probabilities", sampled)}
         if noise is not None:
             results["shots"] = self._serve(f"{base}/shots", raw.tolist())
@@ -177,15 +176,7 @@ class FakeIonQCloud:
         noise = (payload.get("noise") or {}).get("model")
         circuits = payload["input"].get("circuits") or [payload["input"]]
         num_qubits, shots = payload["input"]["qubits"], payload["shots"]
-        job = {
-            "id": job_id,
-            "status": "completed",
-            "type": payload["type"],
-            "metadata": payload["metadata"],
-            "noise": payload.get("noise"),
-            "stats": {"qubits": num_qubits},
-            "execution_duration_ms": 1,
-        }
+        job = {"status": "completed", "metadata": payload["metadata"]}
         if len(circuits) > 1:
             children = {}
             for circuit in circuits:

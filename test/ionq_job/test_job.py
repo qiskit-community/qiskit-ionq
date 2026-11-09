@@ -30,8 +30,8 @@ from collections import Counter
 from unittest import mock
 import warnings
 
-import numpy as np
 import pytest
+from numpy.random import default_rng
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import exceptions as q_exc
 from qiskit.providers import jobstatus
@@ -1044,9 +1044,7 @@ def test_build_memory_3q_format():
 
 def test_memory_from_counts_rescales_to_shots():
     """Debiased counts can total 504 for 500 shots, as seen on forte-1."""
-    memory = ionq_job._memory_from_counts(
-        {"00": 253, "11": 251}, 500, np.random.default_rng()
-    )
+    memory = ionq_job._memory_from_counts({"00": 253, "11": 251}, 500, default_rng())
     assert Counter(memory) == {"0x0": 251, "0x3": 249}
 
 

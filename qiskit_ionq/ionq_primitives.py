@@ -95,10 +95,10 @@ class IonQPrimitiveJob(BasePrimitiveJob[PrimitiveResult, JobStatus]):
 
 
 def _one_job_shots(shots: list[int]) -> int:
-    """The shot count of the one IonQ job that runs every pub."""
+    """The shot count of the one IonQ job that runs every PUB."""
     if len(set(shots)) != 1:
         raise ValueError(
-            "A run() is one IonQ job, so its pubs must share a shot count "
+            "A run() is one IonQ job, so its PUBs must share a shot count "
             f"(for the estimator, a precision); got shots {sorted(set(shots))}."
         )
     return shots[0]

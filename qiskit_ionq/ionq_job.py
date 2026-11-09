@@ -224,8 +224,7 @@ def _memory_from_counts(counts: dict[str, int], shots: int, rng) -> list[str]:
     per_key = np.floor(scaled).astype(int)
     per_key[np.argsort(per_key - scaled)[: shots - per_key.sum()]] += 1
     memory = np.repeat([hex(int(k, 2)) for k in counts], per_key)
-    rng.shuffle(memory)
-    return memory.tolist()
+    return rng.permutation(memory).tolist()
 
 
 class IonQJob(JobV1):
