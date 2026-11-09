@@ -26,7 +26,7 @@ Per-shot memory
 ===============
 
 Pass ``memory=True`` to get per-shot bitstrings back from QPU or noisy-simulator
-jobs (the ideal simulator returns probabilities, not shots)::
+jobs (forte-1 and the ideal simulator give the counts in random order)::
 
    job = simulator_backend.run(qc, shots=1000, memory=True)
    print(job.get_memory())

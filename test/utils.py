@@ -26,6 +26,15 @@
 
 """Shared (non-fixture) test helpers, importable from any test module."""
 
+import json
+import re
+import uuid
+
+import numpy as np
+from qiskit import QuantumCircuit
+from qiskit.circuit import library
+from qiskit.quantum_info import Statevector
+
 from qiskit_ionq.helpers import compress_to_metadata_string
 
 
@@ -96,3 +105,98 @@ def dummy_job_response(
         response["children"] = children
 
     return response
+
+
+# IonQ QIS gate name -> Qiskit gate class, for the gates these tests send.
+_QIS_GATES = {
+    "h": library.HGate,
+    "x": library.XGate,
+    "s": library.SGate,
+    "si": library.SdgGate,
+    "ry": library.RYGate,
+}
+
+
+def _simulate(gates, num_qubits):
+    """Probabilities of an IonQ QIS gate list; index ``i`` has qubit 0 as LSB."""
+    circ = QuantumCircuit(num_qubits)
+    for inst in gates:
+        args = [inst["rotation"]] if "rotation" in inst else []
+        gate = _QIS_GATES[inst["gate"]](*args)
+        controls = inst.get("controls", [])
+        if controls:
+            gate = gate.control(len(controls))
+        circ.append(gate, controls + inst["targets"])
+    return Statevector(circ).probabilities()
+
+
+class FakeIonQCloud:
+    """Simulates each circuit POSTed to ``/jobs`` and serves the results.
+
+    The result shapes match IonQ Cloud's: the ideal simulator serves exact
+    probabilities, a QPU (as forte-1 does) serves sampled probabilities only,
+    and only a noisy simulator also serves per-shot data. A job with several
+    circuits keeps each circuit's results on a child; a one-circuit list has
+    no children.
+    """
+
+    def __init__(self, requests_mock, client):
+        self._rng = np.random.default_rng(1234)
+        self._jobs = {}
+        self._results = {}
+        self.submitted = []
+        requests_mock.post(client.make_path("jobs"), json=self._submit)
+        requests_mock.get(re.compile(r".*/jobs/[^/]+$"), json=self._get_job)
+        requests_mock.get(re.compile(r".*/results/.*"), json=self._get_result)
+
+    def _serve(self, path, body):
+        """Serve ``body`` at ``path``; return the result entry linking to it."""
+        self._results[path] = body
+        return {"url": path}
+
+    def _run(self, job_id, gates, num_qubits, shots, noise):
+        """Store one circuit's results and return its ``results`` field.
+        ``noise`` is the payload's noise model, or ``None`` for a QPU."""
+        base = f"/v0.4/jobs/{job_id}/results"
+        probs = _simulate(gates, num_qubits)
+        if noise == "ideal":
+            exact = {str(k): p for k, p in enumerate(probs) if p > 1e-12}
+            return {"probabilities": self._serve(f"{base}/probabilities", exact)}
+        raw = self._rng.choice(len(probs), size=shots, p=probs / probs.sum())
+        sampled = {str(v): f / shots for v, f in enumerate(np.bincount(raw)) if f}
+        results = {"probabilities": self._serve(f"{base}/probabilities", sampled)}
+        if noise is not None:
+            results["shots"] = self._serve(f"{base}/shots", raw.tolist())
+        return results
+
+    def _submit(self, request, _context):
+        payload = json.loads(request.body)
+        self.submitted.append(payload)
+        job_id = str(uuid.uuid4())
+        noise = (payload.get("noise") or {}).get("model")
+        circuits = payload["input"].get("circuits") or [payload["input"]]
+        num_qubits, shots = payload["input"]["qubits"], payload["shots"]
+        job = {"status": "completed", "metadata": payload["metadata"]}
+        if len(circuits) > 1:
+            children = {}
+            for circuit in circuits:
+                child_id = str(uuid.uuid4())
+                results = self._run(
+                    child_id, circuit["circuit"], num_qubits, shots, noise
+                )
+                self._jobs[child_id] = {"status": "completed", "results": results}
+                children[child_id] = self._results[results["probabilities"]["url"]]
+            job["child_job_ids"] = list(children)
+            aggregated = f"/v0.4/jobs/{job_id}/results/probabilities/aggregated"
+            job["results"] = {"probabilities": self._serve(aggregated, children)}
+        else:
+            gates = circuits[0]["circuit"]
+            job["results"] = self._run(job_id, gates, num_qubits, shots, noise)
+        self._jobs[job_id] = job
+        return {"id": job_id, "status": "submitted"}
+
+    def _get_job(self, request, _context):
+        return self._jobs[request.path.rsplit("/", 1)[-1]]
+
+    def _get_result(self, request, _context):
+        return self._results[request.path]

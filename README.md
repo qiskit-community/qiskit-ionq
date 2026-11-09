@@ -130,7 +130,7 @@ The compiled circuit is fetched from the job's published artifacts (`output.comp
 
 QPU and noisy-simulator jobs can return per-shot measurement outcomes. Pass `memory=True` on `backend.run(...)` to opt in (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention), then call `job.get_memory()` to retrieve the per-shot bitstrings.
 
-Per-shot data requires sampling, so on the simulator set a noise model first (the ideal simulator returns only an aggregate distribution; QPU backends need no extra setup):
+Backends that return only a distribution (the ideal simulator and QPUs like forte-1) give the counts in random order, so for sampled shots set a noise model on the simulator:
 
 ```python
 backend = provider.get_backend("ionq_simulator")
@@ -141,6 +141,17 @@ memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 ```
 
 Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
+
+### Sampler and Estimator primitives
+
+`IonQSampler` and `IonQEstimator` work like Qiskit's `BackendSamplerV2` and `BackendEstimatorV2`, except that `job.job_id()` is the IonQ job ID, which `backend.retrieve_job` accepts. Each `run()` submits its PUBs as one IonQ job, so they must share a shot count (for the estimator, a precision).
+
+```python
+from qiskit_ionq import IonQSampler
+
+job = IonQSampler(backend=simulator_backend).run([qc], shots=1000)
+print(job.job_id(), job.result()[0].data.c.get_counts())
+```
 
 ### Mid-circuit measurements
 
