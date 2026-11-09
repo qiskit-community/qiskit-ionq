@@ -128,7 +128,7 @@ The compiled circuit is fetched from the job's published artifacts (`output.comp
 
 ### Per-shot memory (`memory`)
 
-Pass `memory=True` to `backend.run(...)` to get per-shot bitstrings from `job.get_memory()` (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention).
+QPU and noisy-simulator jobs can return per-shot measurement outcomes. Pass `memory=True` on `backend.run(...)` to opt in (the default is `False`, matching the `qiskit` and `qiskit-aer` `backend.run` convention), then call `job.get_memory()` to retrieve the per-shot bitstrings.
 
 Backends that return only a distribution (the ideal simulator, and QPUs such as forte-1) give the counts in random order, so for sampled shots set a noise model on the simulator:
 

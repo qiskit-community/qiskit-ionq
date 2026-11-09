@@ -216,7 +216,7 @@ def _build_memory(
     return [remap_raw_shot(s) for s in raw_shots]
 
 
-def _memory_from_counts(counts: dict[str, int], shots: int, seed) -> list[str]:
+def _memory_from_counts(counts: dict[str, int], shots: int, rng) -> list[str]:
     """Memory for a circuit with no per-shot data: its counts in random order,
     rescaled by largest remainder to exactly ``shots`` (mitigated counts may
     not sum to it)."""
@@ -224,7 +224,7 @@ def _memory_from_counts(counts: dict[str, int], shots: int, seed) -> list[str]:
     per_key = np.floor(scaled).astype(int)
     per_key[np.argsort(per_key - scaled)[: shots - per_key.sum()]] += 1
     memory = np.repeat([hex(int(k, 2)) for k in counts], per_key)
-    np.random.default_rng(seed).shuffle(memory)
+    rng.shuffle(memory)
     return memory.tolist()
 
 
@@ -901,7 +901,7 @@ class IonQJob(JobV1):
                 if bits is not None and bit < len(bits) and int(bits[bit]):
                     value |= 1 << index
             key = format(value, f"0{width}b") if width else "0"
-            memory.append(key)
+            memory.append(hex(value))
             counts[key] = counts.get(key, 0) + 1
 
         total = len(shots)
@@ -1023,9 +1023,10 @@ class IonQJob(JobV1):
                 raw_shots_per_circuit = self._raw_shots_per_circuit()
             else:
                 raw_shots_per_circuit = [None] * self._num_circuits
+            rng = np.random.default_rng(sampler_seed)
 
             for i in range(self._num_circuits):
-                header = qiskit_header[i] or {}
+                header = job_result[i]["header"]
                 # Infer clbits from result keys when metadata is absent
                 # (e.g. job submitted outside qiskit); map_output returns
                 # nothing for an empty clbits list.
@@ -1034,6 +1035,7 @@ class IonQJob(JobV1):
                     inferred_nq = max(int(k) for k in data[i]).bit_length() or 1
                     clbits = list(range(inferred_nq))
                 n_qubits = header.get("n_qubits", len(clbits) or self._num_qubits)
+                header.setdefault("memory_slots", len(clbits) or n_qubits)
 
                 counts, probabilities = _build_counts(
                     data[i],
@@ -1052,7 +1054,7 @@ class IonQJob(JobV1):
                 if raw_shots is not None:
                     memory = _build_memory(raw_shots, n_qubits, clbits)
                 elif self.memory:
-                    memory = _memory_from_counts(counts, shots, sampler_seed)
+                    memory = _memory_from_counts(counts, shots, rng)
                 else:
                     memory = None
                 job_result[i]["data"] = {

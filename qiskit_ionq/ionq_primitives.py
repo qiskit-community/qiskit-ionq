@@ -27,7 +27,7 @@
 
 """Qiskit's backend V2 primitives, with IonQ job IDs.
 
-Each ``run`` submits its pubs as one IonQ job before returning, so
+Each ``run`` submits its Primitive Unified Blocs (PUBs) as one IonQ job before returning, so
 ``job.job_id()`` is that job's ID (Qiskit's own classes return a random UUID).
 """
 
@@ -40,17 +40,19 @@ from qiskit.primitives import (
     BackendEstimatorV2,
     BackendSamplerV2,
     BasePrimitiveJob,
-    EstimatorPub,
     EstimatorPubLike,
     PrimitiveResult,
-    SamplerPub,
     SamplerPubLike,
 )
 from qiskit.primitives.backend_estimator_v2 import _prepare_counts
 from qiskit.primitives.backend_sampler_v2 import _analyze_circuit, _prepare_memory
+from qiskit.primitives.containers.estimator_pub import EstimatorPub
+from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.providers import JobStatus
+from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.result import Result
 
+from .exceptions import IonQJobFailureError
 from .ionq_job import IonQJob
 
 
@@ -71,19 +73,22 @@ class IonQPrimitiveJob(BasePrimitiveJob[PrimitiveResult, JobStatus]):
         return self._result
 
     def status(self) -> JobStatus:
-        return self._ionq_job.status()
+        try:
+            return self._ionq_job.status()
+        except IonQJobFailureError:
+            return JobStatus.ERROR
 
     def done(self) -> bool:
-        return self._ionq_job.done()
+        return self.status() == JobStatus.DONE
 
     def running(self) -> bool:
-        return self._ionq_job.running()
+        return self.status() == JobStatus.RUNNING
 
     def cancelled(self) -> bool:
-        return self._ionq_job.cancelled()
+        return self.status() == JobStatus.CANCELLED
 
     def in_final_state(self) -> bool:
-        return self._ionq_job.in_final_state()
+        return self.status() in JOB_FINAL_STATES
 
     def cancel(self) -> None:
         self._ionq_job.cancel()
@@ -114,6 +119,7 @@ class IonQSampler(BackendSamplerV2):
             [circuit for circuits in bound for circuit in circuits.ravel()],
             shots=_one_job_shots([pub.shots for pub in coerced_pubs]),
             memory=True,
+            sampler_seed=self.options.seed_simulator,
             **(self.options.run_options or {}),
         )
 
@@ -160,7 +166,9 @@ class IonQEstimator(BackendEstimatorV2):
         metadata = [circuit.metadata for circuit in circuits]
         for circuit in circuits:
             circuit.metadata = {}
-        job = self.backend.run(circuits, shots=shots)
+        job = self.backend.run(
+            circuits, shots=shots, sampler_seed=self.options.seed_simulator
+        )
 
         def postprocess(result: Result) -> PrimitiveResult:
             counts = _prepare_counts([result])

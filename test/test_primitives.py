@@ -38,6 +38,8 @@ from qiskit.quantum_info import SparsePauliOp
 
 from qiskit_ionq import IonQEstimator, IonQSampler
 
+from .utils import FakeIonQCloud
+
 
 def _two_registers():
     """``alpha`` = (q1, q0) is always '10'; ``beta`` = (q3, q2) is a Bell pair."""
@@ -140,6 +142,24 @@ def test_estimator_job_id_is_retrievable(any_backend, fake_cloud):
     np.testing.assert_allclose(job.result()[1].data.evs, [-1, 1])
 
 
+def test_sampler_reruns_are_independent(simulator_backend, requests_mock):
+    """Each run is its own IonQ job, and a seeded rerun repeats it exactly
+    (with each circuit in its own shot order)."""
+    FakeIonQCloud(requests_mock, simulator_backend.client)
+    circ = QuantumCircuit(1, 1)
+    circ.h(0)
+    circ.measure(0, 0)
+    circ = transpile(circ, simulator_backend, optimization_level=0)
+    sampler = IonQSampler(backend=simulator_backend, options={"seed_simulator": 42})
+    jobs = [sampler.run([circ, circ], shots=100) for _ in range(2)]
+    assert jobs[0].job_id() != jobs[1].job_id()
+    first, again = (
+        [pub.data.c.get_bitstrings() for pub in job.result()] for job in jobs
+    )
+    assert first == again
+    assert first[0] != first[1]
+
+
 def test_pubs_must_share_shots(simulator_backend):
     """One IonQ job has one shot count, so pubs that need different ones raise."""
     circ = QuantumCircuit(1, 1)
@@ -167,3 +187,18 @@ def test_cancel_cancels_ionq_job(simulator_backend, requests_mock):
     circ.measure(0, 0)
     IonQSampler(backend=simulator_backend).run([circ]).cancel()
     assert cancel.called_once
+
+
+def test_failed_job_status_is_error(simulator_backend, requests_mock):
+    """A failed IonQ job reads as ERROR, as Qiskit's own primitive jobs do."""
+    client = simulator_backend.client
+    requests_mock.post(client.make_path("jobs"), json={"id": "failed"})
+    requests_mock.get(
+        client.make_path("jobs", "failed"),
+        json={"id": "failed", "status": "failed", "failure": {"error": "boom"}},
+    )
+    circ = QuantumCircuit(1, 1)
+    circ.measure(0, 0)
+    job = IonQSampler(backend=simulator_backend).run([circ])
+    assert job.status() == JobStatus.ERROR
+    assert job.in_final_state() and not job.done()

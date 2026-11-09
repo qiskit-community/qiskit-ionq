@@ -30,6 +30,7 @@ from collections import Counter
 from unittest import mock
 import warnings
 
+import numpy as np
 import pytest
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import exceptions as q_exc
@@ -1043,7 +1044,9 @@ def test_build_memory_3q_format():
 
 def test_memory_from_counts_rescales_to_shots():
     """Debiased counts can total 504 for 500 shots, as seen on forte-1."""
-    memory = ionq_job._memory_from_counts({"00": 253, "11": 251}, 500, seed=None)
+    memory = ionq_job._memory_from_counts(
+        {"00": 253, "11": 251}, 500, np.random.default_rng()
+    )
     assert Counter(memory) == {"0x0": 251, "0x3": 249}
 
 
@@ -1114,6 +1117,7 @@ def test_multi_mem_per_child(mock_backend, requests_mock):
 
     # Bell-like child: outcomes 0 and 3 on 2 inferred qubits -> '00' / '11'.
     assert result.data(0).get("memory") == ["0x0", "0x3", "0x0", "0x3"]
+    assert job.get_memory(0) == ["00", "11", "00", "11"]  # padded with no header
     # X-like child: outcome 1 on 1 inferred qubit -> '1'.
     assert result.data(1).get("memory") == ["0x1", "0x1", "0x1"]
 
@@ -1537,6 +1541,7 @@ def test_qasm3_result_counts(mock_backend, requests_mock):
     # Qiskit splits as "result mid": mid=1,result=10 -> "01 1".
     assert res.get_counts() == {"00 0": 3, "01 1": 1}
     assert res.get_memory() == ["00 0", "00 0", "00 0", "01 1"]
+    assert res.data(0)["memory"] == ["0x0", "0x0", "0x0", "0x3"]
 
 
 def test_qasm3_ideal_sim_no_shots(mock_backend, requests_mock):
