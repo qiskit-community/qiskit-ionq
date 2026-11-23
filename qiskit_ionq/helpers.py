@@ -830,7 +830,7 @@ def resolve_credentials(token: str | None = None, url: str | None = None) -> dic
     )
     return {
         "token": token or env_token,
-        # Paths are appended as "/<path>"; a trailing slash would double it.
+        # Paths are appended as "/<path>"; so strip a trailing slash here.
         "url": (url or env_url or "https://api.ionq.co/v0.4").rstrip("/"),
     }
 
