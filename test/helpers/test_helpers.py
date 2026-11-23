@@ -30,7 +30,12 @@ import re
 from unittest.mock import patch, MagicMock
 import pytest
 from qiskit_ionq.ionq_client import IonQClient
-from qiskit_ionq.helpers import api_backend_id, get_backends, retry
+from qiskit_ionq.helpers import (
+    api_backend_id,
+    get_backends,
+    resolve_credentials,
+    retry,
+)
 
 
 def test_user_agent_header():
@@ -66,6 +71,17 @@ def test_user_agent_header():
 def test_api_backend_id(name, expected):
     """api_backend_id normalizes local backend names to their API id."""
     assert api_backend_id(name) == expected
+
+
+@pytest.mark.parametrize("from_env", [True, False])
+def test_resolve_credentials_strips_trailing_slash(monkeypatch, from_env):
+    """A trailing slash on the url, given or from the environment, is dropped."""
+    url = "https://example.com/v0.4/"
+    monkeypatch.setattr("qiskit_ionq.helpers.dotenv_values", lambda: {})
+    monkeypatch.delenv("QISKIT_IONQ_API_URL", raising=False)
+    monkeypatch.setenv("IONQ_API_URL", url if from_env else "https://other.example")
+    creds = resolve_credentials("token", None if from_env else url)
+    assert creds["url"] == "https://example.com/v0.4"
 
 
 def test_get_backends_success():
