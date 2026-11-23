@@ -88,13 +88,12 @@ class AggregationMethod(enum.Enum):
     DNL = "dnl"
 
 
-class ResultFormat(str, enum.Enum):
+class ResultFormat(enum.StrEnum):
     """Format keys for the id-addressed v2 result artifacts in a job's
     ``results`` map (fetched via ``GET /jobs/{id}/artifacts/{id}``).
 
-    Subclasses ``str`` so a member is usable directly as a dict key, e.g.
-    ``results.get(ResultFormat.SHOTS_V2)`` (``enum.StrEnum`` is 3.11+; the
-    repo floor is 3.10).
+    A ``StrEnum`` so a member is usable directly as a dict key, e.g.
+    ``results.get(ResultFormat.SHOTS_V2)``.
     """
 
     SHOTS_V2 = "ionq.result.shots.json.v2"
