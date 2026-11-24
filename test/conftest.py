@@ -38,6 +38,7 @@ from qiskit_ionq.helpers import compress_to_metadata_string
 # Re-exported so existing `conftest.dummy_job_response(...)` call sites keep
 # working; new tests should import from `test.utils` directly.
 from .utils import _def_results_template, dummy_job_response  # noqa: F401  pylint: disable=unused-import
+from .utils import FakeIonQCloud
 
 # Offline stand-in for one backend's catalog entry. Native gatesets match
 # the real API per family; qubit counts stay small so backend-transpiled
@@ -302,6 +303,23 @@ def simulator_backend(provider):
         IonQQPUBackend: An instance of an IonQQPUBackend.
     """
     return provider.get_backend("ionq_simulator")
+
+
+@pytest.fixture(params=["ideal_simulator", "noisy_simulator", "qpu"])
+def any_backend(request, provider):
+    """One backend per result shape; only the noisy simulator serves shots."""
+    if request.param == "qpu":
+        return provider.get_backend("ionq_qpu.forte-1")
+    backend = provider.get_backend("ionq_simulator")
+    if request.param == "noisy_simulator":
+        backend.set_options(noise_model="forte-1")
+    return backend
+
+
+@pytest.fixture()
+def fake_cloud(any_backend, requests_mock):
+    """A :class:`FakeIonQCloud` serving ``any_backend``."""
+    return FakeIonQCloud(requests_mock, any_backend.client)
 
 
 @pytest.fixture()
