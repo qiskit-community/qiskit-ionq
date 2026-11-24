@@ -142,6 +142,16 @@ memory = job.get_memory()       # ['11', '00', '11', '00', ...]
 
 Passing `noise_model="forte-1"` directly to `backend.run(...)` works as well.
 
+Memory keeps every recorded shot, including shots where the hardware flagged an ion as leaked (it left the qubit states mid-shot). So memory can hold more entries than the `shots` you requested. To drop leaked shots:
+
+```python
+memory = job.get_memory(drop_leaked=True)
+```
+
+The per-shot flags are in `job.result().data()["leaked"]`, aligned with memory. The default counts include leaked shots too; only `aggregation=...` on a debiased job drops them.
+
+Memory's histogram can also differ from `get_counts()` under [error mitigation](#error-mitigation) (debiasing or symmetry verification) or an aggregation method: counts come from IonQ's post-processed distribution, while memory holds the raw shots.
+
 ### Mid-circuit measurements
 
 The IonQ provider supports mid-circuit measurements, qubit reuse, and mid-circuit `reset`. Results are reported per declared classical register, like Qiskit's usual register-split counts. Single-circuit only; the `debiasing`/`symmetry_verification` kwargs work here as well.
@@ -167,9 +177,11 @@ qc.measure(0, result[1])
 
 job = backend.run(qc, shots=100, memory=True, noise_model="aria-1")
 result = job.result()
-result.get_counts()        # split across registers, e.g. {'01 0': 96, '10 1': 104}
+result.get_counts()        # split across registers, e.g. {'01 0': 48, '10 1': 52}
 result.get_memory()        # per-shot, e.g. ['01 0', '10 1', ...]
 ```
+
+Here counts come straight from the recorded shots, leaked ones included, so they can total more than `shots`, and `aggregation=...` has no effect. `get_memory(drop_leaked=True)` works here too.
 
 ### Basis gates and transpilation
 

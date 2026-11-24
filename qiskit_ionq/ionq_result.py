@@ -92,3 +92,40 @@ class IonQResult(Result):
         if len(dict_list) == 1:
             return dict_list[0]
         return dict_list
+
+    def get_memory(self, experiment=None, *, drop_leaked=False):
+        """
+        Get the experiment's per-shot memory.
+
+        Memory keeps every recorded shot, including shots the hardware
+        flagged as leaked (an ion left the qubit states mid-shot).
+        ``data(experiment)["leaked"]`` holds the per-shot flags, aligned with
+        memory.
+
+        Args:
+            experiment (Union[int, QuantumCircuit, Schedule, dict], optional): If provided, this
+                argument is used to get an experiment using Result's ``_get_experiment`` method.
+            drop_leaked (bool): Drop the shots the hardware flagged as leaked.
+
+        Raises:
+            QiskitError: If the experiment has no memory, or ``drop_leaked`` is
+                set and its shots have no leak flags (they predate v2 result
+                artifacts).
+
+        Returns:
+            list[str]: One bitstring per shot.
+        """
+        memory = super().get_memory(experiment)
+        if not drop_leaked:
+            return memory
+        leaked = self.data(experiment).get("leaked")
+        if leaked is None:
+            raise QiskitError(
+                f'No leakage flags for experiment "{experiment!r}"; '
+                "its shots predate v2 result artifacts."
+            )
+        return [
+            shot
+            for shot, is_leaked in zip(memory, leaked, strict=True)
+            if not is_leaked
+        ]
