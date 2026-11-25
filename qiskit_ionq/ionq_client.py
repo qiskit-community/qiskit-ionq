@@ -507,8 +507,13 @@ class JobEstimate:
         self.error_mitigation: bool = inputs.get("error_mitigation")
         self.session: bool = inputs.get("session")
 
-        # Core numeric results
-        self.cost: float | None = data.get("estimated_cost")
+        # Core numeric results.
+        # GET /jobs/estimate reports the cost as "estimated_total_cost"; the
+        # older "estimated_cost" spelling is accepted as a fallback so that any
+        # deployment still emitting it keeps working.
+        self.cost: float | None = data.get(
+            "estimated_total_cost", data.get("estimated_cost")
+        )
         self.cost_unit: str | None = data.get("cost_unit")
         self.exec_time: float | None = data.get("estimated_execution_time")  # seconds
         self.queue_time: float | None = data.get("current_predicted_queue_time")  # sec
@@ -539,7 +544,11 @@ class JobEstimate:
             f"backend={self.backend}",
             f"qubits={self.qubits}",
             f"shots={self.shots}",
-            f"cost={self.cost} {self.cost_unit}",
+            (
+                f"cost={self.cost} {self.cost_unit}"
+                if self.cost_unit
+                else f"cost={self.cost}"
+            ),
             f"exec_time={self.exec_time}s",
             f"queue_time={self.queue_time}s",
         ]
