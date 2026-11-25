@@ -15,6 +15,7 @@ Qiskit IonQ Provider documentation
    Installation <guides/install>
    IonQ API Access <guides/access>
    Submitting circuits <guides/usage>
+   Qiskit core workflows <guides/qiskit_core>
 
 
 .. toctree::
